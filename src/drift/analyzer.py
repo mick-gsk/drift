@@ -27,6 +27,7 @@ from drift.scoring.engine import (
     compute_signal_scores,
 )
 from drift.signals.architecture_violation import ArchitectureViolationSignal
+from drift.signals.doc_impl_drift import DocImplDriftSignal
 from drift.signals.explainability_deficit import ExplainabilityDeficitSignal
 from drift.signals.mutant_duplicates import MutantDuplicateSignal
 from drift.signals.pattern_fragmentation import PatternFragmentationSignal
@@ -163,7 +164,7 @@ def analyze_repo(
         ExplainabilityDeficitSignal(),
         TemporalVolatilitySignal(),
         SystemMisalignmentSignal(),
-        # DocImplDriftSignal excluded — Phase 2 stub (weight 0.0)
+        DocImplDriftSignal(repo_path),
     ]
 
     all_findings: list[Finding] = []
@@ -291,7 +292,7 @@ def analyze_diff(
         ExplainabilityDeficitSignal(),
         TemporalVolatilitySignal(),
         SystemMisalignmentSignal(),
-        # DocImplDriftSignal excluded — Phase 2 stub (weight 0.0)
+        DocImplDriftSignal(repo_path),
     ]
 
     all_findings: list[Finding] = []

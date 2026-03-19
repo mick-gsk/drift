@@ -2,10 +2,13 @@
 
 Combines individual signal scores into a weighted composite drift score
 per module and for the entire repository.
+
+See docs/adr/003-composite-scoring-model.md for design rationale.
 """
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from pathlib import Path
 
@@ -33,10 +36,22 @@ _SIGNAL_WEIGHT_KEYS: dict[SignalType, str] = {
 _severity_for_score = severity_for_score
 
 
+# Count-dampening constant: finding counts above this value produce a
+# dampening factor of ~1.0 (see ADR-003 for derivation).
+_DAMPENING_K = 10
+
+
 def compute_signal_scores(
     findings: list[Finding],
 ) -> dict[SignalType, float]:
-    """Compute per-signal aggregate scores from findings."""
+    """Compute per-signal aggregate scores with count-dampened aggregation.
+
+    Each signal's score = mean(finding_scores) * min(1, ln(1+n)/ln(1+k))
+    where n = finding count and k = dampening constant.
+
+    This ensures that a single finding with score 0.5 produces a lower
+    signal score than 15 findings with the same mean score.
+    """
     by_signal: dict[SignalType, list[float]] = defaultdict(list)
     for f in findings:
         by_signal[f.signal_type].append(f.score)
@@ -45,9 +60,9 @@ def compute_signal_scores(
     for sig in SignalType:
         values = by_signal.get(sig, [])
         if values:
-            scores[sig] = sum(values) / len(values)
-        # Signals with no findings are omitted — avoids dead entries
-        # for deferred signals like doc_impl_drift (weight 0.0).
+            mean = sum(values) / len(values)
+            dampening = min(1.0, math.log(1 + len(values)) / math.log(1 + _DAMPENING_K))
+            scores[sig] = round(mean * dampening, 4)
 
     return scores
 

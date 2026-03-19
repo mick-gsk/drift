@@ -11,6 +11,7 @@ size range (±40% LOC) are compared.
 
 from __future__ import annotations
 
+import ast
 import difflib
 from collections import defaultdict
 from itertools import combinations
@@ -54,10 +55,68 @@ def _function_body_text(
 
 
 def _structural_similarity(a: str, b: str) -> float:
-    """Compute structural similarity using SequenceMatcher."""
+    """Compute structural similarity via AST n-gram Jaccard, with text fallback.
+
+    1. Parse both snippets into ASTs.
+    2. Walk each AST, collecting node-type trigrams (ignoring names/literals).
+    3. Return Jaccard similarity of the two trigram multisets.
+
+    Falls back to difflib SequenceMatcher when either snippet fails to parse
+    (e.g. partial code, syntax errors).
+    """
     if not a or not b:
         return 0.0
+
+    ngrams_a = _ast_ngrams(a)
+    ngrams_b = _ast_ngrams(b)
+
+    if ngrams_a is not None and ngrams_b is not None:
+        return _jaccard(ngrams_a, ngrams_b)
+
+    # Fallback: text-based comparison for unparseable snippets
     return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def _ast_ngrams(source: str, n: int = 3) -> list[tuple[str, ...]] | None:
+    """Extract n-grams of AST node types from a source snippet.
+
+    Returns None if the source cannot be parsed.  Names, string literals,
+    and numeric constants are normalised away so that renaming variables
+    does not affect the fingerprint.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None
+
+    node_types: list[str] = []
+    for node in ast.walk(tree):
+        node_types.append(type(node).__name__)
+
+    if len(node_types) < n:
+        return node_types[:1] if node_types else None
+
+    return [tuple(node_types[i : i + n]) for i in range(len(node_types) - n + 1)]
+
+
+def _jaccard(a: list[tuple[str, ...]], b: list[tuple[str, ...]]) -> float:
+    """Jaccard similarity over two multiset n-gram lists."""
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+
+    set_a = defaultdict(int)
+    set_b = defaultdict(int)
+    for ng in a:
+        set_a[ng] += 1
+    for ng in b:
+        set_b[ng] += 1
+
+    all_keys = set(set_a) | set(set_b)
+    intersection = sum(min(set_a[k], set_b[k]) for k in all_keys)
+    union = sum(max(set_a[k], set_b[k]) for k in all_keys)
+    return intersection / union if union else 0.0
 
 
 class MutantDuplicateSignal(BaseSignal):

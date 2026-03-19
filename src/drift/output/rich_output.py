@@ -8,6 +8,8 @@ from rich.table import Table
 from rich.text import Text
 
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity, SignalType
+from drift.recommendations import Recommendation
+from drift.timeline import RepoTimeline
 
 # Colors per severity
 _SEVERITY_COLORS = {
@@ -242,7 +244,7 @@ def render_full_report(analysis: RepoAnalysis, console: Console | None = None) -
 
 
 def render_timeline(
-    timeline: RepoTimeline,  # noqa: F821
+    timeline: RepoTimeline,
     console: Console | None = None,
 ) -> None:
     """Render the drift timeline showing *when* and *why* drift began."""
@@ -318,7 +320,7 @@ def render_timeline(
 
 
 def render_recommendations(
-    recommendations: list[Recommendation],  # noqa: F821
+    recommendations: list[Recommendation],
     console: Console | None = None,
 ) -> None:
     """Render actionable recommendations."""

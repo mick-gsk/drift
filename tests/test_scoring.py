@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from drift.config import SignalWeights
 from drift.models import Finding, Severity, SignalType
 from drift.scoring.engine import (
@@ -34,14 +36,22 @@ def _finding(
 
 
 def test_compute_signal_scores_averages():
+    import math
+
     findings = [
         _finding(SignalType.PATTERN_FRAGMENTATION, 0.4),
         _finding(SignalType.PATTERN_FRAGMENTATION, 0.6),
         _finding(SignalType.ARCHITECTURE_VIOLATION, 0.8),
     ]
     scores = compute_signal_scores(findings)
-    assert scores[SignalType.PATTERN_FRAGMENTATION] == 0.5
-    assert scores[SignalType.ARCHITECTURE_VIOLATION] == 0.8
+    # Scores are count-dampened: mean * min(1, ln(1+n)/ln(1+10))
+    k = 10
+    pf_mean = 0.5
+    pf_damp = min(1.0, math.log(1 + 2) / math.log(1 + k))
+    assert scores[SignalType.PATTERN_FRAGMENTATION] == pytest.approx(round(pf_mean * pf_damp, 4))
+    av_mean = 0.8
+    av_damp = min(1.0, math.log(1 + 1) / math.log(1 + k))
+    assert scores[SignalType.ARCHITECTURE_VIOLATION] == pytest.approx(round(av_mean * av_damp, 4))
     # Signals without findings are omitted from the dict
     assert scores.get(SignalType.DOC_IMPL_DRIFT, 0.0) == 0.0
 

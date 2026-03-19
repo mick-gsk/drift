@@ -434,10 +434,11 @@ def self_analyze(since: int, output_format: str) -> None:
 
     cfg = DriftConfig.load(drift_root)
 
-    console.print(f"[bold]drift self[/bold] — analyzing drift's own codebase ({drift_root})")
-    console.print()
+    info_console = Console(stderr=True) if output_format != "rich" else console
+    info_console.print(f"[bold]drift self[/bold] — analyzing drift's own codebase ({drift_root})")
+    info_console.print()
 
-    with console.status("[bold blue]Running self-analysis..."):
+    with info_console.status("[bold blue]Running self-analysis..."):
         analysis = analyze_repo(drift_root, cfg, since_days=since)
 
     if output_format == "json":
@@ -520,10 +521,10 @@ def badge(repo: Path, since: int, config: Path | None, style: str, output: Path 
     console.print(f"  Score: [bold]{score:.2f}[/bold]  ({analysis.severity.value})")
     console.print()
     console.print("[dim]URL:[/dim]")
-    console.print(f"  {url}")
+    click.echo(f"  {url}")
     console.print()
     console.print("[dim]Markdown:[/dim]")
-    console.print(f"  {md_snippet}")
+    click.echo(f"  {md_snippet}")
 
 
 if __name__ == "__main__":
