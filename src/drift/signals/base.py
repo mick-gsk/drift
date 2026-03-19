@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
 
+from drift.config import DriftConfig
 from drift.models import FileHistory, Finding, ParseResult, SignalType
 
 
@@ -29,7 +29,7 @@ class BaseSignal(ABC):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         """Run this signal's detection logic and return findings."""
         ...

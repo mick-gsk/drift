@@ -7,8 +7,7 @@ basic structural check.
 
 from __future__ import annotations
 
-from typing import Any
-
+from drift.config import DriftConfig
 from drift.models import FileHistory, Finding, ParseResult, SignalType
 from drift.signals.base import BaseSignal
 
@@ -32,7 +31,7 @@ class DocImplDriftSignal(BaseSignal):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         # Phase 2: ADR parsing and claim verification against code
         # MVP returns empty — this signal requires NLP which adds complexity

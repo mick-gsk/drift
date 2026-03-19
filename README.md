@@ -1,8 +1,33 @@
 # Drift — Codebase Coherence Analyzer
 
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com)
+[![SARIF](https://img.shields.io/badge/output-SARIF-blueviolet)](https://docs.github.com/en/code-security/code-scanning)
+[![TypeScript](https://img.shields.io/badge/TypeScript-optional-blue?logo=typescript)](https://www.typescriptlang.org/)
+
 **Detect architectural erosion from AI-generated code.**
 
 Drift is a static analysis tool that measures how well a codebase maintains its architectural coherence over time — particularly as AI code-generation tools (Copilot, Cursor, ChatGPT) introduce code that solves local tasks correctly but weakens global design consistency.
+
+---
+
+## Contents
+
+- [The Problem](#the-problem)
+- [Quick Start](#-quick-start)
+- [Demo](#-demo)
+- [What Drift Detects](#-what-drift-detects)
+- [Output Formats](#-output-formats)
+- [Configuration](#configuration)
+- [pre-commit Hook](#pre-commit-hook)
+- [GitHub Action](#github-action)
+- [CLI Commands](#cli-commands)
+- [Architecture](#architecture)
+- [Development](#development)
+- [Roadmap](#roadmap)
+
+---
 
 ## The Problem
 
@@ -27,6 +52,37 @@ drift patterns
 
 # JSON output for downstream tooling
 drift analyze --format json
+
+# Self-analysis — drift analyzes its own codebase
+drift self
+
+# Generate a shields.io badge for your README
+drift badge --repo .
+```
+
+## Demo
+
+```
+╭─ drift analyze  myproject/ ──────────────────────────────────────────────────╮
+│  DRIFT SCORE  0.52  │  87 files  │  412 functions  │  AI: 34%  │  2.1s      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+                        Module Drift Ranking
+  Module                           Score  Bar                    Findings  Top Signal
+  ────────────────────────────────────────────────────────────────────────────────────
+  src/api/routes/                   0.71  ████████████████░░░░ 0.71   12  PFS 0.85
+  src/services/auth/                0.58  ███████████░░░░░░░░░ 0.58    7  AVS 0.72
+  src/db/models/                    0.41  ████████░░░░░░░░░░░░ 0.41    4  MDS 0.61
+  src/utils/                        0.23  ████░░░░░░░░░░░░░░░░ 0.23    2  EDS 0.44
+
+┌──┬────────┬───────┬──────────────────────────────────────┬──────────────────────┐
+│  │ Signal │ Score │ Title                                 │ Location             │
+├──┼────────┼───────┼──────────────────────────────────────┼──────────────────────┤
+│◉ │ PFS    │  0.85 │ Error handling split 4 ways           │ src/api/routes.py:42 │
+│◉ │ AVS    │  0.72 │ DB import in API layer                │ src/api/auth.py:18   │
+│○ │ MDS    │  0.61 │ 3 near-identical validators           │ src/utils/valid.py   │
+│◌ │ EDS    │  0.44 │ Complex fn without docstring or tests │ src/db/models.py:91  │
+└──┴────────┴───────┴──────────────────────────────────────┴──────────────────────┘
 ```
 
 ## pre-commit Hook
@@ -220,6 +276,38 @@ drift timeline --repo . --since 90
 | `--since, -s`  | `90`    | Days of history  |
 | `--config, -c` | —       | Config file path |
 
+### `drift self`
+
+**Proof-of-concept demo** — drift analyzes its own codebase. Useful for showcasing drift to new users or verifying installation.
+
+```bash
+drift self
+drift self --format json
+```
+
+### `drift badge`
+
+Generate a [shields.io](https://shields.io) badge URL for the repository’s drift score. Useful for embedding in your README.
+
+```bash
+# Print badge URL and Markdown snippet
+drift badge --repo .
+
+# Write badge URL to file (for CI artifacts)
+drift badge --repo . --output badge-url.txt
+
+# Custom badge style
+drift badge --style for-the-badge
+```
+
+| Flag           | Default | Description                                                    |
+| -------------- | ------- | -------------------------------------------------------------- |
+| `--repo, -r`   | `.`     | Repository path                                                |
+| `--since, -s`  | `90`    | Days of history                                                |
+| `--config, -c` | —       | Config file path                                               |
+| `--style`      | `flat`  | Badge style: `flat`, `flat-square`, `for-the-badge`, `plastic` |
+| `--output, -o` | —       | Write badge URL to file                                        |
+
 ## Output Formats
 
 **Rich (default):** Color-coded terminal dashboard with score bars, module rankings, and finding details.
@@ -241,6 +329,7 @@ drift/
 ├── recommendations.py  # Rule-based actionable fix suggestions
 ├── ingestion/
 │   ├── ast_parser.py   # Python AST parsing (built-in ast module)
+│   ├── ts_parser.py    # TypeScript/TSX parsing (tree-sitter, optional)
 │   ├── file_discovery.py
 │   └── git_history.py  # Git log parsing + AI attribution heuristics
 ├── signals/
@@ -301,13 +390,34 @@ drift analyze --repo .
 
 ### Optional
 
-- `tree-sitter` + `tree-sitter-typescript` — TypeScript/JSX support
+- `tree-sitter` + `tree-sitter-typescript` — TypeScript/TSX support
 - `sentence-transformers` + `faiss-cpu` — Embedding-based similarity (Phase 2)
+
+### TypeScript Support
+
+TypeScript and TSX support is available via the optional `tree-sitter` dependency:
+
+```bash
+# Install with TypeScript support
+pip install -e ".[typescript]"
+
+# Or install all extras
+pip install -e ".[all]"
+```
+
+When tree-sitter is installed, drift automatically:
+
+- Detects `.ts` and `.tsx` files during discovery
+- Extracts functions, classes, imports, and error-handling patterns
+- Applies all 6 active signals to TypeScript code
+- Includes TypeScript files in the default `include` patterns
+
+Without tree-sitter, TypeScript files are skipped during analysis.
 
 ## Roadmap
 
-- **v0.1 (current):** 6 active detection signals, Python support, CLI + CI integration, parse caching, trend history with ASCII charts, timeline root-cause analysis, actionable recommendations
-- **v0.2:** TypeScript support (tree-sitter), Doc-Impl Drift signal, embedding-based duplicate detection
+- **v0.1 (current):** 6 active detection signals, Python support, CLI + CI integration, parse caching, trend history with ASCII charts, timeline root-cause analysis, actionable recommendations, `drift self` demo command, `drift badge` generator
+- **v0.2:** TypeScript support (tree-sitter — parser ready, optional install), Doc-Impl Drift signal, embedding-based duplicate detection
 - **v0.3:** IDE plugin (VS Code), ADR-to-code alignment, team dashboards
 - **v0.4:** PR bot, auto-fix suggestions, historical drift tracking
 

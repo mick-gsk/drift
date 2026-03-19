@@ -15,8 +15,7 @@ import difflib
 from collections import defaultdict
 from itertools import combinations
 from pathlib import Path
-from typing import Any
-
+from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
     Finding,
@@ -79,7 +78,7 @@ class MutantDuplicateSignal(BaseSignal):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         # Collect all functions with sufficient size
         functions: list[FunctionInfo] = []

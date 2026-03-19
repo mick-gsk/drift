@@ -36,9 +36,7 @@ AI_COAUTHOR_MARKERS = [
 # Require verb + at least two more words to avoid false positives on
 # normal human messages like "Fix typo" or "Add tests".
 AI_MESSAGE_PATTERNS = [
-    re.compile(
-        r"^(Add|Update|Fix|Implement|Refactor|Create|Remove) \w+ \w+", re.IGNORECASE
-    ),
+    re.compile(r"^(Add|Update|Fix|Implement|Refactor|Create|Remove) \w+ \w+", re.IGNORECASE),
 ]
 
 DEFECT_MARKERS = re.compile(
@@ -99,9 +97,7 @@ def parse_git_history(
     stat calls via GitPython, which is orders of magnitude faster on
     large repositories.
     """
-    since_date = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(
-        days=since_days
-    )
+    since_date = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=since_days)
     since_date.isoformat()
 
     # Use a unique record separator that won't appear in commit messages.
@@ -235,11 +231,7 @@ def build_file_histories(
     for fpath, fcommits in file_commits.items():
         authors = {c.author for c in fcommits}
         ai_commits = [c for c in fcommits if c.is_ai_attributed]
-        recent = [
-            c
-            for c in fcommits
-            if c.timestamp.astimezone(datetime.UTC) > thirty_days_ago
-        ]
+        recent = [c for c in fcommits if c.timestamp.astimezone(datetime.UTC) > thirty_days_ago]
         defect_commits = [c for c in fcommits if _is_defect_correlated(c.message)]
         timestamps = [c.timestamp for c in fcommits]
 

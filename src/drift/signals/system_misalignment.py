@@ -10,8 +10,7 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
-
+from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
     Finding,
@@ -106,7 +105,7 @@ class SystemMisalignmentSignal(BaseSignal):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         # Build baseline of established imports per module (excluding recent files)
         recency_days = 14

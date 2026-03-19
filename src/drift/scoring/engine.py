@@ -46,8 +46,8 @@ def compute_signal_scores(
         values = by_signal.get(sig, [])
         if values:
             scores[sig] = sum(values) / len(values)
-        else:
-            scores[sig] = 0.0
+        # Signals with no findings are omitted — avoids dead entries
+        # for deferred signals like doc_impl_drift (weight 0.0).
 
     return scores
 
@@ -85,9 +85,7 @@ def compute_module_scores(
     for f in findings:
         if f.file_path:
             module_key = (
-                f.file_path.parent.as_posix()
-                if f.file_path.suffix
-                else f.file_path.as_posix()
+                f.file_path.parent.as_posix() if f.file_path.suffix else f.file_path.as_posix()
             )
         else:
             module_key = "<root>"

@@ -11,6 +11,13 @@ from rich.console import Console
 
 from drift import __version__
 
+# On Windows, Rich uses a legacy renderer that encodes via cp1252 when
+# stdout is a standard stream.  This crashes on Unicode box-drawing chars.
+# Reconfigure both streams to UTF-8 before any Console is created.
+if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 console = Console()
 
 
@@ -50,9 +57,7 @@ def main(verbose: bool = False) -> None:
     help="Output format.",
 )
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
-@click.option(
-    "--workers", "-w", default=8, type=int, help="Parallel workers for file parsing."
-)
+@click.option("--workers", "-w", default=8, type=int, help="Parallel workers for file parsing.")
 def analyze(
     repo: Path,
     path: str | None,
@@ -92,8 +97,12 @@ def analyze(
 
     with progress:
         analysis = analyze_repo(
-            repo, cfg, since_days=since, target_path=path,
-            on_progress=_on_progress, workers=workers,
+            repo,
+            cfg,
+            since_days=since,
+            target_path=path,
+            on_progress=_on_progress,
+            workers=workers,
         )
         if task_id is not None:
             progress.update(task_id, completed=_last_total)
@@ -141,9 +150,7 @@ def analyze(
     default="rich",
 )
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
-@click.option(
-    "--workers", "-w", default=8, type=int, help="Parallel workers for file parsing."
-)
+@click.option("--workers", "-w", default=8, type=int, help="Parallel workers for file parsing.")
 def check(
     repo: Path,
     diff_ref: str,
@@ -402,6 +409,121 @@ def trend(repo: Path, days: int, config: Path | None) -> None:
         from drift.output.rich_output import render_trend_chart
 
         render_trend_chart(snapshots, console=console)
+
+
+@main.command(name="self")
+@click.option("--since", "-s", default=90, type=int, help="Days of git history to analyze.")
+@click.option(
+    "--format",
+    "-f",
+    "output_format",
+    type=click.Choice(["rich", "json", "sarif"]),
+    default="rich",
+    help="Output format.",
+)
+def self_analyze(since: int, output_format: str) -> None:
+    """Analyze Drift's own codebase — proof-of-concept demo."""
+    from drift.analyzer import analyze_repo
+    from drift.config import DriftConfig
+
+    # Locate drift's own source tree (package root → src/drift → repo)
+    drift_root = Path(__file__).resolve().parent.parent.parent
+    if not (drift_root / "pyproject.toml").exists():
+        console.print("[red]Could not locate drift repository root.[/red]")
+        sys.exit(1)
+
+    cfg = DriftConfig.load(drift_root)
+
+    console.print(f"[bold]drift self[/bold] — analyzing drift's own codebase ({drift_root})")
+    console.print()
+
+    with console.status("[bold blue]Running self-analysis..."):
+        analysis = analyze_repo(drift_root, cfg, since_days=since)
+
+    if output_format == "json":
+        from drift.output.json_output import analysis_to_json
+
+        click.echo(analysis_to_json(analysis))
+    elif output_format == "sarif":
+        from drift.output.json_output import findings_to_sarif
+
+        click.echo(findings_to_sarif(analysis))
+    else:
+        from drift.output.rich_output import render_full_report, render_recommendations
+
+        render_full_report(analysis, console)
+
+        from drift.recommendations import generate_recommendations
+
+        recs = generate_recommendations(analysis.findings)
+        if recs:
+            render_recommendations(recs, console)
+
+
+@main.command()
+@click.option(
+    "--repo",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=".",
+)
+@click.option("--since", "-s", default=90, type=int, help="Days of git history to analyze.")
+@click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
+@click.option(
+    "--style",
+    type=click.Choice(["flat", "flat-square", "for-the-badge", "plastic"]),
+    default="flat",
+    help="shields.io badge style.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Write badge SVG URL to file (for CI artifacts).",
+)
+def badge(repo: Path, since: int, config: Path | None, style: str, output: Path | None) -> None:
+    """Generate a shields.io badge URL for the repository drift score."""
+    from urllib.parse import quote
+
+    from drift.analyzer import analyze_repo
+    from drift.config import DriftConfig
+
+    cfg = DriftConfig.load(repo, config)
+
+    with console.status("[bold blue]Analyzing for badge..."):
+        analysis = analyze_repo(repo, cfg, since_days=since)
+
+    score = analysis.drift_score
+    if score >= 0.6:
+        color = "critical"
+    elif score >= 0.4:
+        color = "orange"
+    elif score >= 0.2:
+        color = "yellow"
+    else:
+        color = "brightgreen"
+
+    label = quote("drift score")
+    value = quote(f"{score:.2f}")
+    url = f"https://img.shields.io/badge/{label}-{value}-{color}?style={style}"
+
+    md_snippet = f"[![Drift Score]({url})](https://github.com/sauremilk/drift)"
+
+    if output:
+        output.write_text(url, encoding="utf-8")
+        console.print(f"Badge URL written to {output}")
+
+    console.print()
+    console.print("[bold]Drift Badge[/bold]")
+    console.print()
+    console.print(f"  Score: [bold]{score:.2f}[/bold]  ({analysis.severity.value})")
+    console.print()
+    console.print("[dim]URL:[/dim]")
+    console.print(f"  {url}")
+    console.print()
+    console.print("[dim]Markdown:[/dim]")
+    console.print(f"  {md_snippet}")
 
 
 if __name__ == "__main__":

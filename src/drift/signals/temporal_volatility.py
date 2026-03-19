@@ -8,8 +8,7 @@ combined with AI attribution.
 from __future__ import annotations
 
 import math
-from typing import Any
-
+from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
     Finding,
@@ -51,7 +50,7 @@ class TemporalVolatilitySignal(BaseSignal):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         if not file_histories:
             return []

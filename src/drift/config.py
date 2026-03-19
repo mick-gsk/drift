@@ -58,10 +58,23 @@ class SignalWeights(BaseModel):
         return self.model_dump()
 
 
+def _default_includes() -> list[str]:
+    """Return default include patterns, auto-extending for TypeScript when available."""
+    patterns = ["**/*.py"]
+    try:
+        from drift.ingestion.ts_parser import tree_sitter_available
+
+        if tree_sitter_available():
+            patterns.extend(["**/*.ts", "**/*.tsx"])
+    except ImportError:
+        pass
+    return patterns
+
+
 class DriftConfig(BaseModel):
     """Main drift configuration, loaded from drift.yaml."""
 
-    include: list[str] = Field(default_factory=lambda: ["**/*.py"])
+    include: list[str] = Field(default_factory=_default_includes)
     exclude: list[str] = Field(
         default_factory=lambda: [
             "**/node_modules/**",

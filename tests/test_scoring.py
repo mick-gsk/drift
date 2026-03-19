@@ -42,8 +42,8 @@ def test_compute_signal_scores_averages():
     scores = compute_signal_scores(findings)
     assert scores[SignalType.PATTERN_FRAGMENTATION] == 0.5
     assert scores[SignalType.ARCHITECTURE_VIOLATION] == 0.8
-    # Signals without findings → 0.0
-    assert scores[SignalType.DOC_IMPL_DRIFT] == 0.0
+    # Signals without findings are omitted from the dict
+    assert scores.get(SignalType.DOC_IMPL_DRIFT, 0.0) == 0.0
 
 
 def test_compute_signal_scores_empty():
@@ -130,9 +130,7 @@ def test_gate_critical_only():
     # "critical" threshold only blocks on CRITICAL
     assert severity_gate_pass(findings, "critical") is True
 
-    findings.append(
-        _finding(SignalType.ARCHITECTURE_VIOLATION, 0.9, severity=Severity.CRITICAL)
-    )
+    findings.append(_finding(SignalType.ARCHITECTURE_VIOLATION, 0.9, severity=Severity.CRITICAL))
     assert severity_gate_pass(findings, "critical") is False
 
 

@@ -12,6 +12,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
     Finding,
@@ -71,7 +72,7 @@ class PatternFragmentationSignal(BaseSignal):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         # Gather all patterns from all files
         all_patterns: dict[PatternCategory, list[PatternInstance]] = defaultdict(list)
@@ -98,9 +99,7 @@ class PatternFragmentationSignal(BaseSignal):
                 canonical = _canonical_variant(variants)
                 canonical_count = len(variants[canonical])
                 total = len(module_patterns)
-                non_canonical = [
-                    p for key, ps in variants.items() if key != canonical for p in ps
-                ]
+                non_canonical = [p for key, ps in variants.items() if key != canonical for p in ps]
 
                 frag_score = 1 - (1 / num_variants)
 
@@ -110,9 +109,7 @@ class PatternFragmentationSignal(BaseSignal):
                     f"({canonical_count}/{total} use canonical pattern).",
                 ]
                 for p in non_canonical[:3]:
-                    desc_parts.append(
-                        f"  - {p.file_path.name}:{p.start_line} ({p.function_name})"
-                    )
+                    desc_parts.append(f"  - {p.file_path.name}:{p.start_line} ({p.function_name})")
 
                 severity = Severity.INFO
                 if frag_score >= 0.7:

@@ -7,8 +7,7 @@ AI-attributed, indicating "accepted without understanding."
 
 from __future__ import annotations
 
-from typing import Any
-
+from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
     Finding,
@@ -61,7 +60,7 @@ class ExplainabilityDeficitSignal(BaseSignal):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         # Collect all function names for test detection
         all_functions: dict[str, FunctionInfo] = {}

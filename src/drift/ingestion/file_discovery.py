@@ -21,6 +21,19 @@ LANGUAGE_MAP: dict[str, str] = {
 SUPPORTED_LANGUAGES = {"python"}
 
 
+def _detect_supported_languages() -> set[str]:
+    """Return the set of languages supported in this environment."""
+    langs = {"python"}
+    try:
+        from drift.ingestion.ts_parser import tree_sitter_available
+
+        if tree_sitter_available():
+            langs |= {"typescript", "tsx"}
+    except ImportError:
+        pass
+    return langs
+
+
 def detect_language(path: Path) -> str | None:
     return LANGUAGE_MAP.get(path.suffix.lower())
 
@@ -77,14 +90,12 @@ def discover_files(
                 continue
 
             lang = detect_language(match)
-            if lang is None or lang not in SUPPORTED_LANGUAGES:
+            if lang is None or lang not in _detect_supported_languages():
                 continue
 
             stat = match.stat()
             if stat.st_size > max_bytes:
-                logger.debug(
-                    "Skipping oversized file (%d bytes): %s", stat.st_size, rel
-                )
+                logger.debug("Skipping oversized file (%d bytes): %s", stat.st_size, rel)
                 continue
 
             # Estimate line count from file size (avoids reading file)

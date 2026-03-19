@@ -82,9 +82,7 @@ def _fingerprint_try_block(node: ast.Try) -> dict[str, Any]:
             elif isinstance(handler.type, ast.Attribute):
                 exc_type = ast.dump(handler.type)
             elif isinstance(handler.type, ast.Tuple):
-                exc_type = "|".join(
-                    getattr(e, "id", ast.dump(e)) for e in handler.type.elts
-                )
+                exc_type = "|".join(getattr(e, "id", ast.dump(e)) for e in handler.type.elts)
 
         body_actions: list[str] = []
         for stmt in handler.body:
@@ -179,11 +177,7 @@ def _fingerprint_endpoint(
             "Depends",
         ):
             has_auth_check = True
-        if (
-            isinstance(child, ast.Return)
-            and child.value
-            and isinstance(child.value, ast.Call)
-        ):
+        if isinstance(child, ast.Return) and child.value and isinstance(child.value, ast.Call):
             func = child.value.func
             if isinstance(func, ast.Name):
                 return_patterns.append(func.id)
@@ -248,9 +242,7 @@ class PythonFileParser(ast.NodeVisitor):
             child = queue.pop()
             results.append(child)
             # Don't descend into nested functions/classes — they get their own visit
-            if not isinstance(
-                child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-            ):
+            if not isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 queue.extend(ast.iter_child_nodes(child))
         return results
 
@@ -386,9 +378,7 @@ class PythonFileParser(ast.NodeVisitor):
         self.generic_visit(node)
 
         # Collect methods that were added while visiting this class
-        class_info.methods = [
-            f for f in self.functions if f.name.startswith(f"{node.name}.")
-        ]
+        class_info.methods = [f for f in self.functions if f.name.startswith(f"{node.name}.")]
 
         self.classes.append(class_info)
         self._current_class = prev_class
@@ -440,7 +430,9 @@ def parse_file(file_path: Path, repo_path: Path, language: str) -> ParseResult:
         return parse_python_file(file_path, repo_path)
 
     if language in ("typescript", "tsx"):
-        return _parse_typescript_stub(file_path, repo_path)
+        from drift.ingestion.ts_parser import parse_typescript_file
+
+        return parse_typescript_file(file_path, repo_path, language)
 
     return ParseResult(
         file_path=file_path,
@@ -467,9 +459,7 @@ def _parse_typescript_stub(file_path: Path, repo_path: Path) -> ParseResult:
             parts = stripped.split(" from ")
             module = parts[-1].strip().strip("'\";")
             names_part = parts[0].replace("import", "").strip()
-            names = [
-                n.strip().strip("{}") for n in names_part.split(",") if n.strip()
-            ]
+            names = [n.strip().strip("{}") for n in names_part.split(",") if n.strip()]
             imports.append(
                 ImportInfo(
                     source_file=file_path,

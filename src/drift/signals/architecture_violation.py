@@ -13,6 +13,7 @@ from typing import Any
 
 import networkx as nx
 
+from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
     Finding,
@@ -109,7 +110,7 @@ class ArchitectureViolationSignal(BaseSignal):
         self,
         parse_results: list[ParseResult],
         file_histories: dict[str, FileHistory],
-        config: Any,
+        config: DriftConfig,
     ) -> list[Finding]:
         graph, all_imports = build_import_graph(parse_results)
         findings: list[Finding] = []
@@ -118,9 +119,7 @@ class ArchitectureViolationSignal(BaseSignal):
         boundaries = getattr(config, "policies", None)
         if boundaries and hasattr(boundaries, "layer_boundaries"):
             for boundary in boundaries.layer_boundaries:
-                findings.extend(
-                    self._check_boundary(boundary, all_imports, parse_results)
-                )
+                findings.extend(self._check_boundary(boundary, all_imports, parse_results))
 
         # Check inferred layer violations (upward imports)
         findings.extend(self._check_inferred_layers(graph, parse_results))
@@ -147,9 +146,7 @@ class ArchitectureViolationSignal(BaseSignal):
 
             for deny in deny_patterns:
                 target = imp.imported_module.replace(".", "/")
-                if _matches_pattern(target, deny) or _matches_pattern(
-                    imp.imported_module, deny
-                ):
+                if _matches_pattern(target, deny) or _matches_pattern(imp.imported_module, deny):
                     findings.append(
                         Finding(
                             signal_type=self.signal_type,
