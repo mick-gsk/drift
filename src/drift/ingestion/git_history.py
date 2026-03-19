@@ -44,7 +44,8 @@ _AI_MSG_TIER1 = [
     re.compile(r"^(Implement|Refactor|Create) \w+ \w+ \w+", re.IGNORECASE),
     # "Add X functionality for Y" — 4+ word noun-phrase after verb
     re.compile(
-        r"^(Add|Implement|Create) \w+ \w+ (functionality|feature|support|handling|endpoint|module)\b",
+        r"^(Add|Implement|Create) \w+ \w+ "
+        r"(functionality|feature|support|handling|endpoint|module)\b",
         re.IGNORECASE,
     ),
 ]

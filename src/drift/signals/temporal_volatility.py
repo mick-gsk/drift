@@ -8,6 +8,7 @@ combined with AI attribution.
 from __future__ import annotations
 
 import math
+
 from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
