@@ -84,6 +84,9 @@ packages = ["src/drift"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "slow: marks tests that clone external repos (deselect with '-m \"not slow\"')",
+]
 
 [tool.ruff]
 target-version = "py311"
