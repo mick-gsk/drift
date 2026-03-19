@@ -82,10 +82,7 @@ def create_signals(ctx: AnalysisContext) -> list[BaseSignal]:
     for cls in _SIGNAL_REGISTRY:
         sig = inspect.signature(cls.__init__)
         params = set(sig.parameters.keys()) - {"self"}
-        if "repo_path" in params:
-            inst = cls(repo_path=ctx.repo_path)
-        else:
-            inst = cls()
+        inst = cls(repo_path=ctx.repo_path) if "repo_path" in params else cls()
         inst._embedding_service = ctx.embedding_service  # type: ignore[attr-defined]
         signals.append(inst)
     return signals

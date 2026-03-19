@@ -16,7 +16,6 @@ import logging
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from urllib.parse import urlparse
 
 from drift.config import DriftConfig
 from drift.models import FileHistory, Finding, ParseResult, Severity, SignalType
