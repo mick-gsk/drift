@@ -57,6 +57,9 @@ def discover_files(
     # Max file size to analyse (5 MB) — skip generated/vendored giants
     max_bytes = 5 * 1024 * 1024
 
+    # Pre-deuplicate: track seen paths during enumeration
+    seen: set[str] = set()
+
     for pattern in include:
         for match in repo_path.glob(pattern):
             if not match.is_file():
@@ -67,6 +70,11 @@ def discover_files(
                 continue
 
             rel = match.relative_to(repo_path).as_posix()
+
+            # Inline dedup — glob patterns can match same file
+            if rel in seen:
+                continue
+            seen.add(rel)
 
             if _matches_any(rel, exclude):
                 continue
@@ -82,13 +90,9 @@ def discover_files(
                 )
                 continue
 
-            # Count lines without reading entire file into memory
-            line_count = 0
-            try:
-                with open(match, "rb") as fh:
-                    line_count = sum(1 for _ in fh)
-            except OSError:
-                pass
+            # Estimate line count from file size (avoids reading file)
+            # Actual line count computed later during AST parsing
+            line_count = stat.st_size // 40  # ~40 bytes/line heuristic
 
             files.append(
                 FileInfo(
@@ -99,13 +103,4 @@ def discover_files(
                 )
             )
 
-    # Deduplicate (glob patterns can match same file)
-    seen: set[str] = set()
-    unique: list[FileInfo] = []
-    for f in files:
-        key = f.path.as_posix()
-        if key not in seen:
-            seen.add(key)
-            unique.append(f)
-
-    return sorted(unique, key=lambda f: f.path.as_posix())
+    return sorted(files, key=lambda f: f.path.as_posix())

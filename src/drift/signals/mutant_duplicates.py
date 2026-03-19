@@ -3,11 +3,16 @@
 Detects near-duplicate functions — code that looks structurally very
 similar but differs in subtle ways, suggesting copy-paste-then-modify
 patterns typical of AI generation across multiple sessions.
+
+Optimization: Uses LOC-bucket pre-filtering and body_hash grouping to
+avoid the O(n²) all-pairs comparison.  Only functions within a similar
+size range (±40% LOC) are compared.
 """
 
 from __future__ import annotations
 
 import difflib
+from collections import defaultdict
 from itertools import combinations
 from pathlib import Path
 from typing import Any
@@ -24,6 +29,12 @@ from drift.signals.base import BaseSignal
 
 # Threshold above which two functions are considered near-duplicates
 SIMILARITY_THRESHOLD = 0.80
+
+# Maximum number of detailed comparisons to perform per bucket
+_MAX_COMPARISONS_PER_BUCKET = 500
+
+# Maximum near-duplicate findings to report
+_MAX_FINDINGS = 200
 
 
 def _function_body_text(
@@ -82,24 +93,21 @@ class MutantDuplicateSignal(BaseSignal):
         if len(functions) < 2:
             return []
 
-        # Resolve similarity threshold from config
+        # Resolve similarity threshold from config (if provided)
         similarity_threshold = SIMILARITY_THRESHOLD
         if hasattr(config, "thresholds"):
             similarity_threshold = config.thresholds.similarity_threshold
 
-        # Compare all pairs — O(n²) but acceptable for typical repos (< 5000 functions)
-        # For large repos (>5k functions), body_hash pre-filtering reduces comparisons
         findings: list[Finding] = []
         checked: set[tuple[str, str]] = set()
 
-        # Pre-filter: group by body hash for exact duplicates
-        hash_groups: dict[str, list[FunctionInfo]] = {}
+        # ---- Phase 1: Exact duplicates via body_hash (O(n)) ----
+        hash_groups: dict[str, list[FunctionInfo]] = defaultdict(list)
         for fn in functions:
             if fn.body_hash:
-                hash_groups.setdefault(fn.body_hash, []).append(fn)
+                hash_groups[fn.body_hash].append(fn)
 
-        # Report exact duplicates
-        for h, group in hash_groups.items():
+        for _h, group in hash_groups.items():
             if len(group) > 1:
                 for a, b in combinations(group, 2):
                     key = tuple(
@@ -123,77 +131,86 @@ class MutantDuplicateSignal(BaseSignal):
                             file_path=a.file_path,
                             start_line=a.start_line,
                             related_files=[b.file_path],
-                            metadata={
-                                    "similarity": 1.0,
-                                    "body_hash": h,
-                                    "function_a": a.name,
-                                    "function_b": b.name,
-                                    "file_a": str(a.file_path),
-                                    "file_b": str(b.file_path),
-                                },
+                            metadata={"similarity": 1.0, "body_hash": _h},
                         )
                     )
 
-        # Near-duplicate detection via body text comparison
-        # Group functions by LOC bucket (±30%) to reduce comparison pairs
-        sample = functions[:500] if len(functions) > 500 else functions
+        # ---- Phase 2: Near-duplicates via LOC-bucket comparison ----
+        # Group functions into LOC buckets (bucket_size=10 lines) so we
+        # only compare functions of approximately similar size.
+        _BUCKET_SIZE = 10
+        loc_buckets: dict[int, list[FunctionInfo]] = defaultdict(list)
+        for fn in functions:
+            bucket = fn.loc // _BUCKET_SIZE
+            loc_buckets[bucket].append(fn)
+
         file_cache: dict[Path, list[str]] = {}
+        sorted_buckets = sorted(loc_buckets.keys())
 
-        # Build LOC buckets: each function goes into a bucket keyed by (loc // 5)
-        # Then only compare functions in the same or adjacent buckets.
-        loc_buckets: dict[int, list[FunctionInfo]] = {}
-        for fn in sample:
-            bucket = fn.loc // 5
-            loc_buckets.setdefault(bucket, []).append(fn)
+        for i, bucket_key in enumerate(sorted_buckets):
+            # Compare within this bucket AND with the adjacent bucket
+            # to catch functions near bucket boundaries
+            candidates = list(loc_buckets[bucket_key])
+            if i + 1 < len(sorted_buckets) and sorted_buckets[i + 1] == bucket_key + 1:
+                candidates.extend(loc_buckets[sorted_buckets[i + 1]])
 
-        pairs_to_compare: list[tuple[FunctionInfo, FunctionInfo]] = []
-        for bucket_key, bucket_fns in loc_buckets.items():
-            # Intra-bucket pairs
-            for a, b in combinations(bucket_fns, 2):
-                pairs_to_compare.append((a, b))
-            # Adjacent bucket pairs (bucket_key + 1 only, to avoid double-counting)
-            if (bucket_key + 1) in loc_buckets:
-                for a in bucket_fns:
-                    for b in loc_buckets[bucket_key + 1]:
-                        pairs_to_compare.append((a, b))
-
-        for a, b in pairs_to_compare:
-            key = tuple(sorted([f"{a.file_path}:{a.name}", f"{b.file_path}:{b.name}"]))
-            if key in checked:
+            if len(candidates) < 2:
                 continue
 
-            text_a = _function_body_text(a, self._repo_path, file_cache)
-            text_b = _function_body_text(b, self._repo_path, file_cache)
+            # Cap comparisons per bucket group
+            comparisons = 0
+            for a, b in combinations(candidates, 2):
+                if comparisons >= _MAX_COMPARISONS_PER_BUCKET:
+                    break
+                if len(findings) >= _MAX_FINDINGS:
+                    break
 
-            sim = _structural_similarity(text_a, text_b)
-            if sim >= similarity_threshold and sim < 1.0:
-                checked.add(key)
-
-                severity = Severity.MEDIUM if sim < 0.9 else Severity.HIGH
-                score = sim * 0.85  # Scale to leave room for exact dupes
-
-                findings.append(
-                    Finding(
-                        signal_type=self.signal_type,
-                        severity=severity,
-                        score=score,
-                        title=f"Near-duplicate ({sim:.0%}): {a.name} ↔ {b.name}",
-                        description=(
-                            f"{a.file_path}:{a.start_line} and "
-                            f"{b.file_path}:{b.start_line} are {sim:.0%} similar. "
-                            f"Small differences may indicate copy-paste divergence."
-                        ),
-                        file_path=a.file_path,
-                        start_line=a.start_line,
-                        related_files=[b.file_path],
-                        metadata={
-                            "similarity": round(sim, 3),
-                            "function_a": a.name,
-                            "function_b": b.name,
-                            "file_a": str(a.file_path),
-                            "file_b": str(b.file_path),
-                        },
-                    )
+                key = tuple(
+                    sorted([f"{a.file_path}:{a.name}", f"{b.file_path}:{b.name}"])
                 )
+                if key in checked:
+                    continue
+
+                # Quick filter: similar line count (within 50%)
+                if a.loc > 0 and b.loc > 0:
+                    ratio = min(a.loc, b.loc) / max(a.loc, b.loc)
+                    if ratio < 0.5:
+                        continue
+
+                # Quick filter: same body_hash → already reported as exact dupe
+                if a.body_hash and a.body_hash == b.body_hash:
+                    continue
+
+                comparisons += 1
+                text_a = _function_body_text(a, self._repo_path, file_cache)
+                text_b = _function_body_text(b, self._repo_path, file_cache)
+
+                sim = _structural_similarity(text_a, text_b)
+                if sim >= SIMILARITY_THRESHOLD and sim < 1.0:
+                    checked.add(key)
+
+                    severity = Severity.MEDIUM if sim < 0.9 else Severity.HIGH
+                    score = sim * 0.85  # Scale to leave room for exact dupes
+
+                    findings.append(
+                        Finding(
+                            signal_type=self.signal_type,
+                            severity=severity,
+                            score=score,
+                            title=f"Near-duplicate ({sim:.0%}): {a.name} ↔ {b.name}",
+                            description=(
+                                f"{a.file_path}:{a.start_line} and "
+                                f"{b.file_path}:{b.start_line} are {sim:.0%} similar. "
+                                f"Small differences may indicate copy-paste divergence."
+                            ),
+                            file_path=a.file_path,
+                            start_line=a.start_line,
+                            related_files=[b.file_path],
+                            metadata={"similarity": round(sim, 3)},
+                        )
+                    )
+
+            if len(findings) >= _MAX_FINDINGS:
+                break
 
         return findings

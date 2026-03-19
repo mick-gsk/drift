@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
@@ -14,13 +15,11 @@ from drift.ingestion.ast_parser import parse_file
 from drift.ingestion.file_discovery import discover_files
 from drift.ingestion.git_history import build_file_histories, parse_git_history
 from drift.models import (
-    FileHistory,
     Finding,
     ParseResult,
     PatternCategory,
     PatternInstance,
     RepoAnalysis,
-    SignalType,
 )
 from drift.scoring.engine import (
     composite_score,
@@ -37,6 +36,21 @@ from drift.signals.temporal_volatility import TemporalVolatilitySignal
 # Progress callback: (phase_name, current, total)
 ProgressCallback = Callable[[str, int, int], None]
 
+# Default parallelism for file parsing — threads work well here because
+# the bottleneck is disk I/O rather than pure CPU.
+_DEFAULT_WORKERS = 8
+
+
+def _fetch_git_history(
+    repo_path: Path, since_days: int, known_files: set[str]
+) -> tuple[list, dict]:
+    """Run git history parsing (designed to run in a background thread)."""
+    commits = parse_git_history(
+        repo_path, since_days=since_days, file_filter=known_files
+    )
+    file_histories = build_file_histories(commits, known_files=known_files)
+    return commits, file_histories
+
 
 def analyze_repo(
     repo_path: Path,
@@ -44,6 +58,7 @@ def analyze_repo(
     since_days: int = 90,
     target_path: str | None = None,
     on_progress: ProgressCallback | None = None,
+    workers: int = _DEFAULT_WORKERS,
 ) -> RepoAnalysis:
     """Run full drift analysis on a repository.
 
@@ -79,40 +94,68 @@ def analyze_repo(
         target = Path(target_path)
         files = [f for f in files if str(f.path).startswith(str(target))]
 
-    # --- 2. AST parsing (with cache) ---
-    cache_dir = repo_path / config.cache_dir
-    cache = ParseCache(cache_dir)
-    logger = logging.getLogger("drift")
+    # --- 2. AST parsing (parallelized) + 3. Git history (concurrent) ---
+    known_files = {f.path.as_posix() for f in files}
 
-    parse_results: list[ParseResult] = []
-    total_files = len(files)
-    for i, finfo in enumerate(files):
-        _progress("Parsing files", i + 1, total_files)
+    # Initialise cache (also creates the .drift-cache/parse directory).
+    cache = ParseCache(repo_path / config.cache_dir)
+
+    # Pre-classify files into cache hits and files that need parsing.
+    cached_results: dict[int, ParseResult] = {}
+    to_parse: list[tuple[int, object]] = []  # (index, finfo)
+    for idx, finfo in enumerate(files):
         full_path = repo_path / finfo.path
         try:
             content_hash = ParseCache.file_hash(full_path)
+            hit = cache.get(content_hash)
+            if hit is not None:
+                cached_results[idx] = hit
+                continue
         except OSError:
-            result = parse_file(finfo.path, repo_path, finfo.language)
-            parse_results.append(result)
-            continue
+            pass
+        to_parse.append((idx, finfo))
 
-        cached = cache.get(content_hash)
-        if cached is not None:
-            parse_results.append(cached)
-        else:
-            result = parse_file(finfo.path, repo_path, finfo.language)
-            cache.put(content_hash, result)
-            parse_results.append(result)
+    _progress("Parsing files", len(cached_results), len(files))
 
-    # --- 3. Git history ---
+    # Launch git history in a background thread while we parse AST files.
+    executor = ThreadPoolExecutor(max_workers=workers)
+    git_future = executor.submit(_fetch_git_history, repo_path, since_days, known_files)
+
+    # Parse uncached files in parallel.
+    parse_results: list[ParseResult] = [None] * len(files)  # type: ignore[list-item]
+    for idx, cached in cached_results.items():
+        parse_results[idx] = cached
+
+    if to_parse:
+        new_results: list[tuple[int, str, ParseResult]] = [None] * len(to_parse)  # type: ignore[list-item]
+        futures = {
+            executor.submit(parse_file, finfo.path, repo_path, finfo.language): (i, idx, finfo)
+            for i, (idx, finfo) in enumerate(to_parse)
+        }
+        for future in as_completed(futures):
+            i, idx, finfo = futures[future]
+            result = future.result()
+            parse_results[idx] = result
+            try:
+                full_path = repo_path / finfo.path
+                content_hash = ParseCache.file_hash(full_path)
+                new_results[i] = (idx, content_hash, result)
+            except OSError:
+                pass
+
+        # Populate cache (main thread, no races).
+        for entry in new_results:
+            if entry is not None:
+                _idx, h, r = entry
+                cache.put(h, r)
+
+    _progress("Parsing files", len(files), len(files))
+
+    # Collect git results.
+    commits, file_histories = git_future.result()
+    executor.shutdown(wait=False)
+
     _progress("Analyzing git history", 0, 0)
-    known_files = {f.path.as_posix() for f in files}
-    commits = parse_git_history(
-        repo_path, since_days=since_days, file_filter=known_files
-    )
-    file_histories = build_file_histories(commits, known_files=known_files)
-
-    # --- 4. Run signals ---
     signals = [
         PatternFragmentationSignal(),
         ArchitectureViolationSignal(),
@@ -166,6 +209,7 @@ def analyze_diff(
     repo_path: Path,
     config: DriftConfig | None = None,
     diff_ref: str = "HEAD~1",
+    workers: int = _DEFAULT_WORKERS,
 ) -> RepoAnalysis:
     """Analyze only files changed since a given git ref.
 
@@ -198,7 +242,7 @@ def analyze_diff(
             diff_ref,
             exc,
         )
-        return analyze_repo(repo_path, config)
+        return analyze_repo(repo_path, config, workers=workers)
 
     if not changed_files:
         return RepoAnalysis(
@@ -226,16 +270,19 @@ def analyze_diff(
             drift_score=0.0,
         )
 
-    # --- 2. AST parsing ---
-    parse_results: list[ParseResult] = []
-    for finfo in files:
-        result = parse_file(finfo.path, repo_path, finfo.language)
-        parse_results.append(result)
-
-    # --- 3. Git history ---
+    # --- 2. AST parsing (parallelized) + 3. Git history (concurrent) ---
     known_files = {f.path.as_posix() for f in files}
-    commits = parse_git_history(repo_path, since_days=90, file_filter=known_files)
-    file_histories = build_file_histories(commits, known_files=known_files)
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        git_future = executor.submit(_fetch_git_history, repo_path, 90, known_files)
+        parse_results: list[ParseResult] = [None] * len(files)  # type: ignore[list-item]
+        futures = {
+            executor.submit(parse_file, finfo.path, repo_path, finfo.language): idx
+            for idx, finfo in enumerate(files)
+        }
+        for future in as_completed(futures):
+            parse_results[futures[future]] = future.result()
+        commits, file_histories = git_future.result()
 
     # --- 4. Run signals ---
     signals = [

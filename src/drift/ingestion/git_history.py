@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 import datetime
+import logging
 import re
+import subprocess
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from drift.models import CommitInfo, FileHistory
 
-if TYPE_CHECKING:
-    import git as gitmodule
+logger = logging.getLogger("drift")
 
 # ---------------------------------------------------------------------------
 # AI Attribution Heuristics
@@ -88,110 +88,128 @@ class _BulkCommitData:
     deletions: int = 0
 
 
-def _bulk_commit_files(
-    repo: "gitmodule.Repo", since_iso: str
-) -> dict[str, _BulkCommitData]:
-    """Fetch changed-file lists and stat data for all commits since *since_iso*.
-
-    Uses ``--numstat`` to capture per-file insertions/deletions in a single
-    subprocess call, replacing the old per-commit ``commit.stats.files``.
-    """
-    try:
-        raw: str = repo.git.log(
-            "--since",
-            since_iso,
-            "--numstat",
-            "--pretty=format:%H",
-        )
-    except Exception:
-        return {}
-
-    result: dict[str, _BulkCommitData] = {}
-    current_hash: str | None = None
-    for line in raw.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        # 40-char hex → commit hash
-        if len(line) == 40 and all(c in "0123456789abcdef" for c in line):
-            current_hash = line[:12]
-            result.setdefault(current_hash, _BulkCommitData())
-        elif current_hash is not None:
-            # --numstat format: "insertions\tdeletions\tfilename"
-            parts = line.split("\t")
-            if len(parts) == 3:
-                ins_str, del_str, filepath = parts
-                result[current_hash].files.append(filepath)
-                # Binary files show '-' instead of numbers
-                if ins_str != "-":
-                    result[current_hash].insertions += int(ins_str)
-                if del_str != "-":
-                    result[current_hash].deletions += int(del_str)
-            else:
-                # Fallback: plain filename (shouldn't happen with --numstat)
-                result[current_hash].files.append(line)
-    return result
-
-
 def parse_git_history(
     repo_path: Path,
     since_days: int = 90,
     file_filter: set[str] | None = None,
 ) -> list[CommitInfo]:
-    """Parse git history and return enriched commit information."""
-    try:
-        import git
-    except ImportError:
-        return []
+    """Parse git history and return enriched commit information.
 
-    try:
-        repo = git.Repo(repo_path, search_parent_directories=True)
-    except (git.InvalidGitRepositoryError, git.NoSuchPathError):
-        return []
-
+    Uses a single ``git log --numstat`` subprocess instead of per-commit
+    stat calls via GitPython, which is orders of magnitude faster on
+    large repositories.
+    """
     since_date = datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(
         days=since_days
     )
     since_iso = since_date.isoformat()
 
-    # Fetch all changed files in a single subprocess call
-    bulk_files = _bulk_commit_files(repo, since_iso)
+    # Use a unique record separator that won't appear in commit messages.
+    # Format each commit as: RS hash RS author RS email RS timestamp RS message RS
+    # followed by numstat lines until the next RS.
+    _RS = "\x1e"  # ASCII Record Separator
+    fmt = f"{_RS}%H{_RS}%aN{_RS}%aE{_RS}%aI{_RS}%B{_RS}"
+
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "log",
+                f"--since={since_date.isoformat()}",
+                f"--format={fmt}",
+                "--numstat",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=str(repo_path),
+            timeout=60,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return []
+
+    if result.returncode != 0:
+        return []
+
+    raw = result.stdout
+    if not raw.strip():
+        return []
 
     commits: list[CommitInfo] = []
 
-    try:
-        commit_iter = repo.iter_commits(since=since_iso)
-    except ValueError:
-        # Empty repository (no commits yet)
-        return []
+    # Split on the record separator.
+    # Format per commit: RS hash RS author RS email RS ts RS message RS
+    # Numstat lines follow AFTER the trailing RS, until the next commit's
+    # leading RS.  So after splitting we get groups of 6 parts:
+    #   [hash, author, email, ts, message, numstat_block]
+    parts = raw.split(_RS)
 
-    for commit in commit_iter:
-        short_hash = commit.hexsha[:12]
-        bulk_data = bulk_files.get(short_hash)
-        files = bulk_data.files if bulk_data else []
+    i = 1  # skip leading empty part
+    while i + 5 < len(parts):
+        full_hash = parts[i].strip()
+        author = parts[i + 1].strip()
+        email = parts[i + 2].strip()
+        timestamp_str = parts[i + 3].strip()
+        message_raw = parts[i + 4]
+        numstat_block = parts[i + 5]
+        i += 6
 
-        if file_filter and not any(f in file_filter for f in files):
+        if not full_hash or len(full_hash) < 10:
             continue
 
-        coauthors_raw = CO_AUTHOR_RE.findall(commit.message)
+        # numstat_block contains the numstat lines between this commit's
+        # trailing RS and the next commit's leading RS.
+        lines = numstat_block.split("\n")
+
+        files_changed: list[str] = []
+        total_ins = 0
+        total_del = 0
+
+        for line in lines:
+            if "\t" in line:
+                numstat_parts = line.split("\t", 2)
+                if len(numstat_parts) == 3:
+                    try:
+                        ins = int(numstat_parts[0]) if numstat_parts[0] != "-" else 0
+                        dels = int(numstat_parts[1]) if numstat_parts[1] != "-" else 0
+                        fpath = numstat_parts[2].strip()
+                        if fpath:
+                            files_changed.append(fpath)
+                            total_ins += ins
+                            total_del += dels
+                            continue
+                    except ValueError:
+                        pass
+
+        message = message_raw.strip()
+
+        if file_filter and not any(f in file_filter for f in files_changed):
+            continue
+
+        # Parse timestamp
+        try:
+            ts = datetime.datetime.fromisoformat(timestamp_str)
+        except ValueError:
+            continue
+
+        coauthors_raw = CO_AUTHOR_RE.findall(message)
         coauthors = [name for name, _email in coauthors_raw]
+        is_ai, ai_conf = _detect_ai_attribution(message, coauthors)
 
-        is_ai, ai_conf = _detect_ai_attribution(commit.message, coauthors)
-
-        info = CommitInfo(
-            hash=short_hash,
-            author=commit.author.name or "unknown",
-            email=commit.author.email or "",
-            timestamp=commit.authored_datetime,
-            message=commit.message.strip(),
-            files_changed=files,
-            insertions=bulk_data.insertions if bulk_data else 0,
-            deletions=bulk_data.deletions if bulk_data else 0,
-            is_ai_attributed=is_ai,
-            ai_confidence=ai_conf,
-            coauthors=coauthors,
+        commits.append(
+            CommitInfo(
+                hash=full_hash[:12],
+                author=author or "unknown",
+                email=email,
+                timestamp=ts,
+                message=message,
+                files_changed=files_changed,
+                insertions=total_ins,
+                deletions=total_del,
+                is_ai_attributed=is_ai,
+                ai_confidence=ai_conf,
+                coauthors=coauthors,
+            )
         )
-        commits.append(info)
 
     return commits
 
