@@ -20,13 +20,6 @@ from pathlib import Path
 
 import pytest
 
-from drift.analyzer import analyze_repo
-from drift.config import DriftConfig
-from drift.ingestion.ast_parser import parse_file
-from drift.ingestion.file_discovery import discover_files
-from drift.models import Finding, Severity
-from drift.signals.base import AnalysisContext, create_signals
-
 # Ensure all signal modules are imported
 import drift.signals.architecture_violation  # noqa: F401
 import drift.signals.doc_impl_drift  # noqa: F401
@@ -35,6 +28,12 @@ import drift.signals.mutant_duplicates  # noqa: F401
 import drift.signals.pattern_fragmentation  # noqa: F401
 import drift.signals.system_misalignment  # noqa: F401
 import drift.signals.temporal_volatility  # noqa: F401
+from drift.analyzer import analyze_repo
+from drift.config import DriftConfig
+from drift.ingestion.ast_parser import parse_file
+from drift.ingestion.file_discovery import discover_files
+from drift.models import Finding, Severity
+from drift.signals.base import AnalysisContext, create_signals
 
 # ---------------------------------------------------------------------------
 # Actionability heuristics
