@@ -3,16 +3,23 @@
 [![CI](https://github.com/sauremilk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/sauremilk/drift/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/sauremilk/drift/graph/badge.svg)](https://codecov.io/gh/sauremilk/drift)
 [![PyPI version](https://img.shields.io/pypi/v/drift-analyzer.svg)](https://pypi.org/project/drift-analyzer/)
+[![Downloads](https://img.shields.io/pypi/dm/drift-analyzer)](https://pypi.org/project/drift-analyzer/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://pre-commit.com)
 [![SARIF](https://img.shields.io/badge/output-SARIF-blueviolet)](https://docs.github.com/en/code-security/code-scanning)
 [![TypeScript](https://img.shields.io/badge/TypeScript-optional-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Stars](https://img.shields.io/github/stars/sauremilk/drift?style=social)](https://github.com/sauremilk/drift)
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://sauremilk.github.io/drift/)
 
 **Detect architectural erosion from AI-generated code.**
 
 Drift is a static analysis tool that measures how well a codebase maintains its architectural coherence over time — particularly as AI code-generation tools (Copilot, Cursor, ChatGPT) introduce code that solves local tasks correctly but weakens global design consistency.
+
+![drift CLI demo](demos/demo.gif)
+
+_Reproducible terminal recording via [demos/demo.tape](demos/demo.tape)._
 
 ---
 
@@ -48,6 +55,10 @@ SonarSource [reports](https://www.sonarsource.com/blog/the-inevitable-rise-of-po
 
 ### Why Not Existing Tools?
 
+<details>
+<summary>Why not SonarQube and classic linters?</summary>
+
+
 | Tool                 | What it catches                  | What it misses                                           |
 | -------------------- | -------------------------------- | -------------------------------------------------------- |
 | **SonarQube**        | Duplicates, complexity, security | No pattern fragmentation; no AI-specific erosion signals |
@@ -56,6 +67,8 @@ SonarSource [reports](https://www.sonarsource.com/blog/the-inevitable-rise-of-po
 | **Sourcegraph Cody** | AI-powered search                | Non-deterministic; requires cloud; no composite scoring  |
 
 **drift is the first tool that combines structural, temporal, and pattern-coherence signals into a deterministic Codebase Health Score — specifically designed for AI-accelerated development.**
+
+</details>
 
 ## Measured Results
 
@@ -102,6 +115,20 @@ drift badge --repo .
 ```
 
 ## Demo
+
+Generate/update the GIF with [Vhs](https://github.com/charmbracelet/vhs):
+
+```bash
+vhs demos/demo.tape
+```
+
+Windows helper:
+
+```powershell
+./scripts/render_demo.ps1
+```
+
+Reference output (text fallback):
 
 ```
 ╭─ drift analyze  myproject/ ──────────────────────────────────────────────────╮

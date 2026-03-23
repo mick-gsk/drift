@@ -140,6 +140,10 @@ Versionen pinnen können.
 
 Use the [issue templates](.github/ISSUE_TEMPLATE/) — they help reproduce problems quickly.
 
+## Code of Conduct
+
+Please follow the [Code of Conduct](CODE_OF_CONDUCT.md) in all project spaces.
+
 ## License
 
 By contributing you agree that your contributions will be licensed under the [MIT License](LICENSE).
