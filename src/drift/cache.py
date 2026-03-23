@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from pathlib import Path
 from typing import Any
 
@@ -24,9 +25,23 @@ from drift.models import (
 class ParseCache:
     """Disk-backed parse result cache."""
 
+    # Evict entries not accessed in the last 7 days.
+    _EVICTION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+
     def __init__(self, cache_dir: Path) -> None:
         self._cache_dir = cache_dir / "parse"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        self._evict_stale()
+
+    def _evict_stale(self) -> None:
+        """Remove cache entries older than ``_EVICTION_MAX_AGE_SECONDS``."""
+        cutoff = time.time() - self._EVICTION_MAX_AGE_SECONDS
+        for entry in self._cache_dir.glob("*.json"):
+            try:
+                if entry.stat().st_mtime < cutoff:
+                    entry.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     @staticmethod
     def file_hash(file_path: Path) -> str:

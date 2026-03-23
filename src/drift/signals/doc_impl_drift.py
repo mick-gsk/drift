@@ -15,14 +15,11 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from drift.config import DriftConfig
 from drift.models import FileHistory, Finding, ParseResult, Severity, SignalType
 from drift.signals.base import BaseSignal, register_signal
-
-if TYPE_CHECKING:
-    from drift.embeddings import EmbeddingService
 
 logger = logging.getLogger("drift.dia")
 
@@ -208,10 +205,8 @@ class DocImplDriftSignal(BaseSignal):
     4. (Optional, with embeddings) Semantic claim validation.
     """
 
-    _embedding_service: EmbeddingService | None = None  # set by create_signals
-
-    def __init__(self, repo_path: Path) -> None:
-        self._repo_path = repo_path
+    def __init__(self, repo_path: Path, **kwargs: object) -> None:
+        super().__init__(repo_path=repo_path, **kwargs)
 
     @property
     def signal_type(self) -> SignalType:

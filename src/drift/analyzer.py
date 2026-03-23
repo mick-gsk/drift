@@ -3,21 +3,16 @@
 from __future__ import annotations
 
 import datetime
+import importlib
 import logging
+import pkgutil
 import subprocess
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-# Import all signal modules so @register_signal decorators execute.
-import drift.signals.architecture_violation  # noqa: F401
-import drift.signals.doc_impl_drift  # noqa: F401
-import drift.signals.explainability_deficit  # noqa: F401
-import drift.signals.mutant_duplicates  # noqa: F401
-import drift.signals.pattern_fragmentation  # noqa: F401
-import drift.signals.system_misalignment  # noqa: F401
-import drift.signals.temporal_volatility  # noqa: F401
+import drift.signals
 from drift.cache import ParseCache
 from drift.config import DriftConfig
 from drift.embeddings import get_embedding_service
@@ -25,6 +20,7 @@ from drift.ingestion.ast_parser import parse_file
 from drift.ingestion.file_discovery import discover_files
 from drift.ingestion.git_history import build_file_histories, parse_git_history
 from drift.models import (
+    FileInfo,
     Finding,
     ParseResult,
     PatternCategory,
@@ -38,12 +34,29 @@ from drift.scoring.engine import (
 )
 from drift.signals.base import AnalysisContext, create_signals
 
+# Auto-discover all signal modules so @register_signal decorators execute.
+for _finder, _mod_name, _ispkg in pkgutil.iter_modules(drift.signals.__path__):
+    importlib.import_module(f"drift.signals.{_mod_name}")
+
 # Progress callback: (phase_name, current, total)
 ProgressCallback = Callable[[str, int, int], None]
 
 # Default parallelism for file parsing — threads work well here because
 # the bottleneck is disk I/O rather than pure CPU.
 _DEFAULT_WORKERS = 8
+
+
+def _is_git_repo(path: Path) -> bool:
+    """Check whether *path* is inside a git working tree."""
+    try:
+        subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "--git-dir"],
+            capture_output=True,
+            check=True,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
 
 
 def _fetch_git_history(
@@ -105,7 +118,7 @@ def analyze_repo(
 
     # Pre-classify files into cache hits and files that need parsing.
     cached_results: dict[int, ParseResult] = {}
-    to_parse: list[tuple[int, object]] = []  # (index, finfo)
+    to_parse: list[tuple[int, FileInfo]] = []
     for idx, finfo in enumerate(files):
         full_path = repo_path / finfo.path
         try:
@@ -120,9 +133,16 @@ def analyze_repo(
 
     _progress("Parsing files", len(cached_results), len(files))
 
+    # Check if this is a git repository — skip git history if not.
+    has_git = _is_git_repo(repo_path)
+
     # Launch git history in a background thread while we parse AST files.
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        git_future = executor.submit(_fetch_git_history, repo_path, since_days, known_files)
+        git_future = (
+            executor.submit(_fetch_git_history, repo_path, since_days, known_files)
+            if has_git
+            else None
+        )
 
         # Parse uncached files in parallel.
         parse_results: list[ParseResult] = [None] * len(files)  # type: ignore[list-item]
@@ -154,8 +174,14 @@ def analyze_repo(
 
         _progress("Parsing files", len(files), len(files))
 
-        # Collect git results.
-        commits, file_histories = git_future.result()
+        # Collect git results (empty when not a git repo).
+        if git_future is not None:
+            commits, file_histories = git_future.result()
+        else:
+            logging.getLogger("drift").info(
+                "Not a git repository — skipping git history analysis."
+            )
+            commits, file_histories = [], {}
 
     _progress("Analyzing git history", 0, 0)
 

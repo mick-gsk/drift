@@ -37,6 +37,17 @@ class BaseSignal(ABC):
     1.0 (severe drift).
     """
 
+    _repo_path: Path | None
+    _embedding_service: EmbeddingService | None
+
+    def __init__(
+        self,
+        repo_path: Path | None = None,
+        embedding_service: EmbeddingService | None = None,
+    ) -> None:
+        self._repo_path = repo_path
+        self._embedding_service = embedding_service
+
     @property
     @abstractmethod
     def signal_type(self) -> SignalType: ...
@@ -74,7 +85,7 @@ def create_signals(ctx: AnalysisContext) -> list[BaseSignal]:
 
     Signals whose ``__init__`` accepts a ``repo_path`` keyword argument
     receive it from the context automatically.  All signals receive
-    ``ctx.embedding_service`` as a ``_embedding_service`` attribute.
+    ``ctx.embedding_service`` via constructor.
     """
     import inspect
 
@@ -82,8 +93,12 @@ def create_signals(ctx: AnalysisContext) -> list[BaseSignal]:
     for cls in _SIGNAL_REGISTRY:
         sig = inspect.signature(cls.__init__)
         params = set(sig.parameters.keys()) - {"self"}
-        inst = cls(repo_path=ctx.repo_path) if "repo_path" in params else cls()
-        inst._embedding_service = ctx.embedding_service  # type: ignore[attr-defined]
+        kwargs: dict[str, object] = {}
+        if "repo_path" in params:
+            kwargs["repo_path"] = ctx.repo_path
+        if "embedding_service" in params:
+            kwargs["embedding_service"] = ctx.embedding_service
+        inst = cls(**kwargs)
         signals.append(inst)
     return signals
 

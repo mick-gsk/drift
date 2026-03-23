@@ -117,10 +117,8 @@ def _function_signature_text(fn: FunctionInfo) -> str:
 class MutantDuplicateSignal(BaseSignal):
     """Detect near-duplicate functions that diverge in subtle ways."""
 
-    _embedding_service: EmbeddingService | None = None  # set by create_signals
-
-    def __init__(self, repo_path: Path) -> None:
-        self._repo_path = repo_path
+    def __init__(self, repo_path: Path, **kwargs: object) -> None:
+        super().__init__(repo_path=repo_path, **kwargs)
 
     @property
     def signal_type(self) -> SignalType:
@@ -146,7 +144,7 @@ class MutantDuplicateSignal(BaseSignal):
             return []
 
         findings: list[Finding] = []
-        checked: set[tuple[str, str]] = set()
+        checked: set[tuple[str, ...]] = set()
 
         # ---- Phase 1: Exact duplicates via body_hash (O(n)) ----
         hash_groups: dict[str, list[FunctionInfo]] = defaultdict(list)
@@ -323,7 +321,7 @@ class MutantDuplicateSignal(BaseSignal):
         fn_key_map: dict[str, FunctionInfo],
         embedding_cache: dict[str, Any],
         ngram_cache: dict[str, list[tuple[str, ...]] | None],
-        checked: set[tuple[str, str]],
+        checked: set[tuple[str, ...]],
         emb: EmbeddingService,
     ) -> list[Finding]:
         """Find high-embedding-similarity pairs that structural checks miss."""
@@ -339,7 +337,7 @@ class MutantDuplicateSignal(BaseSignal):
         if index is None:
             return findings
 
-        seen: set[tuple[str, str]] = set(checked)
+        seen: set[tuple[str, ...]] = set(checked)
 
         for i, key_a in enumerate(keys):
             if len(findings) >= 50:  # Cap semantic-only findings

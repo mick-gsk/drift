@@ -57,7 +57,7 @@ def main(verbose: bool = False) -> None:
     help="Output format.",
 )
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
-@click.option("--workers", "-w", default=8, type=int, help="Parallel workers for file parsing.")
+@click.option("--workers", "-w", default=None, type=int, help="Parallel workers for file parsing.")
 @click.option(
     "--no-embeddings", is_flag=True, default=False, help="Disable embedding-based analysis."
 )
@@ -68,14 +68,14 @@ def analyze(
     since: int,
     output_format: str,
     config: Path | None,
-    workers: int,
+    workers: int | None,
     no_embeddings: bool,
     embedding_model: str | None,
 ) -> None:
     """Analyze a repository for architectural drift."""
     from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn
 
-    from drift.analyzer import analyze_repo
+    from drift.analyzer import _DEFAULT_WORKERS, analyze_repo
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
@@ -112,7 +112,7 @@ def analyze(
             since_days=since,
             target_path=path,
             on_progress=_on_progress,
-            workers=workers,
+            workers=workers if workers is not None else _DEFAULT_WORKERS,
         )
         if task_id is not None:
             progress.update(task_id, completed=_last_total)
@@ -160,7 +160,7 @@ def analyze(
     default="rich",
 )
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
-@click.option("--workers", "-w", default=8, type=int, help="Parallel workers for file parsing.")
+@click.option("--workers", "-w", default=None, type=int, help="Parallel workers for file parsing.")
 @click.option(
     "--no-embeddings", is_flag=True, default=False, help="Disable embedding-based analysis."
 )
@@ -171,12 +171,12 @@ def check(
     fail_on: str | None,
     output_format: str,
     config: Path | None,
-    workers: int,
+    workers: int | None,
     no_embeddings: bool,
     embedding_model: str | None,
 ) -> None:
     """Check a diff for drift (CI mode)."""
-    from drift.analyzer import analyze_diff
+    from drift.analyzer import _DEFAULT_WORKERS, analyze_diff
     from drift.config import DriftConfig
     from drift.scoring.engine import severity_gate_pass
 
@@ -187,8 +187,9 @@ def check(
         cfg.embedding_model = embedding_model
     threshold = fail_on or cfg.severity_gate()
 
+    effective_workers = workers if workers is not None else _DEFAULT_WORKERS
     with console.status("[bold blue]Checking diff..."):
-        analysis = analyze_diff(repo, cfg, diff_ref=diff_ref, workers=workers)
+        analysis = analyze_diff(repo, cfg, diff_ref=diff_ref, workers=effective_workers)
 
     if output_format == "json":
         from drift.output.json_output import analysis_to_json
