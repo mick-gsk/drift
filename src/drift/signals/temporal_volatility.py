@@ -132,6 +132,19 @@ class TemporalVolatilitySignal(BaseSignal):
             if ai_ratio > 0.0:
                 desc_parts.append(f"AI-attributed: {ai_ratio:.0%}")
 
+            fix_parts = []
+            if freq_z > z_threshold:
+                fix_parts.append(
+                    f"{history.total_commits} Commits in 30 Tagen — erwäge Datei aufzuteilen"
+                )
+            if author_z > z_threshold:
+                fix_parts.append(f"{history.unique_authors} Autoren — Ownership klären")
+            if defect_z > z_threshold:
+                fix_parts.append(
+                    f"{history.defect_correlated_commits} defektorientierte Commits — Stabilität erhöhen"
+                )
+            fix = ". ".join(fix_parts) + "." if fix_parts else None
+
             findings.append(
                 Finding(
                     signal_type=self.signal_type,
@@ -141,6 +154,7 @@ class TemporalVolatilitySignal(BaseSignal):
                     description=". ".join(desc_parts) + ".",
                     file_path=history.path,
                     ai_attributed=ai_ratio > 0.3,
+                    fix=fix,
                     metadata={
                         "change_frequency_30d": round(history.change_frequency_30d, 2),
                         "unique_authors": history.unique_authors,

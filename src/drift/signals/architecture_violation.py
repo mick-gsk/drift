@@ -52,7 +52,13 @@ def _matches_pattern(path_str: str, pattern: str) -> bool:
 def build_import_graph(
     parse_results: list[ParseResult],
 ) -> tuple[nx.DiGraph, list[ImportInfo]]:
-    """Build a directed dependency graph from import statements."""
+    """Build a directed dependency graph from import statements.
+
+    Complexity: O(n + m) where n = files, m = total imports.
+    Nodes are files (or unresolved external modules). Edges are import
+    relationships. Downstream analysis uses in-degree centrality for hub
+    detection and Tarjan's SCC algorithm for circular dependency detection.
+    """
     graph = nx.DiGraph()
     all_imports: list[ImportInfo] = []
 
@@ -313,6 +319,11 @@ class ArchitectureViolationSignal(BaseSignal):
                             ),
                             file_path=imp.source_file,
                             start_line=imp.line_number,
+                            fix=(
+                                f"Entferne Import '{imp.imported_module}' in "
+                                f"{imp.source_file.name}:{imp.line_number}. "
+                                f"Führe Zugriff über eine Service-Schicht oder Interface."
+                            ),
                             metadata={
                                 "rule": boundary.name,
                                 "import": imp.imported_module,
@@ -393,6 +404,11 @@ class ArchitectureViolationSignal(BaseSignal):
                         file_path=Path(src),
                         start_line=line,
                         related_files=[Path(dst)],
+                        fix=(
+                            f"Verschiebe {Path(dst).name}-Logik in eine Service-Schicht "
+                            f"oder Abstraktions-Interface, das von {Path(src).name} "
+                            f"importiert werden darf."
+                        ),
                         metadata={
                             "src_layer": src_layer,
                             "dst_layer": dst_layer,
@@ -427,6 +443,10 @@ class ArchitectureViolationSignal(BaseSignal):
                     description=f"Cycle: {cycle_str}",
                     file_path=Path(cycle[0]),
                     related_files=[Path(p) for p in cycle[1:]],
+                    fix=(
+                        f"Zirkuläre Abhängigkeit ({len(cycle)} Module): {cycle_str}. "
+                        f"Breche Zyklus durch Interface-Extraktion oder Dependency Inversion."
+                    ),
                     metadata={"cycle": cycle},
                 )
             )

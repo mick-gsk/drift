@@ -13,11 +13,14 @@ def _finding_to_dict(f: Finding) -> dict[str, Any]:
         "signal": f.signal_type.value,
         "severity": f.severity.value,
         "score": f.score,
+        "impact": f.impact,
         "title": f.title,
         "description": f.description,
+        "fix": f.fix,
         "file": f.file_path.as_posix() if f.file_path else None,
         "start_line": f.start_line,
         "end_line": f.end_line,
+        "related_files": [rf.as_posix() for rf in f.related_files],
         "ai_attributed": f.ai_attributed,
         "metadata": f.metadata,
     }
@@ -102,6 +105,23 @@ def findings_to_sarif(analysis: RepoAnalysis) -> str:
                 if f.end_line:
                     location["physicalLocation"]["region"]["endLine"] = f.end_line
             result["locations"] = [location]
+
+        # Include all related locations (Opt-2: expose every location in SARIF)
+        if f.related_files:
+            result["relatedLocations"] = [
+                {
+                    "id": idx,
+                    "message": {"text": "Related file"},
+                    "physicalLocation": {
+                        "artifactLocation": {"uri": rf.as_posix()},
+                    },
+                }
+                for idx, rf in enumerate(f.related_files)
+            ]
+
+        # Include fix as a help text in the SARIF rule
+        if f.fix:
+            result["message"]["text"] = f"{f.title}\n{f.description}\nFIX: {f.fix}"
 
         results.append(result)
 

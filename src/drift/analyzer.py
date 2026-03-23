@@ -28,6 +28,7 @@ from drift.models import (
     RepoAnalysis,
 )
 from drift.scoring.engine import (
+    assign_impact_scores,
     composite_score,
     compute_module_scores,
     compute_signal_scores,
@@ -178,9 +179,7 @@ def analyze_repo(
         if git_future is not None:
             commits, file_histories = git_future.result()
         else:
-            logging.getLogger("drift").info(
-                "Not a git repository — skipping git history analysis."
-            )
+            logging.getLogger("drift").info("Not a git repository — skipping git history analysis.")
             commits, file_histories = [], {}
 
     _progress("Analyzing git history", 0, 0)
@@ -218,6 +217,7 @@ def analyze_repo(
             )
 
     # --- 5. Scoring ---
+    assign_impact_scores(all_findings, config.weights)
     signal_scores = compute_signal_scores(all_findings)
     repo_score = composite_score(signal_scores, config.weights)
     module_scores = compute_module_scores(all_findings, config.weights)
@@ -354,6 +354,7 @@ def analyze_diff(
         all_findings.extend(findings)
 
     # --- 5. Scoring ---
+    assign_impact_scores(all_findings, config.weights)
     signal_scores = compute_signal_scores(all_findings)
     score = composite_score(signal_scores, config.weights)
     module_scores = compute_module_scores(all_findings, config.weights)

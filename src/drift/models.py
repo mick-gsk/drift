@@ -192,6 +192,8 @@ class Finding:
     related_files: list[Path] = field(default_factory=list)
     commit_hash: str | None = None
     ai_attributed: bool = False
+    fix: str | None = None
+    impact: float = 0.0
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

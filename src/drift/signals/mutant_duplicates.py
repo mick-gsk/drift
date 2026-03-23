@@ -63,7 +63,11 @@ def _structural_similarity(
     ngrams_a: list[tuple[str, ...]] | None,
     ngrams_b: list[tuple[str, ...]] | None,
 ) -> float:
-    """Compute structural similarity from pre-computed AST n-gram lists."""
+    """Compute structural similarity from pre-computed AST n-gram lists.
+
+    Complexity: O(|A| + |B|) via Jaccard, with an early-exit size-ratio
+    check that rejects pairs with >3× size difference in O(1).
+    """
     if not ngrams_a or not ngrams_b:
         return 0.0
 
@@ -77,7 +81,13 @@ def _structural_similarity(
 
 
 def _jaccard(a: list[tuple[str, ...]], b: list[tuple[str, ...]]) -> float:
-    """Jaccard similarity over two multiset n-gram lists."""
+    """Multiset Jaccard similarity over two n-gram lists.
+
+    Complexity: O(|A| + |B|) — linear in total n-gram count.
+    Uses min/max counting (not set intersection) to handle repeated n-grams
+    correctly, making the metric robust against small edits that shift
+    n-gram frequencies rather than eliminating them entirely.
+    """
     if not a and not b:
         return 1.0
     if not a or not b:
@@ -154,36 +164,65 @@ class MutantDuplicateSignal(BaseSignal):
 
         for _h, group in hash_groups.items():
             if len(group) > 1:
+                # Mark all pairwise keys as checked to avoid Phase 2 re-detection
                 for a, b in combinations(group, 2):
                     key = tuple(sorted([f"{a.file_path}:{a.name}", f"{b.file_path}:{b.name}"]))
-                    if key in checked:
-                        continue
                     checked.add(key)
 
-                    findings.append(
-                        Finding(
-                            signal_type=self.signal_type,
-                            severity=Severity.HIGH,
-                            score=0.9,
-                            title=f"Exact duplicate: {a.name} ↔ {b.name}",
-                            description=(
-                                f"{a.file_path}:{a.start_line} and "
-                                f"{b.file_path}:{b.start_line} are identical "
-                                f"({a.loc} lines). Consider consolidating."
-                            ),
-                            file_path=a.file_path,
-                            start_line=a.start_line,
-                            related_files=[b.file_path],
-                            metadata={
-                                "similarity": 1.0,
-                                "body_hash": _h,
-                                "function_a": a.name,
-                                "function_b": b.name,
-                                "file_a": a.file_path.as_posix(),
-                                "file_b": b.file_path.as_posix(),
-                            },
-                        )
+                # One grouped finding per hash group instead of N*(N-1)/2 pairwise
+                anchor = group[0]
+                others = group[1:]
+                func_names = sorted({fn.name for fn in group})
+                names_str = ", ".join(func_names[:5])
+                if len(func_names) > 5:
+                    names_str += f" (+{len(func_names) - 5})"
+
+                # Compute common parent for fix suggestion
+                all_parents = {fn.file_path.parent for fn in group}
+                if len(all_parents) == 1:
+                    common_parent = all_parents.pop()
+                else:
+                    common_parts = list(anchor.file_path.parts)
+                    for fn in others:
+                        common_parts = [
+                            p for p, q in zip(common_parts, fn.file_path.parts) if p == q
+                        ]
+                    common_parent = Path(*common_parts) if common_parts else anchor.file_path.parent
+
+                fix_exact = (
+                    f"Extrahiere {anchor.name}() in {common_parent.as_posix()}/shared.py. "
+                    f"{len(group)} identische Kopien (Similarity: 1.00). Aufwand: S."
+                )
+
+                locations_desc = ", ".join(
+                    f"{fn.file_path}:{fn.start_line}" for fn in group
+                )
+
+                findings.append(
+                    Finding(
+                        signal_type=self.signal_type,
+                        severity=Severity.HIGH,
+                        score=0.9,
+                        title=f"Exact duplicates ({len(group)}×): {names_str}",
+                        description=(
+                            f"{len(group)} identical copies ({anchor.loc} lines each) "
+                            f"at: {locations_desc}. Consider consolidating."
+                        ),
+                        file_path=anchor.file_path,
+                        start_line=anchor.start_line,
+                        related_files=[fn.file_path for fn in others],
+                        fix=fix_exact,
+                        metadata={
+                            "similarity": 1.0,
+                            "body_hash": _h,
+                            "group_size": len(group),
+                            "functions": [
+                                {"name": fn.name, "file": fn.file_path.as_posix(), "line": fn.start_line}
+                                for fn in group
+                            ],
+                        },
                     )
+                )
 
         # ---- Pre-compute data for Phase 2 + 3 ----
         ngram_cache: dict[str, list[tuple[str, ...]] | None] = {}
@@ -279,6 +318,18 @@ class MutantDuplicateSignal(BaseSignal):
                     if use_hybrid:
                         metadata["ast_similarity"] = round(ast_sim, 3)
 
+                    # Determine common extraction target
+                    near_parent = a.file_path.parent
+                    if a.file_path.parent != b.file_path.parent:
+                        near_parent = Path(
+                            *[p for p, q in zip(a.file_path.parts, b.file_path.parts) if p == q]
+                        ) if any(p == q for p, q in zip(a.file_path.parts, b.file_path.parts)) else a.file_path.parent
+                    effort = "S" if a.file_path.parent == b.file_path.parent else "M"
+                    fix_near = (
+                        f"Extrahiere {a.name}() in {near_parent.as_posix()}/shared.py. "
+                        f"Similarity: {sim:.0%}. Aufwand: {effort}."
+                    )
+
                     findings.append(
                         Finding(
                             signal_type=self.signal_type,
@@ -293,6 +344,7 @@ class MutantDuplicateSignal(BaseSignal):
                             file_path=a.file_path,
                             start_line=a.start_line,
                             related_files=[b.file_path],
+                            fix=fix_near,
                             metadata=metadata,
                         )
                     )
@@ -380,6 +432,10 @@ class MutantDuplicateSignal(BaseSignal):
                         file_path=fn_a.file_path,
                         start_line=fn_a.start_line,
                         related_files=[fn_b.file_path],
+                        fix=(
+                            f"Prüfe ob {fn_a.name}() und {fn_b.name}() dasselbe tun. "
+                            f"Wenn ja, eine Funktion als Wrapper der anderen umschreiben."
+                        ),
                         metadata={
                             "embedding_similarity": round(score, 3),
                             "ast_similarity": round(ast_sim, 3),

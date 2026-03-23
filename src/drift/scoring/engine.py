@@ -41,16 +41,36 @@ _severity_for_score = severity_for_score
 _DAMPENING_K = 10
 
 
+def assign_impact_scores(findings: list[Finding], weights: SignalWeights) -> None:
+    """Compute and assign impact scores to each finding in-place.
+
+    impact = signal_weight × score × (1 + log(1 + related_file_count))
+
+    The logarithmic factor rewards findings that span many files without
+    creating an unbounded multiplier for very large clusters.
+    """
+    weight_dict = weights.as_dict()
+    for f in findings:
+        key = _SIGNAL_WEIGHT_KEYS.get(f.signal_type)
+        w = weight_dict.get(key, 0.1) if key else 0.1
+        breadth = 1 + math.log(1 + len(f.related_files))
+        f.impact = round(w * f.score * breadth, 4)
+
+
 def compute_signal_scores(
     findings: list[Finding],
 ) -> dict[SignalType, float]:
     """Compute per-signal aggregate scores with count-dampened aggregation.
 
+    Complexity: O(n) where n = total findings.
+
     Each signal's score = mean(finding_scores) * min(1, ln(1+n)/ln(1+k))
     where n = finding count and k = dampening constant.
 
-    This ensures that a single finding with score 0.5 produces a lower
-    signal score than 15 findings with the same mean score.
+    The logarithmic dampening prevents prolific low-confidence signals from
+    dominating the composite score. A single high-score finding contributes
+    less than many moderate findings — but the relationship is sublinear,
+    not linear. This is calibrated via ablation study (see ADR-003).
     """
     by_signal: dict[SignalType, list[float]] = defaultdict(list)
     for f in findings:

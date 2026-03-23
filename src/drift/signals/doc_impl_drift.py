@@ -122,15 +122,20 @@ _FALLBACK_DIR_RE = re.compile(r"(?<!\w)(\w[\w\-]*)/" r"(?!\S*://)")
 def _extract_dir_refs_from_ast(markdown_text: str) -> set[str]:
     """Parse Markdown via mistune AST and extract directory-like references.
 
-    Only prose and code-span nodes are inspected; link *URLs* are skipped
-    entirely (they are the main source of badge/CI false positives).
+    Only prose nodes are inspected; link URLs, code spans, and fenced
+    code blocks are skipped entirely (they are the main sources of false
+    positives from badge/CI links and code examples).
 
     Falls back to a simple regex when mistune is not installed.
     """
     mistune = _get_mistune()
     if mistune is None:
         # Regex fallback — less precise, but functional without mistune
-        refs = set(_FALLBACK_DIR_RE.findall(markdown_text))
+        # Strip fenced code blocks (example code, not structure claims)
+        cleaned = re.sub(r'```[^`]*```', '', markdown_text, flags=re.DOTALL)
+        # Strip inline links [text](url) to avoid extracting URL segments
+        cleaned = re.sub(r'\[([^\]]*)\]\([^)]+\)', r'\1', cleaned)
+        refs = set(_FALLBACK_DIR_RE.findall(cleaned))
         return {r for r in refs if not _is_url_segment(r)}
 
     md = mistune.create_markdown(renderer="ast")
@@ -165,8 +170,16 @@ def _walk_tokens(tokens: list[dict[str, Any]], refs: set[str]) -> None:
         if tok_type == "image":
             continue
 
-        # For code spans / code blocks — extract directory-like patterns
-        if tok_type in ("codespan", "block_code"):
+        # Skip code spans and code blocks — directory references inside
+        # code examples are not claims about project structure and are the
+        # #2 source of false positives after link URLs.
+        # Inline code spans (``codespan``) are kept — they typically reference
+        # real project paths in prose context (e.g. "the `src/` directory").
+        if tok_type == "block_code":
+            continue
+
+        # For inline code spans — extract directory-like patterns
+        if tok_type == "codespan":
             raw = tok.get("raw", tok.get("text", ""))
             if raw:
                 refs.update(_PROSE_DIR_RE.findall(raw))
@@ -237,6 +250,7 @@ class DocImplDriftSignal(BaseSignal):
                         "The repository has no README file. "
                         "A README is essential for architectural context."
                     ),
+                    fix="Erstelle eine README.md im Repository-Wurzelverzeichnis mit Architekturüberblick.",
                 )
             )
             return findings
@@ -267,6 +281,7 @@ class DocImplDriftSignal(BaseSignal):
                             f"Documentation may be outdated."
                         ),
                         file_path=readme_path.relative_to(self._repo_path),
+                        fix=f"Entferne '{ref}/' aus README oder lege das Verzeichnis an.",
                         metadata={"referenced_dir": ref},
                     )
                 )
@@ -287,6 +302,7 @@ class DocImplDriftSignal(BaseSignal):
                                 f"but is not mentioned in README."
                             ),
                             file_path=Path(src_dir),
+                            fix=f"Ergänze '{src_dir}/' in README mit kurzer Beschreibung des Moduls.",
                             metadata={"undocumented_dir": src_dir},
                         )
                     )

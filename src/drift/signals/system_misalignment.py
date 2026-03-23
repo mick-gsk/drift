@@ -144,6 +144,12 @@ class SystemMisalignmentSignal(BaseSignal):
                 for imp, pkg in imports[:5]
             ]
 
+            fix = (
+                f"Prüfe ob {pkg_list} bewusst eingeführt wurde. "
+                f"Wenn ja, zur drift-Konfiguration unter allowed_imports hinzufügen. "
+                f"Wenn nicht, Abhängigkeit entfernen."
+            )
+
             findings.append(
                 Finding(
                     signal_type=self.signal_type,
@@ -155,6 +161,7 @@ class SystemMisalignmentSignal(BaseSignal):
                         f"not previously used in this module: {pkg_list}\n" + "\n".join(imp_details)
                     ),
                     file_path=module,
+                    fix=fix,
                     metadata={
                         "novel_packages": sorted(unique_packages),
                         "novel_imports": sorted(unique_packages),

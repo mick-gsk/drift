@@ -152,6 +152,18 @@ class ExplainabilityDeficitSignal(BaseSignal):
             if ai_related:
                 desc_parts.append("File contains AI-attributed commits.")
 
+            missing = []
+            if not func.has_docstring:
+                missing.append("Docstring")
+            if not has_test:
+                missing.append("Tests")
+            if not func.return_type:
+                missing.append("Return-Type")
+            fix = (
+                f"Funktion {func.name} (Complexity {func.complexity}): "
+                f"Füge {', '.join(missing)} hinzu."
+            ) if missing else None
+
             findings.append(
                 Finding(
                     signal_type=self.signal_type,
@@ -163,6 +175,7 @@ class ExplainabilityDeficitSignal(BaseSignal):
                     start_line=func.start_line,
                     end_line=func.end_line,
                     ai_attributed=ai_related,
+                    fix=fix,
                     metadata={
                         "function_name": func.name,
                         "complexity": func.complexity,

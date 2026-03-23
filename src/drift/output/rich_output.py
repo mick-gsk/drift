@@ -132,12 +132,49 @@ def render_module_table(analysis: RepoAnalysis, console: Console | None = None) 
     console.print(table)
 
 
+def _format_finding_detail(f: Finding) -> Text:
+    """Build the detail body for a single finding panel."""
+    color = _SEVERITY_COLORS.get(f.severity, "white")
+    text = Text()
+
+    # Title in bold
+    text.append(f"{f.title}\n", style=f"bold {color}")
+
+    # Primary location
+    if f.file_path:
+        loc = f.file_path.as_posix()
+        if f.start_line:
+            loc += f":{f.start_line}"
+        text.append(f"  → {loc}\n", style="dim")
+
+    # All related files (Opt-2: show them all, cap at 10 + remainder note)
+    if f.related_files:
+        shown = f.related_files[:10]
+        for rf in shown:
+            text.append(f"  → {rf.as_posix()}\n", style="dim")
+        remainder = len(f.related_files) - len(shown)
+        if remainder > 0:
+            text.append(f"  … und {remainder} weitere\n", style="dim italic")
+
+    # Description (first line only in compact view)
+    first_line = f.description.splitlines()[0] if f.description else ""
+    if first_line:
+        text.append(f"  {first_line}\n", style="dim")
+
+    # FIX line (Opt-1: the key addition)
+    if f.fix:
+        text.append("  FIX: ", style=f"bold {color}")
+        text.append(f"{f.fix}\n", style=color)
+
+    return text
+
+
 def render_findings(
     findings: list[Finding],
     max_items: int = 20,
     console: Console | None = None,
 ) -> None:
-    """Render a list of findings."""
+    """Render a list of findings with fix recommendations and all locations."""
     if console is None:
         console = Console()
 
@@ -145,32 +182,29 @@ def render_findings(
         console.print("[green]No findings.[/green]")
         return
 
-    sorted_findings = sorted(findings, key=lambda f: f.score, reverse=True)
+    # Sort by impact if available, fall back to score
+    sorted_findings = sorted(
+        findings,
+        key=lambda f: (f.impact if f.impact > 0 else f.score),
+        reverse=True,
+    )
 
     table = Table(title="Findings", show_lines=True)
     table.add_column("", width=2)
     table.add_column("Signal", min_width=5)
     table.add_column("Score", justify="right", min_width=6)
-    table.add_column("Title", min_width=40)
-    table.add_column("Location", min_width=20)
+    table.add_column("Title / Details", min_width=50)
 
     for f in sorted_findings[:max_items]:
         icon = _SEVERITY_ICONS.get(f.severity, "?")
         color = _SEVERITY_COLORS.get(f.severity, "white")
         signal = _SIGNAL_LABELS.get(f.signal_type, "?")
 
-        location = ""
-        if f.file_path:
-            location = f.file_path.as_posix()
-            if f.start_line:
-                location += f":{f.start_line}"
-
         table.add_row(
             Text(icon, style=color),
             signal,
             Text(f"{f.score:.2f}", style=color),
-            f.title,
-            location,
+            _format_finding_detail(f),
         )
 
     console.print(table)

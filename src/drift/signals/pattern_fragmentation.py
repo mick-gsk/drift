@@ -137,6 +137,15 @@ class PatternFragmentationSignal(BaseSignal):
                 elif frag_score >= 0.3:
                     severity = Severity.LOW
 
+                # Derive names of non-canonical files for the FIX line
+                nc_files = sorted({p.file_path.name for p in non_canonical})
+                nc_count = len(non_canonical)
+                fix = (
+                    f"Konsolidiere auf das dominante Pattern ({canonical_count}×). "
+                    f"{nc_count} Abweichung(en) in: {', '.join(nc_files[:5])}"
+                    + (f" und {nc_count - 5} weitere" if nc_count > 5 else "") + "."
+                )
+
                 findings.append(
                     Finding(
                         signal_type=self.signal_type,
@@ -149,6 +158,7 @@ class PatternFragmentationSignal(BaseSignal):
                         description="\n".join(desc_parts),
                         file_path=module_path,
                         related_files=[p.file_path for p in non_canonical],
+                        fix=fix,
                         metadata={
                             "category": category.value,
                             "num_variants": num_variants,
