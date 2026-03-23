@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+# pre-push hook — mirrors CI checks (version-check + lint + test + self-analysis)
+# Install once with: git config core.hooksPath .githooks
+set -e
+
+echo ">>> [pre-push] Starting local CI checks..."
+
+# 1. Version format (SemVer)
+echo ">>> [1/4] Checking SemVer version..."
+python scripts/check_version.py --check-semver
+
+# 2. Lint
+echo ">>> [2/4] Running ruff lint..."
+ruff check src/ tests/
+
+# 3. Tests (exclude slow smoke tests that clone external repos)
+echo ">>> [3/4] Running pytest (excl. smoke tests)..."
+pytest -v --tb=short --ignore=tests/test_smoke_real_repos.py
+
+# 4. Self-analysis
+echo ">>> [4/4] Running self-analysis..."
+drift analyze --repo . --format json > /dev/null
+
+echo ">>> [pre-push] All checks passed. Push continues."
