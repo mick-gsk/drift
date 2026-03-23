@@ -98,7 +98,6 @@ class TestAdrScanning:
         from drift.config import DriftConfig
         from drift.ingestion.ast_parser import parse_file
         from drift.ingestion.file_discovery import discover_files
-        from drift.models import FileHistory
         from drift.signals.doc_impl_drift import DocImplDriftSignal
 
         repo = tmp_path / "repo"
