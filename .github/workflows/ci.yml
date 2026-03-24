@@ -18,10 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
       - name: Validate pyproject.toml version is SemVer
         # Ensures the version in pyproject.toml is always MAJOR.MINOR.PATCH –
         # a merge to master with an invalid or missing version is blocked.
@@ -33,18 +29,10 @@ jobs:
       run:
         shell: bash
     needs: version-check
-    strategy:
-      matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history for git-based signals
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: pip install -e ".[dev]"
@@ -59,7 +47,6 @@ jobs:
         run: pytest -v --tb=short --cov=drift --cov-report=xml --cov-report=term-missing -m "not slow"
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
@@ -71,7 +58,6 @@ jobs:
         run: drift analyze --repo . --format json > /dev/null
 
       - name: Drift self-check (score gate)
-        if: matrix.python-version == '3.12'
         run: |
           drift self --format json > drift_score.json
           python -c "
