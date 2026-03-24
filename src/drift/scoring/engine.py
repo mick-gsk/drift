@@ -151,6 +151,9 @@ def severity_gate_pass(
 
     Returns True if the gate passes (no blocking findings).
     """
+    if fail_on == "none":
+        return True
+
     threshold_map = {
         "critical": {Severity.CRITICAL},
         "high": {Severity.CRITICAL, Severity.HIGH},

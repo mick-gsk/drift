@@ -1,4 +1,4 @@
-# Drift — Codebase Coherence Analyzer
+# Drift — Find the architecture damage AI coding tools leave behind
 
 [![CI](https://github.com/sauremilk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/sauremilk/drift/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/sauremilk/drift/graph/badge.svg)](https://codecov.io/gh/sauremilk/drift)
@@ -13,9 +13,11 @@
 [![Stars](https://img.shields.io/github/stars/sauremilk/drift?style=social)](https://github.com/sauremilk/drift)
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://sauremilk.github.io/drift/)
 
-**Detect architectural erosion in AI-assisted Python codebases — deterministic, no LLM required.**
+> **Install:** `pip install drift-analyzer` · **Command:** `drift` · **Requires:** Python 3.11+
 
-Benchmarked on FastAPI, Django, Pydantic and 12 more real-world repos. 97.3 % precision on 2 642 findings. [Full study →](STUDY.md)
+**AI coding tools ship code fast — but they fragment patterns, cross boundaries, and create structural debt your linter won't catch. Drift finds it. Deterministic, no LLM required.**
+
+Benchmarked on FastAPI, Django, Pydantic and 12 more real-world repos. [Full study →](STUDY.md) · [Trust & limitations](docs-site/benchmarking.md)
 
 ## Try it now
 
@@ -28,8 +30,7 @@ That's it — you'll see a drift score, module ranking, and actionable findings 
 
 ![drift CLI demo](demos/demo.gif)
 
-<details>
-<summary>Try it on an example project with known drift patterns</summary>
+### Try on a demo project (2 minutes)
 
 ```bash
 git clone https://github.com/sauremilk/drift.git
@@ -38,30 +39,22 @@ pip install drift-analyzer
 drift analyze --repo .
 ```
 
-See [examples/demo-project/](examples/demo-project/) for a small Python project with intentional architectural drift patterns.
-</details>
+The [demo project](examples/demo-project/) contains intentional drift patterns — you'll see pattern fragmentation, architecture violations, and duplicated logic in the output.
 
 ## Why drift
 
-AI-assisted development is fast, but speed often hides structural erosion:
+When your team uses Copilot, Cursor, or other AI coding tools, code passes CI — but the architecture quietly degrades:
 
-- the same concern gets implemented multiple ways
-- imports cross architectural boundaries
-- copy-paste variants accumulate
-- hotspots churn faster than teams can reason about them
+- **Pattern fragmentation:** error handling is implemented 4 different ways across the same service
+- **Boundary violations:** the API layer imports directly from the database layer
+- **Silent duplication:** AI generates a new validator instead of finding the existing one
+- **Churn hotspots:** the same files change every sprint because the structure is unclear
 
-Drift does not try to replace linters, security scanners, or type checkers.
-It complements them by surfacing architecture and coherence problems that are easy to miss in fast-moving repositories.
+Your linter, type checker, and test suite won't catch this. Drift does — deterministically, without any LLM in the pipeline.
 
 ## Setup
 
-### CI gate
-
-```bash
-drift check --fail-on high
-```
-
-### GitHub Action
+### GitHub Action (recommended: start report-only)
 
 ```yaml
 name: Drift
@@ -82,8 +75,24 @@ jobs:
 
       - uses: sauremilk/drift@v1
         with:
-          fail-on: high
+          fail-on: none           # report findings without blocking CI
+          upload-sarif: "true"    # findings appear as PR annotations
+```
+
+Once the team has reviewed findings for a few sprints, tighten the gate:
+
+```yaml
+      - uses: sauremilk/drift@v1
+        with:
+          fail-on: high           # block only high-severity findings
           upload-sarif: "true"
+```
+
+### CI gate (local)
+
+```bash
+drift check --fail-on none    # report-only
+drift check --fail-on high    # block on high-severity findings
 ```
 
 ### pre-commit hook
@@ -145,12 +154,19 @@ Signal details and scoring model:
 - [Algorithm Deep Dive](docs-site/algorithms/deep-dive.md)
 - [Scoring Model](docs-site/algorithms/scoring.md)
 
-## Use drift if...
+## Ideal for
 
-- you want to review structural coherence, not just syntax or style
-- you want a deterministic complement to AI-assisted code review
-- you care about trends and hotspots across modules, not only isolated lint findings
-- you need CLI, CI, JSON, and SARIF outputs without adding LLM infrastructure
+- **Python teams using AI coding tools** (Copilot, Cursor, Cody) in existing codebases
+- **Tech leads** who want to catch structural erosion before it becomes team habit
+- **CI pipelines** that need a deterministic architecture check without LLM infrastructure
+
+## Best first target
+
+Drift works best on Python repositories with 20+ files and some history. If you see too many findings on the first run:
+
+1. Start with `drift check --fail-on none` to just observe.
+2. Focus on findings with score ≥ 0.7 — those have the strongest signal.
+3. Ignore generated code or vendor directories (configure exclusions in `drift.yaml`).
 
 ## Don't use drift if...
 
@@ -176,6 +192,12 @@ Recommended guides:
 - [Benchmarking and Trust](docs-site/benchmarking.md)
 
 ## Trust and limitations
+
+> **What's validated:** Drift has been benchmarked on 15 real-world repos (FastAPI, Django, Pydantic, etc.) with documented precision and recall per signal. All analysis is deterministic and reproducible.
+>
+> **What's limited:** Benchmark validation is single-rater; not yet independently replicated. Small repos can be noisy. Temporal signals depend on clone depth. The composite score is orientation, not a verdict.
+>
+> **What's next:** Independent external validation, multi-rater ground truth, signal-specific confidence intervals.
 
 Drift is designed to earn trust through determinism and reproducibility:
 

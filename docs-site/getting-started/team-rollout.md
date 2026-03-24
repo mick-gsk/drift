@@ -26,15 +26,53 @@ Avoid tuning configuration before you have seen a few real results.
 
 Add drift to CI, but use it as a reporting signal first.
 
+**Week 1 — report-only GitHub Action:**
+
+```yaml
+name: Drift
+
+on: [push, pull_request]
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: sauremilk/drift@v1
+        with:
+          fail-on: none           # report-only, no build failures
+          upload-sarif: "true"    # findings appear as PR annotations
+```
+
+This gives the team visibility into architectural patterns without blocking any PR.
+
 Recommended posture:
 
-- publish rich or JSON output in CI artifacts
 - review findings in pull requests and weekly maintenance windows
 - record which signals feel high-trust and which need tuning
+- discuss top findings in team syncs before enforcing anything
 
 ### Phase 3: Block only high-confidence problems
 
 Once the team understands the output, begin with a narrow gate:
+
+**Week 3+ — gate on high-severity only:**
+
+```yaml
+      - uses: sauremilk/drift@v1
+        with:
+          fail-on: high           # block only high-severity findings
+          upload-sarif: "true"
+```
+
+Or from the CLI:
 
 ```bash
 drift check --fail-on high
@@ -92,3 +130,27 @@ Do not rely on drift alone when:
 - [Finding Triage](finding-triage.md)
 - [Configuration](configuration.md)
 - [Benchmarking and Trust](../benchmarking.md)
+
+## Measuring rollout success
+
+Without a feedback loop, you can't tell whether drift is adding value. Here are practical, privacy-preserving ways to measure adoption:
+
+**CI-level signals (no telemetry required):**
+
+- track how many repositories have the drift GitHub Action enabled
+- monitor how often `drift check` runs succeed vs. fail in CI logs
+- compare the number of high-severity findings per sprint over time
+
+**Team-level signals:**
+
+- count how many drift findings led to a code change (triage → action rate)
+- track whether high-churn modules identified by drift stabilize over sprints
+- ask in retros: "Did drift surface something we would have missed?"
+
+**Artifact-based tracking:**
+
+- save `drift analyze --format json` output as a CI artifact each week
+- compare drift scores across sprints to measure trend direction
+- use `drift trend --last 90` locally to visualize score trajectory
+
+The goal is not to maximize coverage, but to know whether findings translate into architectural decisions.

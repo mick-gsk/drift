@@ -1,52 +1,72 @@
 # Quick Start
 
-## Analyze a Repository
+## 1. Install
 
 ```bash
-drift analyze --repo /path/to/your/project
+pip install drift-analyzer    # requires Python 3.11+
 ```
 
-## CI Check
-
-Exit with code 1 if findings exceed a severity threshold:
+## 2. Analyze your repository
 
 ```bash
-drift check --fail-on high
+cd /path/to/your/project
+drift analyze --repo .
 ```
 
-## Output Formats
+## 3. What you'll see
 
-```bash
-# Rich terminal dashboard (default)
-drift analyze --format rich
+```text
+╭─ drift analyze  myproject/ ──────────────────────────────────────────────────╮
+│  DRIFT SCORE  0.52  │  87 files  │  412 functions  │  AI: 34%  │  2.1s      │
+╰──────────────────────────────────────────────────────────────────────────────╯
 
-# Machine-readable JSON
-drift analyze --format json
-
-# GitHub Code Scanning (SARIF)
-drift analyze --format sarif
+┌──┬────────┬───────┬──────────────────────────────────────┬──────────────────────┐
+│  │ Signal │ Score │ Title                                │ Location             │
+├──┼────────┼───────┼──────────────────────────────────────┼──────────────────────┤
+│◉ │ PFS    │  0.85 │ Error handling split 4 ways          │ src/api/routes.py:42 │
+│◉ │ AVS    │  0.72 │ DB import in API layer               │ src/api/auth.py:18   │
+│○ │ MDS    │  0.61 │ 3 near-identical validators          │ src/utils/valid.py   │
+└──┴────────┴───────┴──────────────────────────────────────┴──────────────────────┘
 ```
 
-## Self-Analysis Demo
+## 4. How to read your first findings
 
-Drift can analyze its own codebase — useful for verifying installation:
+- **Score ≥ 0.7** → strong signal, likely a real structural issue worth investigating
+- **Score 0.4–0.7** → moderate signal, review when you touch that module
+- **Score < 0.4** → weak signal, likely noise in small repos — skip for now
+
+Each finding links to a specific file and line. Start with the highest-scored findings and check if the pattern matches your understanding of the codebase.
+
+## 5. Verify your installation
+
+Drift can analyze its own codebase — useful to confirm everything works:
 
 ```bash
 drift self
 ```
 
-## Trend Tracking
+## Next: add to CI
 
-Track drift score over time with ASCII charts:
+The recommended first step is report-only CI (no build failures):
 
 ```bash
-drift trend --last 90
+drift check --fail-on none    # report findings, never exit 1
 ```
 
-## Root-Cause Analysis
+See [Team Rollout](team-rollout.md) for the full progressive adoption path.
 
-Identify when and why drift began per module:
+## Other commands
 
 ```bash
+# Machine-readable JSON
+drift analyze --format json
+
+# GitHub Code Scanning (SARIF)
+drift analyze --format sarif
+
+# Track drift score over time
+drift trend --last 90
+
+# Root-cause analysis per module
 drift timeline --repo . --since 90
 ```

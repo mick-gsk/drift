@@ -20,9 +20,9 @@ from drift.commands import console
 @click.option("--diff", "diff_ref", default="HEAD~1", help="Git ref to diff against.")
 @click.option(
     "--fail-on",
-    type=click.Choice(["critical", "high", "medium", "low"]),
+    type=click.Choice(["critical", "high", "medium", "low", "none"]),
     default=None,
-    help="Exit code 1 if any finding at or above this severity.",
+    help="Exit code 1 if any finding at or above this severity. Use 'none' for report-only.",
 )
 @click.option(
     "--format",

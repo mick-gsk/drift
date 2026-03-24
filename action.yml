@@ -12,7 +12,7 @@ inputs:
     default: "."
 
   fail-on:
-    description: "Exit 1 if any finding is at or above this severity: critical | high | medium | low"
+    description: "Exit 1 if any finding is at or above this severity: critical | high | medium | low | none. Use 'none' for report-only."
     required: false
     default: "high"
 
@@ -70,11 +70,16 @@ runs:
       env:
         DRIFT_REPO: ${{ inputs.repo }}
         DRIFT_FAIL_ON: ${{ inputs.fail-on }}
+        DRIFT_SINCE: ${{ inputs.since }}
         DRIFT_FORMAT: ${{ inputs.format }}
         DRIFT_CONFIG: ${{ inputs.config }}
         DRIFT_UPLOAD_SARIF: ${{ inputs.upload-sarif }}
       run: |
         ARGS="--repo ${DRIFT_REPO} --fail-on ${DRIFT_FAIL_ON}"
+
+        if [ -n "${DRIFT_SINCE}" ] && [ "${DRIFT_SINCE}" != "" ]; then
+          ARGS="${ARGS} --since ${DRIFT_SINCE}"
+        fi
 
         if [ -n "${DRIFT_CONFIG}" ]; then
           ARGS="${ARGS} --config ${DRIFT_CONFIG}"
