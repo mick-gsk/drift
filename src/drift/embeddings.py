@@ -303,7 +303,7 @@ def get_embedding_service(
             _SERVICE_CFG = requested_cfg
             return _SERVICE
 
-        if _SERVICE_CFG != requested_cfg:
+        if requested_cfg != _SERVICE_CFG:
             logger.warning(
                 "Reinitializing embedding service due to changed configuration: "
                 "old=%s new=%s",
