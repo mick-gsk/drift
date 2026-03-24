@@ -59,6 +59,7 @@ nav:
       - Scoring Model: algorithms/scoring.md
   - Trust & Evaluation:
       - Benchmarking and Trust: benchmarking.md
+      - Benchmark Study: study.md
   - Product:
       - Product Strategy: product-strategy.md
   - Case Studies:
