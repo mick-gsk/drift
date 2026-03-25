@@ -55,11 +55,13 @@ nav:
       - Finding Triage: getting-started/finding-triage.md
       - Configuration: getting-started/configuration.md
   - Use Cases:
+      - Overview: use-cases/index.md
       - Architecture Drift Detection for Python: use-cases/architecture-drift-python.md
       - Architectural Linter for AI Coding Teams: use-cases/architectural-linter-ai-teams.md
       - CI Architecture Checks with SARIF: use-cases/ci-architecture-checks-sarif.md
       - Technical Debt Detection for AI-Assisted Codebases: use-cases/technical-debt-ai-codebases.md
   - Comparisons:
+      - Overview: comparisons/index.md
       - Drift vs Ruff: comparisons/drift-vs-ruff.md
       - Drift vs Semgrep and CodeQL: comparisons/drift-vs-semgrep-codeql.md
       - Drift vs Architecture Conformance Tools: comparisons/drift-vs-architecture-conformance.md

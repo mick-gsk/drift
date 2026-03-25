@@ -37,3 +37,29 @@ See [Team Rollout](getting-started/team-rollout.md).
 No. The detector path is deterministic.
 
 See [Trust and Evidence](trust-evidence.md) and [Benchmarking and Trust](benchmarking.md).
+
+## What is the drift composite score?
+
+A weighted aggregate of six signal scores (PFS, AVS, MDS, EDS, TVS, SMS) that produces a single number between 0 and 1. Higher values indicate more structural erosion. DIA is excluded from the composite score (weight 0.00).
+
+See [Scoring Model](algorithms/scoring.md).
+
+## How precise are drift's findings?
+
+97.3% strict precision across 263 ground-truth-labeled findings on 15 repositories (v0.3). All false positives came from a single signal (DIA) that carries zero scoring weight.
+
+See [Benchmarking and Trust](benchmarking.md) and [STUDY.md](https://github.com/sauremilk/drift/blob/master/STUDY.md).
+
+## Can drift detect dependency cycles in Python?
+
+Yes. The AVS signal detects circular dependencies (A→B→C→A) and upward imports that cross inferred or configured layer boundaries.
+
+## Does drift support monorepos?
+
+Yes. Drift analyzes any Python repository structure. For monorepos, you can use `--path` to restrict analysis to a subdirectory or configure `include`/`exclude` patterns in `drift.yaml`.
+
+## How does drift compare to SonarQube, pylint, or Semgrep?
+
+Drift complements those tools. Linters catch style violations, type checkers catch type errors, security scanners catch vulnerabilities. Drift catches cross-file architectural coherence problems that none of those tools model.
+
+See [Comparisons](comparisons/index.md).
