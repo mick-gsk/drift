@@ -15,6 +15,10 @@
 
 > **Repo:** `sauremilk/drift` · **Package:** `drift-analyzer` · **Command:** `drift` · **Requires:** Python 3.11+
 
+## What is drift?
+
+Drift is a deterministic architectural linter and static analysis tool for Python that detects cross-file technical debt, dependency cycle violations, and pattern fragmentation in AI-assisted codebases. It runs six scoring signals on your repository — without any LLM in the pipeline — and produces a composite drift score that tracks architectural erosion over time. Drift is designed for Python teams using AI coding tools in monorepos and multi-module projects where import analysis and architecture enforcement matter.
+
 **Drift is the deterministic coherence check and architectural linter for AI-assisted Python teams. Ruff finds local rule violations. Semgrep and CodeQL find security and policy issues. Drift finds the cross-file architectural erosion, architecture degradation, and technical debt patterns those tools do not model.**
 
 ### What drift catches that other checks usually don't
@@ -62,6 +66,41 @@ When your team uses GitHub Copilot, Cursor, or other AI coding tools, code passe
 - **Churn hotspots:** the same files change every sprint because the structure is unclear
 
 Your linter, type checker, and test suite won't catch this. Drift does — deterministically, without any LLM in the pipeline. That makes drift useful for architecture degradation detection and technical debt detection in AI-assisted Python codebases.
+
+## Use cases
+
+### Pattern fragmentation in a connector layer
+
+**Problem:** A FastAPI service has 4 connectors, each implementing error handling differently — bare `except`, custom exceptions, retry decorators, and silent fallbacks.
+
+**Solution:**
+```bash
+drift analyze --repo . --sort-by impact --max-findings 5
+```
+
+**Output:** PFS finding with score 0.96 — "26 error_handling variants in connectors/" — shows exactly which files diverge and suggests consolidation.
+
+### Architecture boundary violation in a monorepo
+
+**Problem:** A database model file imports directly from the API layer, creating a circular dependency that breaks test isolation.
+
+**Solution:**
+```bash
+drift check --fail-on high
+```
+
+**Output:** AVS finding — "DB import in API layer at src/api/auth.py:18" — blocks the CI pipeline until the import direction is fixed.
+
+### Duplicate utility code from AI-generated scaffolding
+
+**Problem:** AI code generation created 6 identical `_run_async()` helper functions across separate task files instead of finding the existing shared utility.
+
+**Solution:**
+```bash
+drift analyze --repo . --format json | jq '.findings[] | select(.signal=="MDS")'
+```
+
+**Output:** MDS findings listing all 6 locations with similarity scores ≥ 0.95, enabling a single extract-to-shared-module refactoring.
 
 ## Setup
 
@@ -165,6 +204,28 @@ Signal details and scoring model:
 - [Signal Reference](docs-site/algorithms/signals.md)
 - [Algorithm Deep Dive](docs-site/algorithms/deep-dive.md)
 - [Scoring Model](docs-site/algorithms/scoring.md)
+
+## How drift compares
+
+Data sourced from [STUDY.md](STUDY.md) §9 and [benchmark_results/](benchmark_results/).
+
+| Capability | drift | SonarQube | pylint / mypy | jscpd / CPD |
+|---|:---:|:---:|:---:|:---:|
+| Pattern Fragmentation (N variants per module) | Yes | No | No | No |
+| Near-Duplicate Detection (AST structural) | Yes | Partial (text) | No | Yes (text) |
+| Architecture Violation (layer + circular deps) | Yes | Partial | No | No |
+| Temporal Volatility (churn anomalies) | Yes | No | No | No |
+| System Misalignment (novel imports) | Yes | No | No | No |
+| Composite Health Score | Yes | Yes (different) | No | No |
+| Zero Config (no server needed) | Yes | No (server) | Partial | Yes |
+| SARIF Output (GitHub Code Scanning) | Yes | Yes | No | No |
+| TypeScript Support | Optional ¹ | Yes | No | Yes |
+
+¹ Experimental via `drift-analyzer[typescript]`. Python is the primary target.
+
+Drift is designed to **complement** linters and security scanners, not replace them. Recommended stack: linter (style) + type checker (types) + drift (coherence) + security scanner (SAST).
+
+Full comparison: [STUDY.md §9 — Tool Landscape Comparison](STUDY.md)
 
 ## Ideal for
 
