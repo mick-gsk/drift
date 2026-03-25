@@ -1,5 +1,6 @@
 # drift-analyzer
-> Deterministic architectural drift detection and architectural linter for AI-assisted Python teams.
+
+> Deterministic architectural linter and static analysis tool for Python. Detects cross-file coherence problems — pattern fragmentation, architecture violations, dependency cycles, mutant duplicates, and technical debt — in AI-assisted codebases. No LLM in the detection pipeline.
 
 Package: drift-analyzer
 Install: pip install drift-analyzer
@@ -7,6 +8,43 @@ Repository: https://github.com/sauremilk/drift
 Documentation: https://sauremilk.github.io/drift/
 Command: drift analyze --repo .
 
-Keywords: architecture drift, architectural erosion, architecture degradation, architectural linter, technical debt detection, GitHub Copilot, AI coding tools, static analysis, Python
+## Use Cases
 
-Summary: Drift is a deterministic static analyzer for Python repositories. It finds cross-file coherence problems such as pattern fragmentation, architecture violations, mutant duplicates, explainability deficits, temporal volatility, and system misalignment.
+- Detect pattern fragmentation: same concern implemented N different ways in one module
+- Find architecture violations: imports crossing layer boundaries, circular dependencies
+- Identify mutant duplicates: near-identical functions from copy-paste AI scaffolding
+- Measure explainability deficit: complex functions without documentation or types
+- Track temporal volatility: files changed by too many authors too fast
+- Detect system misalignment: novel import patterns foreign to their module
+- CI gate: block PRs on high-severity architectural findings via GitHub Actions
+- Trend tracking: monitor drift score evolution over time
+
+## Signals
+
+- PFS: Pattern Fragmentation (weight 0.22)
+- AVS: Architecture Violations (weight 0.22)
+- MDS: Mutant Duplicates (weight 0.17)
+- TVS: Temporal Volatility (weight 0.17)
+- EDS: Explainability Deficit (weight 0.12)
+- SMS: System Misalignment (weight 0.10)
+- DIA: Doc-Implementation Drift (report-only, weight 0.00)
+
+## Docs
+
+- [Documentation](https://sauremilk.github.io/drift/)
+- [Quick Start](https://sauremilk.github.io/drift/getting-started/quickstart/)
+- [Signal Reference](https://sauremilk.github.io/drift/algorithms/signals/)
+- [Scoring Model](https://sauremilk.github.io/drift/algorithms/scoring/)
+- [FAQ](https://sauremilk.github.io/drift/faq/)
+- [Trust & Evidence](https://sauremilk.github.io/drift/trust-evidence/)
+
+## Optional
+
+- [Full Benchmark Study](https://github.com/sauremilk/drift/blob/master/STUDY.md): 97.3% precision on 263 ground-truth-labeled findings across 15 repositories
+- [Changelog](https://github.com/sauremilk/drift/blob/master/CHANGELOG.md): version history and signal improvements
+- [Case Studies](https://sauremilk.github.io/drift/case-studies/): FastAPI, Pydantic, Django
+- [GitHub Action](https://github.com/sauremilk/drift/blob/master/action.yml): CI integration with SARIF upload
+
+## Keywords
+
+architectural linter, architecture drift, architectural erosion, architecture degradation, technical debt detection, dependency cycle detection, import analysis, pattern fragmentation, static analysis, Python, monorepo, GitHub Copilot, AI coding tools, code quality, architecture enforcement
