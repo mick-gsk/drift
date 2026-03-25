@@ -215,6 +215,18 @@ class ModuleScore:
 
 
 @dataclass
+class TrendContext:
+    """Temporal context attached to every analysis result (ADR-005)."""
+
+    previous_score: float | None
+    delta: float | None
+    direction: str  # "improving" | "stable" | "degrading" | "baseline"
+    recent_scores: list[float]
+    history_depth: int
+    transition_ratio: float
+
+
+@dataclass
 class RepoAnalysis:
     """Complete analysis result for a repository."""
 
@@ -231,6 +243,8 @@ class RepoAnalysis:
     commits: list[CommitInfo] = field(default_factory=list)
     file_histories: dict[str, FileHistory] = field(default_factory=dict)
     suppressed_count: int = 0
+    context_tagged_count: int = 0
+    trend: TrendContext | None = None
 
     @property
     def severity(self) -> Severity:

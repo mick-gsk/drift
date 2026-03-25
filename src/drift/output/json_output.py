@@ -46,6 +46,14 @@ def analysis_to_json(analysis: RepoAnalysis, indent: int = 2) -> str:
         "analyzed_at": analysis.analyzed_at.isoformat(),
         "drift_score": analysis.drift_score,
         "severity": analysis.severity.value,
+        "trend": {
+            "previous_score": analysis.trend.previous_score,
+            "delta": analysis.trend.delta,
+            "direction": analysis.trend.direction,
+            "recent_scores": analysis.trend.recent_scores,
+            "history_depth": analysis.trend.history_depth,
+            "transition_ratio": analysis.trend.transition_ratio,
+        } if analysis.trend else None,
         "summary": {
             "total_files": analysis.total_files,
             "total_functions": analysis.total_functions,
@@ -55,6 +63,7 @@ def analysis_to_json(analysis: RepoAnalysis, indent: int = 2) -> str:
         "modules": [_module_to_dict(m) for m in analysis.module_scores],
         "findings": [_finding_to_dict(f) for f in analysis.findings],
         "suppressed_count": analysis.suppressed_count,
+        "context_tagged_count": analysis.context_tagged_count,
     }
 
     return json.dumps(data, indent=indent, default=str)
@@ -125,23 +134,38 @@ def findings_to_sarif(analysis: RepoAnalysis) -> str:
         if f.fix:
             result["message"]["text"] = f"{f.title}\n{f.description}\nFIX: {f.fix}"
 
+        # ADR-006: context tags as SARIF result properties
+        ctx_tags = f.metadata.get("context_tags")
+        if ctx_tags:
+            result["properties"] = {"drift:context": ctx_tags}
+
         results.append(result)
+
+    run_obj: dict[str, Any] = {
+        "tool": {
+            "driver": {
+                "name": "drift",
+                "version": __version__,
+                "rules": rules,
+            }
+        },
+        "results": results,
+    }
+
+    # ADR-005: attach trend context as custom SARIF properties
+    if analysis.trend and analysis.trend.direction != "baseline":
+        run_obj["properties"] = {
+            "drift:trend": {
+                "previousScore": analysis.trend.previous_score,
+                "delta": analysis.trend.delta,
+                "direction": analysis.trend.direction,
+            }
+        }
 
     sarif = {
         "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
         "version": "2.1.0",
-        "runs": [
-            {
-                "tool": {
-                    "driver": {
-                        "name": "drift",
-                        "version": __version__,
-                        "rules": rules,
-                    }
-                },
-                "results": results,
-            }
-        ],
+        "runs": [run_obj],
     }
 
     return json.dumps(sarif, indent=2, default=str)

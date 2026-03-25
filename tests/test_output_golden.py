@@ -69,10 +69,12 @@ class TestJsonOutputGolden:
             "analyzed_at",
             "drift_score",
             "severity",
+            "trend",
             "summary",
             "modules",
             "findings",
             "suppressed_count",
+            "context_tagged_count",
         }
         assert set(data.keys()) == expected_keys
 

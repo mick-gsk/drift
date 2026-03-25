@@ -76,11 +76,35 @@ def render_summary(analysis: RepoAnalysis, console: Console | None = None) -> No
     # Header
     console.print()
     header_color = _SEVERITY_COLORS.get(analysis.severity, "white")
+
+    # Build trend suffix (ADR-005)
+    trend = analysis.trend
+    if trend and trend.direction != "baseline" and trend.delta is not None:
+        arrow = (
+            "↓" if trend.direction == "improving"
+            else "↑" if trend.direction == "degrading"
+            else "→"
+        )
+        delta_color = (
+            "green" if trend.direction == "improving"
+            else "red" if trend.direction == "degrading"
+            else "dim"
+        )
+        trend_parts: tuple = (
+            ("  ", ""),
+            (f"Δ {trend.delta:+.3f} {arrow} {trend.direction}", delta_color),
+        )
+    else:
+        trend_parts = (
+            ("  — baseline", "dim"),
+        )
+
     console.print(
         Panel(
             Text.assemble(
                 ("DRIFT SCORE  ", "bold"),
                 (f"{analysis.drift_score:.2f}", f"bold {header_color}"),
+                *trend_parts,
                 ("  │  ", "dim"),
                 (f"{analysis.total_files} files", ""),
                 ("  │  ", "dim"),
@@ -92,6 +116,14 @@ def render_summary(analysis: RepoAnalysis, console: Console | None = None) -> No
                     if analysis.suppressed_count
                     else ()
                 ),
+                *(
+                    (
+                        ("  │  ", "dim"),
+                        (f"{analysis.context_tagged_count} ctx-tagged", "dim italic"),
+                    )
+                    if analysis.context_tagged_count
+                    else ()
+                ),
                 ("  │  ", "dim"),
                 (f"{analysis.analysis_duration_seconds:.1f}s", "dim"),
             ),
@@ -99,6 +131,18 @@ def render_summary(analysis: RepoAnalysis, console: Console | None = None) -> No
             border_style=header_color,
         )
     )
+
+    # Trend sparkline (ADR-005)
+    if trend and trend.recent_scores and trend.direction != "baseline":
+        scores_str = " → ".join(f"{s:.3f}" for s in trend.recent_scores)
+        depth = trend.history_depth
+        sfx = "s" if depth != 1 else ""
+        console.print(f"  [dim]Trend: {scores_str} ({depth} snapshot{sfx})[/dim]")
+    elif trend and trend.direction == "baseline":
+        console.print(
+            "  [dim]⚠ Run drift analyze again after structural"
+            " changes to establish trend.[/dim]"
+        )
 
 
 def render_module_table(analysis: RepoAnalysis, console: Console | None = None) -> None:
@@ -170,6 +214,11 @@ def _format_finding_detail(f: Finding) -> Text:
     if f.fix:
         text.append("  FIX: ", style=f"bold {color}")
         text.append(f"{f.fix}\n", style=color)
+
+    # Context tags (ADR-006)
+    ctx_tags = f.metadata.get("context_tags")
+    if ctx_tags:
+        text.append(f"  [ctx: {', '.join(ctx_tags)}]\n", style="cyan italic")
 
     return text
 

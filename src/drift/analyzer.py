@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import importlib
+import json
 import logging
 import pkgutil
 import subprocess
@@ -15,6 +16,7 @@ from pathlib import Path
 import drift.signals
 from drift.cache import ParseCache
 from drift.config import DriftConfig
+from drift.context_tags import apply_context_tags, scan_context_tags
 from drift.embeddings import get_embedding_service
 from drift.ingestion.ast_parser import parse_file
 from drift.ingestion.file_discovery import discover_files
@@ -26,6 +28,7 @@ from drift.models import (
     PatternCategory,
     PatternInstance,
     RepoAnalysis,
+    TrendContext,
 )
 from drift.scoring.engine import (
     assign_impact_scores,
@@ -216,6 +219,14 @@ def _run_pipeline(
     all_findings, suppressed_findings = filter_findings(all_findings, suppressions)
     suppressed_count = len(suppressed_findings)
 
+    # --- 5c. Context tagging (ADR-006) ---
+    ctx_tags = scan_context_tags(files, repo_path)
+    all_findings, context_tagged_count = apply_context_tags(
+        all_findings, ctx_tags, dampening=config.context_dampening,
+    )
+    # Re-compute impact after dampening so downstream scoring uses adjusted values
+    assign_impact_scores(all_findings, config.weights)
+
     signal_scores = compute_signal_scores(all_findings)
     repo_score = composite_score(signal_scores, config.weights)
     module_scores = compute_module_scores(all_findings, config.weights)
@@ -247,6 +258,66 @@ def _run_pipeline(
         commits=commits,
         file_histories=file_histories,
         suppressed_count=suppressed_count,
+        context_tagged_count=context_tagged_count,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Trend context (ADR-005)
+# ---------------------------------------------------------------------------
+
+_NOISE_FLOOR = 0.005  # |Δ| below this → "stable" (STUDY.md §11.6)
+
+
+def _load_history(history_file: Path) -> list[dict]:
+    """Load snapshots from the history JSON file."""
+    if not history_file.exists():
+        return []
+    try:
+        return json.loads(history_file.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
+    except Exception:
+        return []
+
+
+def _save_history(history_file: Path, snapshots: list[dict]) -> None:
+    """Persist snapshots (last 100) to the history JSON file."""
+    history_file.parent.mkdir(parents=True, exist_ok=True)
+    history_file.write_text(json.dumps(snapshots[-100:], indent=2), encoding="utf-8")
+
+
+def _build_trend_context(
+    current_score: float, snapshots: list[dict],
+) -> TrendContext:
+    """Compute trend context from history snapshots."""
+    if not snapshots:
+        return TrendContext(
+            previous_score=None,
+            delta=None,
+            direction="baseline",
+            recent_scores=[],
+            history_depth=0,
+            transition_ratio=0.0,
+        )
+
+    prev = snapshots[-1]["drift_score"]
+    delta = round(current_score - prev, 4)
+
+    if abs(delta) < _NOISE_FLOOR:
+        direction = "stable"
+    elif delta < 0:
+        direction = "improving"
+    else:
+        direction = "degrading"
+
+    recent = [s["drift_score"] for s in snapshots[-5:]]
+
+    return TrendContext(
+        previous_score=prev,
+        delta=delta,
+        direction=direction,
+        recent_scores=recent,
+        history_depth=len(snapshots),
+        transition_ratio=0.0,
     )
 
 
@@ -301,6 +372,29 @@ def analyze_repo(
         workers=workers,
     )
     analysis.analysis_duration_seconds = round(time.monotonic() - start, 2)
+
+    # --- Trend context (ADR-005) ---
+    history_file = repo_path / config.cache_dir / "history.json"
+    snapshots = _load_history(history_file)
+    analysis.trend = _build_trend_context(analysis.drift_score, snapshots)
+
+    # ADR-006: populate transition_ratio with context-tagged share
+    if analysis.trend and analysis.findings:
+        analysis.trend.transition_ratio = round(
+            analysis.context_tagged_count / len(analysis.findings), 3,
+        )
+
+    # Auto-persist snapshot
+    signal_scores = compute_signal_scores(analysis.findings)
+    snapshots.append({
+        "timestamp": analysis.analyzed_at.isoformat(),
+        "drift_score": analysis.drift_score,
+        "signal_scores": {s.value: v for s, v in signal_scores.items()},
+        "total_files": analysis.total_files,
+        "total_findings": len(analysis.findings),
+    })
+    _save_history(history_file, snapshots)
+
     return analysis
 
 

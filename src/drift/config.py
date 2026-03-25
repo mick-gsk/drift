@@ -107,6 +107,9 @@ class DriftConfig(BaseModel):
     thresholds: ThresholdsConfig = Field(default_factory=ThresholdsConfig)
     cache_dir: str = ".drift-cache"
     fail_on: str = "high"
+    context_dampening: float = 0.5
+    fail_on_delta: float | None = None
+    fail_on_delta_window: int = 5
     embeddings_enabled: bool = True
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_batch_size: int = 64

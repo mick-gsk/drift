@@ -63,6 +63,16 @@ policies:
 # Options: critical, high, medium, low
 fail_on: none  # recommended for the first rollout pass
 
+# Context-tagging dampening factor (ADR-006): findings annotated with
+# # drift:context <tag> have their score multiplied by this value.
+# Set to 1.0 to disable dampening (tags are metadata-only).
+# context_dampening: 0.5
+
+# Delta gate (ADR-005): exit 1 if score increases by more than this value
+# compared to the mean of the last N snapshots.
+# fail_on_delta: 0.05
+# fail_on_delta_window: 5   # Compare against mean of last N snapshots
+
 # Tunable thresholds
 thresholds:
   similarity_threshold: 0.80   # MDS: Jaccard similarity cutoff

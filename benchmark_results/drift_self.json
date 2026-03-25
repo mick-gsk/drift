@@ -1,44 +1,8 @@
 {
   "name": "drift_self",
-  "drift_score": 0.514,
+  "drift_score": 0.543,
   "severity": "medium",
-  "files": 66,
-  "functions": 436,
-  "ai_ratio": 0.0,
-  "analysis_s": 0.42,
-  "wall_s": 1.03,
-  "findings": 80,
-  "signals": {},
-  "top5": [
-    {
-      "sig": "system_misalignment",
-      "sev": "medium",
-      "score": 1.0,
-      "title": "Novel dependencies in scripts/"
-    },
-    {
-      "sig": "system_misalignment",
-      "sev": "medium",
-      "score": 1.0,
-      "title": "Novel dependencies in src/drift/"
-    },
-    {
-      "sig": "system_misalignment",
-      "sev": "medium",
-      "score": 1.0,
-      "title": "Novel dependencies in src/drift/ingestion/"
-    },
-    {
-      "sig": "system_misalignment",
-      "sev": "medium",
-      "score": 1.0,
-      "title": "Novel dependencies in src/drift/output/"
-    },
-    {
-      "sig": "system_misalignment",
-      "sev": "medium",
-      "score": 1.0,
-      "title": "Novel dependencies in src/drift/scoring/"
-    }
-  ]
+  "files": 18,
+  "functions": 0,
+  "findings": 179
 }
