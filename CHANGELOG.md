@@ -9,22 +9,16 @@ Short version: stronger TypeScript analysis, delta- and context-aware rollout si
 
 ### Added
 
-- **Expanded TypeScript analysis**: Added full-semantic TypeScript support with improved import resolution, workspace assignment, vendor filtering, and dedicated TS/TSX architectural rules with benchmark coverage.
-- **Delta-first interpretation and context tags**: Added ADR-005 delta-first score interpretation and ADR-006 context tagging so score changes and migration phases are visible and actionable in CLI and JSON output.
-- **3 Consistency Proxy Signals (ADR-007)**: BEM (Broad Exception Monoculture), TPD (Test Polarity Deficit), and GCD (Guard Clause Deficit) added as report-only findings with weight `0.00` plus empirical validation artifacts.
-- **Adoption and trust material**: Added report-only CI onboarding guidance, concrete example findings, a central start-here path, and expanded trust/evidence documentation for safer rollout.
+- **TypeScript analysis expansion**: Added stronger import resolution, workspace assignment, vendor filtering, and dedicated TS/TSX architectural rules with benchmark coverage.
+- **Rollout-aware reporting**: Added delta-first interpretation, context tags, and the ADR-007 report-only consistency proxies to make rollout and migration states more actionable.
 
 ### Changed
 
-- **Release hygiene and feature evidence**: Strengthened pre-push quality checks and enforced tests plus empirical artifacts for `feat:` work.
-- **Public docs and onboarding**: Expanded README, comparisons, integrations, FAQ, use cases, and rollout guidance to align public messaging with actual maturity.
-- **TypeScript performance and discovery**: Reduced redundant discovery work and improved workspace-boundary handling in TS analysis.
+- **Release hygiene and onboarding**: Tightened feature-evidence gates and expanded rollout, trust, and onboarding documentation around the actual product maturity.
 
 ### Fixed
 
-- **Core analysis hardening**: Improved pipeline, config, suppression, cache, and observational analysis behavior to reduce rollout surprises.
-- **Delta gate correctness**: Tightened typing and snapshot handling for delta-based checks while keeping existing `fail_on` behavior backward compatible.
-- **Trust and rollout defaults**: Aligned defaults and messaging around conservative report-only rollout.
+- **Core hardening**: Improved pipeline, config, suppression, cache, observational analysis behavior, and delta-gate correctness while keeping existing `fail_on` behavior backward compatible.
 
 ## [0.5.0] – 2026-03-23
 

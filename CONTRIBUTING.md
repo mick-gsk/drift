@@ -177,7 +177,7 @@ This rule is binding.
 
 A release is allowed only when all of the following are true:
 
-1. **One primary claim:** The release can be summarized in one sentence and at most 3 to 5 bullets.
+1. **One primary claim:** The release can be summarized in one sentence and at most 5 curated bullets.
 2. **One coherent change set:** The included changes belong to one user-facing theme or one tightly related batch.
 	If there are multiple unrelated themes, split them into separate releases.
 3. **SemVer is explicit:** The release is clearly classified as patch, minor, or major before tagging.
@@ -194,6 +194,26 @@ The following are not allowed:
 
 Default rule: when in doubt, release earlier and smaller.
 Drift should prefer two clean releases over one overloaded release.
+This rule is enforced by git hook, CI, and publish validation.
+
+### Branch Protection (Required)
+
+To make the release discipline non-bypassable on GitHub, the default branch
+`master` must be protected with these minimum settings:
+
+1. Require a pull request before merging
+2. Require status checks to pass before merging
+3. Include administrators
+4. Do not allow force pushes
+
+Required status checks:
+
+- `Version format check`
+- `test`
+- `Blocked content check`
+
+If these settings are missing, local hooks and CI remain advisory for anyone
+who can push directly to `master`.
 
 ### GitHub Actions Major-Version-Tag
 

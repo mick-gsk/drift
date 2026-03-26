@@ -115,6 +115,10 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 echo ">>> [1/5] Checking SemVer version..."
 python scripts/check_version.py --check-semver
 
+# 1b. Release discipline
+echo ">>> [1b/5] Checking release discipline..."
+python scripts/check_release_discipline.py
+
 # 2. Lint
 echo ">>> [2/5] Running ruff lint..."
 ruff check src/ tests/

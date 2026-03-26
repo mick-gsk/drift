@@ -21,6 +21,9 @@ jobs:
         # the version field in pyproject.toml. Abort before any build.
         run: python scripts/check_version.py --tag "${{ github.ref_name }}"
 
+      - name: Enforce release discipline
+        run: python scripts/check_release_discipline.py
+
   build:
     name: Build distribution
     needs: validate-version

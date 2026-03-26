@@ -42,6 +42,7 @@ Evidence summary (required when feature is introduced):
 - [ ] PR is focused on one concern
 - [ ] Public docs updated (README/docs-site) if needed
 - [ ] Changelog entry added if user-visible
+- [ ] If version/changelog changed: top release entry still fits one short summary plus at most 5 curated bullets
 - [ ] No unrelated files included
 
 ## Notes for reviewers

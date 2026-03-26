@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -22,6 +22,9 @@ jobs:
         # Ensures the version in pyproject.toml is always MAJOR.MINOR.PATCH –
         # a merge to main with an invalid or missing version is blocked.
         run: python scripts/check_version.py --check-semver
+
+      - name: Enforce release discipline
+        run: python scripts/check_release_discipline.py
 
   test:
     runs-on: [self-hosted, Windows, X64]
