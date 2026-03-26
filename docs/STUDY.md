@@ -1,21 +1,21 @@
 # STUDY.md — Evaluating Architectural Drift Detection in Real-World Python Projects
 
-> **Can static analysis detect structural erosion in AI-assisted codebases? An empirical evaluation of drift v0.1 across 5 production-grade repositories, with ground-truth validation, controlled mutation benchmark, and usefulness case studies.**
+> **Versioning note (2026-03-26):** The package version in this repository is drift v0.6.0, but most quantitative benchmark artifacts referenced in this document were generated with drift v0.5.0 unless a later dated section states otherwise. This file therefore mixes a frozen evidence baseline with later engineering notes and must not be read as a single-version snapshot.
 
 ---
 
 ## Executive Summary
 
-### Public Claims Safe To Repeat For v0.5.0
+### Public Claims Safe To Repeat As Of 2026-03-26
 
-- Drift uses 6 scoring signals in the composite score, plus 4 report-only signals (DIA, BEM, TPD, GCD) with weight 0.00.
-- DIA, BEM, TPD, and GCD remain visible in output, but carry weight 0.00 and should be treated as report-only until extraction precision improves.
-- The current study corpus covers 15 real-world repositories.
+- The package version in this repository is drift v0.6.0, but the core benchmark corpus summarized below is still the v0.5.0 evidence baseline.
+- The composite score still uses 6 scoring signals. Additional weight-0 report-only signals exist in the current codebase; the main quantitative sections of this study fully cover the original baseline signals and the ADR-007 consistency proxies, not every later report-only addition.
+- The current study corpus still covers 15 real-world repositories.
 - All analysis is deterministic; no LLM is used in the detector pipeline.
 
 1. **77% strict precision** on a score-weighted sample of 286 findings across 5 repositories (v0.5 non-circular heuristic classification). Of 15 total FPs, 9 come from DIA (weight 0.00) and 6 from active signals (4 AVS, 2 MDS). 51 findings are classified as Disputed (score-only evidence, no structural confirmation). Independent multi-rater validation is pending — treat as upper-bound estimate.
-2. **86% detection rate** on a controlled mutation benchmark of 14 author-designed synthetic patterns — not a population-recall estimate. See §4 for methodology and §7 for limitations.
-3. **Self-analysis is clean**: drift run on its own codebase produces a score of 0.442 (MEDIUM), confirming the tool eats its own dogfood and the signals discriminate between hand-crafted and AI-assisted code.
+2. **No current public recall headline should be repeated for v0.6.0 from this file.** The last validated controlled mutation result documented here is the historical 14-pattern benchmark in §4. A fresh rerun of the checked-in CLI harness on 2026-03-26 produced 22 findings but counted 0/17 detections because the harness groups JSON findings by `signal_type` while current CLI JSON emits `signal`; until that accounting defect is repaired and rerun, this study does not present a current recall headline claim.
+3. **Self-analysis baseline remains 0.442 (MEDIUM)** in the study corpus. Later smoke-test sections add broader comparison context, but they should be read as dated snapshots rather than a continuously refreshed badge.
 
 For methodology, see §1. For precision tables, see §3. For threats to validity, see §7.
 
@@ -23,7 +23,7 @@ For methodology, see §1. For precision tables, see §3. For threats to validity
 
 ## Abstract
 
-We evaluate drift v0.1, a deterministic static analysis tool for detecting architectural erosion in Python repositories. The evaluation combines three complementary methods: (1) a **ground-truth precision analysis** of 286 classified findings across 5 repositories, (2) a **controlled mutation benchmark** measuring detection recall against 14 intentionally injected drift patterns, and (3) a **usefulness study** demonstrating actionable findings in a production codebase. drift achieves 77% precision (strict) / 95% lenient with 86% detection recall across 7 signal types, using non-circular classification criteria. The tool is fully deterministic — no LLM is used in the analysis pipeline ([ADR-001](adr/001-deterministic-analysis-pipeline.md)).
+This document records the evidence base behind drift, whose package version in this repository is currently v0.6.0. The main quantitative corpus in §§1–12 is a frozen v0.5.0 benchmark baseline combining three methods: (1) a **ground-truth precision analysis** of 286 classified findings across 5 repositories, (2) a **historical controlled mutation benchmark** over 14 intentionally injected drift patterns, and (3) a **usefulness study** demonstrating actionable findings in a production codebase. The strongest current repeatable precision claim from that corpus remains 77% precision (strict) / 95% lenient on the score-weighted sample, using non-circular classification criteria. The tool is fully deterministic — no LLM is used in the analysis pipeline ([ADR-001](adr/001-deterministic-analysis-pipeline.md)). The checked-in CLI mutation harness currently has an accounting defect and should not be used to derive a fresh public recall headline until repaired.
 
 ---
 
@@ -31,7 +31,7 @@ We evaluate drift v0.1, a deterministic static analysis tool for detecting archi
 
 ### 1.1 Tool Under Test
 
-drift v0.1 detects architectural erosion through 7 AST-based signals. Each signal produces findings with a severity and score. Signals are combined into a composite drift score using count-dampened weighted aggregation ([ADR-003](adr/003-composite-scoring-model.md)):
+The core benchmark sections in this document evaluate the original 7 baseline signals used in the early precision/recall corpus: PFS, AVS, MDS, TVS, EDS, SMS, and DIA. Each signal produces findings with a severity and score. Signals are combined into a composite drift score using count-dampened weighted aggregation ([ADR-003](adr/003-composite-scoring-model.md)):
 
 $$S_i = \frac{\sum f_{ij}}{n_i} \cdot \min\!\left(1,\; \frac{\ln(1 + n_i)}{\ln(1 + k)}\right)$$
 
@@ -51,6 +51,8 @@ $$S_i = \frac{\sum f_{ij}}{n_i} \cdot \min\!\left(1,\; \frac{\ln(1 + n_i)}{\ln(1
 | Guard Clause Deficit         | GCD  | 0.00   | Reporting only |
 
 DIA, BEM, TPD, and GCD are included in the analysis output but contribute 0.0 to the composite score. They are Phase 2 signals with known precision limitations (see §3.1 for DIA; see [ADR-007](adr/007-consistency-proxy-signals.md) for BEM/TPD/GCD).
+
+**Current codebase note (v0.6.0):** The repository now defines additional weight-0 report-only slots for naming-contract and bypass-oriented signals. Those newer additions are outside the core 5-repository precision corpus documented in §§2–4 and should not be inferred from the older tables unless a later dated section says so.
 
 ### 1.2 Repository Selection
 
@@ -197,6 +199,8 @@ Classification used signal-specific structural criteria designed to avoid circul
 ### 4.1 Method
 
 To measure detection recall, we created a synthetic Python repository with 14 intentionally injected drift patterns — 2 per signal (3 for MDS and DIA). Each mutation was designed to trigger exactly one signal type. The synthetic repo was analyzed with `drift analyze --since 90`, and we checked whether the injected pattern was detected.
+
+This section documents the last validated mutation-benchmark result used for the public study narrative. A later rerun of the checked-in CLI mutation harness is discussed in §12.7.2; that rerun is currently not comparable as a public recall measurement because the harness has a JSON-field accounting defect.
 
 ### 4.2 Injected Mutations
 
@@ -346,7 +350,9 @@ All raw JSON outputs, ground-truth classifications, and mutation benchmark resul
 | `ground_truth_analysis.json` | 291 classified findings with labels and rationale |
 | `mutation_benchmark.json`    | Synthetic mutation results with detection details |
 
-The mutation benchmark can be reproduced with `python scripts/mutation_benchmark.py`. The ground-truth classification can be reproduced with `python scripts/ground_truth_analysis.py`.
+The ground-truth classification can be reproduced with `python scripts/ground_truth_analysis.py`.
+
+For mutation-benchmark history, the repository currently contains both `scripts/mutation_benchmark.py` and the workspace-task runner `scripts/_mutation_benchmark.py`. As of 2026-03-26, the checked-in CLI rerun via the underscored harness is not a trustworthy public recall source because its detection accounting expects `signal_type` in JSON findings while current CLI output uses `signal`.
 
 ---
 
@@ -943,17 +949,16 @@ We extended the mutation benchmark (`scripts/_mutation_benchmark.py`) with
 | 16 | TPD | 6 test functions in `tests/api/` with 12 positive assertions, 0 negative | TPD finding on tests/api/ |
 | 17 | GCD | 3 public functions in `processors/` with ≥2 params, CC≥5, no guards | GCD finding on processors/ |
 
-**Result: 0/3 detected (0% recall) — consistent with existing signals.**
+**Result of the current CLI rerun: 0/3 counted detections (0% recall).**
 
-The overall mutation benchmark shows **0/17 detected (0% recall)** across all
-10 signals. This is a known limitation of the synthetic-repository approach:
-the mutation benchmark creates a minimal temporary repository with no git
-history, limited file count, and threshold-boundary patterns. The same 0%
-result was already observed for the original 7 scoring signals in earlier
-benchmark runs on synthetic repos. The controlled mutation benchmark is most
-informative when run against real repositories where signals have sufficient
-context (file count, directory structure, history) to exceed detection
-thresholds.
+The overall current CLI rerun shows **0/17 counted detections (0% recall)**
+across all 10 signals in `benchmark_results/mutation_benchmark.json`. This
+must **not** be interpreted as detector recall. The same run produced 22
+findings total, but the accounting step in `scripts/_mutation_benchmark.py`
+groups findings by `signal_type` while current CLI JSON emits `signal`, so the
+rerun drops detections during benchmark accounting instead of at analysis time.
+Until that harness is repaired and rerun, the mutation benchmark is not a
+valid current recall measurement.
 
 **Note:** The ground-truth micro-corpus (§12.7.1) is the more reliable
 validation method for these signals, since it exercises signals directly
@@ -995,7 +1000,7 @@ observed for scoring signals after calibration (§5).
 | Evaluation Method | BEM | TPD | GCD | Assessment |
 | ----------------- | --: | --: | --: | ---------- |
 | Ground-truth precision | 4/4 (100%) | 4/4 (100%) | 4/4 (100%) | All fixtures correct |
-| Mutation recall | 0/1 (0%) | 0/1 (0%) | 0/1 (0%) | Synthetic repo limitation (known) |
+| Mutation recall | 0/1 (0%) | 0/1 (0%) | 0/1 (0%) | Current CLI harness accounting bug |
 | Self-analysis findings | 0 | 1 | 4 | All plausible and actionable |
 
 The consistency proxy signals demonstrate correct deterministic behavior on
@@ -1008,12 +1013,12 @@ deferred to a future study iteration.
 
 ## 13. Conclusion
 
-drift v0.5 demonstrates that deterministic static analysis — without LLM involvement — can detect meaningful structural erosion across Python and TypeScript/JavaScript codebases. Across 8 Python repositories (score range 0.376–0.599) and 5 TypeScript repositories (score range 0.373–0.697):
+This study now represents a mixed evidence record: a frozen v0.5.0 benchmark baseline, later dated engineering addenda, and a current v0.6.0 codebase that has moved ahead of parts of the evaluation corpus. The strongest repeatable claim remains that deterministic static analysis — without LLM involvement — can surface meaningful structural erosion signals across Python and TypeScript/JavaScript codebases, but not every earlier headline metric should be repeated as a current-package claim. Across 8 Python repositories (score range 0.376–0.599) and 5 TypeScript repositories (score range 0.373–0.697):
 
 - **77% precision** (strict) / 95% lenient on 286 classified findings using non-circular heuristics, with **15 false positives** (6 from active signals, 9 from DIA)
 - **~93% pre-calibration precision** on 373 findings across 3 previously unseen repositories (httpie, arrow, frappe) — single-rater annotation; post-calibration 100% but constitutes data leakage (see §11.10)
 - **100% fix-text actionability** (76/76) on self-analysis after calibration (baseline: 74%)
-- **86% recall** on 14 controlled mutations, with misses occurring at threshold boundaries
+- **Historical only:** the last validated 14-mutation benchmark in this document reported 86% recall, but the currently checked-in CLI mutation harness must be repaired before a fresh public recall headline can be claimed for the current codebase
 - **3 consistency proxy signals** (BEM, TPD, GCD) validated: 12/12 ground-truth fixtures correct, 5/5 self-analysis findings plausible and actionable (§12.7)
 - **3 actionable findings** in a production codebase, including copy-pasted functions, error-handling fragmentation, and API inconsistency
 - **8 real-world smoke tests** confirm score ranking tracks expectations: hand-crafted libraries (requests=0.376) score lowest, large historically grown frameworks (django=0.599) score highest

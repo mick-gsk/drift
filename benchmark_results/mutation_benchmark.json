@@ -152,8 +152,8 @@
   "overall_recall": 0.0,
   "drift_output": {
     "version": "0.5.0",
-    "repo": "C:/Users/mickg/AppData/Local/Temp/drift_mutation__2qu5cho/synthetic_repo",
-    "analyzed_at": "2026-03-25T16:30:46.755178+00:00",
+    "repo": "C:/Users/mickg/AppData/Local/Temp/drift_mutation_859fvma5/synthetic_repo",
+    "analyzed_at": "2026-03-26T17:05:00.727650+00:00",
     "drift_score": 0.296,
     "severity": "low",
     "trend": {
@@ -168,7 +168,7 @@
       "total_files": 29,
       "total_functions": 39,
       "ai_attributed_ratio": 0.0,
-      "analysis_duration_seconds": 0.12
+      "analysis_duration_seconds": 0.17
     },
     "modules": [
       {
@@ -323,7 +323,7 @@
         "impact": 0.0,
         "title": "README references missing directory: handlers/",
         "description": "README mentions 'handlers/' but no such directory exists. Documentation may be outdated.",
-        "fix": "Entferne 'handlers/' aus README.md oder lege das Verzeichnis an.",
+        "fix": "Remove 'handlers/' from README.md or create the directory.",
         "file": "README.md",
         "start_line": null,
         "end_line": null,
@@ -340,7 +340,7 @@
         "impact": 0.0,
         "title": "README references missing directory: middleware/",
         "description": "README mentions 'middleware/' but no such directory exists. Documentation may be outdated.",
-        "fix": "Entferne 'middleware/' aus README.md oder lege das Verzeichnis an.",
+        "fix": "Remove 'middleware/' from README.md or create the directory.",
         "file": "README.md",
         "start_line": null,
         "end_line": null,
@@ -357,7 +357,7 @@
         "impact": 0.0,
         "title": "README references missing directory: models/",
         "description": "README mentions 'models/' but no such directory exists. Documentation may be outdated.",
-        "fix": "Entferne 'models/' aus README.md oder lege das Verzeichnis an.",
+        "fix": "Remove 'models/' from README.md or create the directory.",
         "file": "README.md",
         "start_line": null,
         "end_line": null,
@@ -374,7 +374,7 @@
         "impact": 0.0,
         "title": "README references missing directory: myapp/",
         "description": "README mentions 'myapp/' but no such directory exists. Documentation may be outdated.",
-        "fix": "Entferne 'myapp/' aus README.md oder lege das Verzeichnis an.",
+        "fix": "Remove 'myapp/' from README.md or create the directory.",
         "file": "README.md",
         "start_line": null,
         "end_line": null,
@@ -391,7 +391,7 @@
         "impact": 0.0,
         "title": "README references missing directory: plugins/",
         "description": "README mentions 'plugins/' but no such directory exists. Documentation may be outdated.",
-        "fix": "Entferne 'plugins/' aus README.md oder lege das Verzeichnis an.",
+        "fix": "Remove 'plugins/' from README.md or create the directory.",
         "file": "README.md",
         "start_line": null,
         "end_line": null,
@@ -408,7 +408,7 @@
         "impact": 0.0,
         "title": "README references missing directory: utils/",
         "description": "README mentions 'utils/' but no such directory exists. Documentation may be outdated.",
-        "fix": "Entferne 'utils/' aus README.md oder lege das Verzeichnis an.",
+        "fix": "Remove 'utils/' from README.md or create the directory.",
         "file": "README.md",
         "start_line": null,
         "end_line": null,
@@ -425,7 +425,7 @@
         "impact": 0.0,
         "title": "README references missing directory: views/",
         "description": "README mentions 'views/' but no such directory exists. Documentation may be outdated.",
-        "fix": "Entferne 'views/' aus README.md oder lege das Verzeichnis an.",
+        "fix": "Remove 'views/' from README.md or create the directory.",
         "file": "README.md",
         "start_line": null,
         "end_line": null,
@@ -600,7 +600,8 @@
               "file": "src/myapp/service_b.py",
               "line": 1
             }
-          ]
+          ],
+          "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating."
         }
       },
       {
@@ -633,7 +634,8 @@
               "file": "src/myapp/service_b.py",
               "line": 8
             }
-          ]
+          ],
+          "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating."
         }
       },
       {
@@ -656,7 +658,8 @@
           "function_a": "download_file",
           "function_b": "send_message",
           "file_a": "src/myapp/connectors/aws_s3.py",
-          "file_b": "src/myapp/connectors/slack_api.py"
+          "file_b": "src/myapp/connectors/slack_api.py",
+          "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating."
         }
       },
       {
@@ -679,7 +682,8 @@
           "function_a": "fetch_user_data",
           "function_b": "get_customer_info",
           "file_a": "src/myapp/handler_v1.py",
-          "file_b": "src/myapp/handler_v2.py"
+          "file_b": "src/myapp/handler_v2.py",
+          "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating."
         }
       },
       {
@@ -704,7 +708,8 @@
           "canonical_count": 1,
           "canonical_variant": "{\"handler_count\": 2, \"handlers\": [{\"actions\": [\"log\", \"raise",
           "module": "src/myapp/handlers",
-          "total_instances": 2
+          "total_instances": 2,
+          "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes."
         }
       },
       {
