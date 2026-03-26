@@ -18,14 +18,14 @@ Reihenfolge = empfohlene Priorität.
 **Titel:**
 
 ```
-Show HN: Drift – Detect architectural erosion from AI-generated code
+Show HN: Drift – Deterministic architectural drift detection for AI-accelerated Python codebases
 ```
 
 **Text (im Kommentarfeld):**
 
 ```
-I built a static analyzer that measures how much AI-generated code erodes your
-codebase architecture over time.
+I built a static analyzer for deterministic architectural drift detection in
+AI-accelerated Python codebases.
 
 The problem: Copilot, Cursor, and ChatGPT optimize for the prompt context, not
 the codebase context. The result is code that works but doesn't fit — error
@@ -66,7 +66,7 @@ Repo: https://github.com/sauremilk/drift
 **Titel:**
 
 ```
-I built drift – a static analyzer to measure how much AI code erodes your architecture
+I built drift – deterministic architectural drift detection for AI-accelerated Python repos
 ```
 
 **Text:**
@@ -75,7 +75,7 @@ I built drift – a static analyzer to measure how much AI code erodes your arch
 TL;DR: `pip install drift-analyzer && drift analyze --repo .`
 
 Copilot and Cursor write code that solves local tasks correctly but weakens
-global design. Drift measures this with 6 scoring signals plus 4 report-only consistency proxies:
+global design. Drift detects that architectural drift with 6 scoring signals plus 4 report-only consistency proxies:
 
 1. Pattern Fragmentation – same thing done N ways in one module
 2. Architecture Violations – wrong-direction imports
@@ -112,14 +112,14 @@ GitHub: https://github.com/sauremilk/drift
   categories: [code-quality, architecture]
   languages: [python]
   description: >
-    Detect architectural erosion from AI-generated code.
+    Deterministic architectural drift detection for AI-accelerated Python codebases.
     Measures pattern fragmentation, architecture violations, mutant duplicates,
     explainability deficit, temporal volatility, and system misalignment.
   homepage: https://github.com/sauremilk/drift
   license: MIT
 ```
 
-**PR-Titel:** `Add drift – architectural erosion detector for AI-generated code`
+**PR-Titel:** `Add drift – architectural drift detector for AI-accelerated Python repos`
 
 ---
 
@@ -132,7 +132,7 @@ GitHub: https://github.com/sauremilk/drift
 **Eintrag:**
 
 ```
-* [drift](https://github.com/sauremilk/drift) - Detect architectural erosion from AI-generated code.
+* [drift](https://github.com/sauremilk/drift) - Deterministic architectural drift detection for AI-accelerated Python codebases.
 ```
 
 **PR-Titel:** `Add drift to Code Analysis section`
@@ -144,7 +144,7 @@ GitHub: https://github.com/sauremilk/drift
 **Titel:**
 
 ```
-How do you detect when AI-generated code erodes your architecture?
+How do you detect architectural drift in AI-accelerated codebases?
 ```
 
 **Text:**

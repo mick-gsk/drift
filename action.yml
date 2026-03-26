@@ -1,5 +1,5 @@
-name: "Drift — Architectural Erosion Check"
-description: "Detect architectural erosion from AI-generated code. Finds pattern fragmentation, architecture violations & more."
+name: "Drift — Architectural Drift Check"
+description: "Deterministic architectural drift detection for AI-accelerated Python codebases. Finds architecture erosion through cross-file coherence signals."
 
 branding:
   icon: "activity"

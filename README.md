@@ -1,4 +1,4 @@
-# Drift — Find architectural drift before it becomes normal
+# Drift — Deterministic architectural drift detection for AI-accelerated Python codebases
 
 [![CI](https://github.com/sauremilk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/sauremilk/drift/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/sauremilk/drift/graph/badge.svg)](https://codecov.io/gh/sauremilk/drift)
@@ -19,13 +19,13 @@
 
 **What is drift?**
 
-Drift is a deterministic architectural linter for Python repositories. It finds cross-file coherence problems such as pattern fragmentation, architecture violations, and structural erosion before they become normal team habits.
+Drift is a deterministic static analyzer for architectural drift in AI-accelerated Python repositories. It detects architecture erosion through cross-file coherence problems such as pattern fragmentation, architecture violations, and structural hotspots before they become normal team habits.
 
 **Who is it for?**
 
-- Python teams with multi-file codebases where architecture matters
+- Python teams with fast-growing codebases where architecture matters
 - Tech leads who want fast structural feedback, not just style or type checks
-- Teams using AI coding tools and seeing more copy-modify drift across modules
+- Teams using AI coding tools and seeing more cross-file drift across modules
 
 ### 1-minute quickstart
 
@@ -70,14 +70,14 @@ The [demo project](examples/demo-project/) contains intentional drift patterns, 
 
 ## Why drift
 
-When your team uses GitHub Copilot, Cursor, or other AI coding tools, code passes CI while the architecture quietly degrades:
+When your team uses GitHub Copilot, Cursor, or other AI coding tools, code passes CI while the repository quietly accumulates architectural drift:
 
 - **Pattern fragmentation:** error handling is implemented 4 different ways across the same service
 - **Boundary violations:** the API layer imports directly from the database layer
 - **Silent duplication:** AI generates a new validator instead of finding the existing one
 - **Churn hotspots:** the same files change every sprint because the structure is unclear
 
-Your linter, type checker, and test suite won't catch this. Drift does — deterministically, without any LLM in the pipeline. That makes drift useful for detecting architectural erosion and cross-file coherence problems, including structural technical debt in AI-assisted Python codebases.
+Your linter, type checker, and test suite won't catch this. Drift does — deterministically, without any LLM in the pipeline. That makes drift useful for architectural drift detection in AI-accelerated Python codebases, with architecture erosion analysis and cross-file coherence findings that teams can act on.
 
 ## What drift catches that other checks usually don't
 

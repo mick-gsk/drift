@@ -1,8 +1,8 @@
-# Drift — Codebase Coherence Analyzer
+# Drift — Architectural Drift Detection for Python
 
-**Surface architectural drift, architectural erosion, and cross-file coherence problems in Python codebases.**
+**Deterministic architectural drift detection for AI-accelerated Python codebases.**
 
-Drift is a deterministic static analyzer and architectural linter for teams that want to catch architectural erosion before it becomes normal: fragmented patterns, boundary violations, near-duplicates, and unstable hotspots that accumulate when code is optimized for local delivery but not for global coherence. It is especially useful in fast-moving repositories, including teams that use AI coding tools.
+Drift is a deterministic static analyzer for teams that want to catch architectural drift before it becomes normal: fragmented patterns, boundary violations, near-duplicates, and unstable hotspots that accumulate when code is optimized for local delivery but not for global coherence. It is especially useful in fast-moving, AI-accelerated repositories.
 
 > Repo: `sauremilk/drift` · Package: `drift-analyzer` · Command: `drift` · Requires: Python 3.11+
 
@@ -10,7 +10,7 @@ Drift is a deterministic static analyzer and architectural linter for teams that
 
 - Ruff, formatting, and typing keep local code clean.
 - Semgrep, CodeQL, and security tooling catch risky flows.
-- Drift adds a deterministic view of cross-file coherence: pattern fragmentation, boundary erosion, and drift hotspots.
+- Drift adds a deterministic view of architecture erosion analysis and cross-file coherence detection: pattern fragmentation, boundary erosion, and drift hotspots.
 
 ## Start Here
 

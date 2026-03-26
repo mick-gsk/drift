@@ -1,6 +1,6 @@
 # drift-analyzer
 
-> Deterministic architectural linter and static analysis tool for Python. Detects cross-file coherence problems — pattern fragmentation, architecture violations, dependency cycles, mutant duplicates, and technical debt — in AI-assisted codebases. No LLM in the detection pipeline.
+> Deterministic architectural drift detection for AI-accelerated Python codebases. Drift is a static analyzer for architecture erosion analysis and cross-file coherence detection, covering pattern fragmentation, architecture violations, dependency cycles, mutant duplicates, and structural technical debt. No LLM in the detection pipeline.
 
 Package: drift-analyzer
 Install: pip install drift-analyzer
@@ -47,4 +47,4 @@ Command: drift analyze --repo .
 
 ## Keywords
 
-architectural linter, architecture drift, architectural erosion, architecture degradation, technical debt detection, dependency cycle detection, import analysis, pattern fragmentation, static analysis, Python, monorepo, GitHub Copilot, AI coding tools, code quality, architecture enforcement
+architectural drift detection, architecture erosion analysis, cross-file coherence detection, structural code quality, architectural linter, architecture degradation, technical debt detection, dependency cycle detection, import analysis, pattern fragmentation, static analysis, Python, monorepo, GitHub Copilot, AI coding tools, architecture enforcement

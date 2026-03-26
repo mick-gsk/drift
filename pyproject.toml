@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "drift-analyzer"
 version = "0.5.0"
-description = "Detect architectural erosion and cross-file coherence problems in Python repositories with a deterministic architectural linter"
+description = "Deterministic architectural drift detection for AI-accelerated Python repositories through cross-file coherence analysis"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
