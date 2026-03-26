@@ -258,3 +258,30 @@ class RepoAnalysis:
 
     def findings_by_severity(self, severity: Severity) -> list[Finding]:
         return [f for f in self.findings if f.severity == severity]
+
+
+# ---------------------------------------------------------------------------
+# Agent Task Model (agent-tasks output format)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class AgentTask:
+    """An atomic, machine-readable repair task derived from a Finding."""
+
+    id: str
+    signal_type: SignalType
+    severity: Severity
+    priority: int
+    title: str
+    description: str
+    action: str
+    file_path: str | None = None
+    start_line: int | None = None
+    end_line: int | None = None
+    related_files: list[str] = field(default_factory=list)
+    complexity: str = "medium"
+    expected_effect: str = ""
+    success_criteria: list[str] = field(default_factory=list)
+    depends_on: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)

@@ -24,7 +24,7 @@ from drift.commands import console
     "--format",
     "-f",
     "output_format",
-    type=click.Choice(["rich", "json", "sarif"]),
+    type=click.Choice(["rich", "json", "sarif", "agent-tasks"]),
     default="rich",
     help="Output format.",
 )
@@ -118,6 +118,10 @@ def analyze(
         from drift.output.json_output import findings_to_sarif
 
         click.echo(findings_to_sarif(analysis))
+    elif output_format == "agent-tasks":
+        from drift.output.agent_tasks import analysis_to_agent_tasks_json
+
+        click.echo(analysis_to_agent_tasks_json(analysis))
     else:
         from drift.output.rich_output import render_full_report, render_recommendations
 

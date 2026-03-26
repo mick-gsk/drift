@@ -1,0 +1,520 @@
+{
+  "_metadata": {
+    "drift_version": "0.5.0",
+    "generated_at": "2026-03-26T15:59:21.702467+00:00",
+    "methodology": "synthetic_controlled_repair",
+    "description": "Validates agent-tasks correctness, repair causality, and verification sharpness using synthetic repos modeled after flask and httpx benchmark data."
+  },
+  "repos": {
+    "webapp": {
+      "description": "Flask-like web app with MDS + PFS patterns",
+      "mutations": {
+        "mutant_duplicate": [
+          "Exact duplicate: _make_timedelta in app.py and base_app.py"
+        ],
+        "pattern_fragmentation": [
+          "error_handling: 4 variants in handlers/ (try/except, custom exc, result-dict, assert)"
+        ]
+      },
+      "baseline": {
+        "drift_score": 0.195,
+        "findings_count": 5,
+        "task_count": 5,
+        "signal_breakdown": {
+          "doc_impl_drift": {
+            "count": 3,
+            "total_score": 0.9,
+            "severities": [
+              "low",
+              "low",
+              "low"
+            ]
+          },
+          "mutant_duplicate": {
+            "count": 1,
+            "total_score": 0.9,
+            "severities": [
+              "high"
+            ]
+          },
+          "pattern_fragmentation": {
+            "count": 1,
+            "total_score": 0.5,
+            "severities": [
+              "medium"
+            ]
+          }
+        }
+      },
+      "task_quality": {
+        "schema_valid": true,
+        "priorities_sequential": true,
+        "all_have_criteria": true,
+        "all_have_action": true,
+        "all_have_effect": true,
+        "ids_unique": true,
+        "ids_prefixed": true,
+        "details": [],
+        "quality_score": 1.0,
+        "task_count": 5
+      },
+      "task_complexity": {
+        "distribution": {
+          "low": 1,
+          "medium": 4
+        },
+        "total_tasks": 5
+      },
+      "determinism": {
+        "runs": 3,
+        "identical": true,
+        "scores": [
+          0.195,
+          0.195,
+          0.195
+        ],
+        "finding_counts": [
+          5,
+          5,
+          5
+        ],
+        "task_counts": [
+          5,
+          5,
+          5
+        ]
+      },
+      "repairs": [
+        {
+          "signal": "mutant_duplicate",
+          "repair_type": "correct",
+          "repair_description": "Consolidated _make_timedelta into utils/timedelta.py",
+          "baseline_drift_score": 0.195,
+          "post_repair_drift_score": 0.166,
+          "drift_score_delta": -0.029,
+          "baseline_signal_findings": 1,
+          "post_repair_signal_findings": 0,
+          "finding_resolved": true,
+          "verification": "PASS",
+          "diff_stats": {
+            "files_changed": 11,
+            "insertions": 108,
+            "deletions": 19,
+            "total_diff_lines": 127
+          },
+          "per_signal_deltas": {
+            "temporal_volatility": {
+              "baseline_count": 0,
+              "post_count": 2,
+              "count_delta": 2,
+              "baseline_score": 0.0,
+              "post_score": 0.844,
+              "score_delta": 0.844
+            },
+            "pattern_fragmentation": {
+              "baseline_count": 1,
+              "post_count": 1,
+              "count_delta": 0,
+              "baseline_score": 0.5,
+              "post_score": 0.5,
+              "score_delta": 0.0
+            },
+            "doc_impl_drift": {
+              "baseline_count": 3,
+              "post_count": 3,
+              "count_delta": 0,
+              "baseline_score": 0.9,
+              "post_score": 0.9,
+              "score_delta": 0.0
+            },
+            "mutant_duplicate": {
+              "baseline_count": 1,
+              "post_count": 0,
+              "count_delta": -1,
+              "baseline_score": 0.9,
+              "post_score": 0.0,
+              "score_delta": -0.9
+            }
+          }
+        }
+      ],
+      "failure_cases": [
+        {
+          "signal": "mutant_duplicate",
+          "repair_type": "incorrect",
+          "repair_description": "Renamed to _convert_to_timedelta (body unchanged \u2014 duplication persists)",
+          "baseline_drift_score": 0.199,
+          "post_repair_drift_score": 0.187,
+          "drift_score_delta": -0.012,
+          "baseline_signal_findings": 1,
+          "post_repair_signal_findings": 1,
+          "finding_resolved": false,
+          "verification": "PASS",
+          "diff_stats": {
+            "files_changed": 2,
+            "insertions": 15,
+            "deletions": 2,
+            "total_diff_lines": 17
+          },
+          "per_signal_deltas": {
+            "temporal_volatility": {
+              "baseline_count": 2,
+              "post_count": 1,
+              "count_delta": -1,
+              "baseline_score": 0.898,
+              "post_score": 0.57,
+              "score_delta": -0.328
+            },
+            "pattern_fragmentation": {
+              "baseline_count": 1,
+              "post_count": 1,
+              "count_delta": 0,
+              "baseline_score": 0.5,
+              "post_score": 0.5,
+              "score_delta": 0.0
+            },
+            "mutant_duplicate": {
+              "baseline_count": 1,
+              "post_count": 1,
+              "count_delta": 0,
+              "baseline_score": 0.9,
+              "post_score": 0.85,
+              "score_delta": -0.05
+            },
+            "architecture_violation": {
+              "baseline_count": 1,
+              "post_count": 1,
+              "count_delta": 0,
+              "baseline_score": 0.7,
+              "post_score": 0.7,
+              "score_delta": 0.0
+            },
+            "doc_impl_drift": {
+              "baseline_count": 3,
+              "post_count": 3,
+              "count_delta": 0,
+              "baseline_score": 0.9,
+              "post_score": 0.9,
+              "score_delta": 0.0
+            }
+          },
+          "failure_analysis": "Renaming a function does not resolve MDS. Drift uses body hashes, not names. Identical body still triggers detection."
+        }
+      ]
+    },
+    "datalib": {
+      "description": "httpx-like data lib with MDS + EDS + SMS patterns",
+      "mutations": {
+        "mutant_duplicate": [
+          "Exact duplicate: DeflateDecoder.flush and GZipDecoder.flush"
+        ],
+        "explainability_deficit": [
+          "Unexplained complexity: transform_records (CC>=12, 6 params, no docstring)"
+        ],
+        "system_misalignment": [
+          "Novel deps: native_optimizer.py uses ctypes/struct/mmap in data lib"
+        ]
+      },
+      "baseline": {
+        "drift_score": 0.272,
+        "findings_count": 5,
+        "task_count": 5,
+        "signal_breakdown": {
+          "doc_impl_drift": {
+            "count": 3,
+            "total_score": 0.9,
+            "severities": [
+              "low",
+              "low",
+              "low"
+            ]
+          },
+          "explainability_deficit": {
+            "count": 1,
+            "total_score": 1.0,
+            "severities": [
+              "high"
+            ]
+          },
+          "mutant_duplicate": {
+            "count": 1,
+            "total_score": 0.9,
+            "severities": [
+              "high"
+            ]
+          }
+        }
+      },
+      "task_quality": {
+        "schema_valid": true,
+        "priorities_sequential": true,
+        "all_have_criteria": true,
+        "all_have_action": true,
+        "all_have_effect": true,
+        "ids_unique": true,
+        "ids_prefixed": true,
+        "details": [],
+        "quality_score": 1.0,
+        "task_count": 5
+      },
+      "task_complexity": {
+        "distribution": {
+          "low": 2,
+          "medium": 3
+        },
+        "total_tasks": 5
+      },
+      "determinism": {
+        "runs": 3,
+        "identical": true,
+        "scores": [
+          0.272,
+          0.272,
+          0.272
+        ],
+        "finding_counts": [
+          5,
+          5,
+          5
+        ],
+        "task_counts": [
+          5,
+          5,
+          5
+        ]
+      },
+      "repairs": [
+        {
+          "signal": "mutant_duplicate",
+          "repair_type": "correct",
+          "repair_description": "Extracted flush() into BaseDecoder, eliminated duplication",
+          "baseline_drift_score": 0.272,
+          "post_repair_drift_score": 0.205,
+          "drift_score_delta": -0.067,
+          "baseline_signal_findings": 1,
+          "post_repair_signal_findings": 0,
+          "finding_resolved": true,
+          "verification": "PASS",
+          "diff_stats": {
+            "files_changed": 6,
+            "insertions": 103,
+            "deletions": 22,
+            "total_diff_lines": 125
+          },
+          "per_signal_deltas": {
+            "temporal_volatility": {
+              "baseline_count": 0,
+              "post_count": 1,
+              "count_delta": 1,
+              "baseline_score": 0.0,
+              "post_score": 0.504,
+              "score_delta": 0.504
+            },
+            "explainability_deficit": {
+              "baseline_count": 1,
+              "post_count": 1,
+              "count_delta": 0,
+              "baseline_score": 1.0,
+              "post_score": 1.0,
+              "score_delta": 0.0
+            },
+            "doc_impl_drift": {
+              "baseline_count": 3,
+              "post_count": 3,
+              "count_delta": 0,
+              "baseline_score": 0.9,
+              "post_score": 0.9,
+              "score_delta": 0.0
+            },
+            "mutant_duplicate": {
+              "baseline_count": 1,
+              "post_count": 0,
+              "count_delta": -1,
+              "baseline_score": 0.9,
+              "post_score": 0.0,
+              "score_delta": -0.9
+            }
+          }
+        },
+        {
+          "signal": "explainability_deficit",
+          "repair_type": "correct",
+          "repair_description": "Added docstrings + split into helpers (CC <= 10)",
+          "baseline_drift_score": 0.205,
+          "post_repair_drift_score": 0.087,
+          "drift_score_delta": -0.118,
+          "baseline_signal_findings": 1,
+          "post_repair_signal_findings": 1,
+          "finding_resolved": true,
+          "verification": "PASS",
+          "diff_stats": {
+            "files_changed": 3,
+            "insertions": 80,
+            "deletions": 35,
+            "total_diff_lines": 115
+          },
+          "per_signal_deltas": {
+            "explainability_deficit": {
+              "baseline_count": 1,
+              "post_count": 1,
+              "count_delta": 0,
+              "baseline_score": 1.0,
+              "post_score": 0.3,
+              "score_delta": -0.7
+            },
+            "doc_impl_drift": {
+              "baseline_count": 3,
+              "post_count": 3,
+              "count_delta": 0,
+              "baseline_score": 0.9,
+              "post_score": 0.9,
+              "score_delta": 0.0
+            },
+            "temporal_volatility": {
+              "baseline_count": 1,
+              "post_count": 0,
+              "count_delta": -1,
+              "baseline_score": 0.504,
+              "post_score": 0.0,
+              "score_delta": -0.504
+            }
+          }
+        }
+      ],
+      "failure_cases": []
+    }
+  },
+  "real_data_validation": {
+    "flask": {
+      "source_findings": 18,
+      "generated_tasks": 18,
+      "conversion_rate": 1.0,
+      "quality": {
+        "schema_valid": true,
+        "priorities_sequential": true,
+        "all_have_criteria": true,
+        "all_have_action": true,
+        "all_have_effect": true,
+        "ids_unique": true,
+        "ids_prefixed": true,
+        "details": [],
+        "quality_score": 1.0,
+        "task_count": 18
+      },
+      "top_3_tasks": [
+        {
+          "id": "pfs-0ee2c96187",
+          "signal": "pattern_fragmentation",
+          "title": "api_endpoint: 20 variants in tests/",
+          "criteria_count": 3
+        },
+        {
+          "id": "pfs-26c7c14438",
+          "signal": "pattern_fragmentation",
+          "title": "error_handling: 30 variants in src/flask/",
+          "criteria_count": 3
+        },
+        {
+          "id": "mds-133bd9d19b",
+          "signal": "mutant_duplicate",
+          "title": "Exact duplicates (2\u00d7): _make_timedelta",
+          "criteria_count": 3
+        }
+      ]
+    },
+    "httpx": {
+      "source_findings": 36,
+      "generated_tasks": 36,
+      "conversion_rate": 1.0,
+      "quality": {
+        "schema_valid": true,
+        "priorities_sequential": true,
+        "all_have_criteria": true,
+        "all_have_action": true,
+        "all_have_effect": true,
+        "ids_unique": true,
+        "ids_prefixed": true,
+        "details": [],
+        "quality_score": 1.0,
+        "task_count": 36
+      },
+      "top_3_tasks": [
+        {
+          "id": "pfs-0e20ef180c",
+          "signal": "pattern_fragmentation",
+          "title": "error_handling: 31 variants in httpx/",
+          "criteria_count": 3
+        },
+        {
+          "id": "mds-4c1b56add1",
+          "signal": "mutant_duplicate",
+          "title": "Exact duplicates (2\u00d7): DeflateDecoder.flush, GZipDecoder.flush",
+          "criteria_count": 3
+        },
+        {
+          "id": "mds-d04e8215aa",
+          "signal": "mutant_duplicate",
+          "title": "Exact duplicates (2\u00d7): streaming_body_with_empty_chunks",
+          "criteria_count": 3
+        }
+      ]
+    }
+  },
+  "summary": {
+    "total_repos": 2,
+    "total_repairs_attempted": 3,
+    "repairs_verified": 3,
+    "repair_success_rate": 1.0,
+    "total_failure_cases": 1,
+    "failures_correctly_detected": 1,
+    "verification_metrics": {
+      "false_acceptance_rate": 0.0,
+      "false_rejection_rate": 0.0,
+      "true_positive_rate": 1.0,
+      "true_negative_rate": 1.0
+    },
+    "signal_coverage": {
+      "mutant_duplicate": {
+        "correct_attempted": 2,
+        "correct_passed": 2,
+        "incorrect_attempted": 1,
+        "incorrect_detected": 1
+      },
+      "explainability_deficit": {
+        "correct_attempted": 1,
+        "correct_passed": 1,
+        "incorrect_attempted": 0,
+        "incorrect_detected": 0
+      }
+    },
+    "determinism": {
+      "all_repos_deterministic": true,
+      "runs_per_repo": 3
+    },
+    "effort_metrics": {
+      "median_diff_lines": 125,
+      "all_diff_lines": [
+        127,
+        125,
+        115
+      ]
+    },
+    "real_data_repos_validated": 2,
+    "claim_boundary": {
+      "proven": [
+        "Deterministic repair-task generation from analysis findings",
+        "Controlled verification: correct repairs reduce drift scores",
+        "Rejection sharpness: incorrect repairs are not falsely accepted",
+        "Task schema completeness and priority ordering",
+        "Reproducibility: identical input produces identical output"
+      ],
+      "not_yet_proven": [
+        "Real coding agents executing tasks autonomously in production repos",
+        "Multi-step repair orchestration across dependent findings",
+        "Comparative advantage over unguided agent repair",
+        "Broad signal coverage (only MDS/EDS verified, 4 signals untested)"
+      ]
+    },
+    "conclusion": "Translation + Verification benchmark: agent-tasks produce valid, correctly prioritized repair tasks. Correct repairs measurably reduce drift scores. Incorrect repairs are rejected. Deterministic across repeated runs."
+  }
+}
