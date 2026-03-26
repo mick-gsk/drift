@@ -179,6 +179,14 @@ class TestDiscoverFiles:
         files = discover_files(tmp_path, include=["**/*.py", "*.py"])
         assert len(files) == 1
 
+    def test_max_discovery_files_caps_result(self, tmp_path):
+        for i in range(5):
+            (tmp_path / f"f{i}.py").write_text("x = 1")
+
+        files = discover_files(tmp_path, max_files=3)
+
+        assert len(files) == 3
+
     def test_default_include_adds_ts_when_supported(self, tmp_path, monkeypatch):
         (tmp_path / "app.py").write_text("x = 1")
         (tmp_path / "app.ts").write_text("export const x = 1;")

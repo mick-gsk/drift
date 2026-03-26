@@ -74,6 +74,7 @@ def discover_files(
     repo_path: Path,
     include: list[str] | None = None,
     exclude: list[str] | None = None,
+    max_files: int | None = None,
 ) -> list[FileInfo]:
     """Walk the repo and return all source files matching include/exclude patterns."""
     supported = _detect_supported_languages()
@@ -146,6 +147,13 @@ def discover_files(
                     line_count=line_count,
                 )
             )
+
+            if max_files is not None and len(files) >= max_files:
+                logger.warning(
+                    "Reached discovery file limit (%d). Stopping enumeration.",
+                    max_files,
+                )
+                return sorted(files, key=lambda f: f.path.as_posix())
 
     if skipped_langs:
         summary = ", ".join(f"{lang} ({n})" for lang, n in sorted(skipped_langs.items()))

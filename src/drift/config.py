@@ -52,6 +52,7 @@ class ThresholdsConfig(BaseModel):
     bat_min_loc: int = 50  # ADR-008: skip tiny files
     ecm_max_files: int = 50  # ADR-008: perf guardrail
     ecm_lookback_commits: int = 20  # ADR-008: git history depth
+    max_discovery_files: int = 10000  # safety guardrail for huge repos
 
 
 class SignalWeights(BaseModel):

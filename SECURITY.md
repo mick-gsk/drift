@@ -4,8 +4,8 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.3.x   | :white_check_mark: |
-| < 0.3   | :x:                |
+| 0.6.x   | :white_check_mark: |
+| < 0.6   | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -32,6 +32,24 @@ drift is a static analysis tool that:
 - **Invokes `git log`** via `subprocess` to read commit history.
 - **Reads file system contents** of the target repository.
 
+### Security Boundary Controls
+
+The following controls are implemented in runtime code and treated as part of
+the security baseline:
+
+- **Path normalization:** repository roots are resolved to absolute paths before
+	file traversal.
+- **Symlink policy:** symlink files are skipped during file discovery.
+- **File size guardrail:** files larger than 5 MB are skipped.
+- **Git subprocess hardening:** git commands are invoked with argument lists
+	(no shell interpolation) and fixed command templates.
+- **Git timeout guardrail:** git history parsing uses a 60 second subprocess
+	timeout.
+- **Safe config parsing:** configuration is loaded via `yaml.safe_load` and
+	validated via strict Pydantic schemas (`extra="forbid"`).
+- **Non-executing parsing:** source files are parsed via `ast.parse` or
+	tree-sitter; no analyzed source is executed.
+
 ### Known Attack Surface
 
 | Vector | Description | Mitigation |
@@ -39,6 +57,32 @@ drift is a static analysis tool that:
 | Git history parsing | drift calls `git log` via `subprocess` on the target repo. A crafted `.git` directory could theoretically influence output. | drift passes only hardcoded `git log` format strings — no user-controlled arguments are interpolated into shell commands. |
 | Arbitrary file read | drift reads all `.py` and `.ts` files in the target directory tree. | No file contents are executed. Parsing is done via Python `ast.parse()` which does not execute code. |
 | CI environment | When run in CI (e.g., GitHub Actions), drift has access to the runner's environment. | drift does not read environment variables, secrets, or network resources beyond the local repository. |
+
+### Residual Risks and Operational Guidance
+
+Even with the controls above, drift may still consume significant resources on
+very large or adversarial repositories (for example, huge numbers of small
+files or expensive parser workloads).
+
+Recommended operational posture:
+
+1. Run drift in isolated CI runners for untrusted repositories.
+2. Use report-only mode first (`fail-on: none`) before enforcing hard gates.
+3. Keep clone depth and analysis scope aligned with your risk and runtime
+	 budget.
+4. Treat optional dependency sets as an expanded supply-chain surface and pin
+	 versions in controlled environments.
+
+### Security Regression Evidence
+
+Security-relevant behavior is covered by dedicated tests, including:
+
+- `tests/test_git_history_safety.py` (subprocess argument safety and path
+	handling)
+- `tests/test_file_discovery.py` (symlink skipping, exclude handling, oversize
+	file handling)
+- `tests/test_cache_resilience.py` (corrupted cache and concurrent access
+	resilience)
 
 ## Disclosure Policy
 

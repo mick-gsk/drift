@@ -12,6 +12,21 @@ It is designed for teams that need to answer a practical question before rollout
 - all analysis is deterministic and does not use an LLM in the detector pipeline
 - the PyPI Alpha classifier is intentional and reflects mixed maturity across the full product surface, not weakness in the core Python path alone
 
+## Security boundary evidence
+
+For repository-analyzer deployments, the most relevant security question is how
+drift behaves on untrusted file trees and git metadata.
+
+Current security controls are documented in `SECURITY.md`, including path
+normalization, symlink skipping, a 5 MB per-file guardrail, hardened git
+subprocess usage, and parser non-execution behavior.
+
+Supporting regression tests include:
+
+- `tests/test_git_history_safety.py`
+- `tests/test_file_discovery.py`
+- `tests/test_cache_resilience.py`
+
 ## Benchmark evidence
 
 - 77% strict precision / 95% lenient on a score-weighted sample of 286 findings across 5 repositories (non-circular heuristic classification; 51 Disputed findings where only score evidence available — independent multi-rater validation pending)

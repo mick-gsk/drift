@@ -86,3 +86,4 @@ thresholds:
   min_complexity: 5            # EDS: minimum cyclomatic complexity (primary gate)
   recency_days: 14             # TVS: recency window
   volatility_z_threshold: 1.5  # TVS: z-score outlier threshold
+  max_discovery_files: 10000   # Safety: hard cap for discovered source files

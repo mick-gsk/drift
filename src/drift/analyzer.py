@@ -359,6 +359,7 @@ def analyze_repo(
         repo_path,
         include=config.include,
         exclude=config.exclude,
+        max_files=config.thresholds.max_discovery_files,
     )
 
     if target_path:
@@ -449,6 +450,7 @@ def analyze_diff(
         repo_path,
         include=config.include,
         exclude=config.exclude,
+        max_files=config.thresholds.max_discovery_files,
     )
     changed_set = set(changed_files)
     files = [f for f in all_files if f.path.as_posix() in changed_set]
