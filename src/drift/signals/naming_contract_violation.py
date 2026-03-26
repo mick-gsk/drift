@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import ast
 import textwrap
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from drift.config import DriftConfig
 from drift.models import (
