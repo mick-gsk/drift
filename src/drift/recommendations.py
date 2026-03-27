@@ -217,6 +217,34 @@ def _recommend_system_misalignment(finding: Finding) -> Recommendation | None:
     )
 
 
+def _recommend_cohesion_deficit(finding: Finding) -> Recommendation | None:
+    """Suggest splitting unrelated responsibilities into cohesive modules."""
+    meta = finding.metadata
+    unit_count = meta.get("unit_count", 0)
+    isolated_count = meta.get("isolated_count", 0)
+    isolated_units = meta.get("isolated_units", [])
+
+    if unit_count < 4 or isolated_count == 0:
+        return None
+
+    preview = ", ".join(str(name) for name in isolated_units[:4])
+    if len(isolated_units) > 4:
+        preview += f" (+{len(isolated_units) - 4} more)"
+
+    return Recommendation(
+        title=f"Split low-cohesion module ({isolated_count}/{unit_count} isolated units)",
+        description=(
+            "This file mixes unrelated responsibilities. "
+            f"Start by extracting isolated units ({preview}) into focused modules, "
+            "group by stable domain vocabulary, and keep one clear responsibility per file."
+        ),
+        effort="medium",
+        impact="high",
+        file_path=finding.file_path,
+        related_findings=[finding],
+    )
+
+
 # Dispatcher: signal type → recommendation generator
 _RECOMMENDERS = {
     SignalType.PATTERN_FRAGMENTATION: _recommend_pattern_fragmentation,
@@ -225,6 +253,7 @@ _RECOMMENDERS = {
     SignalType.EXPLAINABILITY_DEFICIT: _recommend_explainability_deficit,
     SignalType.TEMPORAL_VOLATILITY: _recommend_temporal_volatility,
     SignalType.SYSTEM_MISALIGNMENT: _recommend_system_misalignment,
+    SignalType.COHESION_DEFICIT: _recommend_cohesion_deficit,
 }
 
 

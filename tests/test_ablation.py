@@ -16,6 +16,7 @@ from pathlib import Path
 import drift.signals.architecture_violation  # noqa: F401
 import drift.signals.broad_exception_monoculture  # noqa: F401
 import drift.signals.bypass_accumulation  # noqa: F401
+import drift.signals.cohesion_deficit  # noqa: F401
 import drift.signals.doc_impl_drift  # noqa: F401
 import drift.signals.exception_contract_drift  # noqa: F401
 import drift.signals.explainability_deficit  # noqa: F401
@@ -175,6 +176,7 @@ ACTIVE_SIGNALS = [
     SignalType.BROAD_EXCEPTION_MONOCULTURE,
     SignalType.TEST_POLARITY_DEFICIT,
     SignalType.GUARD_CLAUSE_DEFICIT,
+    SignalType.COHESION_DEFICIT,
     SignalType.NAMING_CONTRACT_VIOLATION,
     SignalType.BYPASS_ACCUMULATION,
     SignalType.EXCEPTION_CONTRACT_DRIFT,

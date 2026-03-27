@@ -1,6 +1,6 @@
 # Signal Reference
 
-Drift measures 13 scoring signals, each targeting a different dimension of architectural erosion. All signals contribute to the composite score (auto-calibrated at runtime). Signals are grouped by origin: 6 core signals (ablation-validated since v0.5), 4 consistency proxy signals (promoted from report-only in v0.7.0 via [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md)), and 3 contract signals (added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)).
+Drift measures 14 scoring signals, each targeting a different dimension of architectural erosion. All signals contribute to the composite score (auto-calibrated at runtime). Signals are grouped by origin: 6 core signals (ablation-validated since v0.5), 4 consistency proxy signals (promoted from report-only in v0.7.0 via [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md)), 3 contract signals (added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)), and 1 cohesion signal (COD).
 
 ## Core Signals
 

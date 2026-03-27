@@ -8,7 +8,7 @@ Reihenfolge = empfohlene Priorität.
 - Repo: `sauremilk/drift`
 - Package: `drift-analyzer`
 - Command: `drift`
-- Safe signal claim: 13 scoring signals, all active since v0.7.0 (6 core + 7 promoted/new, auto-calibrated at runtime).
+- Safe signal claim: 14 scoring signals, all active since v0.7.0 (6 core + 8 promoted/new, auto-calibrated at runtime).
 - Safe rollout claim: start report-only in CI, then tighten to `high` only after reviewing real findings.
 
 ---
@@ -34,7 +34,7 @@ near-identical functions accumulate with subtle differences.
 
 Drift doesn't detect bugs. It detects the loss of design intent.
 
-It runs 13 scoring signals today — 6 core signals plus 7 promoted consistency
+It runs 14 scoring signals today — 6 core signals plus 8 promoted consistency
 and contract signals, all contributing to the composite score:
 - Pattern Fragmentation: same pattern implemented N different ways in one module
 - Architecture Violations: imports crossing layer boundaries (DB → API, etc.)
@@ -76,7 +76,7 @@ I built drift – deterministic architectural drift detection for AI-accelerated
 TL;DR: `pip install drift-analyzer && drift analyze --repo .`
 
 Copilot and Cursor write code that solves local tasks correctly but weakens
-global design. Drift detects that architectural drift with 13 scoring signals
+global design. Drift detects that architectural drift with 14 scoring signals
 covering pattern, architecture, and consistency dimensions:
 
 1. Pattern Fragmentation – same thing done N ways in one module

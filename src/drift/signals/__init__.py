@@ -4,6 +4,7 @@ from drift.signals.architecture_violation import ArchitectureViolationSignal
 from drift.signals.base import BaseSignal
 from drift.signals.broad_exception_monoculture import BroadExceptionMonocultureSignal
 from drift.signals.bypass_accumulation import BypassAccumulationSignal
+from drift.signals.cohesion_deficit import CohesionDeficitSignal
 from drift.signals.doc_impl_drift import DocImplDriftSignal
 from drift.signals.exception_contract_drift import ExceptionContractDriftSignal
 from drift.signals.explainability_deficit import ExplainabilityDeficitSignal
@@ -28,6 +29,7 @@ __all__ = [
     "BroadExceptionMonocultureSignal",
     "TestPolarityDeficitSignal",
     "GuardClauseDeficitSignal",
+    "CohesionDeficitSignal",
     "NamingContractViolationSignal",
     "BypassAccumulationSignal",
     "ExceptionContractDriftSignal",

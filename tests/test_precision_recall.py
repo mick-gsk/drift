@@ -20,6 +20,7 @@ import pytest
 
 import drift.signals.architecture_violation  # noqa: F401
 import drift.signals.broad_exception_monoculture  # noqa: F401
+import drift.signals.cohesion_deficit  # noqa: F401
 import drift.signals.doc_impl_drift  # noqa: F401
 import drift.signals.explainability_deficit  # noqa: F401
 import drift.signals.guard_clause_deficit  # noqa: F401

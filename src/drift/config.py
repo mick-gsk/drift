@@ -83,6 +83,7 @@ class SignalWeights(BaseModel):
     broad_exception_monoculture: float = 0.04
     test_polarity_deficit: float = 0.04
     guard_clause_deficit: float = 0.03
+    cohesion_deficit: float = 0.01
     naming_contract_violation: float = 0.04
     bypass_accumulation: float = 0.03
     exception_contract_drift: float = 0.03

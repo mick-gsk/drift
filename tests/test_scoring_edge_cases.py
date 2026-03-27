@@ -95,6 +95,7 @@ def test_composite_score_zero_weights_returns_zero():
         broad_exception_monoculture=0.0,
         test_polarity_deficit=0.0,
         guard_clause_deficit=0.0,
+        cohesion_deficit=0.0,
         naming_contract_violation=0.0,
         bypass_accumulation=0.0,
         exception_contract_drift=0.0,

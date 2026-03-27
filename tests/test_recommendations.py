@@ -212,3 +212,25 @@ class TestSystemMisalignmentRecommendation:
         recs = generate_recommendations([finding])
         assert len(recs) == 1
         assert "pandas" in recs[0].description
+
+
+class TestCohesionDeficitRecommendation:
+    def test_split_low_cohesion_module(self):
+        finding = _make_finding(
+            SignalType.COHESION_DEFICIT,
+            metadata={
+                "unit_count": 6,
+                "isolated_count": 4,
+                "isolated_units": [
+                    "parse_invoice_xml",
+                    "send_slack_alert",
+                    "resize_profile_image",
+                    "decrypt_api_secret",
+                ],
+            },
+            file_path=Path("src/utils/misc.py"),
+        )
+        recs = generate_recommendations([finding])
+        assert len(recs) == 1
+        assert "Split low-cohesion module" in recs[0].title
+        assert "parse_invoice_xml" in recs[0].description

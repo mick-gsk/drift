@@ -3,6 +3,24 @@
 All notable changes to drift-analyzer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.3] - 2026-03-27
+
+Short version: drift gains a deterministic cohesion-deficit signal with actionable remediation, plus aligned release evidence and consistency messaging.
+
+### Added
+
+- **Cohesion Deficit (COD) signal**: Added deterministic detection for low internal module cohesion (god-files/utility-dumps) based on semantic unit overlap, with built-in small-repo dampening and full fixture/unit coverage.
+- **CLI explain subcommand**: Added `drift explain` signal reference output so teams can inspect signal intent, detection scope, examples, and tuning hints directly in the terminal.
+
+### Changed
+
+- **Scoring model extension**: Added `cohesion_deficit` to `SignalType`, default signal weights, and signal registration so COD participates in composite scoring and ablation/precision pipelines.
+- **Recommendation coverage**: Added actionable COD recommendations that prioritize extracting isolated responsibilities into cohesive modules.
+
+### Fixed
+
+- **Model-consistency evidence**: Updated public docs and outreach references from 13 to 14 scoring signals so release/consistency gates remain reproducible and accurate.
+
 ## [0.7.2] - 2026-03-27
 
 Short version: architecture-violation detection is more robust, and release validation/workflow consistency is tightened for safer publication.

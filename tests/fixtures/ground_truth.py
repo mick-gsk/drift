@@ -1815,6 +1815,79 @@ GCD_DECORATOR_GUARD_TN = GroundTruthFixture(
 )
 
 
+# ── Cohesion Deficit (COD) ──────────────────────────────────────────────
+
+COD_TRUE_POSITIVE = GroundTruthFixture(
+    name="cod_tp",
+    description="Single file with unrelated responsibilities → should fire COD",
+    files={
+        "utils/__init__.py": "",
+        "utils/misc.py": """\
+            def parse_invoice_xml(raw: str) -> dict:
+                return {"invoice": raw.strip()}
+
+            def send_slack_alert(message: str) -> None:
+                print(f"alert: {message}")
+
+            def resize_profile_image(image: bytes, width: int) -> bytes:
+                return image[:width]
+
+            def compile_tax_report(rows: list[dict]) -> list[dict]:
+                return sorted(rows, key=lambda r: r.get("year", 0))
+
+            def decrypt_api_secret(token: str) -> str:
+                return token[::-1]
+
+            class ExperimentScheduler:
+                def enqueue_trial(self, payload: dict) -> dict:
+                    return {"queued": True, "payload": payload}
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.COHESION_DEFICIT,
+            file_path="utils/misc.py",
+            should_detect=True,
+            description="Mixed domains in one file indicate low cohesion",
+        ),
+    ],
+)
+
+COD_TRUE_NEGATIVE = GroundTruthFixture(
+    name="cod_tn",
+    description="Single cohesive tax module → should NOT fire COD",
+    files={
+        "finance/__init__.py": "",
+        "finance/tax.py": """\
+            def calculate_tax_base(amount: float, discount: float) -> float:
+                return max(0.0, amount - discount)
+
+            def calculate_tax_rate(region: str) -> float:
+                if region == "EU":
+                    return 0.19
+                return 0.07
+
+            def validate_tax_input(amount: float, discount: float) -> bool:
+                return amount >= 0 and discount >= 0
+
+            def round_tax_amount(amount: float) -> float:
+                return round(amount, 2)
+
+            def format_tax_summary(amount: float, region: str) -> str:
+                return f"tax for {region}: {round_tax_amount(amount)}"
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.COHESION_DEFICIT,
+            file_path="finance/tax.py",
+            should_detect=False,
+            description="Domain vocabulary is cohesive across all units",
+        ),
+    ],
+)
+
+
 # ── Registry of all fixtures ─────────────────────────────────────────────
 
 ALL_FIXTURES: list[GroundTruthFixture] = [
@@ -1858,6 +1931,8 @@ ALL_FIXTURES: list[GroundTruthFixture] = [
     GCD_COMPLEX_TP,
     GCD_SIMPLE_TN,
     GCD_DECORATOR_GUARD_TN,
+    COD_TRUE_POSITIVE,
+    COD_TRUE_NEGATIVE,
     # ── NBV / BAT fixtures below ──
 ]
 

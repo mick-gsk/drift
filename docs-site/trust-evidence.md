@@ -6,7 +6,7 @@ It is designed for teams that need to answer a practical question before rollout
 
 ## Public claims safe to repeat
 
-- drift uses 13 scoring signals in the composite score (all active since v0.7.0, auto-calibrated at runtime)
+- drift uses 14 scoring signals in the composite score (all active since v0.7.0, auto-calibrated at runtime)
 - the v0.5 benchmark baseline used 6 core signals; quantitative precision claims below apply to that historical model
 - the current study corpus covers 15 real-world repositories
 - all analysis is deterministic and does not use an LLM in the detector pipeline
