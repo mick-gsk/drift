@@ -1,8 +1,8 @@
 # Signal Reference
 
-Drift measures 6 active detection signals, each targeting a different dimension of architectural erosion, plus 4 report-only signals that surface consistency patterns without affecting the composite score.
+Drift measures 13 scoring signals, each targeting a different dimension of architectural erosion. All signals contribute to the composite score (auto-calibrated at runtime). Signals are grouped by origin: 6 core signals (ablation-validated since v0.5), 4 consistency proxy signals (promoted from report-only in v0.7.0 via [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md)), and 3 contract signals (added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)).
 
-## Active Signals
+## Core Signals
 
 ### Pattern Fragmentation (PFS)
 
@@ -46,28 +46,52 @@ Drift measures 6 active detection signals, each targeting a different dimension 
 
 **Example:** A utility module suddenly importing from an HTTP client library.
 
-## Phase 2 Signals (Report-Only)
+## Consistency Proxy Signals
+
+Promoted from report-only to scoring-active in v0.7.0 with conservative initial weights. See [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md) for the original rationale.
 
 ### Doc-Implementation Drift (DIA)
 
 **What it detects:** Documented architecture that no longer matches actual code.
 
-**Status:** Reported by default, but excluded from the composite score (weight 0.0) until extraction precision improves.
+**Weight:** 0.04. Known precision limitations from URL/directory-name heuristics (63% strict precision in v0.5 baseline).
 
 ### Broad Exception Monoculture (BEM)
 
 **What it detects:** Modules where exception handling is uniformly broad (bare except, catch-all Exception) with high swallowing ratios.
 
-**Status:** Report-only (weight 0.0). See [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md).
+**Weight:** 0.04.
 
 ### Test Polarity Deficit (TPD)
 
 **What it detects:** Test suites with near-zero negative assertions — only happy-path testing, no failure-path coverage.
 
-**Status:** Report-only (weight 0.0). See [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md).
+**Weight:** 0.04.
 
 ### Guard Clause Deficit (GCD)
 
 **What it detects:** Modules where public functions uniformly lack early guard clauses (parameter validation, precondition checks).
 
-**Status:** Report-only (weight 0.0). See [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md).
+**Weight:** 0.03.
+
+## Contract Signals
+
+Added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md).
+
+### Naming Contract Violation (NBV)
+
+**What it detects:** Modules where naming conventions diverge from the established codebase patterns (e.g., inconsistent casing, prefix/suffix drift).
+
+**Weight:** 0.04.
+
+### Bypass Accumulation (BAT)
+
+**What it detects:** Modules accumulating bypass patterns (TODO/FIXME/HACK markers, disabled checks, hardcoded overrides) beyond a statistical threshold.
+
+**Weight:** 0.03.
+
+### Exception Contract Drift (ECM)
+
+**What it detects:** Modules where exception hierarchies or error-handling contracts diverge from the dominant codebase pattern.
+
+**Weight:** 0.03.

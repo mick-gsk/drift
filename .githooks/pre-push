@@ -112,31 +112,35 @@ echo ">>> [pre-push] Starting local CI checks..."
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 
 # 1. Version format (SemVer)
-echo ">>> [1/5] Checking SemVer version..."
+echo ">>> [1/6] Checking SemVer version..."
 python scripts/check_version.py --check-semver
 
 # 1b. Release discipline
-echo ">>> [1b/5] Checking release discipline..."
+echo ">>> [1b/6] Checking release discipline..."
 python scripts/check_release_discipline.py
 
-# 1c. Public repo hygiene
-echo ">>> [1c/5] Checking public repo hygiene..."
+# 1c. Model consistency (signal count, weights, version in docs)
+echo ">>> [1c/6] Checking model consistency..."
+python scripts/check_model_consistency.py
+
+# 1d. Public repo hygiene
+echo ">>> [1d/6] Checking public repo hygiene..."
 python scripts/check_repo_hygiene.py --config .github/repo-guard.blocklist --root-allowlist .github/repo-root-allowlist
 
 # 2. Lint
-echo ">>> [2/5] Running ruff lint..."
+echo ">>> [2/6] Running ruff lint..."
 ruff check src/ tests/
 
 # 3. Type checking
-echo ">>> [3/5] Running mypy..."
+echo ">>> [3/6] Running mypy..."
 python -m mypy src/drift
 
 # 4. Tests with coverage (exclude slow smoke tests that clone external repos)
-echo ">>> [4/5] Running pytest + coverage (excl. smoke tests)..."
+echo ">>> [4/6] Running pytest + coverage (excl. smoke tests)..."
 pytest -v --tb=short --cov --cov-report=term-missing --ignore=tests/test_smoke_real_repos.py
 
 # 5. Self-analysis
-echo ">>> [5/5] Running self-analysis..."
+echo ">>> [5/6] Running self-analysis..."
 drift analyze --repo . --format json > /dev/null
 
 echo ">>> [pre-push] All checks passed. Push continues."

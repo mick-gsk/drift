@@ -35,7 +35,7 @@ Direct shortcuts:
 - [Contributing](contributing.md)
 - [Algorithm Deep Dive](algorithms/deep-dive.md)
 
-Current public evidence: 15 real-world repositories in the study corpus, 6 scoring signals, and 4 report-only signals (DIA, BEM, TPD, GCD) with weight 0.00 until extraction precision improves.
+Current public evidence: 15 real-world repositories in the study corpus, 13 scoring signals (all active since v0.7.0, auto-calibrated at runtime). The [benchmark study](study.md) documents a v0.5 baseline with 6 core signals; quantitative claims there apply to that historical model.
 
 Release posture is intentionally conservative: the PyPI classifier remains Alpha, while the core Python analysis and CI-facing workflows are already the most stable parts of the product. See [Stability and Release Status](stability.md) for the explicit maturity matrix.
 

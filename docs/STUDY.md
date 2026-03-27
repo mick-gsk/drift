@@ -1,20 +1,20 @@
 # STUDY.md — Evaluating Architectural Drift Detection in Real-World Python Projects
 
-> **Versioning note (2026-03-26):** The package version in this repository is drift v0.6.0, but most quantitative benchmark artifacts referenced in this document were generated with drift v0.5.0 unless a later dated section states otherwise. This file therefore mixes a frozen evidence baseline with later engineering notes and must not be read as a single-version snapshot.
+> **Versioning note (2026-03-27):** The package version in this repository is drift v0.7.1. Most quantitative benchmark artifacts referenced in this document were generated with drift v0.5.0 unless a later dated section states otherwise. As of v0.7.0, all 13 signals are scoring-active with non-zero weights; the study baseline was frozen at v0.5 with 6 core signals. This file therefore documents a historical evidence baseline and must not be read as a description of the current signal model.
 
 ---
 
 ## Executive Summary
 
-### Public Claims Safe To Repeat As Of 2026-03-26
+### Public Claims Safe To Repeat As Of 2026-03-27
 
-- The package version in this repository is drift v0.6.0, but the core benchmark corpus summarized below is still the v0.5.0 evidence baseline.
-- The composite score still uses 6 scoring signals. Additional weight-0 report-only signals exist in the current codebase; the main quantitative sections of this study fully cover the original baseline signals and the ADR-007 consistency proxies, not every later report-only addition.
+- The package version in this repository is drift v0.7.1. The core benchmark corpus summarized below is the v0.5.0 evidence baseline.
+- The v0.5 baseline composite score used 6 scoring signals. As of v0.7.0, all 13 signals are scoring-active with non-zero weights; the quantitative precision/recall claims in this study apply only to the historical 6-signal model and have not been revalidated for the current 13-signal model.
 - The current study corpus still covers 15 real-world repositories.
 - All analysis is deterministic; no LLM is used in the detector pipeline.
 
 1. **77% strict precision** on a score-weighted sample of 286 findings across 5 repositories (v0.5 non-circular heuristic classification). Of 15 total FPs, 9 come from DIA (weight 0.00) and 6 from active signals (4 AVS, 2 MDS). 51 findings are classified as Disputed (score-only evidence, no structural confirmation). Independent multi-rater validation is pending — treat as upper-bound estimate.
-2. **No current public recall headline should be repeated for v0.6.0 from this file.** The last validated controlled mutation result documented here is the historical 14-pattern benchmark in §4. A fresh rerun of the checked-in CLI harness on 2026-03-26 produced 22 findings but counted 0/17 detections because the harness groups JSON findings by `signal_type` while current CLI JSON emits `signal`; until that accounting defect is repaired and rerun, this study does not present a current recall headline claim.
+2. **88% mutation recall (v0.7.1, 2026-03-27):** 15 of 17 injected patterns detected across 10 signal types on a synthetic repository with git history. The accounting defect in the CLI harness (grouping by `signal_type` instead of `signal`) has been repaired; the checked-in artifact `benchmark_results/mutation_benchmark.json` now reflects a valid rerun. Undetected: 1 of 2 pattern-fragmentation variants (return-pattern not flagged) and system-misalignment (outlier-module import novelty below threshold). The historical 14-pattern §4 benchmark (86% recall, v0.5) remains for reference.
 3. **Self-analysis baseline remains 0.442 (MEDIUM)** in the study corpus. Later smoke-test sections add broader comparison context, but they should be read as dated snapshots rather than a continuously refreshed badge.
 
 For methodology, see §1. For precision tables, see §3. For threats to validity, see §7.
@@ -23,7 +23,7 @@ For methodology, see §1. For precision tables, see §3. For threats to validity
 
 ## Abstract
 
-This document records the evidence base behind drift, whose package version in this repository is currently v0.6.0. The main quantitative corpus in §§1–12 is a frozen v0.5.0 benchmark baseline combining three methods: (1) a **ground-truth precision analysis** of 286 classified findings across 5 repositories, (2) a **historical controlled mutation benchmark** over 14 intentionally injected drift patterns, and (3) a **usefulness study** demonstrating actionable findings in a production codebase. The strongest current repeatable precision claim from that corpus remains 77% precision (strict) / 95% lenient on the score-weighted sample, using non-circular classification criteria. The tool is fully deterministic — no LLM is used in the analysis pipeline ([ADR-001](adr/001-deterministic-analysis-pipeline.md)). The checked-in CLI mutation harness currently has an accounting defect and should not be used to derive a fresh public recall headline until repaired.
+This document records the evidence base behind drift, whose package version in this repository is currently v0.7.1. The main quantitative corpus in §§1–12 is a frozen v0.5.0 benchmark baseline combining three methods: (1) a **ground-truth precision analysis** of 286 classified findings across 5 repositories, (2) a **historical controlled mutation benchmark** over 14 intentionally injected drift patterns, and (3) a **usefulness study** demonstrating actionable findings in a production codebase. The strongest current repeatable precision claim from that corpus remains 77% precision (strict) / 95% lenient on the score-weighted sample, using non-circular classification criteria; this claim applies to the v0.5 6-signal model and has not been revalidated for the current 13-signal v0.7.x model. A fresh v0.7.1 mutation benchmark (17 patterns, 10 signals, synthetic repo with git history) yields 88% detection recall. The tool is fully deterministic — no LLM is used in the analysis pipeline ([ADR-001](adr/001-deterministic-analysis-pipeline.md)).
 
 ---
 
@@ -35,7 +35,7 @@ The core benchmark sections in this document evaluate the original 7 baseline si
 
 $$S_i = \frac{\sum f_{ij}}{n_i} \cdot \min\!\left(1,\; \frac{\ln(1 + n_i)}{\ln(1 + k)}\right)$$
 
-**Signal weights** (default, active in scoring):
+**Signal weights (v0.5 baseline — historical):**
 
 | Signal                       | Code | Weight | Status         |
 | ---------------------------- | ---- | ------ | -------------- |
@@ -52,7 +52,7 @@ $$S_i = \frac{\sum f_{ij}}{n_i} \cdot \min\!\left(1,\; \frac{\ln(1 + n_i)}{\ln(1
 
 DIA, BEM, TPD, and GCD are included in the analysis output but contribute 0.0 to the composite score. They are Phase 2 signals with known precision limitations (see §3.1 for DIA; see [ADR-007](adr/007-consistency-proxy-signals.md) for BEM/TPD/GCD).
 
-**Current codebase note (v0.6.0):** The repository now defines additional weight-0 report-only slots for naming-contract and bypass-oriented signals. Those newer additions are outside the core 5-repository precision corpus documented in §§2–4 and should not be inferred from the older tables unless a later dated section says so.
+**Current codebase note (v0.7.1):** As of v0.7.0, all 13 signals are scoring-active with non-zero weights (PFS=0.16, AVS=0.16, MDS=0.13, TVS=0.13, EDS=0.09, SMS=0.08, DIA=0.04, BEM=0.04, TPD=0.04, NBV=0.04, GCD=0.03, BAT=0.03, ECM=0.03). The table above documents the v0.5 baseline only. Precision and recall claims in this study have not been revalidated for the current 13-signal model. Three signals (NBV, BAT, ECM) were added in v0.7.0/v0.7.1 and are outside the core 5-repository precision corpus.
 
 ### 1.2 Repository Selection
 

@@ -6,8 +6,8 @@ It is designed for teams that need to answer a practical question before rollout
 
 ## Public claims safe to repeat
 
-- drift uses 6 scoring signals in the composite score, plus 4 report-only signals (DIA, BEM, TPD, GCD)
-- DIA, BEM, TPD, and GCD remain report-only with weight 0.00 until extraction precision improves
+- drift uses 13 scoring signals in the composite score (all active since v0.7.0, auto-calibrated at runtime)
+- the v0.5 benchmark baseline used 6 core signals; quantitative precision claims below apply to that historical model
 - the current study corpus covers 15 real-world repositories
 - all analysis is deterministic and does not use an LLM in the detector pipeline
 - the PyPI Alpha classifier is intentional and reflects mixed maturity across the full product surface, not weakness in the core Python path alone
@@ -29,10 +29,12 @@ Supporting regression tests include:
 
 ## Benchmark evidence
 
-- 77% strict precision / 95% lenient on a score-weighted sample of 286 findings across 5 repositories (non-circular heuristic classification; 51 Disputed findings where only score evidence available — independent multi-rater validation pending)
-- 6 active scoring signals: 78% strict / 98% lenient precision (n=259, 6 FP: 4 AVS config-imports, 2 MDS async/sync pairs)
-- DIA (weight 0.00): 63% strict precision (n=27, 9 FP from URL/directory-name heuristics)
-- 86% detection rate on a controlled mutation benchmark of 14 author-designed synthetic patterns (not a population recall estimate)
+- **v0.5 baseline (6-signal model):** 77% strict precision / 95% lenient on a score-weighted sample of 286 findings across 5 repositories (non-circular heuristic classification; 51 Disputed findings where only score evidence available — independent multi-rater validation pending)
+- **v0.5 baseline:** 6 active scoring signals: 78% strict / 98% lenient precision (n=259, 6 FP: 4 AVS config-imports, 2 MDS async/sync pairs)
+- **v0.5 baseline:** DIA (then weight 0.00): 63% strict precision (n=27, 9 FP from URL/directory-name heuristics)
+- precision has not been revalidated for the current 13-signal model; treat v0.5 numbers as a historical reference point
+- **v0.7.1 (2026-03-27):** 88% detection recall on a controlled mutation benchmark of 17 injected patterns across 10 signal types (synthetic repo with git history; 2 patterns undetected: 1 return-pattern fragmentation variant, 1 system-misalignment below threshold)
+- **v0.5 baseline (historical):** 86% detection rate on a 14-pattern benchmark
 - self-analysis of drift reports a score of 0.442 (MEDIUM)
 
 These numbers are summarized from [Benchmark Study](study.md) and should be interpreted together with the limitations below.
@@ -50,7 +52,7 @@ The strongest current claim is that drift provides a deterministic and inspectab
 - TVS shows 0% strict precision because titles lack structural keywords — this reflects a classification-method limitation, not necessarily signal quality
 - AVS sample size (n=20) remains below the n≥30 threshold for reliable per-signal precision
 - recall was measured on a synthetic mutation benchmark, not on every naturally evolving repository shape
-- DIA currently has known precision limitations and is excluded from the composite score
+- DIA has known precision limitations and received a conservative weight (0.04) when promoted to scoring in v0.7.0
 - temporal signals depend on repository history quality and clone depth
 - the composite score is orientation, not a verdict
 

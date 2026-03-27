@@ -26,6 +26,9 @@ jobs:
       - name: Enforce release discipline
         run: python scripts/check_release_discipline.py
 
+      - name: Check model consistency
+        run: python scripts/check_model_consistency.py
+
   test:
     runs-on: [self-hosted, Windows, X64]
     defaults:

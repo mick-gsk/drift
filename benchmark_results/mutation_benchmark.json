@@ -41,48 +41,64 @@
   "detection": {
     "mutant_duplicate": {
       "injected": 3,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 3,
+      "recall": 1.0,
+      "finding_count": 4,
       "mutation_descriptions": [
         "Exact duplicate: process_order in service_a.py and service_b.py",
         "Exact duplicate: validate_input in service_a.py and service_b.py",
         "Near-duplicate: fetch_user_data ~ get_customer_info (same structure, different names)"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "Exact duplicates (2\u00d7): process_order",
+        "Exact duplicates (2\u00d7): validate_input",
+        "Near-duplicate (100%): download_file \u2194 send_message",
+        "Near-duplicate (100%): fetch_user_data \u2194 get_customer_info"
+      ]
     },
     "pattern_fragmentation": {
       "injected": 2,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 1,
+      "recall": 0.5,
+      "finding_count": 1,
       "mutation_descriptions": [
         "error_handling: 4 variants in handlers/ (try/except, custom exception, result-dict, assert)",
         "return_pattern: 3 variants in models/ (None, raise, tuple)"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "error_handling: 2 variants in src/myapp/handlers/"
+      ]
     },
     "explainability_deficit": {
       "injected": 2,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 2,
+      "recall": 1.0,
+      "finding_count": 5,
       "mutation_descriptions": [
         "Unexplained complexity: calculate_pricing (CC>=12, no docstring, no tests)",
         "Unexplained complexity: transform_dataset (CC>=15, no docstring, no tests)"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "Unexplained complexity: calculate_pricing",
+        "Unexplained complexity: transform_dataset",
+        "Unexplained complexity: transform_records",
+        "Unexplained complexity: aggregate_metrics",
+        "Unexplained complexity: enrich_payload"
+      ]
     },
     "architecture_violation": {
       "injected": 2,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 2,
+      "recall": 1.0,
+      "finding_count": 2,
       "mutation_descriptions": [
         "Upward import: models/enriched.py imports from handlers/",
         "Transitive layer violation: utils/ -> models/ -> handlers/"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "Upward layer import: enriched.py \u2192 auth.py",
+        "Upward layer import: enriched.py \u2192 orders.py"
+      ]
     },
     "system_misalignment": {
       "injected": 1,
@@ -96,65 +112,81 @@
     },
     "doc_impl_drift": {
       "injected": 3,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 3,
+      "recall": 1.0,
+      "finding_count": 7,
       "mutation_descriptions": [
         "Phantom directory: README references src/myapp/views/ (does not exist)",
         "Phantom directory: README references src/myapp/middleware/ (does not exist)",
         "Phantom directory: README references src/myapp/plugins/ (does not exist)"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "README references missing directory: handlers/",
+        "README references missing directory: middleware/",
+        "README references missing directory: models/",
+        "README references missing directory: myapp/",
+        "README references missing directory: plugins/",
+        "README references missing directory: utils/",
+        "README references missing directory: views/"
+      ]
     },
     "temporal_volatility": {
       "injected": 1,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 1,
+      "recall": 1.0,
+      "finding_count": 1,
       "mutation_descriptions": [
         "High volatility: src/myapp/hotspot.py (10 commits in 10 days)"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "High volatility: src/myapp/hotspot.py"
+      ]
     },
     "broad_exception_monoculture": {
       "injected": 1,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 1,
+      "recall": 1.0,
+      "finding_count": 1,
       "mutation_descriptions": [
         "Broad exception monoculture: 8 handlers in connectors/ all catch Exception + log-only"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "Broad exception monoculture in src/myapp/connectors/"
+      ]
     },
     "test_polarity_deficit": {
       "injected": 1,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 1,
+      "recall": 1.0,
+      "finding_count": 1,
       "mutation_descriptions": [
         "Test polarity deficit: 6 test functions in tests/api/ with 12 positive assertions, 0 negative"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "Happy-path-only test suite in tests/api/"
+      ]
     },
     "guard_clause_deficit": {
       "injected": 1,
-      "detected": 0,
-      "recall": 0.0,
-      "finding_count": 0,
+      "detected": 1,
+      "recall": 1.0,
+      "finding_count": 1,
       "mutation_descriptions": [
         "Guard clause deficit: 3 public functions in processors/ with >=2 params, CC>=5, no guards"
       ],
-      "finding_titles": []
+      "finding_titles": [
+        "Guard clause deficit in src/myapp/processors/"
+      ]
     }
   },
   "total_injected": 17,
-  "total_detected": 0,
-  "overall_recall": 0.0,
+  "total_detected": 15,
+  "overall_recall": 0.8823529411764706,
   "drift_output": {
     "version": "0.5.0",
-    "repo": "C:/Users/mickg/AppData/Local/Temp/drift_mutation_859fvma5/synthetic_repo",
-    "analyzed_at": "2026-03-26T17:05:00.727650+00:00",
-    "drift_score": 0.296,
+    "repo": "C:/Users/mickg/AppData/Local/Temp/drift_mutation_8oaluc8_/synthetic_repo",
+    "analyzed_at": "2026-03-27T07:53:58.299905+00:00",
+    "drift_score": 0.28,
     "severity": "low",
     "trend": {
       "previous_score": null,
@@ -168,23 +200,45 @@
       "total_files": 29,
       "total_functions": 39,
       "ai_attributed_ratio": 0.0,
-      "analysis_duration_seconds": 0.17
+      "analysis_duration_seconds": 0.22
     },
     "modules": [
       {
         "path": "src/myapp",
-        "drift_score": 0.484,
-        "severity": "medium",
+        "drift_score": 0.341,
+        "severity": "low",
         "signal_scores": {
           "mutant_duplicate": 0.5107,
-          "explainability_deficit": 0.4467
+          "explainability_deficit": 0.4467,
+          "temporal_volatility": 0.0968
         },
-        "finding_count": 5,
+        "finding_count": 6,
+        "ai_ratio": 0.0
+      },
+      {
+        "path": ".",
+        "drift_score": 0.26,
+        "severity": "low",
+        "signal_scores": {
+          "doc_impl_drift": 0.2602
+        },
+        "finding_count": 7,
+        "ai_ratio": 0.0
+      },
+      {
+        "path": "src/myapp/connectors",
+        "drift_score": 0.256,
+        "severity": "low",
+        "signal_scores": {
+          "mutant_duplicate": 0.2457,
+          "broad_exception_monoculture": 0.2891
+        },
+        "finding_count": 2,
         "ai_ratio": 0.0
       },
       {
         "path": "src/myapp/processors",
-        "drift_score": 0.26,
+        "drift_score": 0.228,
         "severity": "low",
         "signal_scores": {
           "explainability_deficit": 0.2602,
@@ -194,14 +248,13 @@
         "ai_ratio": 0.0
       },
       {
-        "path": "src/myapp/connectors",
-        "drift_score": 0.246,
-        "severity": "low",
+        "path": "tests/api",
+        "drift_score": 0.173,
+        "severity": "info",
         "signal_scores": {
-          "mutant_duplicate": 0.2457,
-          "broad_exception_monoculture": 0.2891
+          "test_polarity_deficit": 0.1734
         },
-        "finding_count": 2,
+        "finding_count": 1,
         "ai_ratio": 0.0
       },
       {
@@ -216,32 +269,12 @@
       },
       {
         "path": "src/myapp/models",
-        "drift_score": 0.115,
+        "drift_score": 0.114,
         "severity": "info",
         "signal_scores": {
           "architecture_violation": 0.1145
         },
         "finding_count": 2,
-        "ai_ratio": 0.0
-      },
-      {
-        "path": ".",
-        "drift_score": 0.0,
-        "severity": "info",
-        "signal_scores": {
-          "doc_impl_drift": 0.2602
-        },
-        "finding_count": 7,
-        "ai_ratio": 0.0
-      },
-      {
-        "path": "tests/api",
-        "drift_score": 0.0,
-        "severity": "info",
-        "signal_scores": {
-          "test_polarity_deficit": 0.1734
-        },
-        "finding_count": 1,
         "ai_ratio": 0.0
       }
     ],
@@ -250,7 +283,7 @@
         "signal": "architecture_violation",
         "severity": "medium",
         "score": 0.25,
-        "impact": 0.0931,
+        "impact": 0.0677,
         "title": "Upward layer import: enriched.py \u2192 auth.py",
         "description": "src/myapp/models/enriched.py:1 \u2014 data/infrastructure layer imports from presentation/API layer. Expected direction: presentation \u2192 service \u2192 data.",
         "fix": "Verschiebe auth.py-Logik in eine Service-Schicht oder Abstraktions-Interface, das von enriched.py importiert werden darf.",
@@ -272,7 +305,7 @@
         "signal": "architecture_violation",
         "severity": "medium",
         "score": 0.25,
-        "impact": 0.0931,
+        "impact": 0.0677,
         "title": "Upward layer import: enriched.py \u2192 orders.py",
         "description": "src/myapp/models/enriched.py:2 \u2014 data/infrastructure layer imports from presentation/API layer. Expected direction: presentation \u2192 service \u2192 data.",
         "fix": "Verschiebe orders.py-Logik in eine Service-Schicht oder Abstraktions-Interface, das von enriched.py importiert werden darf.",
@@ -294,7 +327,7 @@
         "signal": "broad_exception_monoculture",
         "severity": "high",
         "score": 1.0,
-        "impact": 0.0,
+        "impact": 0.1044,
         "title": "Broad exception monoculture in src/myapp/connectors/",
         "description": "8/8 handlers catch broad exceptions (100%), 8/8 swallow errors (100%).",
         "fix": "Differentiate exception handlers: catch specific exception types and re-raise or convert unknown errors.",
@@ -320,7 +353,7 @@
         "signal": "doc_impl_drift",
         "severity": "low",
         "score": 0.3,
-        "impact": 0.0,
+        "impact": 0.012,
         "title": "README references missing directory: handlers/",
         "description": "README mentions 'handlers/' but no such directory exists. Documentation may be outdated.",
         "fix": "Remove 'handlers/' from README.md or create the directory.",
@@ -337,7 +370,7 @@
         "signal": "doc_impl_drift",
         "severity": "low",
         "score": 0.3,
-        "impact": 0.0,
+        "impact": 0.012,
         "title": "README references missing directory: middleware/",
         "description": "README mentions 'middleware/' but no such directory exists. Documentation may be outdated.",
         "fix": "Remove 'middleware/' from README.md or create the directory.",
@@ -354,7 +387,7 @@
         "signal": "doc_impl_drift",
         "severity": "low",
         "score": 0.3,
-        "impact": 0.0,
+        "impact": 0.012,
         "title": "README references missing directory: models/",
         "description": "README mentions 'models/' but no such directory exists. Documentation may be outdated.",
         "fix": "Remove 'models/' from README.md or create the directory.",
@@ -371,7 +404,7 @@
         "signal": "doc_impl_drift",
         "severity": "low",
         "score": 0.3,
-        "impact": 0.0,
+        "impact": 0.012,
         "title": "README references missing directory: myapp/",
         "description": "README mentions 'myapp/' but no such directory exists. Documentation may be outdated.",
         "fix": "Remove 'myapp/' from README.md or create the directory.",
@@ -388,7 +421,7 @@
         "signal": "doc_impl_drift",
         "severity": "low",
         "score": 0.3,
-        "impact": 0.0,
+        "impact": 0.012,
         "title": "README references missing directory: plugins/",
         "description": "README mentions 'plugins/' but no such directory exists. Documentation may be outdated.",
         "fix": "Remove 'plugins/' from README.md or create the directory.",
@@ -405,7 +438,7 @@
         "signal": "doc_impl_drift",
         "severity": "low",
         "score": 0.3,
-        "impact": 0.0,
+        "impact": 0.012,
         "title": "README references missing directory: utils/",
         "description": "README mentions 'utils/' but no such directory exists. Documentation may be outdated.",
         "fix": "Remove 'utils/' from README.md or create the directory.",
@@ -422,7 +455,7 @@
         "signal": "doc_impl_drift",
         "severity": "low",
         "score": 0.3,
-        "impact": 0.0,
+        "impact": 0.012,
         "title": "README references missing directory: views/",
         "description": "README mentions 'views/' but no such directory exists. Documentation may be outdated.",
         "fix": "Remove 'views/' from README.md or create the directory.",
@@ -439,7 +472,7 @@
         "signal": "explainability_deficit",
         "severity": "high",
         "score": 0.95,
-        "impact": 0.114,
+        "impact": 0.0855,
         "title": "Unexplained complexity: calculate_pricing",
         "description": "Complexity: 19, LOC: 36. No docstring. No corresponding test found. No return type annotation.",
         "fix": "Funktion calculate_pricing (Complexity 19): F\u00fcge Docstring, Tests, Return-Type hinzu.",
@@ -462,7 +495,7 @@
         "signal": "explainability_deficit",
         "severity": "high",
         "score": 1.0,
-        "impact": 0.12,
+        "impact": 0.09,
         "title": "Unexplained complexity: transform_dataset",
         "description": "Complexity: 30, LOC: 54. No docstring. No corresponding test found. No return type annotation.",
         "fix": "Funktion transform_dataset (Complexity 30): F\u00fcge Docstring, Tests, Return-Type hinzu.",
@@ -485,7 +518,7 @@
         "signal": "explainability_deficit",
         "severity": "low",
         "score": 0.45,
-        "impact": 0.054,
+        "impact": 0.0405,
         "title": "Unexplained complexity: transform_records",
         "description": "Complexity: 9, LOC: 23. No docstring. No corresponding test found. No return type annotation.",
         "fix": "Funktion transform_records (Complexity 9): F\u00fcge Docstring, Tests, Return-Type hinzu.",
@@ -508,7 +541,7 @@
         "signal": "explainability_deficit",
         "severity": "low",
         "score": 0.4,
-        "impact": 0.048,
+        "impact": 0.036,
         "title": "Unexplained complexity: aggregate_metrics",
         "description": "Complexity: 8, LOC: 20. No docstring. No corresponding test found. No return type annotation.",
         "fix": "Funktion aggregate_metrics (Complexity 8): F\u00fcge Docstring, Tests, Return-Type hinzu.",
@@ -531,7 +564,7 @@
         "signal": "explainability_deficit",
         "severity": "medium",
         "score": 0.5,
-        "impact": 0.06,
+        "impact": 0.045,
         "title": "Unexplained complexity: enrich_payload",
         "description": "Complexity: 10, LOC: 20. No docstring. No corresponding test found. No return type annotation.",
         "fix": "Funktion enrich_payload (Complexity 10): F\u00fcge Docstring, Tests, Return-Type hinzu.",
@@ -554,7 +587,7 @@
         "signal": "guard_clause_deficit",
         "severity": "medium",
         "score": 0.45,
-        "impact": 0.0,
+        "impact": 0.0135,
         "title": "Guard clause deficit in src/myapp/processors/",
         "description": "3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 9.0).",
         "fix": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 9.0): isinstance checks, None guards, or assert statements.",
@@ -574,7 +607,7 @@
         "signal": "mutant_duplicate",
         "severity": "high",
         "score": 0.9,
-        "impact": 0.2591,
+        "impact": 0.1981,
         "title": "Exact duplicates (2\u00d7): process_order",
         "description": "2 identical copies (6 lines each) at: src\\myapp\\service_a.py:1, src\\myapp\\service_b.py:1. Consider consolidating.",
         "fix": "Extrahiere process_order() in src/myapp/shared.py. 2 identische Kopien (Similarity: 1.00). Aufwand: S.",
@@ -608,7 +641,7 @@
         "signal": "mutant_duplicate",
         "severity": "high",
         "score": 0.9,
-        "impact": 0.2591,
+        "impact": 0.1981,
         "title": "Exact duplicates (2\u00d7): validate_input",
         "description": "2 identical copies (9 lines each) at: src\\myapp\\service_a.py:8, src\\myapp\\service_b.py:8. Consider consolidating.",
         "fix": "Extrahiere validate_input() in src/myapp/shared.py. 2 identische Kopien (Similarity: 1.00). Aufwand: S.",
@@ -642,7 +675,7 @@
         "signal": "mutant_duplicate",
         "severity": "high",
         "score": 0.85,
-        "impact": 0.2447,
+        "impact": 0.1871,
         "title": "Near-duplicate (100%): download_file \u2194 send_message",
         "description": "src\\myapp\\connectors\\aws_s3.py:10 and src\\myapp\\connectors\\slack_api.py:4 are 100% similar. Small differences may indicate copy-paste divergence.",
         "fix": "Extrahiere download_file() in src/myapp/connectors/shared.py. Similarity: 100%. Aufwand: S.",
@@ -666,7 +699,7 @@
         "signal": "mutant_duplicate",
         "severity": "high",
         "score": 0.85,
-        "impact": 0.2447,
+        "impact": 0.1871,
         "title": "Near-duplicate (100%): fetch_user_data \u2194 get_customer_info",
         "description": "src\\myapp\\handler_v1.py:1 and src\\myapp\\handler_v2.py:1 are 100% similar. Small differences may indicate copy-paste divergence.",
         "fix": "Extrahiere fetch_user_data() in src/myapp/shared.py. Similarity: 100%. Aufwand: S.",
@@ -690,7 +723,7 @@
         "signal": "pattern_fragmentation",
         "severity": "medium",
         "score": 0.5,
-        "impact": 0.1862,
+        "impact": 0.1355,
         "title": "error_handling: 2 variants in src/myapp/handlers/",
         "description": "2 error_handling variants in src/myapp/handlers/ (1/2 use canonical pattern).\n  - orders.py:7 (create_order)",
         "fix": "Konsolidiere auf das dominante Pattern (1\u00d7). 1 Abweichung(en) in: orders.py.",
@@ -713,10 +746,33 @@
         }
       },
       {
+        "signal": "temporal_volatility",
+        "severity": "low",
+        "score": 0.335,
+        "impact": 0.0436,
+        "title": "High volatility: src/myapp/hotspot.py",
+        "description": "Change frequency: 2.3/week (3.0\u03c3 above mean).",
+        "fix": "10 Commits in 30 Tagen \u2014 erw\u00e4ge Datei aufzuteilen.",
+        "file": "src/myapp/hotspot.py",
+        "start_line": null,
+        "end_line": null,
+        "related_files": [],
+        "ai_attributed": false,
+        "metadata": {
+          "change_frequency_30d": 2.33,
+          "unique_authors": 1,
+          "defect_correlated": 0,
+          "ai_ratio": 0.0,
+          "freq_z": 3.02,
+          "author_z": 0.0,
+          "defect_z": 0.0
+        }
+      },
+      {
         "signal": "test_polarity_deficit",
         "severity": "medium",
         "score": 0.6,
-        "impact": 0.0,
+        "impact": 0.024,
         "title": "Happy-path-only test suite in tests/api/",
         "description": "6 test functions with 11 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
         "fix": "Add negative tests to tests/api/ (6 test functions, only 0 negative assertions): use pytest.raises for expected exceptions, test edge cases (empty, None, invalid input).",
