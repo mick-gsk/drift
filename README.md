@@ -92,7 +92,7 @@ drift analyze --repo .
 
 The [demo project](examples/demo-project/) contains intentional drift patterns, so you get useful findings immediately.
 
-![drift CLI demo](demos/demo.gif)
+![drift CLI demo](https://raw.githubusercontent.com/sauremilk/drift/master/demos/demo.gif)
 
 ## Why drift
 
