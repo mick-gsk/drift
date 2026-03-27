@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
 
+from drift.analyzer import analyze_diff
+from drift.config import DriftConfig
 from drift.models import RepoAnalysis, TrendContext
 from drift.scoring.engine import delta_gate_pass
 
@@ -125,6 +129,88 @@ class TestHistoryPersistence:
         loaded = _load_history(hfile)
         assert len(loaded) == 100
         assert loaded[0]["drift_score"] == pytest.approx(0.05)
+
+
+class TestAnalyzeDiffHistory:
+    def _run_git(self, repo: Path, *args: str) -> None:
+        subprocess.run(
+            ["git", *args],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+            text=True,
+            env={
+                **os.environ,
+                "GIT_AUTHOR_NAME": "test",
+                "GIT_AUTHOR_EMAIL": "test@example.com",
+                "GIT_COMMITTER_NAME": "test",
+                "GIT_COMMITTER_EMAIL": "test@example.com",
+            },
+        )
+
+    def test_analyze_diff_persists_scoped_history(self, tmp_path: Path):
+        repo = tmp_path / "repo"
+        repo.mkdir(parents=True, exist_ok=True)
+
+        target = repo / "pkg" / "mod.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("def fn(x):\n    return x\n", encoding="utf-8")
+
+        self._run_git(repo, "init")
+        self._run_git(repo, "add", ".")
+        self._run_git(repo, "commit", "-m", "initial")
+
+        target.write_text(
+            "def fn(x):\n"
+            "    if x < 0:\n"
+            "        raise ValueError('neg')\n"
+            "    return x\n",
+            encoding="utf-8",
+        )
+        self._run_git(repo, "add", ".")
+        self._run_git(repo, "commit", "-m", "change-1")
+
+        cfg = DriftConfig(
+            include=["**/*.py"],
+            exclude=["**/.git/**", "**/.drift-cache/**"],
+            embeddings_enabled=False,
+        )
+
+        first = analyze_diff(repo, config=cfg, diff_ref="HEAD~1", workers=1)
+        assert first.trend is not None
+        assert first.trend.direction == "baseline"
+        assert first.trend.history_depth == 0
+
+        history_file = repo / cfg.cache_dir / "history.json"
+        history = json.loads(history_file.read_text(encoding="utf-8"))
+        assert history[-1]["scope"] == "diff"
+
+        # Seed a full-repo snapshot and ensure diff trend still stays scoped.
+        history.append({
+            "timestamp": "2026-01-01T00:00:00+00:00",
+            "drift_score": 0.99,
+            "signal_scores": {},
+            "total_files": 1,
+            "total_findings": 1,
+            "scope": "repo",
+        })
+        history_file.write_text(json.dumps(history), encoding="utf-8")
+
+        target.write_text(
+            "def fn(x):\n    if x < 0:\n        raise RuntimeError('neg')\n    return x\n",
+            encoding="utf-8",
+        )
+        self._run_git(repo, "add", ".")
+        self._run_git(repo, "commit", "-m", "change-2")
+
+        second = analyze_diff(repo, config=cfg, diff_ref="HEAD~1", workers=1)
+        assert second.trend is not None
+        assert second.trend.history_depth >= 1
+        assert second.trend.previous_score is not None
+
+        updated_history = json.loads(history_file.read_text(encoding="utf-8"))
+        diff_entries = [s for s in updated_history if s.get("scope") == "diff"]
+        assert len(diff_entries) >= 2
 
 
 # ── Config ────────────────────────────────────────────────────────────────

@@ -337,6 +337,45 @@ def _build_trend_context(
     )
 
 
+def _snapshot_scope(snapshot: dict) -> str:
+    """Resolve snapshot scope, keeping legacy entries backward-compatible."""
+    scope = snapshot.get("scope")
+    if scope == "diff":
+        return "diff"
+    return "repo"
+
+
+def _apply_trend_and_persist_snapshot(
+    repo_path: Path,
+    config: DriftConfig,
+    analysis: RepoAnalysis,
+    *,
+    scope: str,
+) -> None:
+    """Attach trend context and persist a scoped history snapshot."""
+    history_file = repo_path / config.cache_dir / "history.json"
+    snapshots = _load_history(history_file)
+
+    scoped_history = [s for s in snapshots if _snapshot_scope(s) == scope]
+    analysis.trend = _build_trend_context(analysis.drift_score, scoped_history)
+
+    if analysis.trend and analysis.findings:
+        analysis.trend.transition_ratio = round(
+            analysis.context_tagged_count / len(analysis.findings), 3,
+        )
+
+    signal_scores = compute_signal_scores(analysis.findings)
+    snapshots.append({
+        "timestamp": analysis.analyzed_at.isoformat(),
+        "drift_score": analysis.drift_score,
+        "signal_scores": {s.value: v for s, v in signal_scores.items()},
+        "total_files": analysis.total_files,
+        "total_findings": len(analysis.findings),
+        "scope": scope,
+    })
+    _save_history(history_file, snapshots)
+
+
 # ---------------------------------------------------------------------------
 # Public entry points
 # ---------------------------------------------------------------------------
@@ -390,27 +429,12 @@ def analyze_repo(
     )
     analysis.analysis_duration_seconds = round(time.monotonic() - start, 2)
 
-    # --- Trend context (ADR-005) ---
-    history_file = repo_path / config.cache_dir / "history.json"
-    snapshots = _load_history(history_file)
-    analysis.trend = _build_trend_context(analysis.drift_score, snapshots)
-
-    # ADR-006: populate transition_ratio with context-tagged share
-    if analysis.trend and analysis.findings:
-        analysis.trend.transition_ratio = round(
-            analysis.context_tagged_count / len(analysis.findings), 3,
-        )
-
-    # Auto-persist snapshot
-    signal_scores = compute_signal_scores(analysis.findings)
-    snapshots.append({
-        "timestamp": analysis.analyzed_at.isoformat(),
-        "drift_score": analysis.drift_score,
-        "signal_scores": {s.value: v for s, v in signal_scores.items()},
-        "total_files": analysis.total_files,
-        "total_findings": len(analysis.findings),
-    })
-    _save_history(history_file, snapshots)
+    _apply_trend_and_persist_snapshot(
+        repo_path,
+        config,
+        analysis,
+        scope="repo",
+    )
 
     return analysis
 
@@ -485,4 +509,12 @@ def analyze_diff(
         workers=workers,
     )
     analysis.analysis_duration_seconds = round(time.monotonic() - start, 2)
+
+    _apply_trend_and_persist_snapshot(
+        repo_path,
+        config,
+        analysis,
+        scope="diff",
+    )
+
     return analysis
