@@ -58,6 +58,41 @@ def test_external_imports_marked():
     assert graph.nodes.get("flask", {}).get("external") is True
 
 
+def test_build_import_graph_avoids_per_import_fullscan(monkeypatch):
+    """Import resolution should scale near-linearly with files + imports."""
+    files = 220
+    imports_per_file = 6
+
+    results: list[ParseResult] = []
+    for i in range(files):
+        src = f"pkg/mod_{i}.py"
+        imports = []
+        for j in range(1, imports_per_file + 1):
+            target_idx = (i + j) % files
+            imports.append(_imp(src, f"pkg.mod_{target_idx}"))
+        results.append(_pr(src, imports))
+
+    from drift.signals import architecture_violation as avs_mod
+
+    original = avs_mod._module_for_path
+    call_count = 0
+
+    def counted(path: Path) -> str:
+        nonlocal call_count
+        call_count += 1
+        return original(path)
+
+    monkeypatch.setattr(avs_mod, "_module_for_path", counted)
+
+    graph, imports = build_import_graph(results)
+
+    assert len(imports) == files * imports_per_file
+    assert graph.number_of_edges() == len(imports)
+    # O(files + imports): module normalization should happen once per known file,
+    # not once per (import, known_file) pair.
+    assert call_count <= files + 2
+
+
 # ── Layer violations ──────────────────────────────────────────────────────
 
 

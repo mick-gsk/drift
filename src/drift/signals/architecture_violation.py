@@ -63,8 +63,11 @@ def build_import_graph(
     graph = nx.DiGraph()
     all_imports: list[ImportInfo] = []
 
-    known_files = {pr.file_path.as_posix() for pr in parse_results}
-    known_modules = {_module_for_path(pr.file_path) for pr in parse_results}
+    # Build a direct module -> file lookup once to avoid repeated linear scans
+    # over all known files for every import in large repositories.
+    module_to_file: dict[str, str] = {}
+    for pr in parse_results:
+        module_to_file.setdefault(_module_for_path(pr.file_path), pr.file_path.as_posix())
 
     for pr in parse_results:
         src = pr.file_path.as_posix()
@@ -75,12 +78,9 @@ def build_import_graph(
 
             # Try to resolve the import to a known file
             target_module = imp.imported_module
-            if target_module in known_modules:
-                # Find the file that matches this module
-                for kf in known_files:
-                    if _module_for_path(Path(kf)) == target_module:
-                        graph.add_edge(src, kf, import_info=imp)
-                        break
+            target_file = module_to_file.get(target_module)
+            if target_file is not None:
+                graph.add_edge(src, target_file, import_info=imp)
             else:
                 # External or unresolved — still record it
                 graph.add_node(target_module, external=True)
