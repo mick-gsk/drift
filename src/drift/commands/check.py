@@ -57,6 +57,13 @@ from drift.commands import console
     default=False,
     help="Suppress inline code snippets in rich output.",
 )
+@click.option(
+    "--baseline",
+    "baseline_file",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Filter out known findings from a baseline file.",
+)
 def check(
     repo: Path,
     diff_ref: str,
@@ -69,6 +76,7 @@ def check(
     since_days: int | None,
     quiet: bool,
     no_code: bool,
+    baseline_file: Path | None,
 ) -> None:
     """Check a diff for drift (CI mode)."""
     from drift.analyzer import _DEFAULT_WORKERS, analyze_diff
@@ -89,6 +97,14 @@ def check(
             repo, cfg, diff_ref=diff_ref, workers=effective_workers,
             since_days=effective_since,
         )
+
+    # Baseline filtering: remove known findings if --baseline is provided
+    if baseline_file is not None:
+        from drift.baseline import baseline_diff, load_baseline
+
+        fingerprints = load_baseline(baseline_file)
+        new, _known = baseline_diff(analysis.findings, fingerprints)
+        analysis.findings = new
 
     if quiet:
         sev = analysis.severity.value.upper()

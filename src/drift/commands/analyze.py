@@ -65,6 +65,13 @@ from drift.commands import console
     default=False,
     help="Suppress inline code snippets in rich output.",
 )
+@click.option(
+    "--baseline",
+    "baseline_file",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Filter out known findings from a baseline file.",
+)
 def analyze(
     repo: Path,
     path: str | None,
@@ -79,6 +86,7 @@ def analyze(
     show_suppressed: bool,
     quiet: bool,
     no_code: bool,
+    baseline_file: Path | None,
 ) -> None:
     """Analyze a repository for architectural drift."""
     from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn
@@ -124,6 +132,14 @@ def analyze(
         )
         if task_id is not None:
             progress.update(task_id, completed=_last_total)
+
+    # Baseline filtering: remove known findings if --baseline is provided
+    if baseline_file is not None:
+        from drift.baseline import baseline_diff, load_baseline
+
+        fingerprints = load_baseline(baseline_file)
+        new, known = baseline_diff(analysis.findings, fingerprints)
+        analysis.findings = new
 
     if quiet:
         sev = analysis.severity.value.upper()

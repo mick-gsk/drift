@@ -36,6 +36,7 @@ def main(verbose: bool = False) -> None:
 # --- Register subcommands -------------------------------------------------
 from drift.commands.analyze import analyze  # noqa: E402
 from drift.commands.badge import badge  # noqa: E402
+from drift.commands.baseline import baseline  # noqa: E402
 from drift.commands.check import check  # noqa: E402
 from drift.commands.explain import explain  # noqa: E402
 from drift.commands.patterns import patterns  # noqa: E402
@@ -44,6 +45,7 @@ from drift.commands.timeline import timeline  # noqa: E402
 from drift.commands.trend import trend  # noqa: E402
 
 main.add_command(analyze)
+main.add_command(baseline)
 main.add_command(check)
 main.add_command(explain)
 main.add_command(patterns)
