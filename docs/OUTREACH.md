@@ -211,7 +211,7 @@ These aren't bugs. Linters won't catch them. But they compound.
 
 ```
 3/5
-drift runs 6 deterministic signals:
+drift runs 15 deterministic scoring signals, including:
 
 • Pattern Fragmentation
 • Architecture Violations
@@ -219,6 +219,7 @@ drift runs 6 deterministic signals:
 • Explainability Deficit
 • Temporal Volatility
 • System Misalignment
++ 9 more (consistency, contract, cohesion, coupling)
 
 No LLMs. Pure AST analysis. Reproducible.
 ```
@@ -290,9 +291,9 @@ On Frappe (1,179 files):
 
 This isn't "bad code." It's code that grew without coherent design pressure.
 
-## The 6 signals
+## The 15 signals
 
-Drift measures six families of architectural erosion:
+Drift measures 15 families of architectural erosion (6 core + 9 added in v0.7–v0.8). The core six:
 
 **1. Pattern Fragmentation (PFS)**
 Same concern implemented N different ways in the same module. Classic example:
@@ -318,6 +319,8 @@ ownership is unclear and merge conflicts are likely.
 **6. System Misalignment (SMS)**
 Recently introduced patterns that are foreign to their target module.
 The function works, but its style doesn't match anything around it.
+
+**Plus 9 additional signals** covering documentation gaps (DIA), boundary enforcement (BEM), third-party sprawl (TPD), god-class detection (GCD), naming drift (NBV), bloated API surfaces (BAT), exception contract violations (ECM), internal cohesion deficit (COD), and co-change coupling (CCC). See the [signal reference](https://sauremilk.github.io/drift/reference/signals/) for details.
 
 ## No LLMs. Deterministic. Fast.
 
@@ -375,7 +378,7 @@ Built an open-source static analyzer for architectural drift — the kind of
 structural erosion that happens when AI coding tools fragment your patterns,
 cross layer boundaries, and accumulate near-duplicates.
 
-6 deterministic signals, no LLMs, fast. Pure AST + git history analysis.
+15 deterministic scoring signals, no LLMs, fast. Pure AST + git history analysis.
 
 pip install -q drift-analyzer && drift analyze --repo .
 

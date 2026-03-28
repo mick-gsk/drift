@@ -2,7 +2,7 @@
 
 > Deterministic architectural drift detection for AI-accelerated Python codebases. Drift is a static analyzer for architecture erosion analysis and cross-file coherence detection, covering pattern fragmentation, architecture violations, dependency cycles, mutant duplicates, and structural technical debt. No LLM in the detection pipeline.
 
-Release status: v0.7.1 (2026-03-27)
+Release status: v0.8.2 (2026-03-28)
 
 Package: drift-analyzer
 Install: pip install -q drift-analyzer  (add -q for quiet output, hiding verbose dependency chains)
@@ -36,6 +36,8 @@ Command: drift analyze --repo .
 - GCD: Guard Clause Deficit (weight 0.03)
 - BAT: Bypass Accumulation (weight 0.03)
 - ECM: Exception Contract Drift (weight 0.03)
+- COD: Cohesion Deficit (weight 0.01)
+- CCC: Co-Change Coupling (weight 0.005)
 
 ## Docs
 

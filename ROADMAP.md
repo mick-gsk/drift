@@ -4,7 +4,16 @@ This roadmap communicates what the project needs most right now,
 what is accessible for new contributors, and what is explicitly
 deprioritized. It is updated with each release.
 
-Last updated: v0.7.1 (2026-03-27)
+Last updated: v0.8.2 (2026-03-28)
+
+---
+
+## Completed since v0.7.1
+
+- **v0.7.3:** Cohesion Deficit signal (COD) added — detects semantically incoherent modules
+- **v0.8.0:** Co-Change Coupling signal (CCC) added — detects hidden file coupling from co-change patterns; all 15 signals now scoring-active with auto-calibration
+- **v0.8.1:** Language consistency — all user-facing finding text switched to English
+- **v0.8.2:** `drift config validate` / `drift config show` commands; stable `rule_id` for deduplication
 
 ---
 

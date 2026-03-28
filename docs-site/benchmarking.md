@@ -79,7 +79,7 @@ The most credible way to adopt drift is:
 
 For full methodology, raw study framing, and benchmark details, see:
 
-- [Study](study.md) — documents a v0.5 baseline (6-signal model); precision claims have not been revalidated for the current 13-signal v0.7.x model
+- [Study](study.md) — documents a v0.5 baseline (6-signal model); precision claims have not been revalidated for the current 15-signal v0.8.x model
 - [Case Studies](case-studies/index.md)
 - [Algorithm Deep Dive](algorithms/deep-dive.md)
 

@@ -111,7 +111,7 @@ Your linter, type checker, and test suite won't catch this. Drift does — deter
 - **Semgrep / CodeQL / security scanners:** risky flows and policy violations, not whether patterns fragment across a codebase.
 - **Sonar / maintainability dashboards:** broad quality heuristics, not a drift-specific score grounded in reproducible signal families.
 
-Current public evidence: 15 real-world repositories in the study corpus, 13 scoring signals (all contributing to the composite score), and auto-calibration that rebalances weights at runtime. [Full study →](docs/STUDY.md) · [Trust & limitations](docs-site/benchmarking.md)
+Current public evidence: 15 real-world repositories in the study corpus, 15 scoring signals (all contributing to the composite score), and auto-calibration that rebalances weights at runtime. [Full study →](docs/STUDY.md) · [Trust & limitations](docs-site/benchmarking.md)
 
 ## Use cases
 
@@ -346,7 +346,7 @@ Recommended guides:
 
 ## Trust and limitations
 
-> **Public claims safe to repeat for v0.7.1:** Drift is deterministic, benchmarked on 15 real-world repositories in the current study corpus, and uses 13 scoring signals with auto-calibration for runtime weight rebalancing and small-repo noise suppression.
+> **Public claims safe to repeat for v0.8.2:** Drift is deterministic, benchmarked on 15 real-world repositories in the current study corpus, and uses 15 scoring signals with auto-calibration for runtime weight rebalancing and small-repo noise suppression.
 >
 > **What's limited:** Benchmark validation is single-rater; not yet independently replicated. Small repos can be noisy. Temporal signals depend on clone depth. The composite score is orientation, not a verdict.
 >

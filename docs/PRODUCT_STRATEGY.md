@@ -16,7 +16,7 @@
 
 AI-Code-Generatoren optimieren für den Prompt-Kontext, nicht für den Codebase-Kontext. Das erzeugt Code, der funktioniert, aber nicht passt – Error-Handling fragmentiert, Layer-Grenzen erodieren, beinahe identische Funktionen akkumulieren.
 
-Kein bestehendes Tool misst diese spezifische Erosionsklasse. drift tut das: deterministisch, in Sekunden, mit sieben spezialisierten Signalen, ohne LLM-Infrastruktur.
+Kein bestehendes Tool misst diese spezifische Erosionsklasse. drift tut das: deterministisch, in Sekunden, mit spezialisierten Signalen (7 Core-Signale im v0.5-Baseline; seit v0.8.0 15 scoring-aktive Signale mit Auto-Kalibrierung), ohne LLM-Infrastruktur.
 
 drift wird dann klar besser als alles andere in dieser Nische, wenn jedes einzelne Finding direkt sagt, was zu tun ist – nicht als zusammengefasstes Top-3, sondern pro Finding. Ein Entwickler liest ein Finding und weiß sofort: was ist das Problem, wo genau, und was ist der nächste Schritt.
 
@@ -96,7 +96,7 @@ Files: 490 | Functions: 5,073
 
 ### Was sich NICHT ändert
 
-- Die Signale bleiben die gleichen 7.
+- Die Kern-Signale bleiben stabil. Seit v0.8.0 sind alle 15 Signale scoring-aktiv (6 Core + 9 promoted/new).
 - Die Scoring-Formel bleibt deterministisch.
 - Kein LLM in der Pipeline.
 - Kein neuer CLI-Befehl nötig – die bestehenden Outputs (Rich, JSON, SARIF) werden angereichert.

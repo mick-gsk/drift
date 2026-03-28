@@ -6,7 +6,7 @@ Drift is a deterministic static analyzer for architectural erosion and cross-fil
 
 ## What does drift detect?
 
-Drift detects 13 signal families across structural, architectural, and temporal dimensions. The six core scoring signals are: pattern fragmentation (PFS), architecture violations (AVS), mutant duplicates (MDS), explainability deficit (EDS), temporal volatility (TVS), and system misalignment (SMS). Seven additional signals (DIA, BEM, TPD, GCD, NBV, BAT, ECM) are scoring-active with conservative weights since v0.7.0.
+Drift detects 15 signal families across structural, architectural, and temporal dimensions. The six core scoring signals are: pattern fragmentation (PFS), architecture violations (AVS), mutant duplicates (MDS), explainability deficit (EDS), temporal volatility (TVS), and system misalignment (SMS). Seven additional signals (DIA, BEM, TPD, GCD, NBV, BAT, ECM) are scoring-active with conservative weights since v0.7.0. Two more signals were added later: cohesion deficit (COD, v0.7.3) and co-change coupling (CCC, v0.8.0).
 
 See [Signal Reference](algorithms/signals.md).
 
@@ -48,7 +48,7 @@ See [Trust and Evidence](trust-evidence.md) and [Benchmarking and Trust](benchma
 
 ## What is the drift composite score?
 
-A weighted aggregate of all 13 signal scores that produces a single number between 0 and 1. Higher values indicate more structural erosion. Auto-calibration rebalances weights at runtime based on finding distribution.
+A weighted aggregate of all 15 signal scores that produces a single number between 0 and 1. Higher values indicate more structural erosion. Auto-calibration rebalances weights at runtime based on finding distribution.
 
 See [Scoring Model](algorithms/scoring.md).
 

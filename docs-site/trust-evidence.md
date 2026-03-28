@@ -32,7 +32,7 @@ Supporting regression tests include:
 - **v0.5 baseline (6-signal model):** 77% strict precision / 95% lenient on a score-weighted sample of 286 findings across 5 repositories (non-circular heuristic classification; 51 Disputed findings where only score evidence available — independent multi-rater validation pending)
 - **v0.5 baseline:** 6 active scoring signals: 78% strict / 98% lenient precision (n=259, 6 FP: 4 AVS config-imports, 2 MDS async/sync pairs)
 - **v0.5 baseline:** DIA (then weight 0.00): 63% strict precision (n=27, 9 FP from URL/directory-name heuristics)
-- precision has not been revalidated for the current 13-signal model; treat v0.5 numbers as a historical reference point
+- precision has not been revalidated for the current 15-signal model; treat v0.5 numbers as a historical reference point
 - **v0.7.1 (2026-03-27):** 88% detection recall on a controlled mutation benchmark of 17 injected patterns across 10 signal types (synthetic repo with git history; 2 patterns undetected: 1 return-pattern fragmentation variant, 1 system-misalignment below threshold)
 - **v0.5 baseline (historical):** 86% detection rate on a 14-pattern benchmark
 - self-analysis of drift reports a score of 0.442 (MEDIUM)

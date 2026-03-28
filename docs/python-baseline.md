@@ -1,3 +1,5 @@
+> **Deprecated:** This file contains a raw v0.5 findings snapshot for `requests` and is no longer maintained. For the current per-signal rule documentation, see [python-rule-inventory.md](python-rule-inventory.md).
+
 | rule | file | severity | verdict |
 |---|---|---|---|
 | pattern_fragmentation | src/requests | high | Unclear |

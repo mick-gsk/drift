@@ -3,6 +3,8 @@
 Status-Tracker für den öffentlichen Launch von Drift.
 Jeder Punkt hat einen Status und ggf. eine Erklärung was noch fehlt.
 
+Last updated: v0.8.2 (2026-03-28)
+
 ---
 
 ## Phase 1 — Repo-Qualität finalisieren

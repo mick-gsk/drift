@@ -95,3 +95,7 @@ The model is not overly sensitive to any single weight. A ±0.05 weight change p
 - Teams can override default weights in `drift.yaml` to match their priorities.
 - The `doc_impl_drift` weight of 0.0 ensures the Phase 2 stub doesn't affect scores.
 - Module rankings are driven by the same composite formula, ensuring consistency between module-level and repo-level scores.
+
+---
+
+> **Historical note:** The weights above reflect the v0.5 baseline used during initial calibration. The current production weights (v0.8.0+) include all 15 signals with auto-calibration. See `src/drift/config.py` for current defaults and [scoring.md](../../docs-site/algorithms/scoring.md) for the full weight table.
