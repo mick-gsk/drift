@@ -3,13 +3,23 @@
 # Install once with: git config core.hooksPath .githooks
 set -e
 
+# Escape hatches (export VAR=1 to skip a specific gate):
+# DRIFT_SKIP_CHANGELOG, DRIFT_SKIP_VERSION_BUMP,
+# DRIFT_SKIP_LOCKFILE, DRIFT_SKIP_DOCSTRING
+# DRIFT_SKIP_HOOKS=1 skips ALL gates (emergency only)
+
 # Block private/non-tool paths from being pushed.
 blocked_pattern='^(tagesplanung/)'
 feature_pattern='^feat(\(.+\))?:'
+fix_pattern='^fix(\(.+\))?:'
+STUDY_MD_PATH=${STUDY_MD_PATH:-"docs/Study.md"}
+BENCHMARK_EVIDENCE_PATTERN=${BENCHMARK_EVIDENCE_PATTERN:-"^benchmark_results/[^/]*_feature_evidence\.json$"}
 
 # Aggregated push state (captured while iterating updated refs)
 feature_commit_detected=0
+fix_commit_detected=0
 push_changed_files=""
+push_ref_updates=""
 
 collect_push_context() {
 	local_ref="$1"
@@ -34,12 +44,19 @@ collect_push_context() {
 			feature_commit_detected=1
 		fi
 
+		if echo "$subject" | grep -Eiq "$fix_pattern"; then
+			fix_commit_detected=1
+		fi
+
 		changed=$(git diff-tree --no-commit-id --name-only --diff-filter=ACMR -r "$commit" || true)
 		if [ -n "$changed" ]; then
 			push_changed_files="$push_changed_files
 $changed"
 		fi
 	done
+
+	push_ref_updates="$push_ref_updates
+$local_sha|$remote_sha"
 }
 
 enforce_feature_evidence_gate() {
@@ -49,6 +66,8 @@ enforce_feature_evidence_gate() {
 
 	has_tests=0
 	has_empirical=0
+	has_benchmark_feature_evidence=0
+	effective_study_md_path=""
 
 	if echo "$push_changed_files" | grep -Eq '^tests/'; then
 		has_tests=1
@@ -65,6 +84,240 @@ enforce_feature_evidence_gate() {
 		echo ">>> [pre-push]   1) test changes under tests/"
 		echo ">>> [pre-push]   2) empirical artifact under benchmark_results/ or audit_results/"
 		echo ">>> [pre-push] Push blocked until empirical evidence is included."
+		exit 1
+	fi
+
+	if echo "$push_changed_files" | grep -Eq "$BENCHMARK_EVIDENCE_PATTERN"; then
+		has_benchmark_feature_evidence=1
+	fi
+
+	if [ "$has_benchmark_feature_evidence" -ne 1 ]; then
+		echo ">>> [pre-push] ERROR: Feature push requires a versioned benchmark evidence file"
+		echo ">>> [pre-push] ERROR: (benchmark_results/vX.Y.Z_feature_evidence.json or similar)"
+		echo ">>> [pre-push] Add or update a matching file in this push and try again."
+		exit 1
+	fi
+
+	if [ -f "$STUDY_MD_PATH" ]; then
+		effective_study_md_path="$STUDY_MD_PATH"
+	elif [ -f "benchmark_results/Study.md" ]; then
+		effective_study_md_path="benchmark_results/Study.md"
+	fi
+
+	if [ -z "$effective_study_md_path" ]; then
+		echo ">>> [pre-push] WARNING: Study.md not found (checked $STUDY_MD_PATH and benchmark_results/Study.md)."
+		echo ">>> [pre-push] WARNING: Skipping Study freshness block because the study file may still need to be created."
+		return 0
+	fi
+
+	has_study_update=0
+	if echo "$push_changed_files" | grep -Eq "^$effective_study_md_path$"; then
+		has_study_update=1
+	fi
+
+	if [ "$has_study_update" -ne 1 ]; then
+		echo ">>> [pre-push] ERROR: Feature-Evidence-Gate failed: Study freshness check."
+		echo ">>> [pre-push] Detected feature commit (feat:) without Study update in $effective_study_md_path."
+		echo ">>> [pre-push] Update the Features/Changelog section in $effective_study_md_path and include it in this push."
+		exit 1
+	fi
+
+	# NOTE: Intentionally no JSON timestamp coherence check here.
+	# Reason: reliable timestamp parsing/comparison in strict POSIX sh without adding
+	# fragile dependencies (jq/python/date variants) introduces avoidable hook fragility.
+}
+
+version_is_strictly_greater() {
+	current="$1"
+	last="$2"
+
+	current_major=$(echo "$current" | cut -d. -f1)
+	current_minor=$(echo "$current" | cut -d. -f2)
+	current_patch=$(echo "$current" | cut -d. -f3)
+
+	last_major=$(echo "$last" | cut -d. -f1)
+	last_minor=$(echo "$last" | cut -d. -f2)
+	last_patch=$(echo "$last" | cut -d. -f3)
+
+	for segment in "$current_major" "$current_minor" "$current_patch" "$last_major" "$last_minor" "$last_patch"; do
+		if ! echo "$segment" | grep -Eq '^[0-9]+$'; then
+			return 1
+		fi
+	done
+
+	if [ "$current_major" -gt "$last_major" ]; then
+		return 0
+	fi
+	if [ "$current_major" -lt "$last_major" ]; then
+		return 1
+	fi
+
+	if [ "$current_minor" -gt "$last_minor" ]; then
+		return 0
+	fi
+	if [ "$current_minor" -lt "$last_minor" ]; then
+		return 1
+	fi
+
+	if [ "$current_patch" -gt "$last_patch" ]; then
+		return 0
+	fi
+
+	return 1
+}
+
+enforce_changelog_gate() {
+	if [ "${DRIFT_SKIP_CHANGELOG:-0}" = "1" ]; then
+		echo ">>> [pre-push] WARN: CHANGELOG gate skipped (DRIFT_SKIP_CHANGELOG=1)."
+		return 0
+	fi
+
+	if [ "$feature_commit_detected" -ne 1 ] && [ "$fix_commit_detected" -ne 1 ]; then
+		return 0
+	fi
+
+	if ! echo "$push_changed_files" | grep -Eq '^CHANGELOG\.md$'; then
+		echo ">>> [pre-push] ERROR: CHANGELOG gate failed."
+		echo ">>> [pre-push] feat: or fix: commit detected but CHANGELOG.md not updated."
+		echo ">>> [pre-push] Add a changelog entry before pushing."
+		exit 1
+	fi
+}
+
+enforce_version_bump_gate() {
+	if [ "${DRIFT_SKIP_VERSION_BUMP:-0}" = "1" ]; then
+		echo ">>> [pre-push] WARN: Version bump gate skipped (DRIFT_SKIP_VERSION_BUMP=1)."
+		return 0
+	fi
+
+	if ! echo "$push_changed_files" | grep -Eq '^pyproject\.toml$'; then
+		return 0
+	fi
+
+	current_version=$(grep -E '^version[[:space:]]*=' pyproject.toml | head -n 1 | sed -E 's/^[^"]*"([0-9]+\.[0-9]+\.[0-9]+)".*$/\1/' || true)
+	if [ -z "$current_version" ]; then
+		echo ">>> [pre-push] ERROR: Version bump gate failed."
+		echo ">>> [pre-push] pyproject.toml was modified but version ($current_version) is not"
+		echo ">>> [pre-push] greater than the last git tag (unknown)."
+		echo ">>> [pre-push] Bump the version in pyproject.toml or revert the file."
+		exit 1
+	fi
+
+	last_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
+	if [ -z "$last_tag" ]; then
+		echo ">>> [pre-push] WARN: No git tag found. Skipping version bump comparison."
+		return 0
+	fi
+
+	last_version=$(echo "$last_tag" | sed -E 's/^v//')
+	if ! version_is_strictly_greater "$current_version" "$last_version"; then
+		echo ">>> [pre-push] ERROR: Version bump gate failed."
+		echo ">>> [pre-push] pyproject.toml was modified but version ($current_version) is not"
+		echo ">>> [pre-push] greater than the last git tag ($last_tag)."
+		echo ">>> [pre-push] Bump the version in pyproject.toml or revert the file."
+		exit 1
+	fi
+}
+
+enforce_lockfile_sync_gate() {
+	if [ "${DRIFT_SKIP_LOCKFILE:-0}" = "1" ]; then
+		echo ">>> [pre-push] WARN: Lock-file sync gate skipped (DRIFT_SKIP_LOCKFILE=1)."
+		return 0
+	fi
+
+	if ! echo "$push_changed_files" | grep -Eq '^pyproject\.toml$'; then
+		return 0
+	fi
+
+	if [ ! -f "uv.lock" ]; then
+		echo ">>> [pre-push] ERROR: Lock-file sync gate failed."
+		echo ">>> [pre-push] uv.lock not found - run 'uv lock' first"
+		exit 1
+	fi
+
+	if ! echo "$push_changed_files" | grep -Eq '^uv\.lock$'; then
+		echo ">>> [pre-push] ERROR: Lock-file sync gate failed."
+		echo ">>> [pre-push] pyproject.toml was modified but uv.lock was not updated."
+		echo ">>> [pre-push] Run 'uv lock' and include uv.lock in the push."
+		exit 1
+	fi
+}
+
+enforce_public_api_docstring_gate() {
+	if [ "${DRIFT_SKIP_DOCSTRING:-0}" = "1" ]; then
+		echo ">>> [pre-push] WARN: Public API docstring gate skipped (DRIFT_SKIP_DOCSTRING=1)."
+		return 0
+	fi
+
+	if ! echo "$push_changed_files" | grep -Eq '^src/drift/'; then
+		return 0
+	fi
+
+	missing_files=""
+
+	while IFS='|' read -r local_sha remote_sha; do
+
+		if [ -z "$local_sha" ] || [ -z "$remote_sha" ]; then
+			continue
+		fi
+
+		if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+			base_sha=$(git merge-base "$local_sha" main 2>/dev/null || true)
+			if [ -z "$base_sha" ]; then
+				base_sha=$(git merge-base "$local_sha" master 2>/dev/null || true)
+			fi
+			if [ -n "$base_sha" ]; then
+				diff_text=$(git diff "$base_sha..$local_sha" -- src/drift/ || true)
+			else
+				diff_text=$(git diff "$local_sha~1" "$local_sha" -- src/drift/ 2>/dev/null || true)
+			fi
+		else
+			diff_text=$(git diff "$remote_sha..$local_sha" -- src/drift/ || true)
+		fi
+
+		# Weaker, intentionally defensive check:
+		# per changed file, if a new top-level public def is added (+def name(...), name starts with [a-z]),
+		# require at least one newly added triple-quote line in the same file diff.
+		# This favors false-negatives over false-positives to reduce hook fragility.
+		missing_in_update=$(echo "$diff_text" | awk '
+			/^\+\+\+ b\/src\/drift\// {
+				current_file = substr($0, 7)
+				next
+			}
+			/^\+def [a-z][a-zA-Z0-9_]*\(/ {
+				if (current_file != "") {
+					has_public[current_file] = 1
+				}
+				next
+			}
+			/^\+[[:space:]]*"""/ || /^\+[[:space:]]*[\047][\047][\047]/ {
+				if (current_file != "") {
+					has_docstring[current_file] = 1
+				}
+				next
+			}
+			END {
+				for (f in has_public) {
+					if (!(f in has_docstring)) {
+						print f
+					}
+				}
+			}
+		' || true)
+
+		if [ -n "$missing_in_update" ]; then
+			missing_files="$missing_files
+$missing_in_update"
+		fi
+	done <<EOF
+$push_ref_updates
+EOF
+
+	missing_files=$(echo "$missing_files" | sed '/^[[:space:]]*$/d' | sort -u || true)
+	if [ -n "$missing_files" ]; then
+		echo ">>> [pre-push] ERROR: Public API docstring gate failed."
+		echo ">>> [pre-push] New public function(s) in src/drift/ appear to lack docstrings."
+		echo ">>> [pre-push] Add docstrings to all new public functions before pushing."
 		exit 1
 	fi
 }
@@ -98,11 +351,21 @@ reject_push_for_blocked_paths() {
 }
 
 while read local_ref local_sha remote_ref remote_sha; do
-	reject_push_for_blocked_paths "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"
-	collect_push_context "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"
+	if [ "${DRIFT_SKIP_HOOKS:-0}" != "1" ]; then
+		reject_push_for_blocked_paths "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"
+		collect_push_context "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"
+	fi
 done
 
-enforce_feature_evidence_gate
+if [ "${DRIFT_SKIP_HOOKS:-0}" = "1" ]; then
+	echo ">>> [pre-push] WARN: All gates skipped (DRIFT_SKIP_HOOKS=1)."
+else
+	enforce_feature_evidence_gate
+	enforce_changelog_gate
+	enforce_version_bump_gate
+	enforce_lockfile_sync_gate
+	enforce_public_api_docstring_gate
+fi
 
 echo ">>> [pre-push] Starting local CI checks..."
 

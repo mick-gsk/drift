@@ -39,26 +39,41 @@ jobs:
             --months 24 \
             --output benchmark_results/package_kpis/pypi_downloads_monthly.csv
 
+      - name: Derive usage from public GitHub dependency declarations
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/fetch_github_usage.py \
+            --package "${{ github.event.inputs.package || 'drift-analyzer' }}" \
+            --token "$GH_TOKEN" \
+            --max-pages 5 \
+            --output benchmark_results/package_kpis/github_usage_events.csv
+
       - name: Build KPI report (if usage data is available)
         env:
           USAGE_CSV_PATH: ${{ github.event.inputs.usage_csv_path }}
           DEFECTS_CSV_PATH: ${{ github.event.inputs.defects_csv_path }}
         run: |
-          if [ -n "$USAGE_CSV_PATH" ] && [ -f "$USAGE_CSV_PATH" ]; then
+          EFFECTIVE_USAGE="$USAGE_CSV_PATH"
+          if [ -z "$EFFECTIVE_USAGE" ]; then
+            EFFECTIVE_USAGE="benchmark_results/package_kpis/github_usage_events.csv"
+          fi
+
+          if [ -n "$EFFECTIVE_USAGE" ] && [ -f "$EFFECTIVE_USAGE" ]; then
             DEFECTS_ARG=""
             if [ -n "$DEFECTS_CSV_PATH" ] && [ -f "$DEFECTS_CSV_PATH" ]; then
               DEFECTS_ARG="--defects-csv $DEFECTS_CSV_PATH"
             fi
             python scripts/package_kpis.py \
               --package "${{ github.event.inputs.package || 'drift-analyzer' }}" \
-              --usage-csv "$USAGE_CSV_PATH" \
+              --usage-csv "$EFFECTIVE_USAGE" \
               $DEFECTS_ARG \
               --downloads-csv benchmark_results/package_kpis/pypi_downloads_monthly.csv \
               --thresholds-json examples/package-kpis/kpi-thresholds.json \
               --months 24 \
               --output benchmark_results/package_kpis/package_kpis_real.json
           else
-            echo "Skipping KPI build: no usage_csv_path provided or file not found."
+            echo "Skipping KPI build: no usage source file found."
           fi
 
       - name: Upload KPI artifacts
@@ -66,6 +81,7 @@ jobs:
         with:
           name: package-kpis
           path: |
+            benchmark_results/package_kpis/github_usage_events.csv
             benchmark_results/package_kpis/pypi_downloads_monthly.csv
             benchmark_results/package_kpis/package_kpis_real.json
           if-no-files-found: warn

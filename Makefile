@@ -14,7 +14,7 @@ MYPY     ?= $(PYTHON) -m mypy
 SRC      := src/
 TESTS    := tests/
 
-.PHONY: help install lint typecheck test test-fast test-all coverage check self ci package-kpis-downloads package-kpis-example clean
+.PHONY: help install lint typecheck test test-fast test-all coverage check self ci package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example clean
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -58,11 +58,28 @@ check:  ## Run all checks: lint + typecheck + tests + self-analysis
 self:  ## Drift self-analysis
 	drift analyze --repo . --format json > /dev/null
 
+package-kpis-github-usage:  ## Derive usage events from public GitHub dependency declarations
+	$(PYTHON) scripts/fetch_github_usage.py \
+		--package drift-analyzer \
+		--max-pages 5 \
+		--output benchmark_results/package_kpis/github_usage_events.csv
+
 package-kpis-downloads:  ## Fetch real monthly PyPI downloads to CSV
 	$(PYTHON) scripts/fetch_pypistats.py \
 		--package drift-analyzer \
 		--months 12 \
 		--output benchmark_results/package_kpis/pypi_downloads_monthly.csv
+
+package-kpis-real-public:  ## Build KPI report from public GitHub usage + PyPI downloads
+	$(MAKE) --no-print-directory package-kpis-github-usage
+	$(MAKE) --no-print-directory package-kpis-downloads
+	$(PYTHON) scripts/package_kpis.py \
+		--package drift-analyzer \
+		--usage-csv benchmark_results/package_kpis/github_usage_events.csv \
+		--downloads-csv benchmark_results/package_kpis/pypi_downloads_monthly.csv \
+		--thresholds-json examples/package-kpis/kpi-thresholds.json \
+		--months 12 \
+		--output benchmark_results/package_kpis/package_kpis_real.json
 
 package-kpis-example:  ## Generate monthly package KPI example report JSON
 	$(PYTHON) scripts/package_kpis.py \
