@@ -1,0 +1,60 @@
+{% set version = "0.10.6" %}
+
+package:
+  name: drift-analyzer
+  version: {{ version }}
+
+# Build from local source tree.
+# For a conda-forge feedstock, replace with:
+#   url: https://pypi.io/packages/source/d/drift-analyzer/drift_analyzer-{{ version }}.tar.gz
+#   sha256: <sha256-of-sdist>
+source:
+  path: ..
+
+build:
+  number: 0
+  entry_points:
+    - drift = drift.cli:safe_main
+  script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+
+requirements:
+  host:
+    - python >=3.11
+    - pip
+    - hatchling >=1.21
+  run:
+    - python >=3.11
+    - click >=8.1
+    - rich >=13.0
+    - pyyaml >=6.0
+    - pydantic >=2.0
+    - gitpython >=3.1
+    - networkx >=3.0
+
+test:
+  imports:
+    - drift
+    - drift.cli
+    - drift.signals
+  commands:
+    - drift --help
+    - drift --version
+
+about:
+  home: https://github.com/sauremilk/drift
+  license: MIT
+  license_file: LICENSE
+  summary: >-
+    Deterministic architectural drift detection for AI-accelerated Python repositories
+    through cross-file coherence analysis.
+  description: |
+    Drift is a static analyzer that detects and scores architectural erosion in
+    Python codebases. It produces Rich terminal output, machine-readable JSON,
+    and SARIF for CI integration. All 15 signals are configurable via a YAML
+    config file.
+  doc_url: https://sauremilk.github.io/drift/
+  dev_url: https://github.com/sauremilk/drift
+
+extra:
+  recipe-maintainers:
+    - sauremilk

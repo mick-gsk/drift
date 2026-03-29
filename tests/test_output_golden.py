@@ -75,6 +75,8 @@ class TestJsonOutputGolden:
             "summary",
             "modules",
             "findings",
+            "findings_compact",
+            "compact_summary",
             "fix_first",
             "suppressed_count",
             "context_tagged_count",

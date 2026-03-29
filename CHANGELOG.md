@@ -3,6 +3,20 @@
 All notable changes to drift-analyzer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.6] - 2026-03-29
+
+Short version: drift adds token-efficient compact JSON output with deduplicated findings and explicit CLI toggles for agent/CI workflows.
+
+### Added
+
+- **Compact JSON mode for analyze/check**: Added `--compact` to `drift analyze --format json` and `drift check --format json` so automation can consume a concise payload without large detail sections.
+- **Deduplicated compact finding view**: JSON output now includes `findings_compact` with stable dedupe keys and per-item `duplicate_count` to preserve signal counts while reducing payload redundancy.
+- **Decision-first compact counters**: Added `compact_summary` with `findings_total`, deduplicated counts, duplicate reduction, and high/critical counts for quick gating decisions.
+
+### Changed
+
+- **JSON output documentation**: Updated API output reference with compact mode usage and clear distinction between compact and full finding payloads.
+
 ## [0.10.5] - 2026-03-29
 
 Short version: drift introduces an agent-native API surface and expands MCP capabilities with concise machine-first responses and improved CLI ergonomics.

@@ -121,6 +121,13 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     default=False,
     help="Shortcut for --format json (agent-friendly).",
 )
+@click.option(
+    "--compact",
+    "compact_json",
+    is_flag=True,
+    default=False,
+    help="Emit compact JSON optimized for agent/CI summaries.",
+)
 def analyze(
     repo: Path,
     path: str | None,
@@ -143,6 +150,7 @@ def analyze(
     output_file: Path | None,
     save_baseline_path: Path | None,
     json_shortcut: bool,
+    compact_json: bool,
 ) -> None:
     """Analyze a repository for architectural drift."""
     from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn
@@ -211,7 +219,7 @@ def analyze(
     elif output_format == "json":
         from drift.output.json_output import analysis_to_json
 
-        json_text = analysis_to_json(analysis)
+        json_text = analysis_to_json(analysis, compact=compact_json)
         if output_file:
             output_file.write_text(json_text + "\n", encoding="utf-8")
             click.echo(f"Output written to {output_file}", err=True)

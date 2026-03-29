@@ -101,6 +101,13 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     default=False,
     help="Shortcut for --format json (agent-friendly).",
 )
+@click.option(
+    "--compact",
+    "compact_json",
+    is_flag=True,
+    default=False,
+    help="Emit compact JSON optimized for agent/CI summaries.",
+)
 def check(
     repo: Path,
     diff_ref: str,
@@ -119,6 +126,7 @@ def check(
     baseline_file: Path | None,
     output_file: Path | None,
     json_shortcut: bool,
+    compact_json: bool,
 ) -> None:
     """Check a diff for drift (CI mode)."""
     from drift.analyzer import _DEFAULT_WORKERS, analyze_diff
@@ -163,7 +171,7 @@ def check(
     elif output_format == "json":
         from drift.output.json_output import analysis_to_json
 
-        json_text = analysis_to_json(analysis)
+        json_text = analysis_to_json(analysis, compact=compact_json)
         if output_file:
             output_file.write_text(json_text + "\n", encoding="utf-8")
             click.echo(f"Output written to {output_file}", err=True)

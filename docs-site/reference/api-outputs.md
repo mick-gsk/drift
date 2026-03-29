@@ -138,11 +138,23 @@ Use the CLI when you only need stable commands in local or CI workflows.
 - summary counters
 - module scores
 - findings
+- findings_compact (deduplicated compact view)
+- compact_summary (decision-first counters for agent/CI usage)
 - fix_first list (prioritized "fix first" items)
 - remediation object per finding (when available)
 - suppressed and context-tagged counts
 
 This is the best current format for CI artifacts, snapshot comparison, and downstream scripts.
+
+For token-efficient automation, use compact JSON mode:
+
+```bash
+drift analyze --format json --compact
+drift check --format json --compact
+```
+
+Compact mode keeps top-level decision data (`drift_score`, `severity`, `fix_first`,
+`findings_compact`, `compact_summary`) and omits heavy sections (`modules`, full `findings`).
 
 ## Exit code contract
 

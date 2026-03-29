@@ -67,6 +67,12 @@ def test_analysis_to_json_contains_expected_structure() -> None:
     assert payload["findings"][0]["file"] == "src/app/service.py"
     assert payload["findings"][0]["remediation"] is not None
     assert payload["findings"][0]["remediation"]["effort"] in {"low", "medium", "high"}
+    assert isinstance(payload["findings_compact"], list)
+    assert payload["findings_compact"]
+    assert payload["findings_compact"][0]["duplicate_count"] == 1
+    assert payload["compact_summary"]["findings_total"] == 1
+    assert payload["compact_summary"]["findings_deduplicated"] == 1
+    assert payload["compact_summary"]["duplicate_findings_removed"] == 0
     assert isinstance(payload["fix_first"], list)
     assert payload["fix_first"]
     assert payload["fix_first"][0]["rank"] == 1
@@ -179,3 +185,52 @@ def test_fix_first_prioritizes_architecture_boundary() -> None:
 
     assert payload["fix_first"][0]["signal"] == "architecture_violation"
     assert payload["fix_first"][0]["priority_class"] == "architecture_boundary"
+
+
+def test_findings_compact_deduplicates_by_location_and_rule() -> None:
+    first = Finding(
+        signal_type=SignalType.SYSTEM_MISALIGNMENT,
+        severity=Severity.HIGH,
+        score=0.82,
+        title="Runtime config mismatch",
+        description="A",
+        file_path=Path("src/app/service.py"),
+        start_line=12,
+        end_line=29,
+        impact=0.7,
+    )
+    duplicate = Finding(
+        signal_type=SignalType.SYSTEM_MISALIGNMENT,
+        severity=Severity.MEDIUM,
+        score=0.5,
+        title="Runtime config mismatch",
+        description="B",
+        file_path=Path("src/app/service.py"),
+        start_line=12,
+        end_line=29,
+        impact=0.3,
+    )
+
+    analysis = _sample_analysis()
+    analysis.findings = [first, duplicate]
+
+    payload = json.loads(analysis_to_json(analysis))
+
+    assert len(payload["findings"]) == 2
+    assert len(payload["findings_compact"]) == 1
+    assert payload["findings_compact"][0]["duplicate_count"] == 2
+    assert payload["compact_summary"]["findings_total"] == 2
+    assert payload["compact_summary"]["findings_deduplicated"] == 1
+    assert payload["compact_summary"]["duplicate_findings_removed"] == 1
+
+
+def test_analysis_to_json_compact_omits_heavy_sections() -> None:
+    analysis = _sample_analysis()
+
+    payload = json.loads(analysis_to_json(analysis, compact=True))
+
+    assert "modules" not in payload
+    assert "findings" not in payload
+    assert "findings_compact" in payload
+    assert "compact_summary" in payload
+    assert "fix_first" in payload

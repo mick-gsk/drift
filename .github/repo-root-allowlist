@@ -10,6 +10,7 @@
 .vscode
 CHANGELOG.md
 CODE_OF_CONDUCT.md
+conda.recipe
 CONTRIBUTING.md
 DEVELOPER.md
 LICENSE

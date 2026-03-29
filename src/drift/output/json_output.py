@@ -40,6 +40,35 @@ _SEVERITY_RANK = {
 }
 
 
+def _finding_dedupe_key(f: Finding) -> tuple[str, str, int, int, str]:
+    """Build a stable key for finding deduplication in machine-readable output."""
+    file_path = f.file_path.as_posix() if f.file_path else ""
+    start_line = int(f.start_line or 0)
+    end_line = int(f.end_line or 0)
+    title = (f.title or "").strip().lower()
+    rule_id = f.rule_id or f.signal_type.value
+    return (rule_id, file_path, start_line, end_line, title)
+
+
+def _dedupe_findings(ranked_findings: list[Finding]) -> tuple[list[Finding], dict[int, int]]:
+    """Return canonical findings and duplicate counts keyed by canonical object id."""
+    deduped: list[Finding] = []
+    seen: dict[tuple[str, str, int, int, str], Finding] = {}
+    duplicate_counts: dict[int, int] = {}
+
+    for finding in ranked_findings:
+        key = _finding_dedupe_key(finding)
+        existing = seen.get(key)
+        if existing is None:
+            seen[key] = finding
+            deduped.append(finding)
+            duplicate_counts[id(finding)] = 1
+            continue
+        duplicate_counts[id(existing)] = duplicate_counts.get(id(existing), 1) + 1
+
+    return deduped, duplicate_counts
+
+
 def _priority_class(f: Finding) -> str:
     """Map finding to a decision-priority class."""
     if f.signal_type in _ARCHITECTURE_BOUNDARY_SIGNALS:
@@ -164,6 +193,28 @@ def _module_to_dict(m: ModuleScore) -> dict[str, Any]:
     }
 
 
+def _finding_compact_dict(
+    finding: Finding,
+    *,
+    rank: int,
+    duplicate_count: int,
+) -> dict[str, Any]:
+    """Compact finding shape optimized for agent/CI prioritization."""
+    return {
+        "rank": rank,
+        "signal": finding.signal_type.value,
+        "rule_id": finding.rule_id,
+        "severity": finding.severity.value,
+        "impact": finding.impact,
+        "score_contribution": finding.score_contribution,
+        "title": finding.title,
+        "file": finding.file_path.as_posix() if finding.file_path else None,
+        "start_line": finding.start_line,
+        "duplicate_count": duplicate_count,
+        "next_step": _next_step_for_finding(finding),
+    }
+
+
 def _analysis_status_to_dict(analysis: RepoAnalysis) -> dict[str, Any]:
     return {
         "status": analysis.analysis_status,
@@ -175,11 +226,23 @@ def _analysis_status_to_dict(analysis: RepoAnalysis) -> dict[str, Any]:
     }
 
 
-def analysis_to_json(analysis: RepoAnalysis, indent: int = 2) -> str:
+def analysis_to_json(analysis: RepoAnalysis, indent: int = 2, compact: bool = False) -> str:
     """Serialize a RepoAnalysis to JSON string."""
     # Rank findings by impact (descending) for consumer convenience
     ranked = sorted(analysis.findings, key=_finding_sort_key)
     impact_ranks: dict[int, int] = {id(f): rank for rank, f in enumerate(ranked, 1)}
+
+    deduped_findings, duplicate_counts = _dedupe_findings(ranked)
+    compact_findings = [
+        _finding_compact_dict(
+            finding,
+            rank=index,
+            duplicate_count=duplicate_counts.get(id(finding), 1),
+        )
+        for index, finding in enumerate(deduped_findings, start=1)
+    ]
+
+    fix_first = _fix_first_list(ranked)
 
     data: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -204,15 +267,26 @@ def analysis_to_json(analysis: RepoAnalysis, indent: int = 2) -> str:
             "ai_tools_detected": analysis.ai_tools_detected,
             "analysis_duration_seconds": analysis.analysis_duration_seconds,
         },
-        "modules": [_module_to_dict(m) for m in analysis.module_scores],
-        "findings": [
-            _finding_to_dict(f, impact_rank=impact_ranks.get(id(f)))
-            for f in ranked
-        ],
-        "fix_first": _fix_first_list(ranked),
+        "findings_compact": compact_findings,
+        "compact_summary": {
+            "findings_total": len(ranked),
+            "findings_deduplicated": len(deduped_findings),
+            "duplicate_findings_removed": len(ranked) - len(deduped_findings),
+            "critical_count": sum(1 for f in deduped_findings if f.severity == Severity.CRITICAL),
+            "high_count": sum(1 for f in deduped_findings if f.severity == Severity.HIGH),
+            "fix_first_count": len(fix_first),
+        },
+        "fix_first": fix_first,
         "suppressed_count": analysis.suppressed_count,
         "context_tagged_count": analysis.context_tagged_count,
     }
+
+    if not compact:
+        data["modules"] = [_module_to_dict(m) for m in analysis.module_scores]
+        data["findings"] = [
+            _finding_to_dict(f, impact_rank=impact_ranks.get(id(f)))
+            for f in ranked
+        ]
 
     return json.dumps(data, indent=indent, default=str, sort_keys=True)
 

@@ -50,6 +50,30 @@ _SIGNAL_TO_ABBREV: dict[str, str] = {v.value: k for k, v in _ABBREV_TO_SIGNAL.it
 VALID_SIGNAL_IDS = sorted(_ABBREV_TO_SIGNAL.keys())
 
 
+def _emit_api_telemetry(
+    *,
+    tool_name: str,
+    params: dict[str, Any],
+    status: str,
+    elapsed_ms: int,
+    result: dict[str, Any] | None,
+    error: Exception | None,
+    repo_root: Path | None,
+) -> None:
+    """Emit non-blocking telemetry for API calls."""
+    from drift.telemetry import log_tool_event
+
+    log_tool_event(
+        tool_name=tool_name,
+        params=params,
+        status=status,
+        duration_ms=elapsed_ms,
+        result=result,
+        error=str(error) if error else None,
+        repo_root=repo_root,
+    )
+
+
 def resolve_signal(name: str) -> SignalType | None:
     """Resolve a signal abbreviation or full name to ``SignalType``."""
     upper = name.upper()
@@ -225,16 +249,58 @@ def scan(
     """
     from drift.analyzer import analyze_repo
     from drift.config import DriftConfig, apply_signal_filter
+    from drift.telemetry import timed_call
 
     repo_path = Path(path).resolve()
-    cfg = DriftConfig.load(repo_path)
+    elapsed_ms = timed_call()
+    params = {
+        "path": str(path),
+        "target_path": target_path,
+        "since_days": since_days,
+        "signals": signals,
+        "max_findings": max_findings,
+        "response_detail": response_detail,
+    }
 
-    if signals:
-        select_csv = ",".join(signals)
-        apply_signal_filter(cfg, select_csv, None)
+    try:
+        cfg = DriftConfig.load(repo_path)
 
-    analysis = analyze_repo(repo_path, config=cfg, since_days=since_days, target_path=target_path)
-    return _format_scan_response(analysis, max_findings=max_findings, detail=response_detail)
+        if signals:
+            select_csv = ",".join(signals)
+            apply_signal_filter(cfg, select_csv, None)
+
+        analysis = analyze_repo(
+            repo_path,
+            config=cfg,
+            since_days=since_days,
+            target_path=target_path,
+        )
+        result = _format_scan_response(
+            analysis,
+            max_findings=max_findings,
+            detail=response_detail,
+        )
+        _emit_api_telemetry(
+            tool_name="api.scan",
+            params=params,
+            status="ok",
+            elapsed_ms=elapsed_ms(),
+            result=result,
+            error=None,
+            repo_root=repo_path,
+        )
+        return result
+    except Exception as exc:
+        _emit_api_telemetry(
+            tool_name="api.scan",
+            params=params,
+            status="error",
+            elapsed_ms=elapsed_ms(),
+            result=None,
+            error=exc,
+            repo_root=repo_path,
+        )
+        raise
 
 
 def _format_scan_response(
@@ -307,93 +373,124 @@ def diff(
     """
     from drift.analyzer import analyze_diff as _analyze_diff
     from drift.config import DriftConfig
+    from drift.telemetry import timed_call
 
     repo_path = Path(path).resolve()
-    cfg = DriftConfig.load(repo_path)
+    elapsed_ms = timed_call()
+    params = {
+        "path": str(path),
+        "diff_ref": diff_ref,
+        "baseline_file": baseline_file,
+        "max_findings": max_findings,
+        "response_detail": response_detail,
+    }
 
-    # Current analysis (diff scope)
-    diff_analysis = _analyze_diff(repo_path, config=cfg, diff_ref=diff_ref)
+    try:
+        cfg = DriftConfig.load(repo_path)
 
-    # Baseline comparison
-    if baseline_file:
-        from drift.baseline import baseline_diff as _bl_diff
-        from drift.baseline import load_baseline
+        # Current analysis (diff scope)
+        diff_analysis = _analyze_diff(repo_path, config=cfg, diff_ref=diff_ref)
 
-        fps = load_baseline(Path(baseline_file))
-        new, _known = _bl_diff(diff_analysis.findings, fps)
-        resolved = [f for f in _known]
-    else:
-        new = diff_analysis.findings
-        resolved = []
+        # Baseline comparison
+        if baseline_file:
+            from drift.baseline import baseline_diff as _bl_diff
+            from drift.baseline import load_baseline
 
-    # Score comparison via trend context
-    score_after = diff_analysis.drift_score
-    score_before = (
-        diff_analysis.trend.previous_score
-        if diff_analysis.trend and diff_analysis.trend.previous_score is not None
-        else 0.0
-    )
-    delta = round(score_after - score_before, 4)
+            fps = load_baseline(Path(baseline_file))
+            new, _known = _bl_diff(diff_analysis.findings, fps)
+            resolved = [f for f in _known]
+        else:
+            new = diff_analysis.findings
+            resolved = []
 
-    from drift.output.json_output import _priority_class
+        # Score comparison via trend context
+        score_after = diff_analysis.drift_score
+        score_before = (
+            diff_analysis.trend.previous_score
+            if diff_analysis.trend and diff_analysis.trend.previous_score is not None
+            else 0.0
+        )
+        delta = round(score_after - score_before, 4)
 
-    drift_categories = sorted({_priority_class(f) for f in new}) if new else []
-    affected = sorted({
-        f.file_path.as_posix().rsplit("/", 1)[0]
-        for f in new
-        if f.file_path
-    })
+        from drift.output.json_output import _priority_class
 
-    status = "stable"
-    if delta > 0.01:
-        status = "new_critical" if any(
-            f.severity.value in ("critical", "high") for f in new
-        ) else "degraded"
-    elif delta < -0.01:
-        status = "improved"
+        drift_categories = sorted({_priority_class(f) for f in new}) if new else []
+        affected = sorted({
+            f.file_path.as_posix().rsplit("/", 1)[0]
+            for f in new
+            if f.file_path
+        })
 
-    confidence = "high"
-    if diff_analysis.is_degraded:
-        confidence = "low"
-    elif diff_analysis.total_files < 5:
-        confidence = "medium"
+        status = "stable"
+        if delta > 0.01:
+            status = "new_critical" if any(
+                f.severity.value in ("critical", "high") for f in new
+            ) else "degraded"
+        elif delta < -0.01:
+            status = "improved"
 
-    if response_detail == "concise":
-        ranked_new = sorted(new, key=lambda f: f.impact, reverse=True)[:max_findings]
-        new_list = [_finding_concise(f) for f in ranked_new]
-        resolved_list = [_finding_concise(f) for f in resolved[:max_findings]]
-    else:
-        ranked_new = sorted(new, key=lambda f: f.impact, reverse=True)[:max_findings]
-        new_list = [_finding_detailed(f) for f in ranked_new]
-        resolved_list = [_finding_detailed(f) for f in resolved[:max_findings]]
+        confidence = "high"
+        if diff_analysis.is_degraded:
+            confidence = "low"
+        elif diff_analysis.total_files < 5:
+            confidence = "medium"
 
-    n_new = len(new)
-    summary_parts = [f"{n_new} new finding{'s' if n_new != 1 else ''}"]
-    high_count = sum(1 for f in new if f.severity.value in ("critical", "high"))
-    if high_count:
-        summary_parts.append(f"{high_count} high/critical")
-    summary_parts.append(f"drift score {'+' if delta >= 0 else ''}{delta:.3f}")
+        if response_detail == "concise":
+            ranked_new = sorted(new, key=lambda f: f.impact, reverse=True)[:max_findings]
+            new_list = [_finding_concise(f) for f in ranked_new]
+            resolved_list = [_finding_concise(f) for f in resolved[:max_findings]]
+        else:
+            ranked_new = sorted(new, key=lambda f: f.impact, reverse=True)[:max_findings]
+            new_list = [_finding_detailed(f) for f in ranked_new]
+            resolved_list = [_finding_detailed(f) for f in resolved[:max_findings]]
 
-    result = _base_response(
-        drift_detected=delta > 0.0,
-        status=status,
-        severity=diff_analysis.severity.value,
-        score_before=round(score_before, 4),
-        score_after=round(score_after, 4),
-        delta=delta,
-        confidence=confidence,
-        diff_ref=diff_ref,
-        new_findings=new_list,
-        resolved_findings=resolved_list,
-        new_finding_count=len(new),
-        resolved_count=len(resolved),
-        drift_categories=drift_categories,
-        affected_components=affected,
-        summary=", ".join(summary_parts),
-        recommended_next_actions=_diff_next_actions(new, status),
-        response_truncated=len(new) > max_findings,
-    )
-    return result
+        n_new = len(new)
+        summary_parts = [f"{n_new} new finding{'s' if n_new != 1 else ''}"]
+        high_count = sum(1 for f in new if f.severity.value in ("critical", "high"))
+        if high_count:
+            summary_parts.append(f"{high_count} high/critical")
+        summary_parts.append(f"drift score {'+' if delta >= 0 else ''}{delta:.3f}")
+
+        result = _base_response(
+            drift_detected=delta > 0.0,
+            status=status,
+            severity=diff_analysis.severity.value,
+            score_before=round(score_before, 4),
+            score_after=round(score_after, 4),
+            delta=delta,
+            confidence=confidence,
+            diff_ref=diff_ref,
+            new_findings=new_list,
+            resolved_findings=resolved_list,
+            new_finding_count=len(new),
+            resolved_count=len(resolved),
+            drift_categories=drift_categories,
+            affected_components=affected,
+            summary=", ".join(summary_parts),
+            recommended_next_actions=_diff_next_actions(new, status),
+            response_truncated=len(new) > max_findings,
+        )
+        _emit_api_telemetry(
+            tool_name="api.diff",
+            params=params,
+            status="ok",
+            elapsed_ms=elapsed_ms(),
+            result=result,
+            error=None,
+            repo_root=repo_path,
+        )
+        return result
+    except Exception as exc:
+        _emit_api_telemetry(
+            tool_name="api.diff",
+            params=params,
+            status="error",
+            elapsed_ms=elapsed_ms(),
+            result=None,
+            error=exc,
+            repo_root=repo_path,
+        )
+        raise
 
 
 def _diff_next_actions(new_findings: list, status: str) -> list[str]:
@@ -418,64 +515,130 @@ def explain(topic: str) -> dict[str, Any]:
         (``"pattern_fragmentation"``), or error code (``"DRIFT-1001"``).
     """
     from drift.commands.explain import _SIGNAL_INFO
+    from drift.telemetry import timed_call
 
-    # Try as signal abbreviation first
-    upper = topic.upper()
-    if upper in _SIGNAL_INFO:
-        info = _SIGNAL_INFO[upper]
-        return _base_response(
-            type="signal",
-            signal=upper,
-            name=info.get("name", upper),
-            weight=float(info.get("weight", "0")),
-            description=info.get("description", ""),
-            detection_logic=info.get("detects", ""),
-            typical_cause="Multiple AI sessions or copy-paste-modify patterns.",
-            remediation_approach=info.get("fix_hint", ""),
-            related_signals=_related_signals(upper),
+    elapsed_ms = timed_call()
+    params = {"topic": topic}
+
+    try:
+        # Try as signal abbreviation first
+        upper = topic.upper()
+        if upper in _SIGNAL_INFO:
+            info = _SIGNAL_INFO[upper]
+            result = _base_response(
+                type="signal",
+                signal=upper,
+                name=info.get("name", upper),
+                weight=float(info.get("weight", "0")),
+                description=info.get("description", ""),
+                detection_logic=info.get("detects", ""),
+                typical_cause="Multiple AI sessions or copy-paste-modify patterns.",
+                remediation_approach=info.get("fix_hint", ""),
+                related_signals=_related_signals(upper),
+            )
+            _emit_api_telemetry(
+                tool_name="api.explain",
+                params=params,
+                status="ok",
+                elapsed_ms=elapsed_ms(),
+                result=result,
+                error=None,
+                repo_root=Path.cwd(),
+            )
+            return result
+
+        # Try as SignalType value
+        resolved = resolve_signal(topic)
+        if resolved:
+            abbr = signal_abbrev(resolved)
+            if abbr in _SIGNAL_INFO:
+                result = explain(abbr)
+                _emit_api_telemetry(
+                    tool_name="api.explain",
+                    params=params,
+                    status="ok",
+                    elapsed_ms=elapsed_ms(),
+                    result=result,
+                    error=None,
+                    repo_root=Path.cwd(),
+                )
+                return result
+            result = _base_response(
+                type="signal",
+                signal=abbr,
+                name=resolved.value,
+                description=f"Signal: {resolved.value}",
+            )
+            _emit_api_telemetry(
+                tool_name="api.explain",
+                params=params,
+                status="ok",
+                elapsed_ms=elapsed_ms(),
+                result=result,
+                error=None,
+                repo_root=Path.cwd(),
+            )
+            return result
+
+        # Try as error code
+        from drift.errors import ERROR_REGISTRY
+
+        if topic.upper() in ERROR_REGISTRY:
+            err = ERROR_REGISTRY[topic.upper()]
+            result = _base_response(
+                type="error_code",
+                error_code=err.code,
+                category=err.category,
+                summary=err.summary,
+                why=err.why,
+                action=err.action,
+            )
+            _emit_api_telemetry(
+                tool_name="api.explain",
+                params=params,
+                status="ok",
+                elapsed_ms=elapsed_ms(),
+                result=result,
+                error=None,
+                repo_root=Path.cwd(),
+            )
+            return result
+
+        # Not found — helpful error
+        result = _error_response(
+            "DRIFT-1003",
+            f"Unknown topic: '{topic}'",
+            invalid_fields=[{
+                "field": "topic", "value": topic,
+                "reason": "Not a valid signal, rule, or error code",
+            }],
+            suggested_fix={
+                "action": "Use a valid signal abbreviation or error code",
+                "valid_values": VALID_SIGNAL_IDS,
+                "example_call": {"tool": "drift_explain", "params": {"topic": "PFS"}},
+            },
         )
-
-    # Try as SignalType value
-    resolved = resolve_signal(topic)
-    if resolved:
-        abbr = signal_abbrev(resolved)
-        if abbr in _SIGNAL_INFO:
-            return explain(abbr)
-        return _base_response(
-            type="signal",
-            signal=abbr,
-            name=resolved.value,
-            description=f"Signal: {resolved.value}",
+        _emit_api_telemetry(
+            tool_name="api.explain",
+            params=params,
+            status="ok",
+            elapsed_ms=elapsed_ms(),
+            result=result,
+            error=None,
+            repo_root=Path.cwd(),
         )
-
-    # Try as error code
-    from drift.errors import ERROR_REGISTRY
-
-    if topic.upper() in ERROR_REGISTRY:
-        err = ERROR_REGISTRY[topic.upper()]
-        return _base_response(
-            type="error_code",
-            error_code=err.code,
-            category=err.category,
-            summary=err.summary,
-            why=err.why,
-            action=err.action,
+        return result
+    except Exception as exc:
+        _emit_api_telemetry(
+            tool_name="api.explain",
+            params=params,
+            status="error",
+            elapsed_ms=elapsed_ms(),
+            result=None,
+            error=exc,
+            repo_root=Path.cwd(),
         )
-
-    # Not found — helpful error
-    return _error_response(
-        "DRIFT-1003",
-        f"Unknown topic: '{topic}'",
-        invalid_fields=[{
-            "field": "topic", "value": topic,
-            "reason": "Not a valid signal, rule, or error code",
-        }],
-        suggested_fix={
-            "action": "Use a valid signal abbreviation or error code",
-            "valid_values": VALID_SIGNAL_IDS,
-            "example_call": {"tool": "drift_explain", "params": {"topic": "PFS"}},
-        },
-    )
+        raise
 
 
 def _related_signals(abbr: str) -> list[str]:
@@ -520,58 +683,100 @@ def fix_plan(
     from drift.analyzer import analyze_repo
     from drift.config import DriftConfig
     from drift.output.agent_tasks import analysis_to_agent_tasks
+    from drift.telemetry import timed_call
 
     repo_path = Path(path).resolve()
-    cfg = DriftConfig.load(repo_path)
-    analysis = analyze_repo(repo_path, config=cfg)
-    tasks = analysis_to_agent_tasks(analysis)
+    elapsed_ms = timed_call()
+    params = {
+        "path": str(path),
+        "finding_id": finding_id,
+        "signal": signal,
+        "max_tasks": max_tasks,
+        "automation_fit_min": automation_fit_min,
+    }
 
-    # Filter by signal
-    if signal:
-        resolved = resolve_signal(signal)
-        if resolved is None:
-            return _error_response(
-                "DRIFT-1003",
-                f"Unknown signal: '{signal}'",
-                invalid_fields=[{
-                    "field": "signal", "value": signal,
-                    "reason": "Not a valid signal ID",
-                }],
-                suggested_fix={
-                    "action": "Use a valid signal abbreviation",
-                    "valid_values": VALID_SIGNAL_IDS,
-                    "example_call": {"tool": "drift_fix_plan", "params": {"signal": "PFS"}},
-                },
-            )
-        tasks = [t for t in tasks if t.signal_type == resolved]
+    try:
+        cfg = DriftConfig.load(repo_path)
+        analysis = analyze_repo(repo_path, config=cfg)
+        tasks = analysis_to_agent_tasks(analysis)
 
-    # Filter by finding_id
-    if finding_id:
-        tasks = [t for t in tasks if t.id == finding_id]
+        # Filter by signal
+        if signal:
+            resolved = resolve_signal(signal)
+            if resolved is None:
+                result = _error_response(
+                    "DRIFT-1003",
+                    f"Unknown signal: '{signal}'",
+                    invalid_fields=[{
+                        "field": "signal", "value": signal,
+                        "reason": "Not a valid signal ID",
+                    }],
+                    suggested_fix={
+                        "action": "Use a valid signal abbreviation",
+                        "valid_values": VALID_SIGNAL_IDS,
+                        "example_call": {"tool": "drift_fix_plan", "params": {"signal": "PFS"}},
+                    },
+                )
+                _emit_api_telemetry(
+                    tool_name="api.fix_plan",
+                    params=params,
+                    status="ok",
+                    elapsed_ms=elapsed_ms(),
+                    result=result,
+                    error=None,
+                    repo_root=repo_path,
+                )
+                return result
+            tasks = [t for t in tasks if t.signal_type == resolved]
 
-    # Filter by automation fitness
-    fit_levels = {"low": 0, "medium": 1, "high": 2}
-    skipped_low = 0
-    if automation_fit_min and automation_fit_min in fit_levels:
-        min_level = fit_levels[automation_fit_min]
-        filtered = []
-        for t in tasks:
-            if fit_levels.get(t.automation_fit, 0) >= min_level:
-                filtered.append(t)
-            else:
-                skipped_low += 1
-        tasks = filtered
+        # Filter by finding_id
+        if finding_id:
+            tasks = [t for t in tasks if t.id == finding_id]
 
-    limited = tasks[:max_tasks]
+        # Filter by automation fitness
+        fit_levels = {"low": 0, "medium": 1, "high": 2}
+        skipped_low = 0
+        if automation_fit_min and automation_fit_min in fit_levels:
+            min_level = fit_levels[automation_fit_min]
+            filtered = []
+            for t in tasks:
+                if fit_levels.get(t.automation_fit, 0) >= min_level:
+                    filtered.append(t)
+                else:
+                    skipped_low += 1
+            tasks = filtered
 
-    return _base_response(
-        drift_score=round(analysis.drift_score, 4),
-        tasks=[_task_to_api_dict(t) for t in limited],
-        task_count=len(limited),
-        total_available=len(tasks),
-        skipped_low_automation=skipped_low,
-        recommended_next_actions=["drift_diff after applying fixes to verify improvement"],
-    )
+        limited = tasks[:max_tasks]
+
+        result = _base_response(
+            drift_score=round(analysis.drift_score, 4),
+            tasks=[_task_to_api_dict(t) for t in limited],
+            task_count=len(limited),
+            total_available=len(tasks),
+            skipped_low_automation=skipped_low,
+            recommended_next_actions=["drift_diff after applying fixes to verify improvement"],
+        )
+        _emit_api_telemetry(
+            tool_name="api.fix_plan",
+            params=params,
+            status="ok",
+            elapsed_ms=elapsed_ms(),
+            result=result,
+            error=None,
+            repo_root=repo_path,
+        )
+        return result
+    except Exception as exc:
+        _emit_api_telemetry(
+            tool_name="api.fix_plan",
+            params=params,
+            status="error",
+            elapsed_ms=elapsed_ms(),
+            result=None,
+            error=exc,
+            repo_root=repo_path,
+        )
+        raise
 
 
 def _task_to_api_dict(t: Any) -> dict[str, Any]:
@@ -614,95 +819,128 @@ def validate(
     """
     import subprocess
 
+    from drift.telemetry import timed_call
+
     repo_path = Path(path).resolve()
-
-    # Check git availability
-    git_available = False
-    try:
-        subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
-            cwd=repo_path,
-            capture_output=True,
-            check=True,
-            timeout=5,
-        )
-        git_available = True
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-
-    # Load and validate config
-    warnings: list[str] = []
-    config_source: str | None = None
-    valid = True
-    cfg = None
+    elapsed_ms = timed_call()
+    params = {"path": str(path), "config_file": config_file}
 
     try:
-        from drift.config import DriftConfig
-
-        cfg = DriftConfig.load(repo_path, Path(config_file) if config_file else None)
-        cfg_path = DriftConfig._find_config_file(repo_path)
-        config_source = str(cfg_path) if cfg_path else "defaults"
-
-        # Weight checks
-        weight_sum = sum(cfg.weights.as_dict().values())
-        if weight_sum < 0.5 or weight_sum > 2.0:
-            warnings.append(
-                f"Weight sum {weight_sum:.3f} outside [0.5, 2.0] — auto-calibration will normalize"
+        # Check git availability
+        git_available = False
+        try:
+            subprocess.run(
+                ["git", "rev-parse", "--git-dir"],
+                cwd=repo_path,
+                capture_output=True,
+                check=True,
+                timeout=5,
             )
-        for key, val in cfg.weights.as_dict().items():
-            if val < 0:
-                warnings.append(f"Weight '{key}' is negative ({val})")
+            git_available = True
+        except (
+            subprocess.CalledProcessError,
+            FileNotFoundError,
+            subprocess.TimeoutExpired,
+        ):
+            pass
+
+        # Load and validate config
+        warnings: list[str] = []
+        config_source: str | None = None
+        valid = True
+        cfg = None
+
+        try:
+            from drift.config import DriftConfig
+
+            cfg = DriftConfig.load(repo_path, Path(config_file) if config_file else None)
+            cfg_path = DriftConfig._find_config_file(repo_path)
+            config_source = str(cfg_path) if cfg_path else "defaults"
+
+            # Weight checks
+            weight_sum = sum(cfg.weights.as_dict().values())
+            if weight_sum < 0.5 or weight_sum > 2.0:
+                warnings.append(
+                    (
+                        f"Weight sum {weight_sum:.3f} outside [0.5, 2.0] "
+                        "— auto-calibration will normalize"
+                    )
+                )
+            for key, val in cfg.weights.as_dict().items():
+                if val < 0:
+                    warnings.append(f"Weight '{key}' is negative ({val})")
+                    valid = False
+
+            # Threshold checks
+            thresh = cfg.thresholds.similarity_threshold
+            if thresh < 0 or thresh > 1:
+                warnings.append(f"similarity_threshold={thresh} outside [0, 1]")
                 valid = False
 
-        # Threshold checks
-        if cfg.thresholds.similarity_threshold < 0 or cfg.thresholds.similarity_threshold > 1:
-            thresh = cfg.thresholds.similarity_threshold
-            warnings.append(f"similarity_threshold={thresh} outside [0, 1]")
+        except Exception as exc:
             valid = False
+            warnings.append(f"Config error: {exc}")
 
+        # File discovery check
+        files_discoverable = 0
+        capabilities: list[str] = []
+        if cfg is not None:
+            try:
+                from drift.ingestion.file_discovery import discover_files
+
+                files = discover_files(repo_path, cfg.include, cfg.exclude)
+                files_discoverable = len(files)
+                langs = {f.language for f in files}
+                if "python" in langs:
+                    capabilities.append("python")
+                if langs & {"typescript", "javascript"}:
+                    capabilities.append("typescript")
+            except Exception:
+                pass
+
+        # Embeddings check
+        embeddings_available = False
+        if cfg is not None:
+            try:
+                import importlib.util
+
+                embeddings_available = (
+                    cfg.embeddings_enabled
+                    and importlib.util.find_spec("sentence_transformers") is not None
+                )
+            except Exception:
+                pass
+
+        result = _base_response(
+            valid=valid,
+            config_source=config_source,
+            git_available=git_available,
+            files_discoverable=files_discoverable,
+            embeddings_available=embeddings_available,
+            warnings=warnings,
+            capabilities=capabilities,
+        )
+        _emit_api_telemetry(
+            tool_name="api.validate",
+            params=params,
+            status="ok",
+            elapsed_ms=elapsed_ms(),
+            result=result,
+            error=None,
+            repo_root=repo_path,
+        )
+        return result
     except Exception as exc:
-        valid = False
-        warnings.append(f"Config error: {exc}")
-
-    # File discovery check
-    files_discoverable = 0
-    capabilities: list[str] = []
-    if cfg is not None:
-        try:
-            from drift.ingestion.file_discovery import discover_files
-
-            files = discover_files(repo_path, cfg.include, cfg.exclude)
-            files_discoverable = len(files)
-            langs = {f.language for f in files}
-            if "python" in langs:
-                capabilities.append("python")
-            if langs & {"typescript", "javascript"}:
-                capabilities.append("typescript")
-        except Exception:
-            pass
-
-    # Embeddings check
-    embeddings_available = False
-    if cfg is not None:
-        try:
-            import importlib.util
-
-            embeddings_available = (
-                cfg.embeddings_enabled
-                and importlib.util.find_spec("sentence_transformers") is not None
-            )
-        except Exception:
-            pass
-
-    return _base_response(
-        valid=valid,
-        config_source=config_source,
-        git_available=git_available,
-        files_discoverable=files_discoverable,
-        embeddings_available=embeddings_available,
-        warnings=warnings,
-        capabilities=capabilities,
-    )
+        _emit_api_telemetry(
+            tool_name="api.validate",
+            params=params,
+            status="error",
+            elapsed_ms=elapsed_ms(),
+            result=None,
+            error=exc,
+            repo_root=repo_path,
+        )
+        raise
 
 
 # ---------------------------------------------------------------------------
