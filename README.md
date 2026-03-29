@@ -20,15 +20,16 @@
 
 ## Start here
 
-**What is drift?**
+Drift is a deterministic static analyzer that finds the architecture erosion AI-generated code silently introduces: pattern fragmentation, boundary violations, near-duplicate utilities, and structural hotspots that pass tests but weaken the codebase.
 
-Drift is a deterministic static analyzer that finds the architecture erosion AI-generated code silently introduces — pattern fragmentation, boundary violations, and structural hotspots — before they become normal team habits. In seconds, without any LLM in the pipeline.
+It is designed for Python teams that want fast structural feedback in AI-accelerated repositories without adding an LLM to the analysis path.
 
-**Who is it for?**
+When code is produced faster than shared conventions evolve, repositories quietly accumulate problems such as:
 
-- Python teams with fast-growing codebases where architecture matters
-- Tech leads who want fast structural feedback, not just style or type checks
-- Teams using AI coding tools and seeing more cross-file drift across modules
+- error handling implemented several different ways inside the same service
+- API modules importing directly from database or infrastructure layers
+- AI-generated helpers copied into new files instead of reused
+- churn hotspots that keep changing because the structure is unclear
 
 ### 1-minute quickstart
 
@@ -39,32 +40,6 @@ drift analyze --repo .
 
 That gives you a drift score, the hottest modules, and actionable findings in one run.
 
-## Choose your path
-
-- **Not sure where to start?** Use the central docs routing page: [Start Here](docs-site/start-here.md).
-- **Casual user:** install drift, run `drift analyze --repo .`, and start with [Quick Start](docs-site/getting-started/quickstart.md) and [Configuration](docs-site/getting-started/configuration.md).
-- **Evaluator:** review [Example Findings](docs-site/product/example-findings.md), [Trust and Evidence](docs-site/trust-evidence.md), and [Stability and Release Status](docs-site/stability.md) before deciding on rollout.
-- **Contributor:** use [CONTRIBUTING.md](CONTRIBUTING.md) once you are ready to submit a fix, improve docs, or work on signal quality.
-- **Core maintainer:** use [CONTRIBUTING.md](CONTRIBUTING.md), [DEVELOPER.md](DEVELOPER.md), and [POLICY.md](POLICY.md) for the full quality, architecture, and release guardrails.
-
-## Release status
-
-The PyPI classifier remains `Development Status :: 3 - Alpha` intentionally.
-
-That is not a claim that the whole tool is immature. It is a conservative release signal for a product whose core Python analysis is already usable, while some adjacent surfaces still have mixed maturity.
-
-| Area | Status | What that means today |
-|---|---|---|
-| Core Python analysis | Stable | Primary analysis path, CLI usage, and main signal set are the most production-ready parts of drift. |
-| CI and SARIF workflow | Stable | Suitable for report-only rollout now, then selective gating once teams calibrate findings locally. |
-| TypeScript support | Experimental | Optional support exists, but Python remains the primary target and the more validated path. |
-| Embeddings-based parts | Optional / experimental | Not required for the core detector path and should be treated as exploratory add-ons. |
-| Benchmark methodology | Evolving | Public and reproducible, but still conservative in its claims and not the final word on every repository shape. |
-
-Why keep Alpha for now: release signaling should reflect the least mature user-facing surfaces, not only the strongest path. Drift already has stable core workflows, but the overall product story still includes experimental and evolving areas.
-
-See [Stability and Release Status](docs-site/stability.md) for the explicit matrix and the criteria for a future move toward Beta.
-
 ### Example output
 
 ```text
@@ -73,7 +48,13 @@ Top finding: PFS 0.85  Error handling split 4 ways  at src/api/routes.py:42
 Next action: consolidate variants into one shared pattern
 ```
 
-### If you want CI, use this
+### Three good ways to start
+
+- **Try it on your repository:** start with [Quick Start](docs-site/getting-started/quickstart.md) and [Configuration](docs-site/getting-started/configuration.md).
+- **Evaluate before rollout:** review [Example Findings](docs-site/product/example-findings.md), [Trust and Evidence](docs-site/trust-evidence.md), and [Stability and Release Status](docs-site/stability.md).
+- **Work on the project itself:** use [CONTRIBUTING.md](CONTRIBUTING.md), [DEVELOPER.md](DEVELOPER.md), and [POLICY.md](POLICY.md).
+
+### Start report-only in CI
 
 ```yaml
 - uses: sauremilk/drift@v1
@@ -97,24 +78,17 @@ The [demo project](examples/demo-project/) contains intentional drift patterns, 
 
 ![drift CLI demo](https://raw.githubusercontent.com/sauremilk/drift/master/demos/demo.gif)
 
-## Why drift
+## Why teams use drift
 
-When your team uses GitHub Copilot, Cursor, or other AI coding tools, code passes CI while the repository quietly accumulates architectural drift:
+Your linter, type checker, and test suite can tell you whether code is valid. They do not tell you whether the repository is quietly splitting into incompatible patterns across modules.
 
-- **Pattern fragmentation:** error handling is implemented 4 different ways across the same service
-- **Boundary violations:** the API layer imports directly from the database layer
-- **Silent duplication:** AI generates a new validator instead of finding the existing one
-- **Churn hotspots:** the same files change every sprint because the structure is unclear
+Drift focuses on that gap:
 
-Your linter, type checker, and test suite won't catch this. Drift does — deterministically, without any LLM in the pipeline. That makes drift useful for architectural drift detection in AI-accelerated Python codebases, with architecture erosion analysis and cross-file coherence findings that teams can act on.
+- **Ruff / formatters / type checkers:** local correctness and style, not cross-module coherence.
+- **Semgrep / CodeQL / security scanners:** risky flows and policy violations, not architectural consistency.
+- **Maintainability dashboards:** broad quality heuristics, not a drift-specific score with reproducible signal families.
 
-## What drift catches that other checks usually don't
-
-- **Ruff / formatters / type checkers:** local correctness and style signals, not cross-module coherence.
-- **Semgrep / CodeQL / security scanners:** risky flows and policy violations, not whether patterns fragment across a codebase.
-- **Sonar / maintainability dashboards:** broad quality heuristics, not a drift-specific score grounded in reproducible signal families.
-
-Current public evidence: 15 real-world repositories in the study corpus, 15 scoring signals (all contributing to the composite score), and auto-calibration that rebalances weights at runtime. [Full study →](docs/STUDY.md) · [Trust & limitations](docs-site/benchmarking.md)
+Current public evidence: 15 real-world repositories in the study corpus, 15 scoring signals, and auto-calibration that rebalances weights at runtime. [Full study →](docs/STUDY.md) · [Trust & limitations](docs-site/benchmarking.md)
 
 ## Use cases
 
@@ -151,19 +125,7 @@ drift analyze --repo . --format json | jq '.findings[] | select(.signal=="MDS")'
 
 **Output:** MDS findings listing all 6 locations with similarity scores ≥ 0.95, enabling a single extract-to-shared-module refactoring.
 
-## Concrete example findings
-
-If you are evaluating drift, the fastest way to understand the value is to look at concrete findings rather than abstract signal names.
-
-See [docs-site/product/example-findings.md](docs-site/product/example-findings.md) for 5 short examples with code, the likely finding, why it matters, and how to fix it:
-
-- Pattern fragmentation: three incompatible error-handling patterns in one module
-- Mutant duplicate: two copied formatter functions that will drift apart later
-- Architecture violation: a `db/` module importing from `api/`
-- Doc-implementation drift: README structure that no longer matches the repo
-- Temporal volatility: a small file that became a churn hotspot in git history
-
-## More setup options
+## Setup and rollout options
 
 ### Full GitHub Action (recommended: start report-only)
 
@@ -214,7 +176,7 @@ The fastest way to add drift to your workflow:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/sauremilk/drift
-    rev: v0.9.0
+    rev: v0.10.2
     hooks:
       - id: drift-check          # blocks on high-severity findings
       # - id: drift-report        # report-only alternative (start here)
@@ -241,6 +203,8 @@ More setup paths:
 - [Configuration](docs-site/getting-started/configuration.md)
 - [Team Rollout](docs-site/getting-started/team-rollout.md)
 
+If you want example findings before integrating, start with [docs-site/product/example-findings.md](docs-site/product/example-findings.md).
+
 ## What you get
 
 ```text
@@ -264,25 +228,7 @@ More setup paths:
 └──┴────────┴───────┴──────────────────────────────────────┴──────────────────────┘
 ```
 
-Drift scores all 15 signal families:
-
-- `PFS` Pattern Fragmentation (0.16)
-- `AVS` Architecture Violations (0.16)
-- `MDS` Mutant Duplicates (0.13)
-- `TVS` Temporal Volatility (0.13)
-- `EDS` Explainability Deficit (0.09)
-- `SMS` System Misalignment (0.08)
-- `DIA` Doc-Implementation Drift (0.04)
-- `BEM` Broad Exception Monoculture (0.04)
-- `TPD` Test Polarity Deficit (0.04)
-- `NBV` Naming Contract Violation (0.04)
-- `GCD` Guard Clause Deficit (0.03)
-- `BAT` Bypass Accumulation (0.03)
-- `ECM` Exception Contract Drift (0.03)
-- `COD` Cohesion Deficit (0.01)
-- `CCC` Co-Change Coupling (0.005)
-
-Signal details and scoring model:
+Drift scores 15 signal families. For the full list, weights, and scoring details, see:
 
 - [Signal Reference](docs-site/algorithms/signals.md)
 - [Algorithm Deep Dive](docs-site/algorithms/deep-dive.md)
@@ -294,14 +240,12 @@ Data sourced from [STUDY.md](docs/STUDY.md) §9 and [benchmark_results/](benchma
 
 | Capability | drift | SonarQube | pylint / mypy | jscpd / CPD |
 |---|:---:|:---:|:---:|:---:|
-| Pattern Fragmentation (N variants per module) | Yes | No | No | No |
-| Near-Duplicate Detection (AST structural) | Yes | Partial (text) | No | Yes (text) |
-| Architecture Violation (layer + circular deps) | Yes | Partial | No | No |
-| Temporal Volatility (churn anomalies) | Yes | No | No | No |
-| System Misalignment (novel imports) | Yes | No | No | No |
-| Composite Health Score | Yes | Yes (different) | No | No |
-| Zero Config (no server needed) | Yes | No (server) | Partial | Yes |
-| SARIF Output (GitHub Code Scanning) | Yes | Yes | No | No |
+| Pattern Fragmentation across modules | Yes | No | No | No |
+| Near-Duplicate Detection | Yes | Partial (text) | No | Yes (text) |
+| Architecture Violation signals | Yes | Partial | No | No |
+| Temporal / change-history signals | Yes | No | No | No |
+| GitHub Code Scanning via SARIF | Yes | Yes | No | No |
+| Zero server setup | Yes | No | Partial | Yes |
 | TypeScript Support | Optional ¹ | Yes | No | Yes |
 
 ¹ Experimental via `drift-analyzer[typescript]`. Python is the primary target.
@@ -310,50 +254,26 @@ Drift is designed to **complement** linters and security scanners, not replace t
 
 Full comparison: [STUDY.md §9 — Tool Landscape Comparison](docs/STUDY.md)
 
-## Ideal for
+## Is drift a good fit?
 
-- **Python teams using AI coding tools** (Copilot, Cursor, Cody) in existing codebases
-- **Tech leads** who want to catch structural erosion before it becomes team habit
-- **CI pipelines** that need a deterministic architecture check without LLM infrastructure
+Drift is a strong fit for:
 
-Teams often describe drift as an architectural linter for repositories where GitHub Copilot and similar assistants accelerate local delivery faster than shared design conventions can keep up.
-
-## Who should adopt now
-
-- teams with Python 3.11+ already available locally and in CI
+- Python teams using AI coding tools in repositories where architecture matters
 - repositories with 20+ files and recurring refactors across modules
-- teams using AI assistance enough that copy-modify drift and boundary erosion are real review problems
+- teams that want deterministic architectural feedback in local runs and CI
 
-## Who should wait
+Wait or start more cautiously if:
 
-- tiny repos where a few findings would dominate the score
-- teams looking for bug finding, security review, or strict pass/fail quality gates on day one
-- teams without Python 3.11+ in their execution path yet
+- the repository is tiny and a few findings would dominate the score
+- you need bug finding, security review, or type-safety enforcement rather than structural analysis
+- Python 3.11+ is not available in your local and CI execution path yet
 
-## Best first target
-
-Drift works best on Python repositories with 20+ files and some history. If you see too many findings on the first run:
-
-1. Start with `drift check --fail-on none` to just observe.
-2. Focus on findings with score ≥ 0.7 — those have the strongest signal.
-3. Ignore generated code or vendor directories (configure exclusions in `drift.yaml`).
-
-## Don't use drift if...
-
-- you expect bug finding, security scanning, or type safety enforcement
-- you need zero false positives on a tiny repository from day one
-- you want one absolute score to replace code review judgment
-
-Drift is most useful when teams treat the score as orientation and the findings as investigation prompts.
-
-## Small-team rollout
-
-The safest adoption path is progressive:
+The safest rollout path is progressive:
 
 1. Start with `drift analyze` locally and review the top findings.
-2. Add `drift check` in CI as report-only discipline for a short period.
+2. Add `drift check --fail-on none` in CI as report-only discipline.
 3. Gate only on `high` findings once the team understands the output.
-4. Tune config and policies only after reviewing real findings in your repo.
+4. Ignore generated or vendor code and tune config only after reviewing real findings in your repo.
 
 Recommended guides:
 
@@ -363,7 +283,7 @@ Recommended guides:
 
 ## Trust and limitations
 
-> **Public claims safe to repeat for v0.8.2:** Drift is deterministic, benchmarked on 15 real-world repositories in the current study corpus, and uses 15 scoring signals with auto-calibration for runtime weight rebalancing and small-repo noise suppression.
+> **Public claims safe to repeat today:** Drift is deterministic, benchmarked on 15 real-world repositories in the current study corpus, and uses 15 scoring signals with auto-calibration for runtime weight rebalancing and small-repo noise suppression.
 >
 > **What's limited:** Benchmark validation is single-rater; not yet independently replicated. Small repos can be noisy. Temporal signals depend on clone depth. The composite score is orientation, not a verdict.
 >
@@ -396,6 +316,22 @@ Further reading:
 - [Benchmarking and Trust](docs-site/benchmarking.md)
 - [Full Study](docs/STUDY.md)
 - [Case Studies](docs-site/case-studies/index.md)
+
+## Release status
+
+The PyPI classifier remains `Development Status :: 3 - Alpha` intentionally.
+
+That is a conservative release signal, not a claim that the core workflow is unusable. The strongest path today is the deterministic Python analysis and report-only CI rollout; some adjacent surfaces remain intentionally marked as experimental.
+
+Current release posture:
+
+- core Python analysis: stable
+- CI and SARIF workflow: stable
+- TypeScript support: experimental
+- embeddings-based parts: optional / experimental
+- benchmark methodology: evolving
+
+Full rationale and matrix: [Stability and Release Status](docs-site/stability.md)
 
 ## Contributing
 
@@ -430,21 +366,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide and [ROADMAP.md](ROADM
 - [Product Strategy](docs-site/product-strategy.md)
 - [Contributor Guide](CONTRIBUTING.md)
 - [Developer Guide](DEVELOPER.md)
-
-## Status
-
-drift has working CLI, GitHub Action, configuration, JSON/SARIF output, benchmark material, and active tests.
-
-Current release posture:
-
-- PyPI classifier remains Alpha intentionally
-- core Python analysis: stable
-- CI and SARIF workflow: stable
-- TypeScript support: experimental
-- embeddings-based parts: optional / experimental
-- benchmark methodology: evolving
-
-Rationale and matrix: [Stability and Release Status](docs-site/stability.md)
 
 ## License
 
