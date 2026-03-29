@@ -378,7 +378,7 @@ nvtx = [
 
 [[package]]
 name = "drift-analyzer"
-version = "0.10.7"
+version = "0.10.8"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

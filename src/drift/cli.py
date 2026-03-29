@@ -87,23 +87,31 @@ from drift.commands.baseline import baseline  # noqa: E402
 from drift.commands.check import check  # noqa: E402
 from drift.commands.config_cmd import config  # noqa: E402
 from drift.commands.copilot_context import copilot_context  # noqa: E402
+from drift.commands.diff_cmd import diff  # noqa: E402
 from drift.commands.explain import explain  # noqa: E402
+from drift.commands.fix_plan import fix_plan  # noqa: E402
 from drift.commands.mcp import mcp  # noqa: E402
 from drift.commands.patterns import patterns  # noqa: E402
+from drift.commands.scan import scan  # noqa: E402
 from drift.commands.self_analyze import self_analyze  # noqa: E402
 from drift.commands.timeline import timeline  # noqa: E402
 from drift.commands.trend import trend  # noqa: E402
+from drift.commands.validate_cmd import validate  # noqa: E402
 
 main.add_command(analyze)
 main.add_command(baseline)
 main.add_command(check)
 main.add_command(config)
 main.add_command(copilot_context)
+main.add_command(diff)
 main.add_command(explain)
+main.add_command(fix_plan)
 main.add_command(mcp)
 main.add_command(patterns)
+main.add_command(scan)
 main.add_command(timeline)
 main.add_command(trend)
+main.add_command(validate)
 main.add_command(self_analyze)
 main.add_command(badge)
 

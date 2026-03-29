@@ -4,6 +4,62 @@ Drift exposes machine-consumable surfaces for automation, CI artifacts, and cust
 
 This page keeps the current surface area narrow and explicit.
 
+## Agent-native workflow surface
+
+Drift now exposes a consistent agent-oriented surface across Python API, MCP,
+and top-level CLI commands:
+
+- `drift validate`
+- `drift scan`
+- `drift diff`
+- `drift fix-plan`
+- `drift explain`
+
+These commands map directly to the Python API functions `validate()`, `scan()`,
+`diff()`, `fix_plan()`, and `explain()` in `drift.api`.
+
+The agent-native commands are intended to replace ad-hoc shell parsing workflows.
+They emit stable JSON payloads that are small by default and explicitly
+decision-oriented.
+
+## Agent decision fields
+
+`drift scan` and `drift diff` include machine-oriented decision fields so agents
+do not need to re-implement gating heuristics outside drift.
+
+### `scan` response additions
+
+- `accept_change`: `true` when no blocking reasons are present
+- `blocking_reasons`: list of machine-readable reasons such as
+    `existing_high_or_critical_findings` or `drift_trend_degrading`
+- `critical_count`: total critical findings in the analyzed scope
+- `high_count`: total high findings in the analyzed scope
+
+### `diff` response additions
+
+- `accept_change`: `true` when the diff introduces no blocking regressions
+- `blocking_reasons`: list of machine-readable reasons such as
+    `new_high_or_critical_findings` or `drift_score_regressed`
+- `score_regressed`: whether the diff score increased
+- `new_high_or_critical`: count of new high/critical findings in the diff
+- `target_path`: optional scoped subpath used for decision logic
+- `out_of_scope_new_count`: count of diff findings outside the scoped target path
+
+When `target_path` is set on `drift diff`, drift evaluates acceptance primarily
+against findings inside that path and separately reports out-of-scope noise via
+`out_of_scope_new_count` and the blocking reason `out_of_scope_diff_noise`.
+
+## Telemetry correlation
+
+When telemetry is enabled, drift emits one JSONL event per API/tool call.
+Events are correlated with a stable `run_id`.
+
+- Set `DRIFT_TELEMETRY_RUN_ID` to provide an external workflow id.
+- If omitted, drift generates one stable run id for the current process.
+
+This makes it possible to reconstruct multi-step agent workflows across
+`validate`, `scan`, `diff`, `fix-plan`, and `explain` calls.
+
 ## Python API entry points
 
 ### `analyze_repo`
@@ -179,18 +235,20 @@ DRIFT_ERROR_FORMAT=json drift analyze --repo . --format json
 
 When enabled, drift emits one JSON object on `stderr` for runtime errors.
 
-Current payload shape (`schema_version: "1.0"`):
+Current payload shape (`schema_version: "2.0"`):
 
 ```json
 {
-    "schema_version": "1.0",
+    "schema_version": "2.0",
     "type": "error",
     "error_code": "DRIFT-1001",
     "category": "user",
     "message": "[DRIFT-1001] bad config",
     "detail": "[DRIFT-1001] bad config\n\nRun 'drift explain DRIFT-1001' for details.",
     "exit_code": 2,
-    "hint": "Run 'drift explain DRIFT-1001' for details."
+    "hint": "Run 'drift explain DRIFT-1001' for details.",
+    "recoverable": true,
+    "suggested_action": "Fix the value at line {line} or run 'drift config show' to see defaults"
 }
 ```
 

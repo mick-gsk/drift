@@ -1,0 +1,72 @@
+"""drift diff — agent-native change-focused drift analysis."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import click
+
+from drift.api import diff as api_diff
+from drift.api import to_json
+
+
+@click.command("diff")
+@click.option(
+    "--repo",
+    "path",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=Path("."),
+    help="Path to the repository root.",
+)
+@click.option("--diff-ref", default="HEAD~1", help="Git ref to diff against.")
+@click.option(
+    "--target-path",
+    default=None,
+    help="Restrict decision logic to a subdirectory while surfacing out-of-scope noise.",
+)
+@click.option(
+    "--baseline",
+    "baseline_file",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Optional baseline file for new/resolved comparison.",
+)
+@click.option("--max-findings", type=int, default=10, help="Maximum findings to return.")
+@click.option(
+    "--response-detail",
+    type=click.Choice(["concise", "detailed"]),
+    default="concise",
+    help="Response detail level.",
+)
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Write JSON output to a file instead of stdout.",
+)
+def diff(
+    path: Path,
+    diff_ref: str,
+    target_path: str | None,
+    baseline_file: Path | None,
+    max_findings: int,
+    response_detail: str,
+    output: Path | None,
+) -> None:
+    """Run agent-native diff analysis and emit structured JSON."""
+    result = api_diff(
+        path,
+        diff_ref=diff_ref,
+        baseline_file=str(baseline_file) if baseline_file else None,
+        target_path=target_path,
+        max_findings=max_findings,
+        response_detail=response_detail,
+    )
+    text = to_json(result)
+    if output is not None:
+        output.write_text(text + "\n", encoding="utf-8")
+        click.echo(f"Output written to {output}", err=True)
+    else:
+        click.echo(text)

@@ -312,6 +312,13 @@ def _format_scan_response(
     """Format a RepoAnalysis into the scan response schema."""
     ranked = sorted(analysis.findings, key=lambda f: f.impact, reverse=True)
     limited = ranked[:max_findings]
+    critical_count = sum(1 for f in analysis.findings if f.severity.value == "critical")
+    high_count = sum(1 for f in analysis.findings if f.severity.value == "high")
+    blocking_reasons: list[str] = []
+    if critical_count or high_count:
+        blocking_reasons.append("existing_high_or_critical_findings")
+    if analysis.trend and analysis.trend.direction == "degrading":
+        blocking_reasons.append("drift_trend_degrading")
 
     if detail == "concise":
         findings_list = [_finding_concise(f) for f in limited]
@@ -328,8 +335,12 @@ def _format_scan_response(
         top_signals=_top_signals(analysis),
         fix_first=_fix_first_concise(analysis, max_items=min(max_findings, 5)),
         finding_count=len(analysis.findings),
+        critical_count=critical_count,
+        high_count=high_count,
         findings_returned=len(limited),
         findings=findings_list,
+        accept_change=not blocking_reasons,
+        blocking_reasons=blocking_reasons,
         response_truncated=len(analysis.findings) > max_findings,
         recommended_next_actions=_scan_next_actions(analysis),
     )
@@ -353,6 +364,7 @@ def diff(
     *,
     diff_ref: str = "HEAD~1",
     baseline_file: str | None = None,
+    target_path: str | None = None,
     max_findings: int = 10,
     response_detail: str = "concise",
 ) -> dict[str, Any]:
@@ -366,6 +378,9 @@ def diff(
         Git ref to diff against (e.g. ``"HEAD~1"``, ``"main"``).
     baseline_file:
         Path to a ``.drift-baseline.json`` file for comparison.
+    target_path:
+        Restrict decision logic to findings inside this subpath while still
+        reporting whether out-of-scope diff noise exists.
     max_findings:
         Maximum findings in the response.
     response_detail:
@@ -381,6 +396,7 @@ def diff(
         "path": str(path),
         "diff_ref": diff_ref,
         "baseline_file": baseline_file,
+        "target_path": target_path,
         "max_findings": max_findings,
         "response_detail": response_detail,
     }
@@ -403,6 +419,25 @@ def diff(
             new = diff_analysis.findings
             resolved = []
 
+        scoped_new = new
+        scoped_resolved = resolved
+        out_of_scope_new = []
+        normalized_target: str | None = None
+        if target_path:
+            normalized_target = Path(target_path).as_posix().strip("/")
+
+            def _in_scope(finding: Any) -> bool:
+                if not finding.file_path or not normalized_target:
+                    return False
+                file_path = finding.file_path.as_posix().strip("/")
+                return file_path == normalized_target or file_path.startswith(
+                    normalized_target + "/"
+                )
+
+            scoped_new = [finding for finding in new if _in_scope(finding)]
+            scoped_resolved = [finding for finding in resolved if _in_scope(finding)]
+            out_of_scope_new = [finding for finding in new if not _in_scope(finding)]
+
         # Score comparison via trend context
         score_after = diff_analysis.drift_score
         score_before = (
@@ -414,17 +449,17 @@ def diff(
 
         from drift.output.json_output import _priority_class
 
-        drift_categories = sorted({_priority_class(f) for f in new}) if new else []
+        drift_categories = sorted({_priority_class(f) for f in scoped_new}) if scoped_new else []
         affected = sorted({
             f.file_path.as_posix().rsplit("/", 1)[0]
-            for f in new
+            for f in scoped_new
             if f.file_path
         })
 
         status = "stable"
         if delta > 0.01:
             status = "new_critical" if any(
-                f.severity.value in ("critical", "high") for f in new
+                f.severity.value in ("critical", "high") for f in scoped_new
             ) else "degraded"
         elif delta < -0.01:
             status = "improved"
@@ -436,20 +471,32 @@ def diff(
             confidence = "medium"
 
         if response_detail == "concise":
-            ranked_new = sorted(new, key=lambda f: f.impact, reverse=True)[:max_findings]
+            ranked_new = sorted(scoped_new, key=lambda f: f.impact, reverse=True)[:max_findings]
             new_list = [_finding_concise(f) for f in ranked_new]
-            resolved_list = [_finding_concise(f) for f in resolved[:max_findings]]
+            resolved_list = [_finding_concise(f) for f in scoped_resolved[:max_findings]]
         else:
-            ranked_new = sorted(new, key=lambda f: f.impact, reverse=True)[:max_findings]
+            ranked_new = sorted(scoped_new, key=lambda f: f.impact, reverse=True)[:max_findings]
             new_list = [_finding_detailed(f) for f in ranked_new]
-            resolved_list = [_finding_detailed(f) for f in resolved[:max_findings]]
+            resolved_list = [_finding_detailed(f) for f in scoped_resolved[:max_findings]]
 
-        n_new = len(new)
+        n_new = len(scoped_new)
         summary_parts = [f"{n_new} new finding{'s' if n_new != 1 else ''}"]
-        high_count = sum(1 for f in new if f.severity.value in ("critical", "high"))
+        high_count = sum(
+            1 for f in scoped_new if f.severity.value in ("critical", "high")
+        )
         if high_count:
             summary_parts.append(f"{high_count} high/critical")
+        if out_of_scope_new:
+            summary_parts.append(f"{len(out_of_scope_new)} out-of-scope")
         summary_parts.append(f"drift score {'+' if delta >= 0 else ''}{delta:.3f}")
+
+        blocking_reasons: list[str] = []
+        if high_count:
+            blocking_reasons.append("new_high_or_critical_findings")
+        if delta > 0.0:
+            blocking_reasons.append("drift_score_regressed")
+        if out_of_scope_new:
+            blocking_reasons.append("out_of_scope_diff_noise")
 
         result = _base_response(
             drift_detected=delta > 0.0,
@@ -458,17 +505,23 @@ def diff(
             score_before=round(score_before, 4),
             score_after=round(score_after, 4),
             delta=delta,
+            score_regressed=delta > 0.0,
             confidence=confidence,
             diff_ref=diff_ref,
+            target_path=normalized_target,
             new_findings=new_list,
             resolved_findings=resolved_list,
-            new_finding_count=len(new),
-            resolved_count=len(resolved),
+            new_finding_count=len(scoped_new),
+            new_high_or_critical=high_count,
+            resolved_count=len(scoped_resolved),
+            out_of_scope_new_count=len(out_of_scope_new),
             drift_categories=drift_categories,
             affected_components=affected,
             summary=", ".join(summary_parts),
-            recommended_next_actions=_diff_next_actions(new, status),
-            response_truncated=len(new) > max_findings,
+            accept_change=not blocking_reasons,
+            blocking_reasons=blocking_reasons,
+            recommended_next_actions=_diff_next_actions(scoped_new, status),
+            response_truncated=len(scoped_new) > max_findings,
         )
         _emit_api_telemetry(
             tool_name="api.diff",

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
-from drift.api import explain
+from drift.api import diff, explain, scan
+from drift.models import Severity, SignalType
 from drift.telemetry import log_tool_event
 
 
@@ -38,6 +40,26 @@ def test_log_tool_event_writes_jsonl_when_enabled(
     assert row["params"]["token"] == "***REDACTED***"
     assert row["input_tokens_est"] >= 1
     assert row["output_tokens_est"] >= 1
+    assert row["run_id"]
+
+
+def test_log_tool_event_uses_explicit_run_id(monkeypatch, tmp_path: Path) -> None:
+    out = tmp_path / "events.jsonl"
+    monkeypatch.setenv("DRIFT_TELEMETRY_ENABLED", "1")
+    monkeypatch.setenv("DRIFT_TELEMETRY_FILE", str(out))
+    monkeypatch.setenv("DRIFT_TELEMETRY_RUN_ID", "agent-run-123")
+
+    log_tool_event(
+        tool_name="api.scan",
+        params={"path": "."},
+        status="ok",
+        duration_ms=5,
+        result={"drift_score": 0.1},
+        repo_root=tmp_path,
+    )
+
+    row = _read_jsonl(out)[0]
+    assert row["run_id"] == "agent-run-123"
 
 
 def test_log_tool_event_disabled_writes_nothing(
@@ -78,3 +100,127 @@ def test_api_explain_emits_telemetry(
     assert row["status"] == "ok"
     assert row["params"]["topic"] == "PFS"
     assert row["result_summary"]["has_error"] is False
+
+
+def test_api_diff_returns_acceptance_fields(monkeypatch) -> None:
+    import drift.analyzer as analyzer_module
+    import drift.api as api_module
+    from drift.config import DriftConfig
+
+    finding = SimpleNamespace(
+        severity=Severity.HIGH,
+        signal_type=SignalType.PATTERN_FRAGMENTATION,
+        title="Fragmented validation pattern",
+        file_path=Path("src/example.py"),
+        start_line=12,
+        impact=0.9,
+        fix="Consolidate validation flow.",
+    )
+    analysis = SimpleNamespace(
+        findings=[finding],
+        drift_score=0.45,
+        severity=Severity.HIGH,
+        trend=SimpleNamespace(previous_score=0.2),
+        is_degraded=False,
+        total_files=12,
+    )
+
+    monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *args, **kwargs: object()))
+    monkeypatch.setattr(analyzer_module, "analyze_diff", lambda *args, **kwargs: analysis)
+    monkeypatch.setattr(api_module, "_finding_concise", lambda f: {"title": f.title})
+    monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kwargs: None)
+
+    result = diff(Path("."))
+
+    assert result["accept_change"] is False
+    assert result["score_regressed"] is True
+    assert result["new_high_or_critical"] == 1
+    assert "new_high_or_critical_findings" in result["blocking_reasons"]
+    assert "drift_score_regressed" in result["blocking_reasons"]
+
+
+def test_api_diff_scopes_decision_logic_to_target_path(monkeypatch) -> None:
+    import drift.analyzer as analyzer_module
+    import drift.api as api_module
+    from drift.config import DriftConfig
+
+    in_scope = SimpleNamespace(
+        severity=Severity.MEDIUM,
+        signal_type=SignalType.PATTERN_FRAGMENTATION,
+        title="In scope",
+        file_path=Path("src/app/service.py"),
+        start_line=10,
+        impact=0.3,
+        fix="Consolidate",
+    )
+    out_scope = SimpleNamespace(
+        severity=Severity.HIGH,
+        signal_type=SignalType.PATTERN_FRAGMENTATION,
+        title="Out of scope",
+        file_path=Path("tests/test_app.py"),
+        start_line=20,
+        impact=0.8,
+        fix="Consolidate",
+    )
+    analysis = SimpleNamespace(
+        findings=[in_scope, out_scope],
+        drift_score=0.45,
+        severity=Severity.HIGH,
+        trend=SimpleNamespace(previous_score=0.2),
+        is_degraded=False,
+        total_files=12,
+    )
+
+    monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *args, **kwargs: object()))
+    monkeypatch.setattr(analyzer_module, "analyze_diff", lambda *args, **kwargs: analysis)
+    monkeypatch.setattr(api_module, "_finding_concise", lambda f: {"title": f.title})
+    monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kwargs: None)
+
+    result = diff(Path("."), target_path="src/app")
+
+    assert result["new_finding_count"] == 1
+    assert result["new_high_or_critical"] == 0
+    assert result["out_of_scope_new_count"] == 1
+    assert result["target_path"] == "src/app"
+    assert "out_of_scope_diff_noise" in result["blocking_reasons"]
+
+
+def test_api_scan_returns_acceptance_fields(monkeypatch) -> None:
+    import drift.analyzer as analyzer_module
+    import drift.api as api_module
+    from drift.config import DriftConfig
+
+    finding = SimpleNamespace(
+        severity=Severity.HIGH,
+        signal_type=SignalType.PATTERN_FRAGMENTATION,
+        score=0.8,
+        title="Fragmented validation pattern",
+        file_path=Path("src/example.py"),
+        start_line=12,
+        impact=0.9,
+        fix="Consolidate validation flow.",
+    )
+    analysis = SimpleNamespace(
+        findings=[finding],
+        drift_score=0.45,
+        severity=Severity.HIGH,
+        total_files=12,
+        total_functions=50,
+        ai_attributed_ratio=0.1,
+        trend=SimpleNamespace(direction="degrading", previous_score=0.2, delta=0.25),
+    )
+
+    monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *args, **kwargs: object()))
+    monkeypatch.setattr(analyzer_module, "analyze_repo", lambda *args, **kwargs: analysis)
+    monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kwargs: None)
+    monkeypatch.setattr(api_module, "_finding_concise", lambda f: {"title": f.title})
+    monkeypatch.setattr(api_module, "_top_signals", lambda analysis: [])
+    monkeypatch.setattr(api_module, "_fix_first_concise", lambda analysis, max_items=5: [])
+
+    result = scan(Path("."))
+
+    assert result["accept_change"] is False
+    assert result["critical_count"] == 0
+    assert result["high_count"] == 1
+    assert "existing_high_or_critical_findings" in result["blocking_reasons"]
+    assert "drift_trend_degrading" in result["blocking_reasons"]

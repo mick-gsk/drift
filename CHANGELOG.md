@@ -3,6 +3,21 @@
 All notable changes to drift-analyzer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.8] - 2026-03-29
+
+Short version: drift strengthens its agent-native workflow with top-level CLI parity, explicit machine-readable acceptance fields, and better telemetry correlation.
+
+### Added
+
+- **Agent-native top-level CLI commands**: Added `drift validate`, `drift scan`, `drift diff`, and `drift fix-plan` as direct structured JSON entry points aligned with the Python API and MCP surface.
+- **Explicit scan/diff decision fields**: Added machine-readable acceptance signals such as `accept_change`, `blocking_reasons`, and severity regression indicators so agents no longer need to infer gating decisions externally.
+- **Telemetry run correlation**: Added stable `run_id` correlation for telemetry events, with optional override via `DRIFT_TELEMETRY_RUN_ID`.
+
+### Changed
+
+- **API output documentation**: Expanded output docs to describe the agent-native workflow surface, decision fields, and the current machine-readable error schema v2.0.
+- **Scoped diff decisioning**: `drift diff` can now scope acceptance logic to a target path while reporting out-of-scope diff noise separately.
+
 ## [0.10.7] - 2026-03-29
 
 Short version: drift adds token-efficient compact JSON output with deduplicated findings and explicit CLI toggles for agent/CI workflows.

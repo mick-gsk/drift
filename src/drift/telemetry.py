@@ -23,6 +23,7 @@ from typing import Any
 
 _EVENT_SCHEMA_VERSION = "1.0"
 _REDACT_KEYS = {"token", "password", "secret", "apikey", "api_key", "auth"}
+_SESSION_RUN_ID: str | None = None
 
 
 def _env_truthy(name: str) -> bool:
@@ -45,6 +46,18 @@ def telemetry_file(repo_root: Path | None = None) -> Path:
     if custom:
         return Path(custom).expanduser().resolve()
     return _default_telemetry_file(repo_root)
+
+
+def current_run_id() -> str:
+    """Return a stable run id for the current process or configured env value."""
+    global _SESSION_RUN_ID
+
+    explicit = os.getenv("DRIFT_TELEMETRY_RUN_ID", "").strip()
+    if explicit:
+        return explicit
+    if _SESSION_RUN_ID is None:
+        _SESSION_RUN_ID = str(uuid.uuid4())
+    return _SESSION_RUN_ID
 
 
 def estimate_tokens(value: Any) -> int:
@@ -101,7 +114,7 @@ def log_tool_event(
             "schema_version": _EVENT_SCHEMA_VERSION,
             "event_type": "drift_tool_call",
             "event_id": str(uuid.uuid4()),
-            "run_id": run_id,
+            "run_id": run_id or current_run_id(),
             "timestamp": ts,
             "tool_name": tool_name,
             "status": status,
