@@ -82,22 +82,32 @@ def get_remote_sha(ref: str) -> str:
     return result.stdout.split()[0]
 
 
-def run_pre_push_preflight(tag_name: str) -> bool:
-    """Run pre-push hook manually before pushing to fail early with clear output."""
-    if not PRE_PUSH_HOOK.exists():
-        print("ℹ No pre-push hook found. Skipping preflight.")
-        return True
-
-    shell_candidates = [
+def _resolve_shell() -> str | None:
+    """Resolve a POSIX-compatible shell, preferring Git-for-Windows sh over WSL."""
+    candidates = [
         r"C:\Program Files\Git\bin\sh.exe",
         r"C:\Program Files\Git\usr\bin\sh.exe",
         shutil.which("bash"),
         shutil.which("sh"),
     ]
-    shell = next(
-        (c for c in shell_candidates if c and Path(c).exists()),
+    return next(
+        (c for c in candidates if c and Path(c).exists()),
         None,
     )
+
+
+def run_pre_push_preflight(tag_name: str) -> bool:
+    """Run pre-push hook for master branch only (before tag exists) to fail early.
+
+    Only validates the master-branch push portion of the hook. Tag-related hook
+    gates are intentionally skipped here because the tag does not yet exist at
+    preflight time; the hook will re-run automatically on actual push.
+    """
+    if not PRE_PUSH_HOOK.exists():
+        print("ℹ No pre-push hook found. Skipping preflight.")
+        return True
+
+    shell = _resolve_shell()
     if shell is None:
         print("✗ Could not find sh/bash to run pre-push hook.")
         print("  Install Git for Windows or ensure sh is in PATH.")
@@ -110,23 +120,14 @@ def run_pre_push_preflight(tag_name: str) -> bool:
         text=True,
         check=True,
     ).stdout.strip()
-    local_tag = subprocess.run(
-        ["git", "rev-parse", f"{tag_name}^{{}}"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-
     remote_head = get_remote_sha("refs/heads/master")
-    remote_tag = get_remote_sha(f"refs/tags/{tag_name}^{{}}")
 
+    # Only simulate master-branch push — tag does not exist yet at this point.
     hook_input = (
         f"refs/heads/master {local_head} refs/heads/master {remote_head}\n"
-        f"refs/tags/{tag_name} {local_tag} refs/tags/{tag_name} {remote_tag}\n"
     )
 
-    print("\n▶ Running pre-push preflight checks...")
+    print("\n▶ Running pre-push preflight checks (master branch)...")
     preflight = subprocess.run(
         [shell, str(PRE_PUSH_HOOK)],
         cwd=ROOT,
@@ -224,6 +225,10 @@ def main() -> int:
         CHANGELOG.write_text(new_section + changelog_content, "utf-8")
         print(f"✓ Updated CHANGELOG.md: {version_no_v}")
 
+        # Preflight: run push gates before committing/tagging anything
+        if not run_pre_push_preflight(next_version):
+            return 1
+
         print("\n▶ Creating release commit and tag...")
         subprocess.run(
             ["git", "add", "pyproject.toml", "CHANGELOG.md"],
@@ -240,8 +245,6 @@ def main() -> int:
             cwd=ROOT,
             check=True,
         )
-        if not run_pre_push_preflight(next_version):
-            return 1
         subprocess.run(
             ["git", "push", "origin", "master", next_version],
             cwd=ROOT,
