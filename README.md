@@ -395,7 +395,7 @@ If you run drift on your codebase and get surprising results — good or bad —
 - Questions and usage help: [GitHub Discussions](https://github.com/sauremilk/drift/discussions)
 - Bug reports: [Bug report template](https://github.com/sauremilk/drift/issues/new?template=bug_report.md)
 - Feature ideas: [Feature request template](https://github.com/sauremilk/drift/issues/new?template=feature_request.md)
-- Security vulnerabilities: [SECURITY.md](SECURITY.md)
+- Security vulnerabilities: **[SECURITY.md](SECURITY.md)** — please do not open a public issue
 - Full support routing: [SUPPORT.md](SUPPORT.md)
 
 ### New here? Start contributing

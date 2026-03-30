@@ -145,11 +145,28 @@ drift badge      Generate shields.io badge URL
 
 ## Release Process
 
+**Automated (recommended):**
+
+```bash
+python scripts/release_automation.py --full-release
+```
+
+This single command: runs quick tests → calculates next version → updates CHANGELOG → commits → tags → pushes → triggers PyPI publication.
+
+**Manual steps (if needed):**
+
 1. Bump version in `pyproject.toml`
 2. Update `CHANGELOG.md`
 3. Commit: `chore: bump version to vX.Y.Z`
 4. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
 5. Create GitHub Release → CI publishes to PyPI and updates the `v1` major tag
+
+**Helpers:**
+
+| Command | Purpose |
+|---------|---------|
+| `python scripts/release_automation.py --calc-version` | Calculate next version only |
+| `python scripts/release_automation.py --update-changelog` | Update CHANGELOG only |
 
 ### PyPI token for agents and CI
 
@@ -160,3 +177,43 @@ drift badge      Generate shields.io badge URL
 - For local/manual agent upload, export `TWINE_USERNAME=__token__` and `TWINE_PASSWORD=<your-token>` before `python -m twine upload dist/*`.
 
 See [CONTRIBUTING.md → Versioning](CONTRIBUTING.md#versioning) for details.
+
+---
+
+## GitHub Actions Workflows
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `ci.yml` | Push/PR to master | Lint, typecheck, tests, coverage, self-analysis, score gate |
+| `publish.yml` | GitHub Release / manual | Build + publish to PyPI (token or trusted publishing) |
+| `auto-release-on-push.yml` | Push to master | Auto-create GitHub Release from pyproject.toml version |
+| `validate-release.yml` | Tag push `v*` | Pre-publish version validation |
+| `docs.yml` | Push to master (docs changes) | Build + deploy MkDocs to GitHub Pages |
+| `repo-guard.yml` | Push/PR to master | Repository hygiene checks (blocklist, root allowlist) |
+| `package-kpis.yml` | Monthly cron / manual | Collect PyPI downloads + GitHub dependency usage |
+| `welcome.yml` | First issue/PR | Automated welcome message for new contributors |
+| `stale.yml` | Weekly cron | Mark and close inactive issues/PRs |
+
+---
+
+## Pre-Push Gates (for contributors)
+
+The `.githooks/pre-push` hook enforces 5 gates before code reaches the remote. These run automatically after `make install`.
+
+| Gate | When triggered | What it checks |
+|------|---------------|----------------|
+| **Feature Evidence** | `feat:` commits | Tests in `tests/`, benchmark artifact, STUDY.md update |
+| **Changelog** | `feat:` or `fix:` commits | `CHANGELOG.md` must be updated |
+| **Version Bump** | `pyproject.toml` changed | Version must be valid SemVer and > last remote tag |
+| **Lockfile Sync** | `pyproject.toml` changed | `uv.lock` must exist and be synchronized |
+| **Public API Docstrings** | `src/drift/` changes | New public functions must have docstrings |
+
+**Skip flags** (use sparingly, e.g. for docs-only changes):
+
+```bash
+DRIFT_SKIP_CHANGELOG=1 git push      # Skip changelog gate
+DRIFT_SKIP_VERSION_BUMP=1 git push   # Skip version gate
+DRIFT_SKIP_HOOKS=1 git push          # Skip ALL gates (emergency only)
+```
+
+After the gates pass, the hook also runs lint, typecheck, tests, and self-analysis locally before pushing.

@@ -10,13 +10,14 @@ on:
 jobs:
   version-check:
     name: Version format check
-    runs-on: [self-hosted, Windows, X64]
-    defaults:
-      run:
-        shell: powershell
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Validate pyproject.toml version is SemVer
         # Ensures the version in pyproject.toml is always MAJOR.MINOR.PATCH –
@@ -30,15 +31,21 @@ jobs:
         run: python scripts/check_model_consistency.py
 
   test:
-    runs-on: [self-hosted, Windows, X64]
-    defaults:
-      run:
-        shell: powershell
+    runs-on: ubuntu-latest
     needs: version-check
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    name: Test (Python ${{ matrix.python-version }})
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history for git-based signals
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
 
       - name: Install dependencies
         run: pip install -e ".[dev]"
@@ -53,15 +60,14 @@ jobs:
         run: pytest -v --tb=short --cov=drift --cov-report=xml --cov-report=term-missing -m "not slow"
 
       - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
           fail_ci_if_error: false
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Self-analysis
-        run: drift analyze --repo . --format json | Out-Null
+        run: drift analyze --repo . --format json > /dev/null
 
       - name: Drift self-check (score gate)
         run: |

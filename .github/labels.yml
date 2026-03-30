@@ -45,3 +45,7 @@
 - name: not-prioritized
   color: "e4e4e4"
   description: Acknowledged but not currently prioritized
+
+- name: stale
+  color: "ededed"
+  description: Inactive for 90+ days — will auto-close if no further activity
