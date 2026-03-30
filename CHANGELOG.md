@@ -1,3 +1,11 @@
+## [1.1.4] – 2026-03-30
+
+Short version: Version-bump gate uses remote tags instead of local git describe.
+
+### Changed
+
+- Version-bump gate uses remote tags instead of local git describe.
+
 ## [1.1.3] – 2026-03-30
 
 Short version: Update _top_signals mock to accept keyword arguments. (+18 more commits)
