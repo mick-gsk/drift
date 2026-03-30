@@ -1,5 +1,13 @@
 ## [1.1.8] – 2026-03-30
 
+Short version: Extract api helpers and improve mcp docs.
+
+### Changed
+
+- Extract api helpers and improve mcp docs.
+
+## [1.1.8] – 2026-03-30
+
 Short version: Maintenance and dependency updates.
 
 ### Changed
