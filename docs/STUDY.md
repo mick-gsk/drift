@@ -1,6 +1,6 @@
 # STUDY.md — Evaluating Architectural Drift Detection in Real-World Python Projects
 
-> **Versioning note (2026-03-30):** The package version in this repository is drift v0.10.10. Most quantitative benchmark artifacts referenced in this document were generated with drift v0.5.0 unless a later dated section states otherwise. The current production model exposes 19 configured signals, of which 15 are scoring-active and 4 remain report-only pending broader validation. This file therefore documents a historical evidence baseline and must not be read as a full description of the current live signal model.
+> **Versioning note (2026-03-30):** The package version in this repository is drift v1.1.0. Most quantitative benchmark artifacts referenced in this document were generated with drift v0.5.0 unless a later dated section states otherwise. The current production model exposes 19 configured signals, of which 15 are scoring-active and 4 remain report-only pending broader validation. This file therefore documents a historical evidence baseline and must not be read as a full description of the current live signal model.
 
 ---
 

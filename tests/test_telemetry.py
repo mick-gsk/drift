@@ -185,6 +185,49 @@ def test_api_diff_scopes_decision_logic_to_target_path(monkeypatch) -> None:
     assert "out_of_scope_diff_noise" in result["blocking_reasons"]
 
 
+def test_api_diff_uncommitted_mode_passed_to_analyzer(monkeypatch) -> None:
+    import drift.analyzer as analyzer_module
+    import drift.api as api_module
+    from drift.config import DriftConfig
+
+    captured: dict[str, object] = {}
+    analysis = SimpleNamespace(
+        findings=[],
+        drift_score=0.2,
+        severity=Severity.LOW,
+        trend=SimpleNamespace(previous_score=0.2),
+        is_degraded=False,
+        total_files=1,
+    )
+
+    def _fake_analyze_diff(*args, **kwargs):
+        captured.update(kwargs)
+        return analysis
+
+    monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *args, **kwargs: object()))
+    monkeypatch.setattr(analyzer_module, "analyze_diff", _fake_analyze_diff)
+    monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kwargs: None)
+
+    result = diff(Path("."), uncommitted=True)
+
+    assert captured["diff_mode"] == "uncommitted"
+    assert result["diff_mode"] == "uncommitted"
+
+
+def test_api_diff_rejects_conflicting_mode_flags(monkeypatch) -> None:
+    import drift.api as api_module
+    from drift.config import DriftConfig
+
+    monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *args, **kwargs: object()))
+    monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kwargs: None)
+
+    try:
+        diff(Path("."), uncommitted=True, staged_only=True)
+        raise AssertionError("Expected ValueError for conflicting diff mode flags.")
+    except ValueError as exc:
+        assert "mutually exclusive" in str(exc)
+
+
 def test_api_scan_returns_acceptance_fields(monkeypatch) -> None:
     import drift.analyzer as analyzer_module
     import drift.api as api_module

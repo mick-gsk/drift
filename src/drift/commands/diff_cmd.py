@@ -21,6 +21,18 @@ from drift.api import to_json
 )
 @click.option("--diff-ref", default="HEAD~1", help="Git ref to diff against.")
 @click.option(
+    "--uncommitted",
+    is_flag=True,
+    default=False,
+    help="Analyze current working-tree changes against HEAD.",
+)
+@click.option(
+    "--staged-only",
+    is_flag=True,
+    default=False,
+    help="Analyze only staged changes.",
+)
+@click.option(
     "--target-path",
     default=None,
     help="Restrict decision logic to a subdirectory while surfacing out-of-scope noise.",
@@ -49,6 +61,8 @@ from drift.api import to_json
 def diff(
     path: Path,
     diff_ref: str,
+    uncommitted: bool,
+    staged_only: bool,
     target_path: str | None,
     baseline_file: Path | None,
     max_findings: int,
@@ -56,9 +70,14 @@ def diff(
     output: Path | None,
 ) -> None:
     """Run agent-native diff analysis and emit structured JSON."""
+    if uncommitted and staged_only:
+        raise click.UsageError("Use either --uncommitted or --staged-only, not both.")
+
     result = api_diff(
         path,
         diff_ref=diff_ref,
+        uncommitted=uncommitted,
+        staged_only=staged_only,
         baseline_file=str(baseline_file) if baseline_file else None,
         target_path=target_path,
         max_findings=max_findings,

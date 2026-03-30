@@ -1,7 +1,5 @@
----
 applyTo: "src/drift/**"
 description: "Release-Automatisierung für Drift-Analyzer: Nach Code-Änderungen automatisch Tests, Versionierung, Versionshistorie, Commit, GitHub Release und PyPI-Publikation durchführen. Verwendet Semantic Versioning basierend auf Commit-Nachricht (fix→patch, feat→minor, BREAKING→major)."
----
 
 # Drift Release Automation
 
@@ -14,12 +12,6 @@ Wenn du Code-Änderungen an `src/drift/` durchführst, führe nach erfolgreichem
    python -m pytest tests/ --tb=short --ignore=tests/test_smoke.py -q --maxfail=1
    ```
    - Verhindert defekten Code in Releases
-   - Bei Fehler: ABBRUCH, Agent muss Fehler beheben
-
-2. **Versionsnummer berechnen** (Semantic Versioning)
-   - Lese alle Commits seit letzter v* Tag
-   - Analysiere Commit-Nachrichtsköpfe:
-     - `fix: ...` → PATCH erhöhen
      - `feat: ...` → MINOR erhöhen  
      - `BREAKING: ...` oder `BREAKING CHANGE` → MAJOR erhöhen
    - Priorität: MAJOR > MINOR > PATCH
@@ -60,10 +52,6 @@ Wenn du Code-Änderungen an `src/drift/` durchführst, führe nach erfolgreichem
    - Workflow: validiert Tag ↔ pyproject.toml → baut Dist → published zu PyPI
 
 6. **Warte auf GitHub Actions**
-   - Check GitHub Release wurde erstellt
-   - Check PyPI Publikation erfolgreich (erfolgt ~1-2 min nach Release)
-
-## Fehlerfälle
 
 | Fehler | Aktion |
 |--------|--------|
@@ -77,12 +65,7 @@ Wenn du Code-Änderungen an `src/drift/` durchführst, führe nach erfolgreichem
 # Aus Terminal für lokale Fallbacks
 $env:TWINE_USERNAME = "__token__"
 $env:TWINE_PASSWORD = "pypi-..."  # Der PyPI Token
-```
-
-Diese werden von GitHub Actions falls lokal nötig, aber automatisch via GitHub Secret `PYPI_API_TOKEN` in Workflows gelöst.
-
 ## Befehle als Schnellreferenz
-
 ```bash
 # 1. Quick-Test
 python -m pytest tests/ --ignore=tests/test_smoke.py -q --maxfail=1

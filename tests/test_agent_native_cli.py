@@ -109,6 +109,60 @@ def test_scan_next_actions_baseline_hint_many_findings() -> None:
     analysis.findings = [finding] * 30
     analysis.trend = None
 
+
+def test_scan_help_has_signals_alias() -> None:
+    """--signals should appear as an alias for --select in drift scan --help."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["scan", "--help"])
+    assert result.exit_code == 0
+    assert "--signals" in result.output
+
+
+def test_validate_help_has_baseline_option() -> None:
+    """--baseline option should appear in drift validate --help."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["validate", "--help"])
+    assert result.exit_code == 0
+    assert "--baseline" in result.output
+
+
+def test_diff_noise_context_field_present() -> None:
+    """_diff_next_actions with has_baseline=False and noise hints baseline save workflow."""
+    from drift.api import _diff_next_actions
+
+    actions = _diff_next_actions(
+        new_findings=[],
+        status="stable",
+        blocking_reasons=["out_of_scope_diff_noise"],
+        in_scope_accept=True,
+        has_baseline=False,
+    )
+    combined = " ".join(actions)
+    assert "baseline" in combined.lower()
+
+
+def test_fix_plan_path_diagnostic_no_findings() -> None:
+    """fix_plan with a nonexistent path should return path_diagnostic."""
+    from drift.api import fix_plan
+
+    result = fix_plan(".", target_path="nonexistent_path_xyz_12345")
+    assert "path_diagnostic" in result
+
+
+def _make_minimal_analysis():
+    """Return a minimal RepoAnalysis-like object for testing."""
+    from unittest.mock import MagicMock
+
+    m = MagicMock()
+    m.findings = []
+    m.score = 0.1
+    m.severity.value = "low"
+    m.modules = []
+    m.trend = None
+    m.run_id = "test-run"
+    return m
+
+
     actions = _scan_next_actions(analysis)
     assert any("baseline" in a.lower() for a in actions)
 

@@ -382,6 +382,8 @@ def diff(
     path: str | Path = ".",
     *,
     diff_ref: str = "HEAD~1",
+    uncommitted: bool = False,
+    staged_only: bool = False,
     baseline_file: str | None = None,
     target_path: str | None = None,
     max_findings: int = 10,
@@ -395,6 +397,10 @@ def diff(
         Repository root directory.
     diff_ref:
         Git ref to diff against (e.g. ``"HEAD~1"``, ``"main"``).
+    uncommitted:
+        Compare current working tree changes against ``HEAD``.
+    staged_only:
+        Compare only staged changes.
     baseline_file:
         Path to a ``.drift-baseline.json`` file for comparison.
     target_path:
@@ -414,6 +420,8 @@ def diff(
     params = {
         "path": str(path),
         "diff_ref": diff_ref,
+        "uncommitted": uncommitted,
+        "staged_only": staged_only,
         "baseline_file": baseline_file,
         "target_path": target_path,
         "max_findings": max_findings,
@@ -423,8 +431,22 @@ def diff(
     try:
         cfg = DriftConfig.load(repo_path)
 
+        if uncommitted and staged_only:
+            raise ValueError("Options 'uncommitted' and 'staged_only' are mutually exclusive.")
+
+        diff_mode = "ref"
+        if staged_only:
+            diff_mode = "staged"
+        elif uncommitted:
+            diff_mode = "uncommitted"
+
         # Current analysis (diff scope)
-        diff_analysis = _analyze_diff(repo_path, config=cfg, diff_ref=diff_ref)
+        diff_analysis = _analyze_diff(
+            repo_path,
+            config=cfg,
+            diff_ref=diff_ref,
+            diff_mode=diff_mode,
+        )
 
         # Baseline comparison
         if baseline_file:
@@ -552,6 +574,7 @@ def diff(
             score_regressed=delta > 0.0,
             confidence=confidence,
             diff_ref=diff_ref,
+            diff_mode=diff_mode,
             target_path=normalized_target,
             new_findings=new_list,
             resolved_findings=resolved_list,
@@ -1112,9 +1135,9 @@ def validate(
                 # Count new vs resolved via fingerprints
                 from drift.analyzer import analyze_repo
                 from drift.baseline import baseline_diff as _bl_diff
-                from drift.config import DriftConfig as _DC
+                from drift.config import DriftConfig
 
-                _cfg = _DC.load(repo_path)
+                _cfg = DriftConfig.load(repo_path)
                 _analysis = analyze_repo(repo_path, config=_cfg)
                 new_findings, known_findings = _bl_diff(
                     _analysis.findings, bl_fingerprints

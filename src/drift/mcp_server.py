@@ -116,6 +116,8 @@ def drift_scan(
 def drift_diff(
     path: str = ".",
     diff_ref: str = "HEAD~1",
+    uncommitted: bool = False,
+    staged_only: bool = False,
     baseline_file: str | None = None,
     max_findings: int = 10,
     response_detail: str = "concise",
@@ -128,6 +130,8 @@ def drift_diff(
     Args:
         path: Repository path (default: current directory).
         diff_ref: Git ref to diff against (default: HEAD~1).
+        uncommitted: Compare current working-tree changes against HEAD.
+        staged_only: Compare only staged changes.
         baseline_file: Path to .drift-baseline.json for comparison.
         max_findings: Maximum findings to return (default: 10).
         response_detail: "concise" or "detailed".
@@ -137,6 +141,8 @@ def drift_diff(
     result = diff(
         path,
         diff_ref=diff_ref,
+        uncommitted=uncommitted,
+        staged_only=staged_only,
         baseline_file=baseline_file,
         max_findings=max_findings,
         response_detail=response_detail,

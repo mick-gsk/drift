@@ -9,7 +9,12 @@ from drift.models import ClassInfo, FunctionInfo, ImportInfo, ParseResult, Signa
 from drift.signals.dead_code_accumulation import DeadCodeAccumulationSignal
 
 
-def _func(name: str, file_path: str, line: int) -> FunctionInfo:
+def _func(
+    name: str,
+    file_path: str,
+    line: int,
+    decorators: list[str] | None = None,
+) -> FunctionInfo:
     return FunctionInfo(
         name=name,
         file_path=Path(file_path),
@@ -18,16 +23,23 @@ def _func(name: str, file_path: str, line: int) -> FunctionInfo:
         language="python",
         complexity=2,
         loc=6,
+        decorators=decorators or [],
     )
 
 
-def _cls(name: str, file_path: str, line: int) -> ClassInfo:
+def _cls(
+    name: str,
+    file_path: str,
+    line: int,
+    bases: list[str] | None = None,
+) -> ClassInfo:
     return ClassInfo(
         name=name,
         file_path=Path(file_path),
         start_line=line,
         end_line=line + 10,
         language="python",
+        bases=bases or [],
     )
 
 
@@ -124,5 +136,46 @@ class TestDCATrueNegative:
 
         signal = DeadCodeAccumulationSignal()
         findings = signal.analyze([pr_init], {}, DriftConfig())
+
+        assert len(findings) == 0
+
+    def test_route_handlers_and_schema_classes_are_not_reported(self) -> None:
+        """Framework route entry points should not be suggested for removal."""
+        pr_router = ParseResult(
+            file_path=Path("backend/api/routers/analytics.py"),
+            language="python",
+            functions=[
+                _func(
+                    "get_dashboard_data",
+                    "backend/api/routers/analytics.py",
+                    20,
+                    decorators=["get"],
+                ),
+                _func(
+                    "submit_telemetry",
+                    "backend/api/routers/analytics.py",
+                    40,
+                    decorators=["post"],
+                ),
+            ],
+            classes=[
+                _cls(
+                    "TelemetryBatch",
+                    "backend/api/routers/analytics.py",
+                    5,
+                    bases=["BaseModel"],
+                ),
+                _cls(
+                    "TelemetryEventSchema",
+                    "backend/api/routers/analytics.py",
+                    12,
+                    bases=["BaseModel"],
+                ),
+            ],
+            imports=[],
+        )
+
+        signal = DeadCodeAccumulationSignal()
+        findings = signal.analyze([pr_router], {}, DriftConfig())
 
         assert len(findings) == 0

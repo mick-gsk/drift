@@ -5,27 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [1.1.0] - 2026-03-30
 
-Short version: drift closes all key agent-workflow gaps identified through real-world agent behavior analysis — deterministic fix-first lists, noise-aware diff responses, skipped-file transparency, baseline-aware validation, CLI contract parity, and richer error diagnosis.
+Short version: drift closes all key agent-workflow gaps identified through real-world agent behavior analysis — deterministic fix-first lists, noise-aware diff responses, skipped-file transparency, baseline-aware validation, and CLI contract parity.
 
 ### Added
 
-- **`--signals` alias for `--select` in `drift scan`**: Agents can now use `drift scan --signals PFS,AVS` interchangeably with `--select PFS,AVS`, closing the CLI contract gap discovered in real-world agent usage.
-- **`drift validate --baseline`**: Validate can now accept a baseline JSON file to compare against; the response includes a `progress` dict with `score_before`, `score_after`, `delta`, `direction`, `resolved_count`, `new_count`, and `progress_summary`.
-- **`noise_context` in `drift diff` responses**: New top-level dict exposes `pre_existing_count` and a human-readable `explanation` so agents can distinguish pre-existing findings from new regressions.
-- **`path_diagnostic` in `drift fix-plan` responses**: When a `target_path` scope yields no tasks, the response now includes a diagnostic field (`no_matching_files` or `no_findings_in_path`) with `recommended_next_actions` to avoid silent empty results.
-- **Skipped-file visibility in `drift scan`**: `scan` responses now include `skipped_files` (total count) and `skipped_languages` (per-language breakdown) when non-Python files were skipped during discovery.
-- **Release automation script** (`scripts/release_automation.py`): Full `--full-release` pipeline for semantic-versioned automated releases.
+- **CLI contract parity**: `drift scan --signals` is now a first-class alias for `--select`; `drift validate --baseline` accepts a baseline JSON file and returns a `progress` dict with before/after score delta and resolved/new finding counts.
+- **Noise observability**: `drift diff` responses include a `noise_context` dict (`pre_existing_count` + explanation) so agents can distinguish pre-existing findings from new regressions without manual counting.
+- **Scope diagnostics**: `drift fix-plan` with an empty `target_path` scope now returns a `path_diagnostic` field explaining whether no files matched or no findings were found; `drift scan` responses include `skipped_files` and `skipped_languages` when non-Python files were skipped.
 
 ### Fixed
 
-- **Duplicate entries in `fix_first`**: `_fix_first_concise()` (API) and `_fix_first_list()` (JSON output) now run deduplication before selecting the top-N entries, preventing the same file from appearing multiple times.
-- **Duplicate paths in `related_files`**: Agent task `related_files` lists use `dict.fromkeys` for order-preserving deduplication.
-- **Stale CLI command references in success criteria**: All `drift analyze` references in `_success_criteria_for()` (agent_tasks) were updated to `drift scan` to match current CLI contract.
-
-### Changed
-
-- **`top_signals` tie-breaking**: When two signals have identical scores, the one with more findings is ranked higher (`-finding_count` as secondary sort key), producing more stable and informative signal ordering.
-- **Baseline hint in `drift diff` next actions**: When no baseline exists and pre-existing noise is detected, `recommended_next_actions` now proactively suggests the `drift baseline save` → `drift diff --baseline` workflow.
+- **Deterministic `fix_first`**: Deduplication now runs before top-N selection in both the API (`_fix_first_concise`) and JSON output (`_fix_first_list`); `related_files` in agent tasks use order-preserving dedup via `dict.fromkeys`.
+- **CLI command references**: All `drift analyze` references in `_success_criteria_for()` updated to `drift scan` to match current CLI contract; `top_signals` tie-breaking now uses finding count as secondary sort key for stable ordering.
 
 ## [0.10.10] - 2026-03-30
 

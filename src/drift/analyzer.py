@@ -246,6 +246,7 @@ def analyze_diff(
     repo_path: Path,
     config: DriftConfig | None = None,
     diff_ref: str = "HEAD~1",
+    diff_mode: str = "ref",
     workers: int = _DEFAULT_WORKERS,
     on_progress: ProgressCallback | None = None,
     since_days: int = 90,
@@ -259,8 +260,15 @@ def analyze_diff(
 
     changed_files: list[str] = []
     try:
+        if diff_mode == "staged":
+            git_args = ["git", "diff", "--cached", "--name-only"]
+        elif diff_mode == "uncommitted":
+            git_args = ["git", "diff", "--name-only", "HEAD"]
+        else:
+            git_args = ["git", "diff", "--name-only", diff_ref]
+
         result = subprocess.run(
-            ["git", "diff", "--name-only", diff_ref],
+            git_args,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -271,17 +279,19 @@ def analyze_diff(
         changed_files = [line for line in result.stdout.strip().splitlines() if line]
     except Exception as exc:
         logger.warning(
-            "Could not resolve diff ref '%s': %s. Falling back to full analysis.",
+            "Could not resolve diff mode '%s' (ref='%s'): %s. Falling back to full analysis.",
+            diff_mode,
             diff_ref,
             exc,
         )
         analysis = analyze_repo(repo_path, config, workers=workers)
+        degradation_cause = "diff_ref_invalid" if diff_mode == "ref" else "git_diff_query_failed"
         _mark_analysis_degraded(
             analysis,
-            cause="diff_ref_invalid",
+            cause=degradation_cause,
             component="git_diff",
             message="Diff reference could not be resolved; executed full-repository fallback.",
-            details={"diff_ref": diff_ref, "error": str(exc)},
+            details={"diff_ref": diff_ref, "diff_mode": diff_mode, "error": str(exc)},
         )
         return analysis
 

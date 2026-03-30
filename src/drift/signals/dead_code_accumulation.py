@@ -60,6 +60,48 @@ _FRAMEWORK_NAMES: frozenset[str] = frozenset({
     "downgrade",
 })
 
+_ROUTE_DECORATOR_TOKENS: frozenset[str] = frozenset({
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "options",
+    "head",
+    "route",
+    "websocket",
+    "api_view",
+})
+
+_SCHEMA_CLASS_SUFFIXES: tuple[str, ...] = (
+    "Schema",
+    "Model",
+    "DTO",
+    "Request",
+    "Response",
+)
+
+
+def _is_route_entrypoint_function(decorators: list[str]) -> bool:
+    """Return True when decorators indicate a framework route entry-point."""
+    for dec in decorators:
+        token = dec.split(".")[-1].lower()
+        if token in _ROUTE_DECORATOR_TOKENS:
+            return True
+    return False
+
+
+def _is_schema_like_class(name: str, bases: list[str]) -> bool:
+    """Return True for classes that likely represent API/Pydantic schemas."""
+    if name.endswith(_SCHEMA_CLASS_SUFFIXES):
+        return True
+
+    for base in bases:
+        base_token = base.split(".")[-1]
+        if base_token in {"BaseModel", "SQLModel", "Schema"}:
+            return True
+    return False
+
 
 def _is_public(name: str) -> bool:
     """Return True if *name* is a public symbol (no leading underscore)."""
@@ -89,6 +131,15 @@ class DeadCodeAccumulationSignal(BaseSignal):
         # Phase 1: collect all exported (public) symbols per file
         # symbol_name → list of (file_path, kind, start_line)
         exported: dict[str, list[tuple[Path, str, int]]] = defaultdict(list)
+        route_entrypoint_files: set[Path] = set()
+
+        for pr in parse_results:
+            if pr.language not in _SUPPORTED_LANGUAGES:
+                continue
+            for fn in pr.functions:
+                if _is_route_entrypoint_function(fn.decorators):
+                    route_entrypoint_files.add(pr.file_path)
+                    break
 
         for pr in parse_results:
             if pr.language not in _SUPPORTED_LANGUAGES:
@@ -101,12 +152,19 @@ class DeadCodeAccumulationSignal(BaseSignal):
                     continue
 
             for fn in pr.functions:
+                if _is_route_entrypoint_function(fn.decorators):
+                    continue
                 if _is_public(fn.name) and fn.name not in _FRAMEWORK_NAMES:
                     exported[fn.name].append(
                         (pr.file_path, "function", fn.start_line)
                     )
 
             for cls in pr.classes:
+                if (
+                    pr.file_path in route_entrypoint_files
+                    and _is_schema_like_class(cls.name, cls.bases)
+                ):
+                    continue
                 if _is_public(cls.name) and cls.name not in _FRAMEWORK_NAMES:
                     exported[cls.name].append(
                         (pr.file_path, "class", cls.start_line)

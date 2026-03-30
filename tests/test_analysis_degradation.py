@@ -92,3 +92,57 @@ def test_invalid_diff_ref_marks_fallback_as_degraded(tmp_path: Path) -> None:
     assert analysis.is_degraded is True
     assert "diff_ref_invalid" in analysis.degradation_causes
     assert "git_diff" in analysis.degradation_components
+
+
+def test_analyze_diff_uncommitted_mode_detects_working_tree_changes(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True, exist_ok=True)
+    file_path = repo / "m.py"
+    file_path.write_text("def f():\n    return 1\n", encoding="utf-8")
+
+    _git(repo, "init")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "init")
+
+    # Unstaged change in working tree.
+    file_path.write_text("def f():\n    return 2\n", encoding="utf-8")
+
+    analysis = analyze_diff(
+        repo,
+        config=_config(),
+        diff_mode="uncommitted",
+        workers=1,
+    )
+
+    assert analysis.total_files >= 1
+    assert analysis.is_degraded is False
+
+
+def test_analyze_diff_staged_mode_only_uses_index_changes(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True, exist_ok=True)
+    file_path = repo / "m.py"
+    file_path.write_text("def f():\n    return 1\n", encoding="utf-8")
+
+    _git(repo, "init")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "init")
+
+    # Unstaged change should not show up in staged-only mode.
+    file_path.write_text("def f():\n    return 2\n", encoding="utf-8")
+    unstaged = analyze_diff(
+        repo,
+        config=_config(),
+        diff_mode="staged",
+        workers=1,
+    )
+    assert unstaged.total_files == 0
+
+    _git(repo, "add", "m.py")
+    staged = analyze_diff(
+        repo,
+        config=_config(),
+        diff_mode="staged",
+        workers=1,
+    )
+    assert staged.total_files >= 1
