@@ -1,5 +1,13 @@
 ## [1.1.7] – 2026-03-30
 
+Short version: Add no-color CLI evidence for release. (+1 more commits)
+
+### Changed
+
+- Add no-color CLI evidence for release. (+1 more commits)
+
+## [1.1.7] – 2026-03-30
+
 Short version: Refresh branding and add no-color CLI output.
 
 ### Changed
