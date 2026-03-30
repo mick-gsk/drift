@@ -390,6 +390,14 @@ Drift seeks contributions that increase the credibility of static architecture f
 
 If you run drift on your codebase and get surprising results — good or bad — please [open an issue](https://github.com/sauremilk/drift/issues) or start a [discussion](https://github.com/sauremilk/drift/discussions).
 
+### Getting help
+
+- Questions and usage help: [GitHub Discussions](https://github.com/sauremilk/drift/discussions)
+- Bug reports: [Bug report template](https://github.com/sauremilk/drift/issues/new?template=bug_report.md)
+- Feature ideas: [Feature request template](https://github.com/sauremilk/drift/issues/new?template=feature_request.md)
+- Security vulnerabilities: [SECURITY.md](SECURITY.md)
+- Full support routing: [SUPPORT.md](SUPPORT.md)
+
 ### New here? Start contributing
 
 1. Pick an issue labelled [`good first issue`](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)

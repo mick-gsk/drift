@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Support and channel guide
+    url: https://github.com/sauremilk/drift/blob/master/SUPPORT.md
+    about: Use SUPPORT.md to pick the right channel for questions, bugs, ideas, and security.
   - name: Questions and usage help
     url: https://github.com/sauremilk/drift/discussions
     about: Please ask and answer general questions in Discussions.

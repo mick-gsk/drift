@@ -23,6 +23,17 @@ make check            # lint + typecheck + test + self-analysis
 
 See [DEVELOPER.md](DEVELOPER.md) for the full developer guide (architecture, commands, conventions).
 
+## First-time contributors start here
+
+If this is your first contribution to Drift, use this fast path:
+
+1. Pick a scoped issue in [good first issue](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+2. Follow local setup in the quick start above
+3. Run `make test-fast` before and after your change
+4. Open a focused PR and explain what changed, why, and how it was validated
+
+If you are unsure where to ask, use [SUPPORT.md](SUPPORT.md) to choose the right channel.
+
 <details>
 <summary>Without Make</summary>
 
