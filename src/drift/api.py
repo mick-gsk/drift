@@ -166,7 +166,11 @@ def _trend_dict(analysis: RepoAnalysis) -> dict[str, Any] | None:
     }
 
 
-def _top_signals(analysis: RepoAnalysis) -> list[dict[str, Any]]:
+def _top_signals(
+    analysis: RepoAnalysis,
+    *,
+    signal_filter: set[str] | None = None,
+) -> list[dict[str, Any]]:
     """Aggregate signal scores and finding counts."""
     from collections import Counter
 
@@ -174,6 +178,8 @@ def _top_signals(analysis: RepoAnalysis) -> list[dict[str, Any]]:
     score_sums: dict[str, float] = {}
     for f in analysis.findings:
         abbr = signal_abbrev(f.signal_type)
+        if signal_filter and abbr not in signal_filter:
+            continue
         counts[abbr] += 1
         score_sums[abbr] = max(score_sums.get(abbr, 0.0), f.score)
 
@@ -208,8 +214,18 @@ def _fix_first_concise(analysis: RepoAnalysis, max_items: int = 5) -> list[dict[
         ),
     )
 
+    # Additional dedup: one entry per (file, signal) — first wins
+    seen_file_signal: set[tuple[str, str]] = set()
+    unique: list = []
+    for f in prioritized:
+        fp = f.file_path.as_posix() if f.file_path else ""
+        key = (fp, f.signal_type.value)
+        if key not in seen_file_signal:
+            seen_file_signal.add(key)
+            unique.append(f)
+
     items: list[dict[str, Any]] = []
-    for idx, f in enumerate(prioritized[:max_items], start=1):
+    for idx, f in enumerate(unique[:max_items], start=1):
         items.append({
             "rank": idx,
             "signal": signal_abbrev(f.signal_type),
@@ -276,6 +292,13 @@ def scan(
     try:
         cfg = DriftConfig.load(repo_path)
 
+        # Validate target_path existence
+        warnings: list[str] = []
+        if target_path and not (repo_path / target_path).exists():
+            warnings.append(
+                f"target_path '{target_path}' does not exist in repository"
+            )
+
         if signals:
             select_csv = ",".join(signals)
             apply_signal_filter(cfg, select_csv, None)
@@ -291,7 +314,10 @@ def scan(
             max_findings=max_findings,
             detail=response_detail,
             strategy=strategy,
+            signal_filter=set(s.upper() for s in signals) if signals else None,
         )
+        if warnings:
+            result["warnings"] = warnings
         _emit_api_telemetry(
             tool_name="api.scan",
             params=params,
@@ -348,6 +374,7 @@ def _format_scan_response(
     max_findings: int = 10,
     detail: str = "concise",
     strategy: str = "diverse",
+    signal_filter: set[str] | None = None,
 ) -> dict[str, Any]:
     """Format a RepoAnalysis into the scan response schema."""
     if strategy == "diverse":
@@ -377,7 +404,7 @@ def _format_scan_response(
         total_functions=analysis.total_functions,
         ai_ratio=round(analysis.ai_attributed_ratio, 3),
         trend=_trend_dict(analysis),
-        top_signals=_top_signals(analysis),
+        top_signals=_top_signals(analysis, signal_filter=signal_filter),
         fix_first=_fix_first_concise(analysis, max_items=min(max_findings, 5)),
         finding_count=len(analysis.findings),
         critical_count=critical_count,
@@ -475,8 +502,10 @@ def diff(
         diff_mode = "ref"
         if staged_only:
             diff_mode = "staged"
+            diff_ref = "HEAD"
         elif uncommitted:
             diff_mode = "uncommitted"
+            diff_ref = "HEAD"
 
         # Current analysis (diff scope)
         diff_analysis = _analyze_diff(
@@ -888,6 +917,14 @@ def fix_plan(
 
     try:
         cfg = DriftConfig.load(repo_path)
+
+        # Validate target_path existence
+        warnings: list[str] = []
+        if target_path and not (repo_path / target_path).exists():
+            warnings.append(
+                f"target_path '{target_path}' does not exist in repository"
+            )
+
         analysis = analyze_repo(repo_path, config=cfg)
         tasks = analysis_to_agent_tasks(analysis)
 
@@ -985,6 +1022,8 @@ def fix_plan(
             path_diagnostic=path_diagnostic,
             recommended_next_actions=next_actions,
         )
+        if warnings:
+            result["warnings"] = warnings
         _emit_api_telemetry(
             tool_name="api.fix_plan",
             params=params,

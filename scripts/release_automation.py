@@ -73,17 +73,21 @@ def _get_commit_summary() -> str:
 
 
 def get_latest_version() -> tuple[int, int, int]:
-    """Get latest version from git tags."""
+    """Get latest version from remote tags (source of truth = what is published).
+
+    Falls back to local tags if remote is unreachable.
+    """
     try:
         result = subprocess.run(
-            ["git", "tag", "-l", "v*.*.*"],
+            ["git", "ls-remote", "--tags", "--refs", "origin"],
             cwd=ROOT,
             capture_output=True,
             text=True,
             check=True,
         )
-        tags = sorted([t for t in result.stdout.strip().split("\n") if t])
+        tags = re.findall(r"refs/tags/(v\d+\.\d+\.\d+)$", result.stdout, re.MULTILINE)
         if tags:
+            tags = sorted(tags, key=lambda t: tuple(int(x) for x in t.lstrip("v").split(".")))
             match = re.match(r"v(\d+)\.(\d+)\.(\d+)", tags[-1])
             if match:
                 major, minor, patch = match.groups()

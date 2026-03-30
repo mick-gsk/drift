@@ -31,6 +31,7 @@ def _make_finding(
         related_files=[],
         rule_id=f"RULE-{signal_type.value[:3]}",
         score_contribution=impact * 0.1,
+        metadata={},
     )
 
 
@@ -132,7 +133,235 @@ class TestDiverseFindings:
             api_module, "_emit_api_telemetry",
             lambda **kw: None,
         )
+        monkeypatch.setattr(
+            api_module, "_finding_concise",
+            lambda f: {
+                "signal": api_module.signal_abbrev(f.signal_type),
+                "title": f.title,
+            },
+        )
+        monkeypatch.setattr(
+            api_module, "_fix_first_concise",
+            lambda analysis, max_items=5: [],
+        )
 
         result = scan(Path("."), max_findings=15)
         signals_in_findings = {f["signal"] for f in result["findings"]}
         assert len(signals_in_findings) >= 3
+
+
+# --- Task 2: fix_first dedup by (file, signal) ---
+
+class TestFixFirstDedup:
+    def test_fix_first_deduplicates_file_signal_pairs(
+        self, monkeypatch,
+    ):
+        """fix_first contains each (file, signal) at most once."""
+        import drift.api as api_module
+
+        same_file = "src/service.py"
+        findings = [
+            _make_finding(PFS, 0.9, 0.9, file=same_file, line=10),
+            _make_finding(PFS, 0.85, 0.85, file=same_file, line=20),
+            _make_finding(PFS, 0.8, 0.8, file=same_file, line=30),
+            _make_finding(AVS, 0.7, 0.7, file="src/other.py", line=5),
+        ]
+        analysis = SimpleNamespace(findings=findings)
+
+        result = api_module._fix_first_concise(analysis, max_items=5)
+        pairs = [(item["file"], item["signal"]) for item in result]
+        assert len(pairs) == len(set(pairs))
+        # The 3 PFS findings for same file should collapse to 1
+        pfs_same = [
+            it for it in result
+            if it["file"] == same_file and it["signal"] == "PFS"
+        ]
+        assert len(pfs_same) == 1
+
+
+# --- Task 3: diff --uncommitted scope ---
+
+class TestDiffUncommittedScope:
+    def test_uncommitted_overrides_diff_ref_to_head(self, monkeypatch):
+        """uncommitted=True must set diff_ref='HEAD', not 'HEAD~1'."""
+        import drift.analyzer as analyzer_module
+        import drift.api as api_module
+        from drift.api import diff
+        from drift.config import DriftConfig
+
+        captured: dict[str, object] = {}
+        analysis = SimpleNamespace(
+            findings=[],
+            drift_score=0.1,
+            severity=Severity.LOW,
+            trend=SimpleNamespace(previous_score=0.1),
+            is_degraded=False,
+            total_files=1,
+        )
+
+        def _fake_analyze_diff(*args, **kwargs):
+            captured.update(kwargs)
+            return analysis
+
+        monkeypatch.setattr(
+            DriftConfig, "load",
+            staticmethod(lambda *a, **kw: object()),
+        )
+        monkeypatch.setattr(
+            analyzer_module, "analyze_diff", _fake_analyze_diff,
+        )
+        monkeypatch.setattr(
+            api_module, "_emit_api_telemetry",
+            lambda **kw: None,
+        )
+
+        result = diff(Path("."), uncommitted=True)
+        assert captured["diff_mode"] == "uncommitted"
+        assert captured["diff_ref"] == "HEAD"
+        assert result["diff_ref"] == "HEAD"
+
+    def test_uncommitted_only_analyzes_wt_changes(
+        self, monkeypatch, tmp_path,
+    ):
+        """uncommitted mode should scope to working-tree changes only."""
+        import drift.analyzer as analyzer_module
+        import drift.api as api_module
+        from drift.api import diff
+        from drift.config import DriftConfig
+
+        wt_finding = _make_finding(
+            PFS, 0.8, 0.8, file="src/changed.py", line=10,
+        )
+        analysis = SimpleNamespace(
+            findings=[wt_finding],
+            drift_score=0.3,
+            severity=Severity.MEDIUM,
+            trend=SimpleNamespace(previous_score=0.1),
+            is_degraded=False,
+            total_files=1,
+        )
+
+        def _fake_analyze_diff(*args, **kwargs):
+            assert kwargs["diff_mode"] == "uncommitted"
+            assert kwargs["diff_ref"] == "HEAD"
+            return analysis
+
+        monkeypatch.setattr(
+            DriftConfig, "load",
+            staticmethod(lambda *a, **kw: object()),
+        )
+        monkeypatch.setattr(
+            analyzer_module, "analyze_diff", _fake_analyze_diff,
+        )
+        monkeypatch.setattr(
+            api_module, "_emit_api_telemetry",
+            lambda **kw: None,
+        )
+        monkeypatch.setattr(
+            api_module, "_finding_concise",
+            lambda f: {
+                "title": f.title,
+                "file": f.file_path.as_posix(),
+            },
+        )
+
+        result = diff(Path("."), uncommitted=True)
+        assert result["new_finding_count"] == 1
+        assert result["diff_mode"] == "uncommitted"
+
+
+# --- Task 4: Warning for invalid target_path ---
+
+class TestTargetPathWarning:
+    def test_scan_warns_on_nonexistent_target_path(self, monkeypatch):
+        """scan() emits a warning when target_path doesn't exist."""
+        import drift.analyzer as analyzer_module
+        import drift.api as api_module
+        from drift.config import DriftConfig
+
+        analysis = SimpleNamespace(
+            findings=[],
+            drift_score=0.0,
+            severity=Severity.LOW,
+            total_files=5,
+            total_functions=10,
+            ai_attributed_ratio=0.0,
+            trend=None,
+        )
+        monkeypatch.setattr(
+            DriftConfig, "load",
+            staticmethod(lambda *a, **kw: object()),
+        )
+        monkeypatch.setattr(
+            analyzer_module, "analyze_repo",
+            lambda *a, **kw: analysis,
+        )
+        monkeypatch.setattr(
+            api_module, "_emit_api_telemetry",
+            lambda **kw: None,
+        )
+        monkeypatch.setattr(
+            api_module, "_fix_first_concise",
+            lambda analysis, max_items=5: [],
+        )
+
+        result = scan(Path("."), target_path="does/not/exist")
+        assert "warnings" in result
+        assert any("does/not/exist" in w for w in result["warnings"])
+
+
+# --- Task 5: top_signals respects --select filter ---
+
+class TestTopSignalsFilter:
+    def test_top_signals_filtered_by_select(self, monkeypatch):
+        """scan(signals=["PFS"]) limits top_signals to PFS only."""
+        import drift.analyzer as analyzer_module
+        import drift.api as api_module
+        from drift.config import DriftConfig
+
+        findings = [
+            _make_finding(PFS, 0.9, 0.9),
+            _make_finding(AVS, 0.8, 0.8),
+            _make_finding(MDS, 0.7, 0.7),
+        ]
+        analysis = SimpleNamespace(
+            findings=findings,
+            drift_score=0.5,
+            severity=Severity.HIGH,
+            total_files=10,
+            total_functions=30,
+            ai_attributed_ratio=0.1,
+            trend=None,
+        )
+        monkeypatch.setattr(
+            DriftConfig, "load",
+            staticmethod(lambda *a, **kw: object()),
+        )
+        monkeypatch.setattr(
+            analyzer_module, "analyze_repo",
+            lambda *a, **kw: analysis,
+        )
+        monkeypatch.setattr(
+            api_module, "_emit_api_telemetry",
+            lambda **kw: None,
+        )
+        monkeypatch.setattr(
+            api_module, "_finding_concise",
+            lambda f: {
+                "signal": api_module.signal_abbrev(f.signal_type),
+                "title": f.title,
+            },
+        )
+        monkeypatch.setattr(
+            api_module, "_fix_first_concise",
+            lambda analysis, max_items=5: [],
+        )
+        monkeypatch.setattr(
+            "drift.config.apply_signal_filter",
+            lambda *a, **kw: None,
+        )
+
+        result = scan(Path("."), signals=["PFS"])
+        top_sigs = result["top_signals"]
+        signal_ids = {s["signal"] for s in top_sigs}
+        assert signal_ids == {"PFS"}

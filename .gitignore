@@ -18,6 +18,7 @@ htmlcov/
 site/
 drift_score.json
 work_artifacts/
+master-backlog/
 scripts/_*
 tagesplanung/
 \# Drift*Prior.md
