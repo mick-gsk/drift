@@ -98,6 +98,43 @@ Current documented public analysis entry points include:
 
 These are most useful when you want a custom orchestration layer without wrapping shell commands.
 
+## MCP server
+
+Drift also exposes an MCP (Model Context Protocol) server for agent-native integration in tools like VS Code Copilot Chat.
+
+Install with optional extras:
+
+```bash
+pip install drift-analyzer[mcp]
+```
+
+Run the server:
+
+```bash
+drift mcp --serve
+```
+
+Register in VS Code using `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "drift": {
+      "type": "stdio",
+      "command": "drift",
+      "args": ["mcp", "--serve"]
+    }
+  }
+}
+```
+
+Typical commands called through MCP-backed agent flows:
+
+- `scan` for full repository architectural checks
+- `diff` for pre-commit or staged-change analysis
+- `validate` for config and environment readiness
+- `fix-plan` for prioritized remediation tasks
+
 ## Example workflow assets in the repository
 
 - `action.yml` for the GitHub Action implementation

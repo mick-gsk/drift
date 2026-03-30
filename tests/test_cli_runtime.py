@@ -61,6 +61,22 @@ def test_safe_main_generic_exception_shows_hint(
     assert "Hint: run with -v for the full traceback." in captured.err
 
 
+def test_safe_main_generic_exception_prints_traceback_in_debug(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cli, "main", _raise(RuntimeError("boom")))
+    logging.getLogger().setLevel(logging.DEBUG)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.safe_main()
+
+    assert exc_info.value.code == 3
+    captured = capsys.readouterr()
+    assert "DRIFT-2003" in captured.err
+    assert "Traceback (most recent call last):" in captured.err
+    assert "Hint: run with -v for the full traceback." not in captured.err
+
+
 def test_safe_main_click_exception_is_reraised(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli, "main", _raise(click.ClickException("invalid")))
 
@@ -73,6 +89,16 @@ def test_safe_main_exit_is_reraised(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with pytest.raises(click.exceptions.Exit):
         cli.safe_main()
+
+
+def test_handle_click_error_adds_did_you_mean_hint() -> None:
+    command = click.Command("scan", params=[click.Option(["--max-findings"])])
+    ctx = click.Context(command)
+    exc = click.UsageError("No such option: --max-fndings", ctx=ctx)
+
+    cli._handle_click_error(exc)
+
+    assert "did you mean '--max-findings'" in exc.message
 
 
 def test_safe_main_drift_error_emits_json_payload_when_enabled(

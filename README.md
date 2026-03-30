@@ -5,7 +5,7 @@
 **Deterministic architecture erosion detection for AI-accelerated codebases**
 
 [![CI](https://github.com/sauremilk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/sauremilk/drift/actions/workflows/ci.yml)
-[![Precision 97.3%](https://img.shields.io/badge/precision-97.3%25-brightgreen)](docs/STUDY.md)
+[![Precision 97.3% (single-rater)](https://img.shields.io/badge/precision-97.3%25%20(single--rater)-brightgreen)](docs/STUDY.md)
 [![Coverage](https://img.shields.io/badge/coverage-78%25-brightgreen)](https://github.com/sauremilk/drift/actions/workflows/ci.yml)
 [![SARIF](https://img.shields.io/badge/output-SARIF-blueviolet)](https://docs.github.com/en/code-security/code-scanning)
 <br>
@@ -14,7 +14,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/sauremilk/drift?style=social)](https://github.com/sauremilk/drift)
 
-97.3% precision · 15 signals · deterministic · no LLM in pipeline · [full study](docs/STUDY.md) · [docs](https://sauremilk.github.io/drift/)
+97.3% precision (single-rater) · 15 signals · deterministic · no LLM in pipeline · [full study](docs/STUDY.md) · [docs](https://sauremilk.github.io/drift/)
 
 </div>
 
@@ -78,6 +78,47 @@ drift check --repo . --fail-on high        # CI gate
 ```
 
 Each call returns `accept_change: true | false` with blocking reasons the agent can act on directly.
+
+## MCP integration
+
+Drift can run as an MCP (Model Context Protocol) server so AI agents can call analysis tools directly over stdio.
+
+Install MCP support:
+
+```bash
+pip install drift-analyzer[mcp]
+```
+
+Start the server:
+
+```bash
+drift mcp --serve
+```
+
+Minimal VS Code setup in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "drift": {
+      "type": "stdio",
+      "command": "drift",
+      "args": ["mcp", "--serve"]
+    }
+  }
+}
+```
+
+Common agent-native calls:
+
+```bash
+drift scan --repo .
+drift diff --staged-only
+drift validate --repo .
+drift fix-plan --repo .
+```
+
+See [Integrations](docs-site/integrations.md) and [API and Outputs](docs-site/reference/api-outputs.md) for details.
 
 ### CI
 
