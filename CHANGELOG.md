@@ -1,10 +1,18 @@
-## [1.1.5] – 2026-03-30
+## [1.1.6] – 2026-03-30
 
-Short version: AVS dedup + MDS remediation placeholders + cache version bump. (+4 more commits)
+Short version: Maintenance and dependency updates.
 
 ### Changed
 
-- AVS dedup + MDS remediation placeholders + cache version bump. (+4 more commits)
+- Maintenance and dependency updates.
+
+## [1.1.5] – 2026-03-30
+
+Short version: AVS dedup + MDS remediation placeholders + cache version bump. (+3 more commits)
+
+### Changed
+
+- AVS dedup + MDS remediation placeholders + cache version bump. (+3 more commits)
 
 ## [1.1.4] – 2026-03-30
 
