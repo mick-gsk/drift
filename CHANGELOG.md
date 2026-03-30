@@ -8,10 +8,10 @@
 All notable changes to drift-analyzer are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.1.3] - 2026-03-30
+## [1.1.4] - 2026-03-30
 
 ### Release
-- Patch: release metadata alignment with pre-push gate
+- Patch: release metadata and changelog structure alignment
 
 ## [1.1.2] - 2026-03-30
 
