@@ -1,0 +1,26 @@
+{
+  "version": "1.1.4",
+  "date": "2026-03-30",
+  "feature": "diff decision reason fields",
+  "scope": [
+    "src/drift/api.py",
+    "tests/test_agent_native_cli.py",
+    "tests/test_telemetry.py",
+    "README.md"
+  ],
+  "validation": {
+    "command": "python -m pytest tests/test_agent_native_cli.py tests/test_telemetry.py -q --maxfail=1",
+    "result": "20 passed",
+    "duration_seconds": 0.69
+  },
+  "evidence": {
+    "added_fields": [
+      "decision_reason_code",
+      "decision_reason"
+    ],
+    "test_assertions_added": [
+      "rejected_in_scope_blockers",
+      "rejected_out_of_scope_noise_only"
+    ]
+  }
+}

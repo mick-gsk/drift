@@ -1,5 +1,19 @@
 ## [1.1.4] – 2026-03-30
 
+Short version: Add explicit diff decision reason fields.
+
+### Changed
+
+- Add explicit diff decision reason fields.
+
+## [Unreleased]
+
+### Added
+
+- `drift diff` now returns `decision_reason_code` and `decision_reason` as explicit machine-readable acceptance context.
+
+## [1.1.4] – 2026-03-30
+
 Short version: Version-bump gate uses remote tags instead of local git describe.
 
 ### Changed

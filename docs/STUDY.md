@@ -2,6 +2,8 @@
 
 > **Versioning note (2026-03-30):** The package version in this repository is drift v1.1.6. Most quantitative benchmark artifacts referenced in this document were generated with drift v0.5.0 unless a later dated section states otherwise. The current production model exposes 19 configured signals, of which 15 are scoring-active and 4 remain report-only pending broader validation. This file therefore documents a historical evidence baseline and must not be read as a full description of the current live signal model. As of v1.1.6 the `scan` API and CLI command expose a `strategy` parameter (`diverse` / `top-severity`) that controls finding selection.
 
+> **Feature update (2026-03-30):** The agent-native `diff` response now also includes `decision_reason_code` and `decision_reason` to provide a stable, explicit accept/reject explanation without post-processing multiple boolean flags.
+
 ---
 
 ## Executive Summary
