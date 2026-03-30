@@ -1,5 +1,21 @@
 ## [1.1.7] – 2026-03-30
 
+Short version: Relocate docs artifacts under approved directories. (+3 more commits)
+
+### Changed
+
+- Relocate docs artifacts under approved directories. (+3 more commits)
+
+## [1.1.7] – 2026-03-30
+
+Short version: Sync changelog and lockfile for 1.1.7 release. (+2 more commits)
+
+### Changed
+
+- Sync changelog and lockfile for 1.1.7 release. (+2 more commits)
+
+## [1.1.7] – 2026-03-30
+
 Short version: Add no-color CLI evidence for release. (+1 more commits)
 
 ### Changed
