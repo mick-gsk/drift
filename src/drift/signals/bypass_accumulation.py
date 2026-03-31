@@ -98,6 +98,8 @@ def _total_loc(pr: ParseResult) -> int:
 class BypassAccumulationSignal(BaseSignal):
     """Detect files with abnormally high density of quality-bypass markers."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.BYPASS_ACCUMULATION

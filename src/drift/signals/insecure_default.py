@@ -165,6 +165,8 @@ def _check_verify_false(node: ast.keyword) -> _AssignCheck | None:
 class InsecureDefaultSignal(BaseSignal):
     """Detect insecure configuration defaults."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.INSECURE_DEFAULT

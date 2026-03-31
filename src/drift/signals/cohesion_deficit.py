@@ -166,6 +166,8 @@ def _collect_units(parse_result: ParseResult) -> list[_SemanticUnit]:
 class CohesionDeficitSignal(BaseSignal):
     """Detect semantically incoherent modules/files."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.COHESION_DEFICIT

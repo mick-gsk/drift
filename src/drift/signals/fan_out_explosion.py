@@ -35,6 +35,8 @@ _INDEX_NAMES: frozenset[str] = frozenset(
 class FanOutExplosionSignal(BaseSignal):
     """Detect files with an excessive number of unique imports."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.FAN_OUT_EXPLOSION

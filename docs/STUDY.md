@@ -14,6 +14,8 @@
 
 > **Feature update (2026-03-31):** v1.1.14 lays the foundation for incremental analysis. `BaselineSnapshot` (new module `src/drift/incremental.py`) captures file-hash state after a full scan and provides TTL-based validity, file-change detection (added/removed/modified), and baseline score storage. `SignalCache.content_hash_for_file()` adds a per-file cache key method enabling file-local signals to cache independently of the full repo hash. 13 new tests in `tests/test_incremental.py`.
 
+> **Feature update (2026-04-01):** v1.1.15 adds the `IncrementalSignalRunner` — the core engine for incremental analysis (Phase 3). All 22 signals are now classified via `incremental_scope` (14 file-local, 4 cross-file, 4 git-dependent). The runner executes file-local signals on changed files with `exact` confidence and carries forward cross-file/git findings with `estimated` confidence. `IncrementalResult` provides score delta, direction (improving/stable/degrading), new/resolved finding diffs, and a per-signal confidence map. Helpers `_direction_for_delta` (0.005 threshold) and `_finding_key` ensure deterministic finding identity. 26 new Phase 3 tests (39 total in `tests/test_incremental.py`).
+
 ---
 
 ## Executive Summary

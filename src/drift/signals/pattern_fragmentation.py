@@ -78,6 +78,8 @@ def _canonical_variant(variants: dict[str, list[PatternInstance]]) -> str:
 class PatternFragmentationSignal(BaseSignal):
     """Detect multiple incompatible pattern variants within architectural modules."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.PATTERN_FRAGMENTATION

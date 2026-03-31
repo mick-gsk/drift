@@ -82,6 +82,8 @@ def _has_boundary_decorator(parse_result: ParseResult) -> bool:
 class BroadExceptionMonocultureSignal(BaseSignal):
     """Detect modules with uniformly broad exception handling."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.BROAD_EXCEPTION_MONOCULTURE

@@ -149,6 +149,8 @@ def _is_automated_commit(commit: CommitInfo) -> bool:
 class CoChangeCouplingSignal(BaseSignal):
     """Detect hidden file coupling from recurring co-change patterns."""
 
+    incremental_scope = "git_dependent"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.CO_CHANGE_COUPLING

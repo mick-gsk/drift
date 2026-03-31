@@ -127,6 +127,8 @@ def _extract_string_value(node: ast.expr) -> str | None:
 class HardcodedSecretSignal(BaseSignal):
     """Detect hardcoded secrets and credentials in source code."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.HARDCODED_SECRET

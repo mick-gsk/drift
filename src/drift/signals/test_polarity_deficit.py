@@ -270,6 +270,7 @@ def _ts_count_assertions(
 class TestPolarityDeficitSignal(BaseSignal):
     """Detect test suites dominated by positive / happy-path assertions."""
 
+    incremental_scope = "file_local"
     __test__ = False  # prevent pytest collection
 
     @property

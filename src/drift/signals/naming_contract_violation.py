@@ -288,6 +288,8 @@ def _ts_check_rule(
 class NamingContractViolationSignal(BaseSignal):
     """Detect functions whose name implies a contract the body does not fulfil."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.NAMING_CONTRACT_VIOLATION

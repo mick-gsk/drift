@@ -351,6 +351,8 @@ def _git_show_files_batch(
 class ExceptionContractDriftSignal(BaseSignal):
     """Detect public functions with changed exception profiles."""
 
+    incremental_scope = "git_dependent"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.EXCEPTION_CONTRACT_DRIFT

@@ -280,6 +280,8 @@ class DocImplDriftSignal(BaseSignal):
     4. (Optional, with embeddings) Semantic claim validation.
     """
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.DOC_IMPL_DRIFT

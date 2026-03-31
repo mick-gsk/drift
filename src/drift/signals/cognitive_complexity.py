@@ -121,6 +121,8 @@ def _function_cognitive_complexity(source: str, func: FunctionInfo) -> int | Non
 class CognitiveComplexitySignal(BaseSignal):
     """Detect functions with excessive cognitive complexity."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.COGNITIVE_COMPLEXITY

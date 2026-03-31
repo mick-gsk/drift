@@ -81,6 +81,8 @@ def _fix_suggestion(framework: str) -> str:
 class MissingAuthorizationSignal(BaseSignal):
     """Detect API endpoints missing authorization checks."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.MISSING_AUTHORIZATION

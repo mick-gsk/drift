@@ -177,6 +177,8 @@ def _find_novel_imports(
 class SystemMisalignmentSignal(BaseSignal):
     """Detect changes that introduce foreign patterns into existing modules."""
 
+    incremental_scope = "git_dependent"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.SYSTEM_MISALIGNMENT

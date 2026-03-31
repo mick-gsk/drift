@@ -228,6 +228,8 @@ def _ts_function_is_guarded(
 class GuardClauseDeficitSignal(BaseSignal):
     """Detect modules with uniformly unguarded public functions."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.GUARD_CLAUSE_DEFICIT

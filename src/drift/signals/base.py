@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, ClassVar, Literal, cast
 
 from drift.config import DriftConfig
 from drift.models import CommitInfo, FileHistory, Finding, ParseResult, SignalType
@@ -56,6 +56,10 @@ class BaseSignal(ABC):
     and produces findings with scores between 0.0 (no drift) and
     1.0 (severe drift).
     """
+
+    incremental_scope: ClassVar[
+        Literal["file_local", "cross_file", "git_dependent"]
+    ] = "cross_file"
 
     _repo_path: Path | None
     _embedding_service: EmbeddingService | None

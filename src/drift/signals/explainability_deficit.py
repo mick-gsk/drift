@@ -49,6 +49,8 @@ def _explanation_score(func: FunctionInfo, has_test: bool) -> float:
 class ExplainabilityDeficitSignal(BaseSignal):
     """Detect complex functions lacking documentation and tests."""
 
+    incremental_scope = "file_local"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.EXPLAINABILITY_DEFICIT

@@ -40,6 +40,8 @@ def _shannon_entropy(counts: list[int]) -> float:
 class TemporalVolatilitySignal(BaseSignal):
     """Detect files with anomalous churn and defect correlation."""
 
+    incremental_scope = "git_dependent"
+
     @property
     def signal_type(self) -> SignalType:
         return SignalType.TEMPORAL_VOLATILITY
