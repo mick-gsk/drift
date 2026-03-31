@@ -6,11 +6,11 @@
 
 ## [1.2.0] – 2026-03-31
 
-Short version: Add NegativeContext system  signal-derived anti-pattern warnings for coding agents.
+Short version: Add 1.2.x to SECURITY.md supported versions. (+1 more commits)
 
 ### Changed
 
-- Add NegativeContext system  signal-derived anti-pattern warnings for coding agents.
+- Add 1.2.x to SECURITY.md supported versions. (+1 more commits)
 
 
 ## [1.1.17] – 2026-03-31
