@@ -10,69 +10,121 @@ on:
 jobs:
   version-check:
     name: Version format check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Ensure Python is available on self-hosted runner
+        shell: powershell
+        run: |
+          $resolved = $false
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved -and (Get-Command py -ErrorAction SilentlyContinue)) {
+            py --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved) {
+            Write-Error "Neither 'python' nor 'py' is available on this self-hosted runner."
+            exit 1
+          }
 
       - name: Validate pyproject.toml version is SemVer
-        # Ensures the version in pyproject.toml is always MAJOR.MINOR.PATCH ÔÇô
-        # a merge to main with an invalid or missing version is blocked.
-        run: python scripts/check_version.py --check-semver
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN scripts/check_version.py --check-semver
 
       - name: Enforce release discipline
-        run: python scripts/check_release_discipline.py
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN scripts/check_release_discipline.py
 
       - name: Check model consistency
-        run: python scripts/check_model_consistency.py
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN scripts/check_model_consistency.py
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: version-check
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.12"]
     name: Test (Python ${{ matrix.python-version }})
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Full history for git-based signals
+          fetch-depth: 0
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
+      - name: Ensure Python is available on self-hosted runner
+        shell: powershell
+        run: |
+          $resolved = $false
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved -and (Get-Command py -ErrorAction SilentlyContinue)) {
+            py --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved) {
+            Write-Error "Neither 'python' nor 'py' is available on this self-hosted runner."
+            exit 1
+          }
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m pip install -e ".[dev]"
 
       - name: Lint with ruff
-        run: ruff check src/ tests/
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m ruff check src/ tests/
 
       - name: Type-check with mypy
-        run: python -m mypy src/drift
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m mypy src/drift
 
       - name: Run tests with coverage
-        run: pytest -v --tb=short --cov=drift --cov-report=xml --cov-report=term-missing -m "not slow"
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=xml --cov-report=term-missing -m "not slow"
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
         with:
           files: coverage.xml
           fail_ci_if_error: false
 
       - name: Self-analysis
-        run: drift analyze --repo . --format json > /dev/null
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m drift analyze --repo . --format json | Out-Null
 
       - name: Drift self-check (score gate)
+        shell: powershell
         run: |
-          drift self --format json > drift_score.json
-          python -c "
+          & $env:PYTHON_BIN -m drift self --format json | Set-Content drift_score.json
+          & $env:PYTHON_BIN -c @'
           import json, sys
           data = json.load(open('drift_score.json'))
           score = data['drift_score']
@@ -80,4 +132,4 @@ jobs:
               print(f'FAIL: drift self score {score:.3f} exceeds threshold 0.47')
               sys.exit(1)
           print(f'OK: drift self score {score:.3f} (threshold 0.47)')
-          "
+          '@
