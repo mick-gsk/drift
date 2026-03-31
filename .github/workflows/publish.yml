@@ -58,7 +58,7 @@ jobs:
     runs-on: self-hosted
     environment: pypi
     env:
-      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN || secrets.PYPI_RELEASE }}
     permissions:
       id-token: write # Trusted publishing — no API key needed
 
