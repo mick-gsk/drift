@@ -386,36 +386,47 @@ Full rationale and matrix: [Stability and Release Status](docs-site/stability.md
 
 ## Contributing
 
-Drift seeks contributions that increase the credibility of static architecture findings: reproducible cases, better explainability, fewer false alarms, and clearer next actions.
+Drift's biggest blind spots are found by people running it on codebases the maintainers have never seen. **Your real-world experience is a direct contribution to signal quality** — whether you write code or not.
 
-If you run drift on your codebase and get surprising results — good or bad — please [open an issue](https://github.com/sauremilk/drift/issues) or start a [discussion](https://github.com/sauremilk/drift/discussions).
+If Drift surprised you with an unexpected result, that's valuable feedback: [open an issue](https://github.com/sauremilk/drift/issues) or start a [discussion](https://github.com/sauremilk/drift/discussions). A well-documented false positive can be more valuable than a new feature.
 
-### Getting help
-
-- Questions and usage help: [GitHub Discussions](https://github.com/sauremilk/drift/discussions)
-- Bug reports: [Bug report template](https://github.com/sauremilk/drift/issues/new?template=bug_report.md)
-- Feature ideas: [Feature request template](https://github.com/sauremilk/drift/issues/new?template=feature_request.md)
-- Security vulnerabilities: **[SECURITY.md](SECURITY.md)** — please do not open a public issue
-- Full support routing: [SUPPORT.md](SUPPORT.md)
+| I want to… | Go here |
+|---|---|
+| Ask a usage question | [Discussions](https://github.com/sauremilk/drift/discussions) |
+| Report a false positive / false negative | [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md) |
+| Report a bug | [Bug report](https://github.com/sauremilk/drift/issues/new?template=bug_report.md) |
+| Suggest a feature | [Feature request](https://github.com/sauremilk/drift/issues/new?template=feature_request.md) |
+| Propose a contribution before coding | [Contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) |
+| Report a security vulnerability | [SECURITY.md](SECURITY.md) — not a public issue |
 
 ### New here? Start contributing
 
-1. Pick an issue labelled [`good first issue`](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-2. `git clone https://github.com/sauremilk/drift.git && cd drift && make install`
-3. `make test-fast` — confirm everything passes
-4. Make your change, then open a PR
+You don't need to understand the whole analyzer to help. Start at the level that fits your time:
+
+1. **15 min:** Fix a typo or clarify a docs example → open a PR directly
+2. **30 min:** Report an unexpected finding with reproduction steps → [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md)
+3. **1 hour:** Add an edge-case test → pick a [`good first issue`](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+4. **2+ hours:** Improve signal logic or finding explanations → see [CONTRIBUTING.md](CONTRIBUTING.md)
+
+```bash
+git clone https://github.com/sauremilk/drift.git && cd drift && make install
+make test-fast    # confirm everything passes, then start
+```
+
+**First contribution? We'll help you scope it.** Open a [contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) or ask in [Discussions](https://github.com/sauremilk/drift/discussions) if you're unsure where to start.
 
 **Typical first contributions:**
 
-- Add a ground-truth fixture for a false positive or false negative
+- Report a false positive or false negative with reproduction steps
+- Add a ground-truth fixture for a signal edge case
 - Improve a finding's explanation text to be more actionable
 - Write a test for an untested edge case
-- Fix or extend signal documentation with a concrete example
+- Clarify docs or add a configuration example
 
-**What we value most:** reproducibility, explainability, false-alarm reduction.\
+**What we value most:** reproducibility, explainability, false-alarm reduction.
 **What we deprioritize:** new output formats without insight value, comfort features, complexity without analysis improvement.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide and [ROADMAP.md](ROADMAP.md) for current priorities.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, contributor types, and the contribution ladder. See [ROADMAP.md](ROADMAP.md) for current priorities.
 
 ## Documentation map
 

@@ -1,16 +1,17 @@
 # Contributing to Drift
 
-Thanks for your interest in contributing! Drift is under active development and welcomes bug fixes, new signals, and documentation improvements.
+Drift is built by a small team, but the hardest problems — false positives no one expected, edge cases from real codebases, explanations that finally click — come from people outside the core project. **Your perspective makes Drift more credible, not just bigger.**
+
+You do not need to understand the whole analyzer to make a useful first contribution. A well-documented false positive can be more valuable than a new feature. A clearer explanation helps every future user. A single edge-case test can prevent a class of regressions.
+
+This guide is structured so you can start small and grow into deeper work at your own pace. The standards are strict because they protect finding quality — but first-time contributors get guidance, not gatekeeping.
 
 ## Who this page is for
 
-This page is for contributors and maintainers.
-
-- If you want to try drift as a user, start in [README.md](README.md) or the docs quickstart instead of this governance-heavy path.
-- If you are evaluating drift for adoption, review the example findings, trust material, and release status first.
-- If you are ready to contribute code or docs, continue here.
-
-The standards below stay intentionally strict because they protect result credibility, signal quality, and release hygiene.
+- **New here?** Start with [Your first contribution](#your-first-contribution) below.
+- **Using Drift and got surprised?** That's valuable — see [how to report it](#where-to-ask-what).
+- **Ready for deeper work?** Jump to [Contributor ladder](#contributor-ladder) or [Adding a new signal](#adding-a-new-signal).
+- **Just exploring?** Try [README.md](README.md) or the [docs quickstart](docs-site/getting-started/quickstart.md) first.
 
 ## Quick start
 
@@ -23,16 +24,16 @@ make check            # lint + typecheck + test + self-analysis
 
 See [DEVELOPER.md](DEVELOPER.md) for the full developer guide (architecture, commands, conventions).
 
-## First-time contributors start here
+## Your first contribution
 
-If this is your first contribution to Drift, use this fast path:
+First contribution? Welcome. Here's the fastest path:
 
-1. Pick a scoped issue in [good first issue](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-2. Follow local setup in the quick start above
+1. Pick a scoped issue labelled [**good first issue**](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — each one includes affected files, a clear definition of done, and a difficulty estimate
+2. Follow [Quick start](#quick-start) above to set up locally
 3. Run `make test-fast` before and after your change
-4. Open a focused PR and explain what changed, why, and how it was validated
+4. Open a focused PR and explain what changed, why, and how you validated it
 
-If you are unsure where to ask, use [SUPPORT.md](SUPPORT.md) to choose the right channel.
+Unsure whether something is worth contributing? Open a [contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) — we'll help you scope it. If Drift surprised you with an unexpected result, that is valuable feedback even without a code fix.
 
 <details>
 <summary>Without Make</summary>
@@ -46,26 +47,51 @@ pytest -v --tb=short
 ```
 </details>
 
-## Good First Issues
+## Where to ask what
 
-New to the project? Look for issues labelled **[`good first issue`](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)** — these are scoped to be completable in a few hours and have clear acceptance criteria.
+Not sure where to go? Use this routing table:
 
-**Examples of good first contributions:**
+| I want to… | Go here |
+|---|---|
+| Ask a usage question | [GitHub Discussions](https://github.com/sauremilk/drift/discussions) |
+| Report a false positive / false negative | [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md) |
+| Report a bug | [Bug report template](https://github.com/sauremilk/drift/issues/new?template=bug_report.md) |
+| Suggest a feature or improvement | [Feature request template](https://github.com/sauremilk/drift/issues/new?template=feature_request.md) |
+| Propose a larger contribution before coding | [Contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) |
+| Submit a small docs/typo improvement | Open a PR directly — no issue needed |
+| Report a security vulnerability | [SECURITY.md](SECURITY.md) — do not open a public issue |
 
-| Area | Difficulty | Example |
+## Contributor ladder
+
+Drift contributions range from 15-minute improvements to multi-day signal work. Pick the level that fits your time and familiarity:
+
+| Level | Type | Time | Examples | Requirements |
+|:---:|---|---|---|---|
+| 1 | Docs / typo / example | ~15 min | Fix a typo, clarify a config example | PR only |
+| 2 | FP/FN report | ~30 min | Document an unexpected finding with reproduction steps | Issue with template |
+| 3 | Edge-case test | ~1 hour | Test that `drift analyze` handles a monorepo or empty repo | PR with test |
+| 4 | Finding explanation | ~1–2 hours | Improve a vague `reason` string to name the specific structural problem | PR with before/after |
+| 5 | Signal logic change | ~2–4 hours | Reduce false positives in EDS for `__init__` methods | PR with TP+TN tests |
+| 6 | New signal proposal | ~1–2 days | Propose and implement a new detection signal | Contribution proposal first |
+
+## How you can help — contributor types
+
+Drift needs different kinds of contributions, and many of the most impactful ones are not code:
+
+| Role | What you do | Why it matters |
 |---|---|---|
-| False positive fix | Easy | Reduce noise in EDS for `__init__` methods |
-| Documentation | Easy | Add configuration examples for monorepo setups |
-| Test coverage | Easy | Add edge-case tests for empty repos / single-file projects |
-| Signal improvement | Medium | Improve PFS fingerprint normalization for decorator variants |
-| New output format | Medium | Add CSV output formatter |
+| **User** | Run Drift on your codebase and report surprising results | Real-world repos expose blind spots that synthetic tests miss |
+| **Validator** | Submit reproducible FP/FN reports with minimal examples | Directly improves precision — the project's #1 quality metric |
+| **Docs contributor** | Clarify explanations, add examples, improve onboarding | Makes findings actionable for everyone, not just experts |
+| **Test contributor** | Add edge-case tests, ground-truth fixtures | Prevents regressions and builds the evidence base |
+| **Signal contributor** | Improve detection logic, propose new signals | Extends what Drift can see |
+| **Maintainer** | Review, prioritize, release | Keeps the project moving |
 
-## What to work on
+> **Real-world reproduction cases directly improve Drift's credibility.** You don't need to fix a problem to make a valuable contribution — clearly documenting it is often the harder and more important part.
 
-Check the [open issues](https://github.com/sauremilk/drift/issues) for current priorities
-and the [ROADMAP.md](ROADMAP.md) for what the project needs most right now.
+Check the [open issues](https://github.com/sauremilk/drift/issues) for current priorities and [ROADMAP.md](ROADMAP.md) for what the project needs most right now.
 
-High-value contributions:
+### High-value contributions
 
 - **False positive fixes** — signal quality improvements are always welcome
 - **Reproducible fixtures** — ground-truth cases that sharpen precision/recall
@@ -110,32 +136,30 @@ This is not about gatekeeping — it protects the project from well-intentioned
 work that dilutes finding quality. When in doubt, open a
 [contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) first.
 
-## Typical first contributions
+## Non-code contributions are first-class
 
-Not sure where to start? These are proven entry points that deliver real value:
+Drift is an analysis tool — its credibility depends on evidence, not just code. These contributions are **equally valued and credited** in the changelog:
 
-| Contribution | Difficulty | Example |
+| Contribution | Why it's valuable | How to submit |
 |---|---|---|
-| Ground-truth fixture | Easy | Add a minimal code sample that should (or should not) trigger PFS |
-| FP/FN report | Easy | Document a case where drift gives the wrong result, with reproduction steps |
-| Finding explanation | Easy | Improve a vague `reason` string to name the specific structural problem |
-| Edge-case test | Easy | Test that `drift analyze` handles an empty repo without crashing |
-| Signal documentation | Easy–Medium | Write a docs page for TVS or SMS with concrete before/after code |
-| Scoring test | Medium | Add a test for a boundary condition in the composite score calculation |
+| FP/FN report with reproduction | Directly feeds precision improvement — the project's top priority | [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md) |
+| Minimal reproduction repo | Lets maintainers debug edge cases without guessing | Link in an issue or PR |
+| Benchmark on a new codebase | Expands the evidence base beyond the study corpus | `drift analyze --format json` output attached to an issue |
+| Finding explanation improvement | Makes Drift actionable for non-experts | PR changing `reason`/`next_action` strings |
+| Docs clarification | Reduces onboarding friction | PR directly — no issue needed |
+| Config example for a specific setup | Helps teams with monorepos, generated code, etc. | PR or Discussion post |
 
-Contributions that are **not code** are equally valuable: well-documented false
-positives, minimal reproduction repos, and signal documentation all advance the
-project.
-
-## Maintainer feedback commitment
+## Our commitment to contributors
 
 - **First response within 72 hours** on issues and PRs.
 - **Rejections include a reason** referencing a specific quality criterion.
-- **First-time contributors get guidance**, not just pass/fail.
+- **First-time contributors get guidance**, not just pass/fail. We'll help you scope your first PR if needed.
 - If a PR needs changes, we explain what and why — not just "fix this".
+- **First contributions are celebrated.** We credit contributors by name in the changelog.
 
-If you don't hear back within 72 hours, ping the thread — it's a process
-failure, not a signal that your work isn't valued.
+If you don't hear back within 72 hours, ping the thread — it's a process failure, not a signal that your work isn't valued.
+
+> **Drift is demanding, but not exclusive.** The standards exist to protect finding quality. They do not exist to filter people out. If you're unsure whether your idea fits, open a contribution proposal or ask in Discussions — we'd rather help you shape a contribution than have you walk away.
 
 ## Adding a new signal
 
