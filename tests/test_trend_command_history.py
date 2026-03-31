@@ -8,7 +8,6 @@ import subprocess
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.config import DriftConfig
 
@@ -93,6 +92,6 @@ def test_trend_command_last_short_alias(tmp_path: Path) -> None:
     repo.mkdir(parents=True, exist_ok=True)
     _git(repo, "init") #initialize empty git repository so the trend command can run without error
     runner = CliRunner()
-    result = runner.invoke(main, ["trend", "--repo", str(repo), "--l", "5"])
+    result = runner.invoke(main, ["trend", "--repo", str(repo), "-l", "5"])
     assert result.exit_code == 0 #, result.output
-    assert "5 day history window" in result.output
+    assert "5-day history window" in result.output
