@@ -6,11 +6,14 @@
 
 ## [1.1.16] – 2026-03-31
 
-Short version: Resolve mypy type assignment error in nudge (finfo  fi). (+11 more commits)
+Short version: Experimental release for agent navigation improvements across Phases 4-6.
 
 ### Changed
 
-- Resolve mypy type assignment error in nudge (finfo  fi). (+11 more commits)
+- Added `drift_nudge` as an experimental MCP tool that returns directional feedback (`improving` / `stable` / `degrading`), blocking reasons, and a non-configurable `safe_to_commit` hard rule.
+- Introduced `BaselineManager` with git-event invalidation for incremental navigation feedback: baseline refresh is triggered on HEAD changes, stash changes, or large working-tree drift.
+- Documented the incremental temporal model in `DEVELOPER.md` and the diagnosis-vs-navigation product dimension in `ROADMAP.md`.
+- Fixed a mypy type-assignment issue in `nudge()` caused by a `FileInfo` variable name collision.
 
 ## [1.1.15] – 2026-03-31
 
