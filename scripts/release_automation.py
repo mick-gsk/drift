@@ -201,11 +201,16 @@ def run_pre_push_preflight(tag_name: str) -> bool:
 
 
 def create_github_release(tag_name: str, version_no_v: str) -> bool:
-    """Create GitHub release so publish workflow (release.created) is triggered."""
+    """Try to create a GitHub release.
+
+    Returns True when release was created, False when skipped/failed.
+    This is best-effort because the publish workflow can also be triggered by
+    tag push (`on.push.tags`).
+    """
     gh_cli = shutil.which("gh")
     if gh_cli is None:
-        print("✗ GitHub CLI (gh) not found.")
-        print("  Install gh and run 'gh auth login' once.")
+        print("⚠ GitHub CLI (gh) not found; skipping GitHub release creation.")
+        print("  Tag push should still trigger publish workflow.")
         return False
 
     title = f"v{version_no_v}"
@@ -218,8 +223,8 @@ def create_github_release(tag_name: str, version_no_v: str) -> bool:
         check=False,
     )
     if result.returncode != 0:
-        print("✗ GitHub release creation failed.")
-        print("  PyPI publish will not start because workflow listens to release.created.")
+        print("⚠ GitHub release creation failed; continuing.")
+        print("  Tag push should still trigger publish workflow.")
         return False
 
     print(f"✓ GitHub release created: {tag_name}")
@@ -339,13 +344,15 @@ def main() -> int:
             env=_build_venv_first_env(),
             check=True,
         )
-        if not create_github_release(next_version, version_no_v):
-            return 1
+        release_created = create_github_release(next_version, version_no_v)
 
         print(f"✓ Committed: chore: Release {version_no_v}")
         print(f"✓ Tagged: {next_version}")
         print("✓ Pushed to GitHub")
-        print("✓ Triggered publish workflow via GitHub release")
+        if release_created:
+            print("✓ Triggered publish workflow via GitHub release")
+        else:
+            print("✓ Tag pushed; publish workflow should run via tag trigger")
         print(f"\n✅ Release {next_version} complete!")
         print("   → GitHub Actions publish.yml should now publish to PyPI")
 

@@ -1,6 +1,9 @@
 name: Publish to PyPI
 
 on:
+  push:
+    tags:
+      - "v*.*.*"
   release:
     # Run immediately when a GitHub release is created so PyPI is always
     # produced as part of release creation (not only after manual publish).
