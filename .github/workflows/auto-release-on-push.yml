@@ -31,65 +31,66 @@ jobs:
 
       - name: Resolve release tag from pyproject.toml
         id: version
+        shell: pwsh
         run: |
-          VERSION=$(python - <<'PY'
-          import tomllib
-          from pathlib import Path
-
-          data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-          print(data["project"]["version"])
-          PY
-          )
-          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Resolved release tag: v$VERSION"
+          $version = python -c "import tomllib, pathlib; data=tomllib.loads(pathlib.Path('pyproject.toml').read_text(encoding='utf-8')); print(data['project']['version'])"
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Resolved release tag: v$version"
 
       - name: Check whether tag and release already exist
         id: check
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "tag_exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag_exists=false" >> "$GITHUB_OUTPUT"
-          fi
+          git ls-remote --exit-code --tags origin "refs/tags/$env:TAG" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "tag_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "tag_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
 
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "release_exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "release_exists=false" >> "$GITHUB_OUTPUT"
-          fi
+          gh release view "$env:TAG" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            "release_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
 
       - name: Create and push missing version tag
         if: steps.check.outputs.tag_exists != 'true'
+        shell: pwsh
         env:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "$TAG" "${GITHUB_SHA}"
-          git push origin "$TAG"
-          echo "Created missing tag $TAG"
+          git tag "$env:TAG" "$env:GITHUB_SHA"
+          git push origin "$env:TAG"
+          Write-Host "Created missing tag $env:TAG"
 
       - name: Create missing GitHub release
         if: steps.check.outputs.release_exists != 'true'
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release for $TAG already exists - skipping"
+          gh release view "$env:TAG" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "Release for $env:TAG already exists - skipping"
             exit 0
-          fi
+          }
 
-          gh release create "$TAG" \
-            --title "$TAG" \
+          gh release create "$env:TAG" `
+            --title "$env:TAG" `
             --generate-notes
-          echo "Created missing release for $TAG"
+          Write-Host "Created missing release for $env:TAG"
 
       - name: Skip summary
         if: steps.check.outputs.tag_exists == 'true' && steps.check.outputs.release_exists == 'true'
+        shell: pwsh
         env:
           TAG: ${{ steps.version.outputs.tag }}
-        run: echo "Tag and release already exist for $TAG - nothing to do"
+        run: Write-Host "Tag and release already exist for $env:TAG - nothing to do"
