@@ -1,3 +1,14 @@
+## [1.1.12] - 2026-03-31
+
+Short version: Stabilize GitHub PR triage and CI execution on master.
+
+### Changed
+
+- Move GitHub workflows from self-hosted runners to `ubuntu-latest` so CI does not stall when no self-hosted runner is online.
+- Align workflow branch triggers and links with `master`.
+- Add PR triage automation via `.github/workflows/pr-triage.yml` and `.github/labeler.yml`.
+- Add automation scripts for label setup and branch protection under `scripts/`.
+
 ## [1.1.12] – 2026-03-30
 
 Short version: Add drift init command with built-in profiles (default, vibe-coding, strict).
