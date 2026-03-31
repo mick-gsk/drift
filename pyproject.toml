@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "drift-analyzer"
-version = "1.1.12"
+version = "1.1.13"
 description = "Deterministic architectural drift detection for AI-accelerated Python repositories through cross-file coherence analysis"
 readme = "README.md"
 license = "MIT"
@@ -81,6 +81,7 @@ dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "pytest-timeout>=2.3",
+    "pytest-xdist>=3.5",
     "mypy>=1.10",
     "ruff>=0.4",
     "mistune>=3.0",
@@ -111,7 +112,7 @@ exclude = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "--maxfail=1 --timeout=180 --timeout-method=thread"
+addopts = "--maxfail=1 --timeout=180 --timeout-method=thread -n auto --dist=loadfile"
 markers = [
     "slow: marks expensive tests excluded by default unless --run-slow or an explicit -m expression is used",
 ]

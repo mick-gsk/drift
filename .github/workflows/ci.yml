@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Validate pyproject.toml version is SemVer
         # Ensures the version in pyproject.toml is always MAJOR.MINOR.PATCH -
-        # a merge to master with an invalid or missing version is blocked.
+        # a merge to main with an invalid or missing version is blocked.
         shell: powershell
         run: |
           & $env:PYTHON_BIN scripts/check_version.py --check-semver
@@ -90,10 +90,14 @@ jobs:
             exit 1
           }
 
-      - name: Install dependencies
+      - name: Sync dependencies
         shell: powershell
         run: |
-          & $env:PYTHON_BIN -m pip install -e ".[dev]"
+          # uv sync uses uv.lock — deterministic and ~10x faster than pip install.
+          # .venv persists on self-hosted runner; re-sync after lock change takes <3s.
+          uv sync --all-extras
+          $venvPython = (Resolve-Path ".venv\Scripts\python.exe").Path
+          "PYTHON_BIN=$venvPython" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Lint with ruff
         shell: powershell
@@ -108,7 +112,9 @@ jobs:
       - name: Run tests with coverage
         shell: powershell
         run: |
-          & $env:PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=xml --cov-report=term-missing -m "not slow"
+          # -n auto uses all 16 logical cores (Ryzen 7 9800X3D) — expected ~6-8x faster.
+          # --dist=loadfile keeps tests from the same file on the same worker (fixture safety).
+          & $env:PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=xml --cov-report=term-missing -m "not slow" -n auto --dist=loadfile
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'

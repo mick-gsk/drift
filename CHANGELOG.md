@@ -1,3 +1,12 @@
+## [1.1.13] - 2026-03-31
+
+Short version: Faster CI and pre-push hook via pytest-xdist parallelism.
+
+### Changed
+
+- Add `pytest-xdist>=3.5` to dev dependencies; enable `-n auto --dist=loadfile` in pytest config — reduces test suite runtime from ~95s to ~50s on 16-core runner.
+- Replace `pip install` with `uv sync --all-extras` in CI workflow — deterministic installs from `uv.lock`, ~10x faster on warm cache.
+
 ## [1.1.12] - 2026-03-31
 
 Short version: Stabilize GitHub PR triage and CI execution on master.
