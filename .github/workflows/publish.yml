@@ -56,17 +56,17 @@ jobs:
           python-version: "3.12"
 
       - name: Install build tools
-        run: pip install --upgrade build
+        run: pip install --upgrade build twine
 
       - name: Build wheel and sdist
         run: python -m build
 
       - name: Publish to PyPI (API token)
         if: env.PYPI_API_TOKEN != ''
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ env.PYPI_API_TOKEN }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ env.PYPI_API_TOKEN }}
+        run: python -m twine upload --non-interactive dist/*
 
       - name: Publish to PyPI (Trusted publishing fallback)
         if: env.PYPI_API_TOKEN == ''
