@@ -7,6 +7,7 @@ from typing import Any
 
 from drift import __version__
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity, SignalType
+from drift.negative_context import findings_to_negative_context, negative_context_to_dict
 from drift.recommendations import generate_recommendation
 
 # JSON schema version — increment on breaking output changes.
@@ -279,6 +280,10 @@ def analysis_to_json(analysis: RepoAnalysis, indent: int = 2, compact: bool = Fa
         "fix_first": fix_first,
         "suppressed_count": analysis.suppressed_count,
         "context_tagged_count": analysis.context_tagged_count,
+        "negative_context": [
+            negative_context_to_dict(nc)
+            for nc in findings_to_negative_context(analysis.findings, max_items=20)
+        ],
     }
 
     if not compact:

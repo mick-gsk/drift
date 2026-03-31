@@ -8,6 +8,7 @@ from typing import Any
 
 from drift import __version__
 from drift.models import AgentTask, Finding, RepoAnalysis, Severity, SignalType
+from drift.negative_context import findings_to_negative_context, negative_context_to_dict
 from drift.recommendations import Recommendation, generate_recommendations
 
 # ---------------------------------------------------------------------------
@@ -485,6 +486,9 @@ def _finding_to_task(
         },
         constraints=_generate_constraints(finding),
         repair_maturity=maturity,
+        negative_context=findings_to_negative_context(
+            [finding], max_items=3,
+        ),
     )
 
     # Apply automation fitness classification (mutates task in place)
@@ -575,6 +579,7 @@ def _task_to_dict(t: AgentTask) -> dict[str, Any]:
         "verification_strength": t.verification_strength,
         "constraints": t.constraints,
         "repair_maturity": t.repair_maturity,
+        "negative_context": [negative_context_to_dict(nc) for nc in t.negative_context],
     }
 
 

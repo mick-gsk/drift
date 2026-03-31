@@ -328,3 +328,53 @@ class AgentTask:
     constraints: list[str] = field(default_factory=list)
     # Phase 4: Signal-specific repair maturity
     repair_maturity: str = "experimental"  # "verified" | "experimental" | "indirect-only"
+    # Negative context: anti-patterns the agent must NOT reproduce
+    negative_context: list[NegativeContext] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Negative Context Model (anti-pattern feed for coding agents)
+# ---------------------------------------------------------------------------
+
+
+class NegativeContextCategory(StrEnum):
+    """Category of anti-pattern detected by drift signals."""
+
+    SECURITY = "security"
+    ERROR_HANDLING = "error_handling"
+    ARCHITECTURE = "architecture"
+    TESTING = "testing"
+    NAMING = "naming"
+    COMPLEXITY = "complexity"
+    COMPLETENESS = "completeness"
+
+
+class NegativeContextScope(StrEnum):
+    """Scope at which a negative context item applies."""
+
+    FILE = "file"
+    MODULE = "module"
+    REPO = "repo"
+
+
+@dataclass
+class NegativeContext:
+    """An anti-pattern warning derived from drift findings.
+
+    Agents consume these items as "what NOT to do" context before generating
+    code.  Each item is deterministically derived from signal findings —
+    no LLM involved.
+    """
+
+    anti_pattern_id: str
+    category: NegativeContextCategory
+    source_signal: SignalType
+    severity: Severity
+    scope: NegativeContextScope
+    description: str
+    forbidden_pattern: str  # concrete code anti-example
+    canonical_alternative: str  # what to do instead
+    affected_files: list[str] = field(default_factory=list)
+    confidence: float = 1.0
+    rationale: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)

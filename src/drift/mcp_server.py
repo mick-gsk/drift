@@ -60,14 +60,17 @@ mcp = MCPFastMCPImpl(
         "Tool workflow:\n"
         "1. drift_validate — check config & environment before first analysis\n"
         "2. drift_scan — assess overall architectural health\n"
-        "3. drift_diff — detect regressions in a PR or after changes\n"
-        "4. drift_fix_plan — get actionable repair tasks with constraints\n"
-        "5. drift_explain — understand unfamiliar signals or findings\n"
-        "6. drift_nudge — get directional feedback after each file change "
+        "3. drift_negative_context — get anti-patterns to avoid in new code\n"
+        "4. drift_diff — detect regressions in a PR or after changes\n"
+        "5. drift_fix_plan — get actionable repair tasks with constraints\n"
+        "6. drift_explain — understand unfamiliar signals or findings\n"
+        "7. drift_nudge — get directional feedback after each file change "
         "(do not batch)\n\n"
-        "IMPORTANT: After each file change, call drift_nudge for fast "
-        "directional feedback. Use drift_diff for full regression analysis. "
-        "Do not batch multiple file changes without checking drift impact. "
+        "IMPORTANT: Before generating new code, call drift_negative_context "
+        "to learn which patterns to avoid.  After each file change, call "
+        "drift_nudge for fast directional feedback. Use drift_diff for full "
+        "regression analysis. Do not batch multiple file changes without "
+        "checking drift impact. "
         "Every response includes an 'agent_instruction' field — follow it."
     ),
 )
@@ -255,6 +258,39 @@ def drift_nudge(
         file_list = [f.strip() for f in changed_files.split(",") if f.strip()]
 
     result = nudge(path, changed_files=file_list, uncommitted=uncommitted)
+    return json.dumps(result, default=str)
+
+
+@mcp.tool()
+def drift_negative_context(
+    path: str = ".",
+    scope: str | None = None,
+    target_file: str | None = None,
+    max_items: int = 10,
+) -> str:
+    """Get anti-pattern warnings derived from drift analysis.
+
+    Returns known bad patterns in this repository that coding agents should
+    NOT reproduce.  Each item includes the forbidden pattern, a canonical
+    alternative, affected files, and a rationale.
+
+    Call this BEFORE generating code to learn what patterns to avoid.
+    After generating code, call drift_nudge to verify compliance.
+
+    Args:
+        path: Repository path (default: current directory).
+        scope: Filter by scope: "file", "module", or "repo" (default: all).
+        target_file: Restrict to items affecting a specific file path.
+        max_items: Maximum items to return (default: 10).
+    """
+    from drift.api import negative_context
+
+    result = negative_context(
+        path,
+        scope=scope,
+        target_file=target_file,
+        max_items=max_items,
+    )
     return json.dumps(result, default=str)
 
 

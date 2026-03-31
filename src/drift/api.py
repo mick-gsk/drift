@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, Any, cast
 
 from drift.api_helpers import (
     VALID_SIGNAL_IDS,
@@ -195,15 +196,22 @@ def _format_scan_response(
     signal_filter: set[str] | None = None,
 ) -> dict[str, Any]:
     """Format a RepoAnalysis into the scan response schema."""
+    selected_findings = analysis.findings
+    if signal_filter:
+        selected_findings = [
+            f for f in analysis.findings
+            if signal_abbrev(f.signal_type) in signal_filter
+        ]
+
     if strategy == "diverse":
-        limited = _diverse_findings(analysis.findings, max_findings)
+        limited = _diverse_findings(selected_findings, max_findings)
     else:
         ranked = sorted(
-            analysis.findings, key=lambda f: f.impact, reverse=True,
+            selected_findings, key=lambda f: f.impact, reverse=True,
         )
         limited = ranked[:max_findings]
-    critical_count = sum(1 for f in analysis.findings if f.severity.value == "critical")
-    high_count = sum(1 for f in analysis.findings if f.severity.value == "high")
+    critical_count = sum(1 for f in selected_findings if f.severity.value == "critical")
+    high_count = sum(1 for f in selected_findings if f.severity.value == "high")
     blocking_reasons: list[str] = []
     if critical_count or high_count:
         blocking_reasons.append("existing_high_or_critical_findings")
@@ -223,16 +231,22 @@ def _format_scan_response(
         ai_ratio=round(analysis.ai_attributed_ratio, 3),
         trend=_trend_dict(analysis),
         top_signals=_top_signals(analysis, signal_filter=signal_filter),
-        fix_first=_fix_first_concise(analysis, max_items=min(max_findings, 5)),
-        finding_count=len(analysis.findings),
+        fix_first=_fix_first_concise(
+            cast("RepoAnalysis", SimpleNamespace(findings=selected_findings)),
+            max_items=min(max_findings, 5),
+        ),
+        finding_count=len(selected_findings),
         critical_count=critical_count,
         high_count=high_count,
         findings_returned=len(limited),
         findings=findings_list,
         accept_change=not blocking_reasons,
         blocking_reasons=blocking_reasons,
-        response_truncated=len(analysis.findings) > max_findings,
-        recommended_next_actions=_scan_next_actions(analysis),
+        response_truncated=len(selected_findings) > max_findings,
+        recommended_next_actions=_scan_next_actions(
+            analysis,
+            findings=selected_findings,
+        ),
         agent_instruction=(
             "Use drift_fix_plan to get prioritised repair tasks. "
             "After each file change, call drift_diff(uncommitted=True) "
@@ -244,15 +258,19 @@ def _format_scan_response(
         result["skipped_languages"] = sorted(analysis.skipped_languages.keys())
     return result
 
-
-def _scan_next_actions(analysis: RepoAnalysis) -> list[str]:
+def _scan_next_actions(
+    analysis: RepoAnalysis,
+    *,
+    findings: list | None = None,
+) -> list[str]:
     """Derive recommended tool calls from scan results."""
+    scoped_findings = findings if findings is not None else analysis.findings
     actions: list[str] = []
     high_critical = sum(
-        1 for f in analysis.findings
+        1 for f in scoped_findings
         if f.severity.value in ("critical", "high")
     )
-    if analysis.findings:
+    if scoped_findings:
         actions.append("drift_fix_plan for top-priority findings")
     if high_critical:
         actions.append("drift_explain for unfamiliar high-severity signals")
@@ -494,16 +512,22 @@ def diff(
             has_out_of_scope_noise=bool(out_of_scope_new),
         )
 
-        _agent_hint = (
-            "Score is improving. Safe to continue with next task."
-            if status == "improved"
-            else (
-                "Score degraded. Call drift_fix_plan to address "
-                "new findings before proceeding."
-            )
-            if status in ("degraded", "new_critical")
-            else "No drift change detected. Safe to proceed."
-        )
+        if not accept_change:
+            if decision_reason_code == "rejected_out_of_scope_noise_only":
+                _agent_hint = (
+                    "No in-scope blockers detected, but out-of-scope drift noise "
+                    "is present. Use in_scope_accept for scoped gating and "
+                    "consider creating or refreshing a baseline."
+                )
+            else:
+                _agent_hint = (
+                    "Change rejected due to in-scope drift blockers. Call "
+                    "drift_fix_plan and address blockers before proceeding."
+                )
+        elif status == "improved":
+            _agent_hint = "Score is improving. Safe to continue with next task."
+        else:
+            _agent_hint = "No drift change detected. Safe to proceed."
         result = _base_response(
             drift_detected=delta > 0.0,
             status=status,
@@ -1425,3 +1449,106 @@ def invalidate_nudge_baseline(path: str | Path = ".") -> None:
 def to_json(result: dict[str, Any], *, indent: int = 2) -> str:
     """Serialize an API result dict to JSON string."""
     return json.dumps(result, indent=indent, default=str, sort_keys=True)
+
+
+# ---------------------------------------------------------------------------
+# Negative Context API
+# ---------------------------------------------------------------------------
+
+
+def negative_context(
+    path: str | Path = ".",
+    *,
+    scope: str | None = None,
+    target_file: str | None = None,
+    max_items: int = 10,
+    since_days: int = 90,
+) -> dict[str, Any]:
+    """Generate anti-pattern warnings from drift findings for agent consumption.
+
+    Parameters
+    ----------
+    path:
+        Repository root directory.
+    scope:
+        Filter by scope: ``"file"``, ``"module"``, or ``"repo"``.
+    target_file:
+        Restrict to items affecting a specific file (posix path).
+    max_items:
+        Maximum items to return (prioritized by severity).
+    since_days:
+        Days of git history to consider.
+
+    Returns
+    -------
+    dict
+        Negative context response with anti-pattern items and agent instruction.
+    """
+    from drift.analyzer import analyze_repo
+    from drift.config import DriftConfig
+    from drift.negative_context import (
+        findings_to_negative_context,
+        negative_context_to_dict,
+    )
+    from drift.telemetry import timed_call
+
+    repo_path = Path(path).resolve()
+    elapsed_ms = timed_call()
+    params: dict[str, Any] = {
+        "path": str(path),
+        "scope": scope,
+        "target_file": target_file,
+        "max_items": max_items,
+    }
+
+    try:
+        cfg = DriftConfig.load(repo_path)
+        analysis = analyze_repo(
+            repo_path, config=cfg, since_days=since_days,
+        )
+
+        items = findings_to_negative_context(
+            analysis.findings,
+            scope=scope,
+            target_file=target_file,
+            max_items=max_items,
+        )
+
+        result: dict[str, Any] = {
+            "status": "ok",
+            "drift_score": round(analysis.drift_score, 4),
+            "items_returned": len(items),
+            "items_total": len(analysis.findings),
+            "scope_filter": scope,
+            "target_file": target_file,
+            "negative_context": [negative_context_to_dict(nc) for nc in items],
+            "agent_instruction": (
+                "These are known anti-patterns in this repository. "
+                "Do NOT reproduce these patterns in new code. "
+                "After generating code, call drift_nudge to verify "
+                "you did not re-introduce any of these anti-patterns."
+            ),
+        }
+
+        _emit_api_telemetry(
+            tool_name="api.negative_context",
+            params=params,
+            status="ok",
+            elapsed_ms=elapsed_ms(),
+            result=result,
+            error=None,
+            repo_root=repo_path,
+        )
+        return result
+
+    except Exception as exc:
+        _emit_api_telemetry(
+            tool_name="api.negative_context",
+            params=params,
+            status="error",
+            elapsed_ms=elapsed_ms(),
+            result=None,
+            error=exc,
+            repo_root=repo_path,
+        )
+        return _error_response("DRIFT-6001", str(exc), recoverable=True)

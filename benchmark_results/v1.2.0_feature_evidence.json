@@ -1,41 +1,34 @@
 {
   "version": "1.2.0",
-  "date": "2026-06-29",
-  "feature": "Community Studies Infrastructure",
-  "commit_type": "feat",
-  "description": "Infrastructure for 13 community validation studies (S1-S13) across four problem domains: Security by Default, Day-2 Problem, Architecture/System Consistency, and Technical Debt.",
+  "feature": "NegativeContext system — signal-derived anti-pattern warnings for coding agents",
+  "timestamp": "2026-04-01T12:00:00Z",
+  "evidence": "23 new tests in tests/test_negative_context.py: model creation (2), enum values (2), ID determinism (3), generator coverage (5), public API filtering/sorting/dedup (6), serialization (2), AgentTask integration (2), JSON output integration (1). Full regression suite: 1316 passed, 0 failed.",
   "changes": {
-    "issue_templates": [
-      ".github/ISSUE_TEMPLATE/study_self_analysis.md — Self-analysis challenge template (S5/S13)",
-      ".github/ISSUE_TEMPLATE/study_finding_rating.md — Multi-rater PFS validation template (S7/S8)",
-      ".github/ISSUE_TEMPLATE/study_repo_benchmark.md — Repo benchmark studies template (S1/S3/S4/S6/S9/S11/S12)",
-      ".github/ISSUE_TEMPLATE/config.yml — Added community studies contact link"
-    ],
-    "scripts": [
-      "scripts/study_rater_agreement.py — Fleiss'/Cohen's kappa computation (pure Python)",
-      "scripts/study_self_analysis_aggregate.py — Self-analysis report aggregation",
-      "scripts/study_debt_correlation.py — Drift score vs. tech-debt correlation (Spearman rho)"
-    ],
-    "docs": [
-      "docs/STUDY.md §15-§17 — 13 study stubs across three problem domains",
-      "docs/EPISTEMICS.md §6-§7 — Intentional incoherence taxonomy + documentation as leading indicator",
-      "CONTRIBUTING.md — Community studies participation section",
-      "ROADMAP.md — Study priorities for contributors"
-    ],
-    "tests": [
-      "tests/test_study_infrastructure.py — 15 tests covering kappa, aggregation, correlation, fixtures",
-      "tests/fixtures/study_samples/ — 3 fixture files (rater_matrix, self_analysis_reports, debt_correlation)"
-    ]
-  },
-  "test_results": {
-    "new_tests": "15 passed",
-    "full_suite": "1220 passed, 2 skipped",
-    "kappa_self_test": "4/4 passed"
-  },
-  "policy_gate": {
-    "criterion": "Einführbarkeit — erleichtert Community-Beteiligung an empirischer Validierung",
-    "exclusion": "Nein",
-    "phase": "2 — Relevanz (Community-Validierung stärkt Signalvertrauen)",
-    "decision": "ZULÄSSIG"
+    "negative_context_module": {
+      "file": "src/drift/negative_context.py",
+      "impact": "18 signal-specific generators converting findings to anti-pattern warnings (forbidden_pattern + canonical_alternative). Deterministic IDs, severity sorting, deduplication, scope/file filtering.",
+      "generators": 18,
+      "fmea_failure_modes_covered": 17
+    },
+    "models": {
+      "file": "src/drift/models.py",
+      "impact": "Added NegativeContextCategory enum (7 categories), NegativeContextScope enum (3 scopes), NegativeContext dataclass (12 fields), negative_context field on AgentTask"
+    },
+    "api": {
+      "file": "src/drift/api.py",
+      "impact": "New negative_context() programmatic API function"
+    },
+    "mcp_server": {
+      "file": "src/drift/mcp_server.py",
+      "impact": "New drift_negative_context MCP tool for VS Code/Copilot integration"
+    },
+    "agent_tasks_output": {
+      "file": "src/drift/output/agent_tasks.py",
+      "impact": "AgentTask JSON now includes negative_context per task"
+    },
+    "json_output": {
+      "file": "src/drift/output/json_output.py",
+      "impact": "JSON output now includes top-level negative_context section (max 20 items)"
+    }
   }
 }

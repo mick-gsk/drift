@@ -4,6 +4,15 @@
 
 - Make PyPI publish workflow runner-agnostic by using Twine upload for token-based publishing (works on Windows/self-hosted runners).
 
+## [1.2.0] – 2026-03-31
+
+Short version: Add NegativeContext system  signal-derived anti-pattern warnings for coding agents.
+
+### Changed
+
+- Add NegativeContext system  signal-derived anti-pattern warnings for coding agents.
+
+
 ## [1.1.17] – 2026-03-31
 
 Short version: Refine v1.1.16 release notes. (+2 more commits)
