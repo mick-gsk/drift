@@ -87,3 +87,22 @@ def test_trend_command_uses_canonical_history_and_keeps_legacy_entries(tmp_path:
     # Exactly one new snapshot should be persisted by the analyzer path.
     assert len(updated) == len(seeded) + 1
     assert updated[-1]["scope"] == "repo"
+
+
+def test_trend_command_last_short_alias(tmp_path: Path) -> None:
+    """Verify that -l works as short alias for --last."""
+    repo = tmp_path / "repo"
+    repo.mkdir(parents=True, exist_ok=True)
+
+    target = repo / "mod.py"
+    target.write_text("def fn(x):\n    return x\n", encoding="utf-8")
+
+    _git(repo, "init")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-m", "initial")
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["trend", "--repo", str(repo), "-l", "5"])
+    assert result.exit_code == 0, result.output
+    assert "5-day history window" in result.output
+

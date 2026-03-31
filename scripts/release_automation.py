@@ -21,7 +21,7 @@ def run_tests() -> bool:
     try:
         subprocess.run(
             [
-                "python",
+                sys.executable,
                 "-m",
                 "pytest",
                 "tests/",
@@ -133,9 +133,9 @@ def _resolve_shell() -> str | None:
 
 
 def run_pre_push_preflight(tag_name: str) -> bool:
-    """Run pre-push hook for master branch only (before tag exists) to fail early.
+    """Run pre-push hook for main branch only (before tag exists) to fail early.
 
-    Only validates the master-branch push portion of the hook. Tag-related hook
+    Only validates the main-branch push portion of the hook. Tag-related hook
     gates are intentionally skipped here because the tag does not yet exist at
     preflight time; the hook will re-run automatically on actual push.
     """
@@ -156,14 +156,14 @@ def run_pre_push_preflight(tag_name: str) -> bool:
         text=True,
         check=True,
     ).stdout.strip()
-    remote_head = get_remote_sha("refs/heads/master")
+    remote_head = get_remote_sha("refs/heads/main")
 
-    # Only simulate master-branch push — tag does not exist yet at this point.
+    # Only simulate main-branch push — tag does not exist yet at this point.
     hook_input = (
-        f"refs/heads/master {local_head} refs/heads/master {remote_head}\n"
+        f"refs/heads/main {local_head} refs/heads/main {remote_head}\n"
     )
 
-    print("\n▶ Running pre-push preflight checks (master branch)...")
+    print("\n▶ Running pre-push preflight checks (main branch)...")
     preflight = subprocess.run(
         [shell, str(PRE_PUSH_HOOK)],
         cwd=ROOT,
@@ -288,7 +288,7 @@ def main() -> int:
             check=True,
         )
         subprocess.run(
-            ["git", "push", "origin", "master", next_version],
+            ["git", "push", "origin", "main", next_version],
             cwd=ROOT,
             check=True,
         )

@@ -10,6 +10,8 @@
 
 > **Feature update (2026-03-30):** v1.1.11 adds three new Security-by-Default signals for vibe-coding detection: **MAZ** (Missing Authorization, CWE-862) detects unprotected API endpoints across FastAPI/Django/Flask/Starlette/Sanic with 18 auth decorator patterns and body-level auth detection; **HSC** (Hardcoded Secret, CWE-798) detects hardcoded credentials via secret variable regex, known token prefixes (ghp_, sk-, AKIA, xoxb-), and Shannon entropy analysis; **ISD** (Insecure Default, CWE-1188) detects insecure configuration defaults (DEBUG=True, ALLOWED_HOSTS=['*'], CORS_ALLOW_ALL, insecure cookies, verify=False). All three signals are report-only (weight=0.0) pending precision validation. SARIF output enhanced with CWE helpUri. 67 new tests cover true-positive, true-negative, and edge-case scenarios. The model now exposes 22 configured signals.
 
+> **Feature update (2026-03-31):** v1.1.13 adds the `-l` short alias for `--last` in the `drift trend` command, consistent with existing `-r` and `-c` aliases. Closes #25.
+
 > **Feature update (2026-03-30):** v1.1.12 introduces `drift init` — a new CLI command that scaffolds drift configuration with built-in profiles (`default`, `vibe-coding`, `strict`). Supports `--profile` to select pre-tuned signal weights and thresholds, `--ci` to generate a GitHub Actions workflow, `--hooks` for a git pre-push gate, `--mcp` for VS Code MCP server config, and `--full` for all-in-one scaffolding. The `vibe-coding` profile upweights MDS (0.20), PFS (0.18), BAT (0.06), and TPD (0.06), lowers similarity threshold to 0.75, and adds layer boundary policies — targeting the dominant technical debt vectors in AI-accelerated codebases. 24 new tests in `tests/test_init_cmd.py`.
 
 ---

@@ -1,11 +1,16 @@
-## [1.1.13] - 2026-03-31
+## [1.1.13] – 2026-03-31
 
-Short version: Faster CI and pre-push hook via pytest-xdist parallelism.
+Short version: CLI ergonomics and CI improvements.
+
+### Added
+
+- Add `-l` short alias for `--last` in the `drift trend` command (closes #25).
 
 ### Changed
 
 - Add `pytest-xdist>=3.5` to dev dependencies; enable `-n auto --dist=loadfile` in pytest config — reduces test suite runtime from ~95s to ~50s on 16-core runner.
 - Replace `pip install` with `uv sync --all-extras` in CI workflow — deterministic installs from `uv.lock`, ~10x faster on warm cache.
+- Fix `release_automation.py` to use `sys.executable` instead of hardcoded `python` for cross-platform venv compatibility.
 
 ## [1.1.12] - 2026-03-31
 

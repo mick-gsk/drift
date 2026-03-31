@@ -1,0 +1,6 @@
+{
+    "evidence": "Integration test test_trend_command_last_short_alias verifies -l alias resolves correctly and trend output includes expected history window text",
+    "timestamp": "2026-03-31T12:00:00Z",
+    "version": "1.1.13",
+    "feature": "short alias -l for --last in trend command (closes #25)"
+}

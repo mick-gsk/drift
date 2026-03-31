@@ -17,7 +17,7 @@ from drift.trend_history import load_history, snapshot_scope
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     default=".",
 )
-@click.option("--last", "days", default=90, type=int, help="Number of days to trend.")
+@click.option("--last", "-l", "days", default=90, type=int, help="Number of days to trend.")
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
 def trend(repo: Path, days: int, config: Path | None) -> None:
     """Show drift score trend over time (requires git history)."""
