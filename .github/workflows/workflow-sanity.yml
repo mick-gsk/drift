@@ -12,6 +12,7 @@ on:
       - ".github/workflows/**"
       - ".github/actions/**"
       - "action.yml"
+  workflow_dispatch:
 
 concurrency:
   group: "sanity-${{ github.event.pull_request.number || github.ref }}"
@@ -23,13 +24,13 @@ permissions:
 jobs:
   sanity:
     name: Workflow file hygiene
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
 
       - name: No tabs in workflow files
         run: |
-          python3 -c "
+          python -c "
           import pathlib, sys
           bad = []
           for p in sorted(pathlib.Path('.github/workflows').rglob('*.yml')):
@@ -44,7 +45,7 @@ jobs:
 
       - name: No merge conflict markers
         run: |
-          python3 -c "
+          python -c "
           import pathlib, re, sys
           marker = re.compile(rb'^[<>=]{7}( |\$)', re.MULTILINE)
           bad = []

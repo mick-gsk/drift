@@ -37,6 +37,7 @@ jobs:
       - name: Block major-only tags and validate SemVer format
         # Rejects v1, v2, etc. – those must only come from automation.
         # Accepts v1.2.3 style and validates pyproject.toml matches.
+        shell: bash
         run: python scripts/check_version.py --tag "${{ github.ref_name }}"
 
   create-release:
@@ -46,6 +47,7 @@ jobs:
 
     steps:
       - name: Create published release if missing
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}

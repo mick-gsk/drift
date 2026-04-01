@@ -4,10 +4,6 @@ on:
   push:
     tags:
       - "v*.*.*"
-  release:
-    # Run immediately when a GitHub release is created so PyPI is always
-    # produced as part of release creation (not only after manual publish).
-    types: [created]
   workflow_dispatch:
     inputs:
       release_tag:
@@ -45,12 +41,10 @@ jobs:
   publish:
     name: Build and publish to PyPI
     needs: validate-version
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: pypi
     env:
-      PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN || secrets.PYPI_RELEASE }}
-    permissions:
-      id-token: write # Trusted publishing — no API key needed
+      PYPI_API_TOKEN: ${{ secrets.PYPI_RELEASE }}
 
     steps:
       - uses: actions/checkout@v4
@@ -66,15 +60,15 @@ jobs:
         run: python -m build
 
       - name: Publish to PyPI (API token)
-        if: env.PYPI_API_TOKEN != ''
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ env.PYPI_API_TOKEN }}
-        run: python -m twine upload --non-interactive dist/*
-
-      - name: Publish to PyPI (Trusted publishing fallback)
-        if: env.PYPI_API_TOKEN == ''
-        uses: pypa/gh-action-pypi-publish@release/v1
+        shell: powershell
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PYPI_API_TOKEN)) {
+            Write-Error "Neither PYPI_API_TOKEN nor PYPI_RELEASE secret is configured."
+            exit 1
+          }
+          $env:TWINE_USERNAME = "__token__"
+          $env:TWINE_PASSWORD = $env:PYPI_API_TOKEN
+          python -m twine upload --non-interactive dist/*
 
   update-major-tag:
     name: Update major-version tag (e.g. v1 → latest patch)
