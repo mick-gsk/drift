@@ -5,6 +5,7 @@ from __future__ import annotations
 import click
 
 from drift.commands import console
+from drift.errors import DriftSystemError
 
 
 @click.command("mcp")
@@ -36,20 +37,22 @@ def mcp(serve: bool) -> None:
 
     try:
         from drift.mcp_server import main as mcp_main
-    except ImportError:
-        console.print(
-            "[red]Error:[/] MCP server requires the 'mcp' extra.\n"
-            "Install with: [bold]pip install drift-analyzer\\[mcp][/]"
-        )
-        raise SystemExit(1)  # noqa: B904
+    except ImportError as exc:
+        raise DriftSystemError(
+            "DRIFT-2010",
+            message="MCP server requires the 'mcp' extra.",
+            package="mcp",
+            extra="mcp",
+        ) from exc
 
     try:
         mcp_main()
     except RuntimeError as exc:
         if "requires optional dependency 'mcp'" not in str(exc):
             raise
-        console.print(
-            "[red]Error:[/] MCP server requires the 'mcp' extra.\n"
-            "Install with: [bold]pip install drift-analyzer\\[mcp][/]"
-        )
-        raise SystemExit(1)  # noqa: B904
+        raise DriftSystemError(
+            "DRIFT-2010",
+            message="MCP server requires the 'mcp' extra.",
+            package="mcp",
+            extra="mcp",
+        ) from exc
