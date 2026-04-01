@@ -2,6 +2,7 @@
 
 ### Fixed
 
+- Re-enable GitHub Security scanning by running CodeQL and Dependency Review workflows on `ubuntu-latest` for `main` push/PR events, and document both workflows in `SECURITY.md`.
 - Make PyPI publish workflow runner-agnostic by using Twine upload for token-based publishing (works on Windows/self-hosted runners).
 - Allow `.pre-commit-config.yaml` in the repo-root allowlist so repo hardening commits pass the local repo-guard gate.
 - Stabilize self-hosted Windows workflows by switching release and sanity checks to PowerShell-safe execution, avoiding editable pip-audit installs, and disabling the broken Codecov upload step.
