@@ -295,3 +295,96 @@ class TestHSCEdgeCases:
         signal = HardcodedSecretSignal(repo_path=tmp_path)
         findings = signal.analyze([_make_pr()], {}, DriftConfig())
         assert len(findings) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Multi-line secrets
+# ---------------------------------------------------------------------------
+
+
+class TestMultilineSecrets:
+    def test_pem_private_key_detected(self, tmp_path: Path) -> None:
+        # Triple-quoted PEM key — common in config files and CI scripts
+        _write_source(
+            tmp_path, "config.py",
+            '''\
+            private_key = """-----BEGIN RSA PRIVATE KEY-----
+            MIIEowIBAAKCAQEA2a2rwplBQLzHPZe5RJaItBWFkMVaVEFVCpkJuGZCqqDSX/s6
+            bMECBEmzKFBMFZGQfJ7sM3N4zGAVDGRMkHVFHfCkBjIRzLv0bKTjQ8IkK1l2mPFN
+            y3qXCPZGhJqJVJuZiKxjM5TbLBLpC1J4JFHxlXJzKVZiT6ygGdLK5oaVZdPxLvWm
+            -----END RSA PRIVATE KEY-----"""
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr()], {}, DriftConfig())
+        assert len(findings) >= 1
+        assert findings[0].signal_type == SignalType.HARDCODED_SECRET
+        assert "private_key" in findings[0].title
+
+    def test_base64_token_block_detected(self, tmp_path: Path) -> None:
+        # Multi-line triple-quoted base64 token — high entropy, long string
+        _write_source(
+            tmp_path, "config.py",
+            '''\
+            api_key = """
+            dGhpcyBpcyBhIHZlcnkgbG9uZyBiYXNlNjQgZW5jb2RlZCB0b2tlbiB0aGF0
+            c2hvdWxkIGJlIGRldGVjdGVkIGJ5IHRoZSBoYXJkY29kZWQgc2VjcmV0IHNpZ25hbA==
+            """
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr()], {}, DriftConfig())
+        assert len(findings) >= 1
+        assert "api_key" in findings[0].title
+
+    def test_multiline_connection_string_with_password_detected(
+        self, tmp_path: Path
+    ) -> None:
+        # Implicit string concatenation — joined into one constant by Python
+        _write_source(
+            tmp_path, "config.py",
+            '''\
+            db_password = (
+                "postgresql://admin:S3cr3tP@ssw0rd123!"
+                "@prod-db.internal:5432/appdb"
+            )
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr()], {}, DriftConfig())
+        assert len(findings) >= 1
+        assert "db_password" in findings[0].title
+
+    def test_multiline_sql_query_not_flagged(self, tmp_path: Path) -> None:
+        # Non-secret variable name — should never trigger regardless of length
+        _write_source(
+            tmp_path, "queries.py",
+            '''\
+            sql_query = """
+                SELECT id, name, email
+                FROM users
+                WHERE active = true
+                AND created_at > '2024-01-01'
+            """
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("queries.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_multiline_help_text_not_flagged(self, tmp_path: Path) -> None:
+        # Long descriptive string mentioning "secret" only as a word, not a var name
+        _write_source(
+            tmp_path, "config.py",
+            '''\
+            HELP_TEXT = """
+                This application requires the following environment variables:
+                - SECRET_KEY: set this to a random value before deploying
+                - DATABASE_URL: connection string for the primary database
+                - REDIS_URL: connection string for the cache layer
+            """
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr()], {}, DriftConfig())
+        assert len(findings) == 0
