@@ -14,7 +14,8 @@ concurrency:
 
 jobs:
   label:
-    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    runs-on: self-hosted
     steps:
       - uses: actions/labeler@v5
         with:

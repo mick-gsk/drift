@@ -11,6 +11,7 @@
 - Make auto-release release-existence checks PowerShell-safe by handling `gh release view` misses without hard failure.
 - Restrict CodeQL execution to manual dispatch so push/PR runs are no longer hard-failed by billing-locked code scanning.
 - Reset PowerShell native exit code after release checks so non-existent releases no longer fail the auto-release check step.
+- Skip Dependency Review and Labeler jobs for `dependabot[bot]` PRs to prevent recurring billing-locked failures in automated dependency update traffic.
 
 ## [1.3.1] – 2026-04-01
 
