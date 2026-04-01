@@ -122,6 +122,13 @@ Security-relevant behavior is covered by dedicated tests, including:
 This repository uses `detect-secrets` with a tracked baseline
 (`.secrets.baseline`) and exclusion reference (`.detect-secrets.cfg`).
 
+GitHub-native security workflows are enabled:
+
+- **CodeQL** (`.github/workflows/codeql.yml`): scans Python code on pushes and
+  pull requests targeting `main`, plus a weekly scheduled run.
+- **Dependency Review** (`.github/workflows/dependency-review.yml`): reviews
+  dependency changes on pull requests and fails on `high` severity and above.
+
 - CI enforcement: `.github/workflows/security-hygiene.yml` runs
 	blocking gates for `detect-private-key`, `detect-secrets`, and
 	`actionlint` via pre-commit.
