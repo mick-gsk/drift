@@ -1,0 +1,60 @@
+name: Workflow Sanity
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "action.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - "action.yml"
+
+concurrency:
+  group: "sanity-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sanity:
+    name: Workflow file hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No tabs in workflow files
+        run: |
+          python3 -c "
+          import pathlib, sys
+          bad = []
+          for p in sorted(pathlib.Path('.github/workflows').rglob('*.yml')):
+              if b'\t' in p.read_bytes():
+                  bad.append(str(p))
+          if bad:
+              print('Tabs found in workflow file(s):')
+              for p in bad: print(f'  - {p}')
+              sys.exit(1)
+          print('No tabs in workflow files.')
+          "
+
+      - name: No merge conflict markers
+        run: |
+          python3 -c "
+          import pathlib, re, sys
+          marker = re.compile(rb'^[<>=]{7}( |\$)', re.MULTILINE)
+          bad = []
+          for p in sorted(pathlib.Path('.github').rglob('*')):
+              if p.is_file() and p.suffix in ('.yml', '.yaml', '.md'):
+                  if marker.search(p.read_bytes()):
+                      bad.append(str(p))
+          if bad:
+              print('Merge conflict markers found:')
+              for p in bad: print(f'  - {p}')
+              sys.exit(1)
+          print('No conflict markers.')
+          "

@@ -1,0 +1,53 @@
+signals:
+  - changed-files:
+      - any-glob-to-any-file: "src/drift/signals/**"
+
+scoring:
+  - changed-files:
+      - any-glob-to-any-file: "src/drift/scoring/**"
+
+ingestion:
+  - changed-files:
+      - any-glob-to-any-file: "src/drift/ingestion/**"
+
+output:
+  - changed-files:
+      - any-glob-to-any-file: "src/drift/output/**"
+
+cli:
+  - changed-files:
+      - any-glob-to-any-file: "src/drift/commands/**"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: "tests/**"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs-site/**"
+          - "docs/**"
+          - "README.md"
+          - "CONTRIBUTING.md"
+          - "DEVELOPER.md"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/actions/**"
+          - "Makefile"
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/drift/config.py"
+          - "drift.example.yaml"
+
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "SECURITY.md"
+          - ".github/workflows/security-hygiene.yml"
+          - ".github/workflows/codeql.yml"
+          - ".pre-commit-config.yaml"

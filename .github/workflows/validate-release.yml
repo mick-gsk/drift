@@ -18,6 +18,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: "validate-${{ github.ref }}"
+  cancel-in-progress: false
+
 jobs:
   validate-tag:
     name: Validate tag & pyproject.toml consistency

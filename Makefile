@@ -22,6 +22,7 @@ help:  ## Show all available commands
 install:  ## Dev install (editable + all dev extras) and activate git hooks
 	pip install -e ".[dev]"
 	git config core.hooksPath .githooks
+@command -v pre-commit >/dev/null 2>&1 && pre-commit install --install-hooks || echo "  (pre-commit not found  skipping hook install)"
 
 lint:  ## Run ruff linter
 	$(RUFF) check $(SRC) $(TESTS)

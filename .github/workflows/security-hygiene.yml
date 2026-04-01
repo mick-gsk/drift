@@ -1,0 +1,55 @@
+name: Security Hygiene
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: "sec-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: Secret and workflow hygiene
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pre-commit
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pre-commit==4.2.0
+
+      - name: Check committed private keys
+        run: pre-commit run --all-files detect-private-key
+
+      - name: Run secret scan baseline gate
+        run: pre-commit run --all-files detect-secrets
+
+      - name: Lint shell scripts
+        continue-on-error: true
+        run: pre-commit run --all-files shellcheck
+
+      - name: Lint GitHub workflows
+        run: pre-commit run --all-files actionlint
+
+      - name: Audit GitHub workflows
+        continue-on-error: true
+        run: pre-commit run --all-files zizmor
+
+      - name: Audit Python dependencies (pip-audit)
+        run: |
+          python -m pip install pip-audit
+          python -m pip install -e ".[dev]" 2>/dev/null || python -m pip install -e .
+          python -m pip_audit --strict --desc

@@ -18,3 +18,13 @@ tests/ @sauremilk
 
 # Documentation site
 docs-site/ @sauremilk
+
+# Security-sensitive paths (require extra review attention)
+SECURITY.md @sauremilk
+.github/workflows/security-hygiene.yml @sauremilk
+.github/workflows/codeql.yml @sauremilk
+.github/workflows/publish.yml @sauremilk
+.pre-commit-config.yaml @sauremilk
+.secrets.baseline @sauremilk
+src/drift/ingestion/ast_parser.py @sauremilk
+src/drift/ingestion/git_history.py @sauremilk

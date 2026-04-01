@@ -1,0 +1,59 @@
+# Repository-wide hygiene and security checks.
+# Run with: pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: detect-private-key
+        exclude: "(^|/)(\\.secrets\\.baseline|\\.detect-secrets\\.cfg)$"
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args:
+          - --baseline
+          - .secrets.baseline
+          - --exclude-files
+          - "(^|[\\\\/])uv\\.lock$"
+          - --exclude-files
+          - "(^|[\\\\/])(benchmark_results|audit_results|site|docs-site|\\.hypothesis|\\.venv|dist|build|\\.mypy_cache|\\.pytest_cache|\\.ruff_cache|\\.drift-cache|work_artifacts|master-backlog|tagesplanung)([\\\\/]|$)"
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.1
+    hooks:
+      - id: ruff
+      - id: ruff-format
+        args: [--check]
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.11
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=error]
+        exclude: "^(\\.githooks/|examples/vibe-coding/pre-push$|\\.shellcheckrc$)"
+
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.22.0
+    hooks:
+      - id: zizmor
+        args: [--persona=regular, --min-severity=medium, --min-confidence=medium]
+        files: "^(\\.github/workflows/security-hygiene\\.yml|action\\.yml)$"
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.2
+    hooks:
+      - id: markdownlint-cli2
+        args: [--config, .markdownlint-cli2.jsonc]
