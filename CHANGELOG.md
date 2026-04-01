@@ -4,6 +4,15 @@
 
 - Make PyPI publish workflow runner-agnostic by using Twine upload for token-based publishing (works on Windows/self-hosted runners).
 
+## [1.3.0] – 2026-04-01
+
+Short version: Fix SECURITY.md to include 1.3.x as supported. (+2 more commits)
+
+### Changed
+
+- Fix SECURITY.md to include 1.3.x as supported. (+2 more commits)
+
+
 ## [1.2.0] – 2026-04-01
 
 Short version: Phase 3  project-specific constraint extraction for AVS/CCC/ECM/HSC generators. (+5 more commits)
