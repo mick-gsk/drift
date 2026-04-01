@@ -4,6 +4,7 @@
 
 - Make PyPI publish workflow runner-agnostic by using Twine upload for token-based publishing (works on Windows/self-hosted runners).
 - Allow `.pre-commit-config.yaml` in the repo-root allowlist so repo hardening commits pass the local repo-guard gate.
+- Stabilize self-hosted Windows workflows by switching release and sanity checks to PowerShell-safe execution, avoiding editable pip-audit installs, and disabling the broken Codecov upload step.
 - Force release-tag validation and release-creation steps to use bash semantics so POSIX conditional blocks no longer fail on PowerShell runners.
 - Move Security Hygiene execution to self-hosted to avoid hosted-runner billing locks.
 - Add manual dispatch support to Workflow Sanity for direct post-fix verification runs.
