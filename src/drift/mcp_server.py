@@ -16,6 +16,7 @@ Tool surface (v2):
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 MCPFastMCPImpl: Any
@@ -47,32 +48,95 @@ except ImportError:
     MCPFastMCPImpl = _FallbackFastMCP
 
 # ---------------------------------------------------------------------------
+# Dynamic instructions builder
+# ---------------------------------------------------------------------------
+
+_BASE_INSTRUCTIONS = (
+    "Drift is a deterministic static analyzer that detects architectural "
+    "erosion in Python codebases. Use these tools to analyze repositories "
+    "for coherence problems like pattern fragmentation, layer violations, "
+    "and near-duplicate code.\n\n"
+    "Tool workflow:\n"
+    "1. drift_validate — check config & environment before first analysis\n"
+    "2. drift_scan — assess overall architectural health\n"
+    "3. drift_negative_context — get anti-patterns to avoid in new code\n"
+    "4. drift_diff — detect regressions in a PR or after changes\n"
+    "5. drift_fix_plan — get actionable repair tasks with constraints\n"
+    "6. drift_explain — understand unfamiliar signals or findings\n"
+    "7. drift_nudge — get directional feedback after each file change "
+    "(do not batch)\n\n"
+    "IMPORTANT: Before generating new code, call drift_negative_context "
+    "to learn which patterns to avoid.  After each file change, call "
+    "drift_nudge for fast directional feedback. Use drift_diff for full "
+    "regression analysis. Do not batch multiple file changes without "
+    "checking drift impact. "
+    "Every response includes an 'agent_instruction' field — follow it."
+)
+
+
+def _load_negative_context_instructions() -> str:
+    """Build MCP instructions, enriching with cached anti-patterns if available.
+
+    Looks for ``.drift-negative-context.md`` in the working directory.
+    If found, extracts the top anti-pattern summaries and appends them
+    to the base instructions so agents receive them at server start.
+    """
+    ctx_file = Path(".drift-negative-context.md")
+    if not ctx_file.is_file():
+        return _BASE_INSTRUCTIONS
+
+    try:
+        content = ctx_file.read_text(encoding="utf-8")
+    except OSError:
+        return _BASE_INSTRUCTIONS
+
+    # Extract anti-pattern bullet points (lines starting with "- " under markers)
+    from drift.negative_context_export import MARKER_BEGIN, MARKER_END
+
+    begin = content.find(MARKER_BEGIN)
+    end = content.find(MARKER_END)
+    if begin < 0 or end < 0:
+        return _BASE_INSTRUCTIONS
+
+    section = content[begin + len(MARKER_BEGIN):end].strip()
+    if not section:
+        return _BASE_INSTRUCTIONS
+
+    # Extract DO NOT lines (compact summary)
+    do_not_lines: list[str] = []
+    for line in section.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- **DO NOT:**"):
+            do_not_lines.append(stripped.removeprefix("- **DO NOT:** "))
+
+    if not do_not_lines:
+        return _BASE_INSTRUCTIONS
+
+    # Limit to top 10 for concise instructions
+    top = do_not_lines[:10]
+    suffix = (
+        f"\n  ... and {len(do_not_lines) - 10} more"
+        if len(do_not_lines) > 10
+        else ""
+    )
+
+    anti_pattern_block = (
+        "\n\nKNOWN ANTI-PATTERNS IN THIS REPOSITORY "
+        "(from last drift export-context):\n"
+        + "\n".join(f"- DO NOT: {line}" for line in top)
+        + suffix
+    )
+
+    return _BASE_INSTRUCTIONS + anti_pattern_block
+
+
+# ---------------------------------------------------------------------------
 # Server instance
 # ---------------------------------------------------------------------------
 
 mcp = MCPFastMCPImpl(
     "drift",
-    instructions=(
-        "Drift is a deterministic static analyzer that detects architectural "
-        "erosion in Python codebases. Use these tools to analyze repositories "
-        "for coherence problems like pattern fragmentation, layer violations, "
-        "and near-duplicate code.\n\n"
-        "Tool workflow:\n"
-        "1. drift_validate — check config & environment before first analysis\n"
-        "2. drift_scan — assess overall architectural health\n"
-        "3. drift_negative_context — get anti-patterns to avoid in new code\n"
-        "4. drift_diff — detect regressions in a PR or after changes\n"
-        "5. drift_fix_plan — get actionable repair tasks with constraints\n"
-        "6. drift_explain — understand unfamiliar signals or findings\n"
-        "7. drift_nudge — get directional feedback after each file change "
-        "(do not batch)\n\n"
-        "IMPORTANT: Before generating new code, call drift_negative_context "
-        "to learn which patterns to avoid.  After each file change, call "
-        "drift_nudge for fast directional feedback. Use drift_diff for full "
-        "regression analysis. Do not batch multiple file changes without "
-        "checking drift impact. "
-        "Every response includes an 'agent_instruction' field — follow it."
-    ),
+    instructions=_load_negative_context_instructions(),
 )
 
 

@@ -89,6 +89,7 @@ from drift.commands.config_cmd import config  # noqa: E402
 from drift.commands.copilot_context import copilot_context  # noqa: E402
 from drift.commands.diff_cmd import diff  # noqa: E402
 from drift.commands.explain import explain  # noqa: E402
+from drift.commands.export_context import export_context  # noqa: E402
 from drift.commands.fix_plan import fix_plan  # noqa: E402
 from drift.commands.init_cmd import init  # noqa: E402
 from drift.commands.mcp import mcp  # noqa: E402
@@ -107,6 +108,7 @@ main.add_command(config)
 main.add_command(copilot_context)
 main.add_command(diff)
 main.add_command(explain)
+main.add_command(export_context)
 main.add_command(fix_plan)
 main.add_command(mcp)
 main.add_command(patterns)
