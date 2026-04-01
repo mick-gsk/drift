@@ -28,13 +28,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Resolve Python executable
+        shell: powershell
+        run: |
+          $resolved = $false
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved -and (Get-Command py -ErrorAction SilentlyContinue)) {
+            py --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved) {
+            Write-Error "Neither 'python' nor 'py' is available on this runner."
+            exit 1
+          }
 
       - name: No tabs in workflow files
+        shell: powershell
         run: |
-          python -c "
+          & $env:PYTHON_BIN -c "
           import pathlib, sys
           bad = []
           for p in sorted(pathlib.Path('.github/workflows').rglob('*.yml')):
@@ -48,8 +68,9 @@ jobs:
           "
 
       - name: No merge conflict markers
+        shell: powershell
         run: |
-          python -c "
+          & $env:PYTHON_BIN -c "
           import pathlib, re, sys
           marker = re.compile(rb'^[<>=]{7}( |\$)', re.MULTILINE)
           bad = []

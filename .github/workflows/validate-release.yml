@@ -37,7 +37,7 @@ jobs:
       - name: Block major-only tags and validate SemVer format
         # Rejects v1, v2, etc. – those must only come from automation.
         # Accepts v1.2.3 style and validates pyproject.toml matches.
-        shell: bash
+        shell: powershell
         run: python scripts/check_version.py --tag "${{ github.ref_name }}"
 
   create-release:
@@ -47,17 +47,20 @@ jobs:
 
     steps:
       - name: Create published release if missing
-        shell: bash
+        shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release for $TAG already exists – skipping creation"
+          gh release view "$env:TAG" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Output "Release for $env:TAG already exists - skipping creation"
             exit 0
-          fi
+          }
 
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --generate-notes
-          echo "Created published release for $TAG"
+          gh release create "$env:TAG" --title "$env:TAG" --generate-notes
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Failed to create release for $env:TAG"
+            exit 1
+          }
+          Write-Output "Created published release for $env:TAG"
