@@ -22,11 +22,8 @@ Last updated: v1.3.0 (2026-04-01)
      - `gh release view vX.Y.Z`
      - `python -m pip index versions drift-analyzer`
      - `python -m pip install --upgrade drift-analyzer==X.Y.Z`
-- [ ] **GitHub Pages aktivieren** — Workflow `docs.yml` ist fertig (MkDocs Material). Schritte:
-  1. Repo Settings → Pages → Source: "GitHub Actions"
-  2. Push zu `main` mit Änderung in `docs-site/` oder `mkdocs.yml` triggert Deploy
-  3. Prüfen: https://sauremilk.github.io/drift/
-- [ ] **GitHub Discussions aktivieren** — Settings → General → Features → Discussions ✓. Issue-Templates verweisen bereits auf Discussions.
+- [x] **GitHub Pages aktivieren** — Source: GitHub Actions. Deployment triggert beim nächsten Push mit `docs-site/` Änderung.
+- [x] **GitHub Discussions aktivieren** — Aktiv. Issue-Templates verweisen auf Discussions.
 
 ---
 

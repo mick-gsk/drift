@@ -5,6 +5,8 @@ title: Drift — Architecture Erosion Detection
 
 ## Why teams add drift next to existing checks
 
+AI coding tools write code that works — but doesn't fit. Error handling fragments across patterns, layer boundaries erode, near-identical utilities accumulate. Drift finds exactly that.
+
 - Ruff, formatting, and typing keep local code clean.
 - Semgrep, CodeQL, and security tooling catch risky flows.
 - Drift adds a deterministic view of architecture erosion analysis and cross-file coherence detection: pattern fragmentation, boundary erosion, and drift hotspots.
