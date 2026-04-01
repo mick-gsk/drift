@@ -9,6 +9,8 @@
 .pre-commit-hooks.yaml
 .pre-commit-config.yaml
 .markdownlint-cli2.jsonc
+.secrets.baseline
+.detect-secrets.cfg
 .shellcheckrc
 .vscode
 CHANGELOG.md
