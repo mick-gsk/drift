@@ -21,11 +21,11 @@
 
 ## [1.3.4] – 2026-04-01
 
-Short version: Resolve pre-push ruff line-length blockers.
+Short version: Release 1.3.4. (+4 more commits)
 
 ### Changed
 
-- Resolve pre-push ruff line-length blockers.
+- Release 1.3.4. (+4 more commits)
 
 
 ## [1.3.3] – 2026-04-01
