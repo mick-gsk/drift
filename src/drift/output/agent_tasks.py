@@ -51,6 +51,13 @@ def _task_id(finding: Finding) -> str:
     return f"{prefix}-{short_hash}"
 
 
+def _finding_fingerprint(finding: Finding) -> str:
+    """Return a stable key for correlating findings and recommendations."""
+    file_path = finding.file_path.as_posix() if finding.file_path else ""
+    start_line = finding.start_line if finding.start_line is not None else -1
+    return f"{finding.signal_type.value}:{file_path}:{start_line}:{finding.title}"
+
+
 # ---------------------------------------------------------------------------
 # Repair maturity matrix (Phase 4)
 # ---------------------------------------------------------------------------
@@ -505,13 +512,13 @@ def analysis_to_agent_tasks(analysis: RepoAnalysis) -> list[AgentTask]:
     signals without recommenders are excluded — they don't yet have
     actionable remediation patterns).
     """
-    # Generate recommendations (keyed by finding title for matching)
+    # Generate recommendations and map them by stable finding fingerprint.
     recs = generate_recommendations(analysis.findings, max_recommendations=9999)
-    rec_by_title: dict[str, Recommendation] = {}
+    rec_by_fingerprint: dict[str, Recommendation] = {}
     for r in recs:
         if r.related_findings:
             for f in r.related_findings:
-                rec_by_title[f.title] = r
+                rec_by_fingerprint[_finding_fingerprint(f)] = r
 
     # Sort findings: severity weight × impact, descending
     scored = sorted(
@@ -525,7 +532,7 @@ def analysis_to_agent_tasks(analysis: RepoAnalysis) -> list[AgentTask]:
     priority = 0
 
     for finding in scored:
-        rec = rec_by_title.get(finding.title)
+        rec = rec_by_fingerprint.get(_finding_fingerprint(finding))
 
         # Skip findings without recommendation coverage AND without fix text
         if rec is None and not finding.fix:

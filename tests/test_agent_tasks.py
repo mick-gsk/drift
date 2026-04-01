@@ -333,6 +333,36 @@ class TestDeduplication:
         tasks = analysis_to_agent_tasks(analysis)
         assert len(tasks) == 1
 
+    def test_same_title_different_files_keep_correct_recommendations(self) -> None:
+        f1 = _make_finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            title="Same finding",
+            file_path="services/a.py",
+            metadata={
+                "variant_count": 3,
+                "module": "services.a",
+                "canonical_variant": "guard_clause",
+            },
+        )
+        f2 = _make_finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            title="Same finding",
+            file_path="services/b.py",
+            metadata={
+                "variant_count": 4,
+                "module": "services.b",
+                "canonical_variant": "early_return",
+            },
+        )
+
+        analysis = _make_analysis(findings=[f1, f2])
+        tasks = analysis_to_agent_tasks(analysis)
+
+        assert len(tasks) == 2
+        action_by_file = {t.file_path: t.action for t in tasks}
+        assert "guard_clause" in action_by_file["services/a.py"]
+        assert "early_return" in action_by_file["services/b.py"]
+
 
 # ---------------------------------------------------------------------------
 # MDS signal → task
