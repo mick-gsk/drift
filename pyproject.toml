@@ -117,6 +117,8 @@ pythonpath = ["src"]
 addopts = "--maxfail=1 --timeout=180 --timeout-method=thread"
 markers = [
     "slow: marks expensive tests excluded by default unless --run-slow or an explicit -m expression is used",
+    "contract: SARIF/JSON output schema contract tests",
+    "performance: runtime budget and performance regression tests",
 ]
 
 [tool.coverage.run]
