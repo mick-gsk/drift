@@ -1157,6 +1157,36 @@ have the `dca-` prefix instead of the broken `dea-` fallback.
 
 ---
 
+### 12.12 Empirical Evidence for v1.4.2 Release Automation via python-semantic-release (2026-04-02)
+
+drift v1.4.2 replaces the fragile release trigger convention with a
+`python-semantic-release` CI workflow on `main`.
+
+- release orchestration moved to `.github/workflows/release.yml` (ubuntu-latest)
+- semantic-release configuration is version-controlled in `pyproject.toml`
+- legacy manual release trigger workflow removed
+
+**Evidence commands:**
+```bash
+python -m pytest tests/ --tb=short --ignore=tests/test_smoke.py -q --maxfail=1
+```
+
+**Observed result (local run, deterministic):**
+
+- quick no-smoke suite: 285 passed, 1 failed, 42 deselected, 3 warnings
+- failing test: `tests/test_ci_reality.py::TestPerformanceBudget::test_self_analysis_within_budget`
+   with 69.4s observed runtime vs 30.0s budget
+- failure classified as unrelated to release workflow mechanics; tracked as
+   performance-budget regression in CI reality checks
+
+**Scope note:**
+
+This evidence validates the release-process migration artifacts and keeps the
+study changelog fresh for feature-gate traceability. It does not claim a
+performance improvement in analyzer runtime.
+
+---
+
 
 
 This study now represents a mixed evidence record: a frozen v0.5.0 benchmark baseline, later dated engineering addenda, and a current v0.10.8 codebase that has moved ahead of parts of the evaluation corpus. The strongest repeatable claim remains that deterministic static analysis — without LLM involvement — can surface meaningful structural erosion signals across Python and TypeScript/JavaScript codebases, but not every earlier headline metric should be repeated as a current-package claim. Across 8 Python repositories (score range 0.376–0.599) and 5 TypeScript repositories (score range 0.373–0.697):
