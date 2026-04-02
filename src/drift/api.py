@@ -1500,7 +1500,8 @@ def nudge(
         # Rule (d): parse failures hide analyzable surface and therefore block commit safety.
         if parse_failure_count > 0:
             blocking_reasons.append(
-                f"Parse failures in {parse_failure_count} file(s): affected files were skipped or only partially analyzable"
+                f"Parse failures in {parse_failure_count} file(s): "
+                "affected files were skipped or only partially analyzable"
             )
 
         safe_to_commit = len(blocking_reasons) == 0
