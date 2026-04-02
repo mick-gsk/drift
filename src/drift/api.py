@@ -242,11 +242,8 @@ def _format_scan_response(
         ai_ratio=round(analysis.ai_attributed_ratio, 3),
         trend=_trend_dict(analysis),
         primary_signal_for_next_step=primary_signal,
-        top_signals=top_sigs,
-        fix_first=_fix_first_concise(
-            cast("RepoAnalysis", SimpleNamespace(findings=selected_findings)),
-            max_items=min(max_findings, 5),
-        ),
+        # concise: top 3 signals only; detailed: all
+        top_signals=top_sigs[:3] if detail == "concise" else top_sigs,
         finding_count=len(selected_findings),
         critical_count=critical_count,
         high_count=high_count,
@@ -255,16 +252,23 @@ def _format_scan_response(
         accept_change=not blocking_reasons,
         blocking_reasons=blocking_reasons,
         response_truncated=len(selected_findings) > max_findings,
-        recommended_next_actions=_scan_next_actions(
+    )
+
+    # detailed mode adds fix_first, recommended_next_actions, agent_instruction
+    if detail == "detailed":
+        result["fix_first"] = _fix_first_concise(
+            cast("RepoAnalysis", SimpleNamespace(findings=selected_findings)),
+            max_items=min(max_findings, 5),
+        )
+        result["recommended_next_actions"] = _scan_next_actions(
             analysis,
             findings=selected_findings,
-        ),
-        agent_instruction=(
+        )
+        result["agent_instruction"] = (
             "Use drift_fix_plan to get prioritised repair tasks. "
             "After each file change, call drift_diff(uncommitted=True) "
             "to verify improvement before proceeding."
-        ),
-    )
+        )
     if getattr(analysis, "skipped_files", 0) > 0:
         result["skipped_files"] = analysis.skipped_files
         result["skipped_languages"] = sorted(analysis.skipped_languages.keys())
