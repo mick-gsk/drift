@@ -38,7 +38,7 @@ from drift.commands import console
     default="instructions",
     help=(
         "Output format: 'instructions' (.instructions.md compatible),"
-        " 'prompt' (.prompt.md), 'raw' (plain Markdown)."
+        " 'prompt' (.prompt.md compact), 'raw' (machine-readable JSON)."
     ),
 )
 @click.option(
@@ -71,12 +71,12 @@ def export_context(
     since: int,
     config: Path | None,
 ) -> None:
-    """Export anti-pattern context as Markdown for coding agents.
+    """Export anti-pattern context for coding agents and automation.
 
-    Runs drift analysis and converts findings into a structured Markdown
-    document that coding agents can load as instructions.  The output is
+    Runs drift analysis and converts findings into a structured context
+    document that coding agents or automation can consume. The output is
     compatible with .github/copilot-instructions.md, .instructions.md,
-    or .prompt.md files.
+    .prompt.md files, or machine-readable JSON.
 
     Examples::
 

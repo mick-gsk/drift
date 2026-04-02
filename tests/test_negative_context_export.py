@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from drift.models import (
@@ -107,20 +108,32 @@ class TestRenderPromptFormat:
         assert MARKER_BEGIN in md
         assert MARKER_END in md
 
+    def test_prompt_uses_compact_rules(self) -> None:
+        items = [_make_nc()]
+        md = render_negative_context_markdown(items, fmt="prompt")
+        assert "DO_NOT -> INSTEAD" in md
+        assert "[HIGH|" in md
+        assert "except Exception: pass -> Use specific exception types" in md
+        assert "**DO NOT:**" not in md
+        assert "Affected:" not in md
+
 
 class TestRenderRawFormat:
     """Tests for 'raw' output format."""
 
-    def test_raw_no_frontmatter(self) -> None:
+    def test_raw_is_valid_json(self) -> None:
         items = [_make_nc()]
-        md = render_negative_context_markdown(items, fmt="raw")
-        assert not md.startswith("---")
+        raw = render_negative_context_markdown(items, fmt="raw")
+        data = json.loads(raw)
+        assert data["format"] == "drift-negative-context-v1"
+        assert data["total_items"] == 1
+        assert data["items"][0]["signal"] == SignalType.BROAD_EXCEPTION_MONOCULTURE.value
 
-    def test_raw_has_markers(self) -> None:
+    def test_raw_has_no_markers(self) -> None:
         items = [_make_nc()]
-        md = render_negative_context_markdown(items, fmt="raw")
-        assert MARKER_BEGIN in md
-        assert MARKER_END in md
+        raw = render_negative_context_markdown(items, fmt="raw")
+        assert MARKER_BEGIN not in raw
+        assert MARKER_END not in raw
 
 
 class TestRenderGrouping:
@@ -139,7 +152,7 @@ class TestRenderGrouping:
                 description="Security issue",
             ),
         ]
-        md = render_negative_context_markdown(items, fmt="raw")
+        md = render_negative_context_markdown(items, fmt="instructions")
         sec_pos = md.find("Security Anti-Patterns")
         test_pos = md.find("Testing Anti-Patterns")
         assert sec_pos < test_pos
@@ -149,7 +162,7 @@ class TestRenderGrouping:
             _make_nc(description="Issue A"),
             _make_nc(description="Issue B"),
         ]
-        md = render_negative_context_markdown(items, fmt="raw")
+        md = render_negative_context_markdown(items, fmt="instructions")
         assert "Issue A" in md
         assert "Issue B" in md
 
@@ -168,9 +181,11 @@ class TestRenderEmpty:
         assert "mode: agent" in md
 
     def test_empty_raw_format(self) -> None:
-        md = render_negative_context_markdown([], fmt="raw")
-        assert "No significant anti-patterns detected" in md
-        assert not md.startswith("---")
+        raw = render_negative_context_markdown([], fmt="raw")
+        data = json.loads(raw)
+        assert data["format"] == "drift-negative-context-v1"
+        assert data["total_items"] == 0
+        assert data["items"] == []
 
 
 class TestAffectedFileTruncation:
@@ -179,7 +194,7 @@ class TestAffectedFileTruncation:
     def test_more_than_five_files_truncated(self) -> None:
         files = [f"src/mod{i}.py" for i in range(8)]
         items = [_make_nc(files=files)]
-        md = render_negative_context_markdown(items, fmt="raw")
+        md = render_negative_context_markdown(items, fmt="instructions")
         assert "(+3 more)" in md
         assert "`src/mod0.py`" in md
         assert "`src/mod4.py`" in md

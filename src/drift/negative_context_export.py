@@ -1,13 +1,14 @@
-"""Render negative context items as Markdown for agent consumption.
+﻿"""Render negative context items for agent consumption.
 
 Supports three output formats:
 - ``instructions``: compatible with ``.instructions.md`` / copilot-instructions
-- ``prompt``: compatible with ``.prompt.md`` (system prompt style)
-- ``raw``: plain Markdown without YAML front-matter or markers
+- ``prompt``: compact summary for system prompt usage
+- ``raw``: machine-readable JSON payload for automation pipelines
 """
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 
 from drift.models import (
@@ -61,15 +62,12 @@ def _render_item(nc: NegativeContext) -> str:
         f"({nc.source_signal.value}, {nc.severity.value})"
     )
 
-    # Forbidden pattern
     if nc.forbidden_pattern:
         lines.append(f"  - **DO NOT:** {nc.forbidden_pattern}")
 
-    # Canonical alternative
     if nc.canonical_alternative:
         lines.append(f"  - **INSTEAD:** {nc.canonical_alternative}")
 
-    # Affected files (max 5)
     if nc.affected_files:
         shown = nc.affected_files[:5]
         paths = ", ".join(f"`{f}`" for f in shown)
@@ -93,6 +91,31 @@ def _group_by_category(
     return groups
 
 
+def _render_prompt_rule(nc: NegativeContext) -> str:
+    """Render one compact prompt rule in single-line form."""
+    do_not = nc.forbidden_pattern or nc.description
+    instead = nc.canonical_alternative or "Follow established project patterns"
+    sev = nc.severity.value.upper()
+    return f"- [{sev}|{nc.source_signal.value}] {do_not} -> {instead}"
+
+
+def _item_to_raw_payload(nc: NegativeContext) -> dict[str, object]:
+    """Serialize a NegativeContext item for machine-readable export."""
+    return {
+        "anti_pattern_id": nc.anti_pattern_id,
+        "category": nc.category.value,
+        "signal": nc.source_signal.value,
+        "severity": nc.severity.value,
+        "scope": nc.scope.value,
+        "description": nc.description,
+        "forbidden_pattern": nc.forbidden_pattern,
+        "canonical_alternative": nc.canonical_alternative,
+        "affected_files": nc.affected_files,
+        "confidence": nc.confidence,
+        "rationale": nc.rationale,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Format renderers
 # ---------------------------------------------------------------------------
@@ -107,13 +130,9 @@ def _render_instructions(
     now = datetime.now(tz=UTC).strftime("%Y-%m-%d")
 
     lines: list[str] = []
-
-    # YAML front-matter
     lines.append("---")
     lines.append('applyTo: "**"')
-    lines.append(
-        "description: >-"
-    )
+    lines.append("description: >-")
     lines.append(
         "  Anti-pattern constraints from drift analysis."
         "  DO NOT reproduce these patterns in new code."
@@ -121,7 +140,6 @@ def _render_instructions(
     lines.append("---")
     lines.append("")
 
-    # Content
     lines.append(MARKER_BEGIN)
     lines.append("")
     lines.append("# Anti-Pattern Constraints (drift-generated)")
@@ -136,7 +154,6 @@ def _render_instructions(
 
     lines.append(MARKER_END)
     lines.append("")
-
     return "\n".join(lines)
 
 
@@ -145,16 +162,13 @@ def _render_prompt(
     drift_score: float,
     severity: Severity,
 ) -> str:
-    """Render as .prompt.md compatible format (system-prompt style)."""
+    """Render as compact .prompt.md format for token-efficient prompting."""
     now = datetime.now(tz=UTC).strftime("%Y-%m-%d")
 
     lines: list[str] = []
-
     lines.append("---")
     lines.append("mode: agent")
-    lines.append(
-        "description: >-"
-    )
+    lines.append("description: >-")
     lines.append(
         "  Anti-pattern constraints from drift analysis."
         "  Consult before generating code."
@@ -164,20 +178,26 @@ def _render_prompt(
 
     lines.append(MARKER_BEGIN)
     lines.append("")
-    lines.append("# Repository Anti-Patterns")
+    lines.append("# Repository Anti-Patterns (Compact)")
     lines.append("")
     lines.append(
-        "Before generating code, review these known anti-patterns."
-        " Each one has been detected by static analysis."
-        " Reproducing them degrades architectural coherence."
+        "Apply these constraints while generating code."
+        " Each rule is `DO_NOT -> INSTEAD`."
     )
     lines.append("")
 
-    lines.append(_render_body(items, drift_score, severity, now))
+    for item in items:
+        lines.append(_render_prompt_rule(item))
+
+    lines.append("")
+    lines.append(
+        f"Drift snapshot: score={drift_score:.2f}, severity={severity.value},"
+        f" rules={len(items)}, generated={now}."
+    )
+    lines.append("")
 
     lines.append(MARKER_END)
     lines.append("")
-
     return "\n".join(lines)
 
 
@@ -186,22 +206,17 @@ def _render_raw(
     drift_score: float,
     severity: Severity,
 ) -> str:
-    """Render as plain Markdown without front-matter."""
+    """Render as machine-readable JSON for orchestration workflows."""
     now = datetime.now(tz=UTC).strftime("%Y-%m-%d")
-
-    lines: list[str] = []
-
-    lines.append(MARKER_BEGIN)
-    lines.append("")
-    lines.append("# Anti-Pattern Constraints")
-    lines.append("")
-
-    lines.append(_render_body(items, drift_score, severity, now))
-
-    lines.append(MARKER_END)
-    lines.append("")
-
-    return "\n".join(lines)
+    payload = {
+        "format": "drift-negative-context-v1",
+        "generated_on": now,
+        "drift_score": drift_score,
+        "severity": severity.value,
+        "total_items": len(items),
+        "items": [_item_to_raw_payload(item) for item in items],
+    }
+    return json.dumps(payload, indent=2)
 
 
 def _render_body(
@@ -214,8 +229,6 @@ def _render_body(
     lines: list[str] = []
 
     groups = _group_by_category(items)
-
-    # Category order: security first, then by item count
     category_order = sorted(
         groups,
         key=lambda c: (
@@ -232,7 +245,6 @@ def _render_body(
             lines.append(_render_item(item))
         lines.append("")
 
-    # Status footer
     lines.append("---")
     lines.append("")
     lines.append(
@@ -241,13 +253,7 @@ def _render_body(
         f" {len(items)} anti-patterns detected.*"
     )
     lines.append("")
-
     return "\n".join(lines)
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
 
 
 _RENDERERS = {
@@ -264,19 +270,7 @@ def render_negative_context_markdown(
     drift_score: float = 0.0,
     severity: Severity = Severity.INFO,
 ) -> str:
-    """Render negative context items as Markdown.
-
-    Parameters
-    ----------
-    items:
-        NegativeContext items, typically from findings_to_negative_context().
-    fmt:
-        Output format: "instructions", "prompt", or "raw".
-    drift_score:
-        Current drift score for the status footer.
-    severity:
-        Current overall severity for the status footer.
-    """
+    """Render negative context items for the selected format."""
     renderer = _RENDERERS.get(fmt, _render_raw)
 
     if not items:
@@ -292,29 +286,33 @@ def _render_empty(
 ) -> str:
     """Render an empty-state document when no anti-patterns are found."""
     now = datetime.now(tz=UTC).strftime("%Y-%m-%d")
+
+    if fmt == "raw":
+        payload = {
+            "format": "drift-negative-context-v1",
+            "generated_on": now,
+            "drift_score": drift_score,
+            "severity": severity.value,
+            "total_items": 0,
+            "items": [],
+        }
+        return json.dumps(payload, indent=2)
+
     lines: list[str] = []
 
     if fmt == "instructions":
         lines.append("---")
         lines.append('applyTo: "**"')
-        lines.append(
-            "description: >-"
-        )
-        lines.append(
-            "  Anti-pattern constraints from drift analysis."
-        )
+        lines.append("description: >-")
+        lines.append("  Anti-pattern constraints from drift analysis.")
         lines.append("---")
         lines.append("")
 
     if fmt == "prompt":
         lines.append("---")
         lines.append("mode: agent")
-        lines.append(
-            "description: >-"
-        )
-        lines.append(
-            "  Anti-pattern constraints from drift analysis."
-        )
+        lines.append("description: >-")
+        lines.append("  Anti-pattern constraints from drift analysis.")
         lines.append("---")
         lines.append("")
 
@@ -327,9 +325,7 @@ def _render_empty(
         f" Drift score: {drift_score:.2f} ({severity.value})."
     )
     lines.append("")
-    lines.append(
-        f"*Generated by drift on {now}.*"
-    )
+    lines.append(f"*Generated by drift on {now}.*")
     lines.append("")
     lines.append(MARKER_END)
     lines.append("")
