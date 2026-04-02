@@ -127,7 +127,7 @@ jobs:
       - name: Self-analysis
         shell: powershell
         run: |
-          & $env:PYTHON_BIN -m drift analyze --repo . --format json | Out-Null
+          & $env:PYTHON_BIN -m drift analyze --repo . --format json --fail-on none | Out-Null
 
       - name: Drift self-check (score gate)
         shell: powershell
