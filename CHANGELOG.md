@@ -4,6 +4,7 @@
 
 - Stabilize self-hosted CI Python setup by moving the test matrix to `actions/setup-python@v6` and keep Security Hygiene green by refreshing the detect-secrets baseline plus excluding known false-positive test/documentation files at the pre-commit hook level.
 - Prevent CI/release false failures on self-hosted Windows by pinning test jobs back to `actions/setup-python@v5`, making no-tag release detection PowerShell-safe, and allowlisting the signal map `hardcoded_secret` label for detect-secrets.
+- Document and enforce the Windows runner workaround for `actions/setup-python` registry-permission failures so CI uses `@v5` until runner permissions are fixed.
 
 ## [2.1.2] - 2026-04-02
 
