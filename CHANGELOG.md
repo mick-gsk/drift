@@ -4,6 +4,19 @@
 
 - Stabilize self-hosted CI Python setup by moving the test matrix to `actions/setup-python@v6` and keep Security Hygiene green by refreshing the detect-secrets baseline plus excluding known false-positive test/documentation files at the pre-commit hook level.
 
+## [2.1.2] - 2026-04-02
+
+Short version: Add workspace-value benchmark suite and validation coverage.
+
+### Added
+
+- Add signal coverage matrix generation, a reproducible benchmark corpus, and an agent-loop efficiency benchmark for measurable workspace-value evidence.
+- Add test coverage for workspace-value scripts and corpus integrity checks.
+
+### Changed
+
+- Update README and STUDY documentation with signal coverage, cross-version benchmark, and agent-loop reporting.
+
 ## [2.1.1] - 2026-04-02
 
 Short version: Release follow-up after 2.1.0.
