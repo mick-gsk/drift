@@ -3,6 +3,7 @@
 ### Changed
 
 - Replace manual release-trigger convention with `python-semantic-release` in CI via `.github/workflows/release.yml`, including semantic-release config in `pyproject.toml` and updated release instructions/skills.
+- Add enterprise governance scaffolding baselines (issue/discussion templates, devcontainer, pre-commit policy integration, CITATION metadata) and capture push-gate evidence under benchmark and audit artifacts.
 
 ### Fixed
 
