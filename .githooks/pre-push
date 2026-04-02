@@ -3,6 +3,32 @@
 # Install once with: git config core.hooksPath .githooks
 set -e
 
+if [ -d ".venv/Scripts" ]; then
+	PATH=".venv/Scripts:$PATH"
+fi
+if [ -d ".venv/bin" ]; then
+	PATH=".venv/bin:$PATH"
+fi
+
+resolve_python_cmd() {
+	if command -v python >/dev/null 2>&1; then
+		echo "python"
+		return 0
+	fi
+	if command -v python3 >/dev/null 2>&1; then
+		echo "python3"
+		return 0
+	fi
+	echo ""
+}
+
+PYTHON_CMD=$(resolve_python_cmd)
+if [ -z "$PYTHON_CMD" ]; then
+	echo ">>> [pre-push] ERROR: Python interpreter not found."
+	echo ">>> [pre-push] Ensure a local venv exists (.venv) or python is on PATH."
+	exit 1
+fi
+
 # Escape hatches (export VAR=1 to skip a specific gate):
 # DRIFT_SKIP_CHANGELOG, DRIFT_SKIP_VERSION_BUMP,
 # DRIFT_SKIP_LOCKFILE, DRIFT_SKIP_DOCSTRING, DRIFT_SKIP_RISK_AUDIT
@@ -432,19 +458,19 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 
 # 1. Version format (SemVer)
 echo ">>> [1/6] Checking SemVer version..."
-python scripts/check_version.py --check-semver
+"$PYTHON_CMD" scripts/check_version.py --check-semver
 
 # 1b. Release discipline
 echo ">>> [1b/6] Checking release discipline..."
-python scripts/check_release_discipline.py
+"$PYTHON_CMD" scripts/check_release_discipline.py
 
 # 1c. Model consistency (signal count, weights, version in docs)
 echo ">>> [1c/6] Checking model consistency..."
-python scripts/check_model_consistency.py
+"$PYTHON_CMD" scripts/check_model_consistency.py
 
 # 1d. Public repo hygiene
 echo ">>> [1d/6] Checking public repo hygiene..."
-python scripts/check_repo_hygiene.py --config .github/repo-guard.blocklist --root-allowlist .github/repo-root-allowlist
+"$PYTHON_CMD" scripts/check_repo_hygiene.py --config .github/repo-guard.blocklist --root-allowlist .github/repo-root-allowlist
 
 # 2. Lint
 echo ">>> [2/6] Running ruff lint..."
@@ -452,7 +478,7 @@ ruff check src/ tests/
 
 # 3. Type checking
 echo ">>> [3/6] Running mypy..."
-python -m mypy src/drift
+"$PYTHON_CMD" -m mypy src/drift
 
 # 4. Tests with coverage (exclude slow smoke tests that clone external repos)
 echo ">>> [4/6] Running pytest + coverage (excl. smoke tests)..."

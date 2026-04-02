@@ -23,9 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Resolve Python executable
+        shell: powershell
+        run: |
+          $resolved = $false
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved -and (Get-Command py -ErrorAction SilentlyContinue)) {
+            py --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved) {
+            Write-Error "Neither 'python' nor 'py' is available on this self-hosted runner."
+            exit 1
+          }
 
       - name: Check SemVer tag matches pyproject.toml
         # Fails if the tag is not vMAJOR.MINOR.PATCH or doesn't match
@@ -33,10 +52,12 @@ jobs:
         shell: powershell
         run: |
           $tag = "${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}"
-          python scripts/check_version.py --tag $tag
+          & $env:PYTHON_BIN scripts/check_version.py --tag $tag
 
       - name: Enforce release discipline
-        run: python scripts/check_release_discipline.py
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN scripts/check_release_discipline.py
 
   publish:
     name: Build and publish to PyPI
@@ -49,15 +70,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Resolve Python executable
+        shell: powershell
+        run: |
+          $resolved = $false
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved -and (Get-Command py -ErrorAction SilentlyContinue)) {
+            py --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved) {
+            Write-Error "Neither 'python' nor 'py' is available on this self-hosted runner."
+            exit 1
+          }
 
       - name: Install build tools
-        run: pip install --upgrade build twine
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m pip install --upgrade build twine
 
       - name: Build wheel and sdist
-        run: python -m build
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m build
 
       - name: Publish to PyPI (API token)
         shell: powershell
@@ -68,7 +112,7 @@ jobs:
           }
           $env:TWINE_USERNAME = "__token__"
           $env:TWINE_PASSWORD = $env:PYPI_API_TOKEN
-          python -m twine upload --non-interactive dist/*
+          & $env:PYTHON_BIN -m twine upload --non-interactive dist/*
 
   update-major-tag:
     name: Update major-version tag (e.g. v1 → latest patch)

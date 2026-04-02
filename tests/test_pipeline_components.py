@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 
 from drift.cache import ParseCache
@@ -149,3 +150,19 @@ def test_scoring_phase_applies_small_repo_kwargs_and_post_processing() -> None:
     assert len(impact_calls) == 3
     assert score_kwargs[-1]["dampening_k"] == 20
     assert score_kwargs[-1]["min_findings"] == cfg.thresholds.small_repo_min_findings
+
+
+def test_default_workers_uses_env_override(monkeypatch) -> None:
+    monkeypatch.setenv("DRIFT_WORKERS", "3")
+    pipeline = importlib.import_module("drift.pipeline")
+    pipeline = importlib.reload(pipeline)
+
+    assert pipeline.DEFAULT_WORKERS == 3
+
+
+def test_default_workers_ignores_invalid_env(monkeypatch) -> None:
+    monkeypatch.setenv("DRIFT_WORKERS", "abc")
+    pipeline = importlib.import_module("drift.pipeline")
+    pipeline = importlib.reload(pipeline)
+
+    assert 2 <= pipeline.DEFAULT_WORKERS <= 16

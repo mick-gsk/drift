@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import os
 import subprocess
 import time
 from collections.abc import Callable
@@ -48,7 +49,34 @@ if TYPE_CHECKING:
     from drift.config import DriftConfig
 
 ProgressCallback = Callable[[str, int, int], None]
-DEFAULT_WORKERS = 8
+
+
+def _determine_default_workers() -> int:
+    """Return a conservative machine-adaptive worker default.
+
+    Priority:
+    1) ``DRIFT_WORKERS`` environment override (integer >= 1)
+    2) CPU-based fallback in [2, 16]
+    """
+
+    env_override = os.getenv("DRIFT_WORKERS")
+    if env_override:
+        try:
+            value = int(env_override)
+            if value >= 1:
+                return value
+        except ValueError:
+            pass
+        logging.getLogger("drift").warning(
+            "Ignoring invalid DRIFT_WORKERS=%r; using auto worker count.",
+            env_override,
+        )
+
+    cpu = os.cpu_count() or 8
+    return max(2, min(16, cpu))
+
+
+DEFAULT_WORKERS = _determine_default_workers()
 
 
 @dataclass(slots=True)
@@ -207,6 +235,19 @@ class IngestionPhase:
             progress("Parsing files", len(cached_results), len(files))
 
         has_git = self._is_git_repo(repo_path)
+
+        # Fast path for warm cache runs outside git repositories.
+        if not to_parse and not has_git:
+            parse_results = [cached_results[i] for i in range(len(files))]
+            if progress:
+                progress("Analyzing git history", 0, 0)
+            return ParsedInputs(
+                parse_results=parse_results,
+                commits=[],
+                file_histories={},
+                ai_tools_detected=ai_tools,
+                file_hashes=file_hashes,
+            )
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
             git_future = (
