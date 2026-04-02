@@ -15,7 +15,9 @@ concurrency:
 jobs:
   release:
     name: Semantic Release
-    runs-on: ubuntu-latest
+    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
+    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
+    runs-on: self-hosted
     # Skip release-commit pushes (safety net; GITHUB_TOKEN pushes
     # already don't trigger workflows, but guard explicitly).
     if: "!startsWith(github.event.head_commit.message, 'chore: Release ')"
@@ -34,17 +36,52 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Python Semantic Release
+      - name: Install python-semantic-release
+        shell: powershell
+        run: pip install python-semantic-release
+
+      - name: Python Semantic Release – Version
         id: release
-        uses: python-semantic-release/python-semantic-release@v9
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Run version detection and local commit+tag (no push yet)
+          semantic-release -v version --no-push --no-vcs-release --skip-build
+
+          # Check if a new tag was created on HEAD
+          $tag = git describe --tags --exact-match HEAD 2>$null
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tag)) {
+            Write-Output "No new version - nothing to release."
+            "released=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+
+          $version = $tag -replace '^v', ''
+          Write-Output "Detected release: tag=$tag version=$version"
+          "released=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Push release commit and tag
+        if: steps.release.outputs.released == 'true'
+        shell: powershell
+        run: git push origin main --tags
+
+      - name: Create GitHub Release
+        if: steps.release.outputs.released == 'true'
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: semantic-release -v publish --tag ${{ steps.release.outputs.tag }}
 
   publish:
     name: Build and publish to PyPI
     needs: release
     if: needs.release.outputs.released == 'true'
-    runs-on: ubuntu-latest
+    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
+    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
+    runs-on: self-hosted
     environment: pypi
 
     steps:
@@ -57,11 +94,13 @@ jobs:
           python-version: "3.12"
 
       - name: Build wheel and sdist
+        shell: powershell
         run: |
           pip install --upgrade build twine
           python -m build
 
       - name: Publish to PyPI
+        shell: powershell
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_RELEASE }}
@@ -71,7 +110,9 @@ jobs:
     name: Update major-version tag (e.g. v1 → latest patch)
     needs: [release, publish]
     if: needs.release.outputs.released == 'true'
-    runs-on: ubuntu-latest
+    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
+    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
+    runs-on: self-hosted
     permissions:
       contents: write
 
@@ -79,15 +120,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Move major-version tag
+        shell: powershell
         run: |
-          TAG="${{ needs.release.outputs.tag }}"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Tag $TAG does not match vMAJOR.MINOR.PATCH — skipping"
+          $tag = "${{ needs.release.outputs.tag }}"
+          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
+            Write-Output "Tag $tag does not match vMAJOR.MINOR.PATCH - skipping major-tag update"
             exit 0
-          fi
-          MAJOR="${TAG%%.*}"
+          }
+          $major = [regex]::Match($tag, '^v\d+').Value
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -f "$MAJOR"
-          git push -f origin "$MAJOR"
-          echo "Moved $MAJOR → $TAG"
+          git tag -f $major
+          git push -f origin $major
+          Write-Output "Moved $major -> $tag"
