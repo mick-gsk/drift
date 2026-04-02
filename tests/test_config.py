@@ -16,6 +16,9 @@ def test_default_config():
     assert config.auto_calibrate is True
     assert "**/*.py" in config.include
     assert "**/__pycache__/**" in config.exclude
+    assert "**/.conda/**" in config.exclude
+    assert "**/.env/**" in config.exclude
+    assert "**/.nox/**" in config.exclude
 
 
 def test_load_missing_file(tmp_path: Path):

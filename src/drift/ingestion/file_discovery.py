@@ -98,7 +98,11 @@ def discover_files(
             "**/__pycache__/**",
             "**/venv/**",
             "**/.venv/**",
+            "**/.env/**",
+            "**/.conda/**",
             "**/.git/**",
+            "**/.tox/**",
+            "**/.nox/**",
             "**/dist/**",
             "**/build/**",
         ]
