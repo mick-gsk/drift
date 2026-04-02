@@ -448,6 +448,142 @@ def _success_criteria_for(finding: Finding) -> list[str]:
             " is insufficient",
         ]
 
+    if st == SignalType.DOC_IMPL_DRIFT:
+        return [
+            f"Documentation and implementation aligned for {path_str}",
+            "`drift scan` reports no doc_impl_drift finding for this file",
+            *base,
+        ]
+
+    if st == SignalType.BROAD_EXCEPTION_MONOCULTURE:
+        return [
+            f"Broad exception handlers in {path_str} replaced with specific catches",
+            "`drift scan` reports no broad_exception_monoculture finding for this module",
+            *base,
+            "FALSE-FIX CHECK: wrapping bare except in a new try/except is insufficient",
+        ]
+
+    if st == SignalType.TEST_POLARITY_DEFICIT:
+        return [
+            f"Negative-path tests added for {path_str} (pytest.raises or boundary checks)",
+            "`drift scan` reports no test_polarity_deficit finding for this test file",
+            *base,
+        ]
+
+    if st == SignalType.GUARD_CLAUSE_DEFICIT:
+        return [
+            f"Guard clauses added to public functions in {path_str}",
+            "`drift scan` reports no guard_clause_deficit finding for this module",
+            *base,
+        ]
+
+    if st == SignalType.NAMING_CONTRACT_VIOLATION:
+        func_name = meta.get("function_name", finding.symbol or "?")
+        return [
+            f"Function '{func_name}' behaviour matches its naming contract",
+            "`drift scan` reports no naming_contract_violation for this function",
+            *base,
+            "FALSE-FIX CHECK: renaming without behaviour change may be valid if"
+            " the new name accurately describes the implementation",
+        ]
+
+    if st == SignalType.BYPASS_ACCUMULATION:
+        density = meta.get("density", 0)
+        return [
+            f"Bypass marker density in {path_str} reduced below 0.05/LOC"
+            f" (current: {density:.3f})" if density else
+            f"Bypass marker density in {path_str} reduced below 0.05/LOC",
+            "`drift scan` reports no bypass_accumulation finding for this module",
+            *base,
+        ]
+
+    if st == SignalType.EXCEPTION_CONTRACT_DRIFT:
+        func_name = meta.get("function_name", finding.symbol or "?")
+        return [
+            f"Exception contract of '{func_name}' documented and stable",
+            "`drift scan` reports no exception_contract_drift for this function",
+            *base,
+        ]
+
+    if st == SignalType.COHESION_DEFICIT:
+        return [
+            f"Cohesion improved: {path_str} split or members regrouped by responsibility",
+            "`drift scan` reports no cohesion_deficit finding for this module",
+            *base,
+        ]
+
+    if st == SignalType.CO_CHANGE_COUPLING:
+        coupled = meta.get("coupled_file", "?")
+        return [
+            f"Hidden coupling between {path_str} and {coupled} made explicit or eliminated",
+            "`drift scan` reports no co_change_coupling finding for this file pair",
+            *base,
+        ]
+
+    if st == SignalType.COGNITIVE_COMPLEXITY:
+        func_name = meta.get("function_name", finding.symbol or "?")
+        threshold = meta.get("threshold", 15)
+        return [
+            f"Cognitive complexity of '{func_name}' drops below {threshold}",
+            "`drift scan` reports no cognitive_complexity finding for this function",
+            *base,
+        ]
+
+    if st == SignalType.FAN_OUT_EXPLOSION:
+        return [
+            f"Import fan-out of {path_str} reduced below repository median threshold",
+            "`drift scan` reports no fan_out_explosion finding for this module",
+            *base,
+        ]
+
+    if st == SignalType.CIRCULAR_IMPORT:
+        cycle = meta.get("cycle", [])
+        cycle_str = " → ".join(str(c) for c in cycle[:5]) if cycle else path_str
+        return [
+            f"Circular import cycle broken: {cycle_str}",
+            "`drift scan` reports no circular_import finding for these modules",
+            *base,
+            "FALSE-FIX CHECK: if cycle length unchanged, the fix merely relocated the cycle",
+        ]
+
+    if st == SignalType.DEAD_CODE_ACCUMULATION:
+        symbol = finding.symbol or meta.get("symbol", "?")
+        return [
+            f"Dead symbol '{symbol}' removed or referenced by at least one import",
+            "`drift scan` reports no dead_code_accumulation finding for this symbol",
+            *base,
+        ]
+
+    if st == SignalType.MISSING_AUTHORIZATION:
+        endpoint = meta.get("endpoint", finding.symbol or "?")
+        return [
+            f"Endpoint '{endpoint}' has an authentication/authorization check",
+            "`drift scan` reports no missing_authorization finding for this endpoint",
+            *base,
+        ]
+
+    if st == SignalType.INSECURE_DEFAULT:
+        setting = meta.get("setting", finding.symbol or "?")
+        return [
+            f"Insecure default '{setting}' replaced with secure value",
+            "`drift scan` reports no insecure_default finding for this setting",
+            *base,
+        ]
+
+    if st == SignalType.HARDCODED_SECRET:
+        return [
+            f"Hardcoded secret in {path_str} moved to environment variable or secrets manager",
+            "`drift scan` reports no hardcoded_secret finding for this file",
+            *base,
+        ]
+
+    if st == SignalType.TS_ARCHITECTURE:
+        return [
+            f"TypeScript layer violation in {path_str} resolved",
+            "`drift scan` reports no ts_architecture finding for this file",
+            *base,
+        ]
+
     return base
 
 
