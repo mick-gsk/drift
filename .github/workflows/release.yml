@@ -45,6 +45,7 @@ jobs:
         shell: powershell
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONUTF8: "1"
         run: |
           # Run version detection and local commit+tag (no push yet)
           semantic-release -v version --no-push --no-vcs-release --skip-build
@@ -73,7 +74,9 @@ jobs:
         shell: powershell
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: semantic-release -v publish --tag ${{ steps.release.outputs.tag }}
+        run: |
+          $tag = "${{ steps.release.outputs.tag }}"
+          gh release create $tag --title $tag --generate-notes --verify-tag
 
   publish:
     name: Build and publish to PyPI
