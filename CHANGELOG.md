@@ -18,6 +18,8 @@
 - Track `.secrets.baseline` (plus allowlist entry) so Security Hygiene can execute detect-secrets without baseline-path failures.
 - Run `pip-audit` with `--skip-editable` in Security Hygiene to avoid false failures on local editable package metadata not present on PyPI.
 - Downgrade `pip-audit` in Security Hygiene to a non-blocking signal (`continue-on-error`) to avoid recurring CI hard-failures from local package resolution edge cases.
+- Isolate publish workflow concurrency by tag/manual target so stale queued runs no longer block newer release publications.
+- Make CI self-analysis report-only by passing `--fail-on none`, so informational findings no longer fail the `Test (Python 3.12)` job.
 
 ## [1.4.2] – 2026-04-02
 
