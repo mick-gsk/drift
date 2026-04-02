@@ -72,13 +72,13 @@ def copilot_context(
     repo_path = repo.resolve()
     cfg = DriftConfig.load(config or repo_path)
 
-    console.print("[dim]Running drift analysis…[/]", highlight=False)
+    click.echo("Running drift analysis…", err=True)
     analysis = analyze_repo(repo_path, config=cfg, since_days=since)
 
     section = generate_instructions(analysis)
 
     if not write:
-        console.print(section, highlight=False)
+        click.echo(section)
         return
 
     target = output or (repo_path / ".github" / "copilot-instructions.md")

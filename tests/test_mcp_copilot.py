@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -409,3 +410,32 @@ class TestCLICommands:
         result = runner.invoke(main, ["copilot-context", "--help"])
         assert result.exit_code == 0
         assert "copilot" in result.output.lower()
+
+    def test_copilot_context_progress_goes_to_stderr_not_stdout(
+        self,
+        monkeypatch,
+        tmp_path: Path,
+    ) -> None:
+        from click.testing import CliRunner
+
+        from drift.cli import main
+
+        monkeypatch.setattr(
+            "drift.analyzer.analyze_repo",
+            lambda *_args, **_kwargs: SimpleNamespace(),
+        )
+        monkeypatch.setattr(
+            "drift.copilot_context.generate_instructions",
+            lambda *_args, **_kwargs: "# copilot-section\n",
+        )
+
+        runner = CliRunner(mix_stderr=False)
+        result = runner.invoke(
+            main,
+            ["copilot-context", "--repo", str(tmp_path)],
+        )
+
+        assert result.exit_code == 0
+        assert result.output.startswith("# copilot-section")
+        assert "Running drift analysis" not in result.output
+        assert "Running drift analysis" in result.stderr

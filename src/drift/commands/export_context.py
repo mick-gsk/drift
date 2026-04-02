@@ -93,7 +93,7 @@ def export_context(
     repo_path = repo.resolve()
     cfg = DriftConfig.load(config or repo_path)
 
-    console.print("[dim]Running drift analysis…[/]", highlight=False)
+    click.echo("Running drift analysis…", err=True)
     analysis = analyze_repo(repo_path, config=cfg, since_days=since)
 
     items = findings_to_negative_context(
@@ -110,7 +110,7 @@ def export_context(
     )
 
     if not write:
-        console.print(markdown, highlight=False)
+        click.echo(markdown)
         return
 
     target = output or (repo_path / ".drift-negative-context.md")

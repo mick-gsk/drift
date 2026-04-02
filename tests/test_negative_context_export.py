@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from drift.models import (
     NegativeContext,
@@ -159,8 +160,12 @@ class TestRenderGrouping:
 
     def test_multiple_items_in_same_category(self) -> None:
         items = [
-            _make_nc(description="Issue A"),
-            _make_nc(description="Issue B"),
+            _make_nc(description="Issue A", forbidden="except Exception: pass"),
+            _make_nc(
+                description="Issue B",
+                forbidden="except BaseException: pass",
+                canonical="Catch expected, specific exceptions",
+            ),
         ]
         md = render_negative_context_markdown(items, fmt="instructions")
         assert "Issue A" in md
@@ -200,6 +205,97 @@ class TestAffectedFileTruncation:
         assert "`src/mod4.py`" in md
         # 6th file should not be shown inline
         assert "`src/mod5.py`" not in md
+
+
+class TestDuplicateRuleDeduplication:
+    """Regression tests for token-efficient duplicate rule rendering."""
+
+    def test_instructions_deduplicates_same_rule_and_merges_files(self) -> None:
+        items = [
+            _make_nc(
+                signal=SignalType.MISSING_AUTHORIZATION,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                description="Endpoint 'create_item' has no authorization.",
+                forbidden="# ANTI-PATTERN: Endpoint without authorization",
+                canonical="# REQUIRED: Use repository auth pattern",
+                files=["backend/api/routers/anon.py"],
+            ),
+            _make_nc(
+                signal=SignalType.MISSING_AUTHORIZATION,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                description="Endpoint 'create_item' has no authorization.",
+                forbidden="# ANTI-PATTERN: Endpoint without authorization",
+                canonical="# REQUIRED: Use repository auth pattern",
+                files=["backend/api/routers/billing.py"],
+            ),
+        ]
+
+        md = render_negative_context_markdown(items, fmt="instructions")
+
+        assert md.count("missing_authorization, high") == 1
+        assert "(2 occurrences)" in md
+        assert "`backend/api/routers/anon.py`" in md
+        assert "`backend/api/routers/billing.py`" in md
+        assert "2 anti-patterns detected" not in md
+        assert "1 anti-patterns detected" in md
+
+    def test_prompt_deduplicates_same_rule(self) -> None:
+        items = [
+            _make_nc(
+                signal=SignalType.MISSING_AUTHORIZATION,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden="# ANTI-PATTERN: Endpoint without authorization",
+                canonical="# REQUIRED: Use repository auth pattern",
+                files=["backend/api/routers/anon.py"],
+            ),
+            _make_nc(
+                signal=SignalType.MISSING_AUTHORIZATION,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden="# ANTI-PATTERN: Endpoint without authorization",
+                canonical="# REQUIRED: Use repository auth pattern",
+                files=["backend/api/routers/billing.py"],
+            ),
+        ]
+
+        md = render_negative_context_markdown(items, fmt="prompt")
+
+        assert md.count("[HIGH|missing_authorization]") == 1
+        assert "(x2)" in md
+        assert "rules=1" in md
+
+    def test_raw_deduplicates_same_rule_and_exposes_occurrences(self) -> None:
+        items = [
+            _make_nc(
+                signal=SignalType.MISSING_AUTHORIZATION,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden="# ANTI-PATTERN: Endpoint without authorization",
+                canonical="# REQUIRED: Use repository auth pattern",
+                files=["backend/api/routers/anon.py"],
+            ),
+            _make_nc(
+                signal=SignalType.MISSING_AUTHORIZATION,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden="# ANTI-PATTERN: Endpoint without authorization",
+                canonical="# REQUIRED: Use repository auth pattern",
+                files=["backend/api/routers/billing.py"],
+            ),
+        ]
+
+        raw = render_negative_context_markdown(items, fmt="raw")
+        data = json.loads(raw)
+
+        assert data["total_items"] == 1
+        assert data["items"][0]["occurrences"] == 2
+        assert data["items"][0]["affected_files"] == [
+            "backend/api/routers/anon.py",
+            "backend/api/routers/billing.py",
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -322,3 +418,41 @@ class TestExportContextCLI:
         result = runner.invoke(main, ["export-context", "--help"])
         assert result.exit_code == 0
         assert "anti-pattern" in result.output.lower()
+
+    def test_progress_goes_to_stderr_not_stdout(
+        self,
+        monkeypatch,
+        tmp_path: Path,
+    ) -> None:
+        """Progress banner must not corrupt parsable stdout payloads."""
+        from click.testing import CliRunner
+
+        from drift.cli import main
+
+        monkeypatch.setattr(
+            "drift.analyzer.analyze_repo",
+            lambda *_args, **_kwargs: SimpleNamespace(
+                findings=[],
+                drift_score=0.0,
+                severity=Severity.LOW,
+            ),
+        )
+        monkeypatch.setattr(
+            "drift.negative_context.findings_to_negative_context",
+            lambda *_args, **_kwargs: [],
+        )
+        monkeypatch.setattr(
+            "drift.negative_context_export.render_negative_context_markdown",
+            lambda *_args, **_kwargs: '{"format":"drift-negative-context-v1"}',
+        )
+
+        runner = CliRunner(mix_stderr=False)
+        result = runner.invoke(
+            main,
+            ["export-context", "--repo", str(tmp_path), "--format", "raw"],
+        )
+
+        assert result.exit_code == 0
+        assert result.output.lstrip().startswith("{")
+        assert "Running drift analysis" not in result.output
+        assert "Running drift analysis" in result.stderr
