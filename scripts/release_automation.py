@@ -13,6 +13,7 @@ ROOT = Path(__file__).parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
 CHANGELOG = ROOT / "CHANGELOG.md"
 PRE_PUSH_HOOK = ROOT / ".githooks" / "pre-push"
+MANAGED_RELEASE_FILES = ["pyproject.toml", "CHANGELOG.md", "uv.lock"]
 
 
 def _build_venv_first_env() -> dict[str, str]:
@@ -88,7 +89,8 @@ def _upsert_release_section(changelog_content: str, version_no_v: str, new_secti
     """Insert or replace a release section while preserving an Unreleased section at top."""
     release_heading_re = re.compile(r"^## \[(\d+\.\d+\.\d+)\]\s+[–-]\s+.+$", re.MULTILINE)
 
-    # 1) Replace existing section for this version (prevents duplicates on retries).
+    # 1) Remove any existing section for this version so retries can reinsert it
+    #    at the canonical position directly below Unreleased.
     matches = list(release_heading_re.finditer(changelog_content))
     for idx, match in enumerate(matches):
         if match.group(1) != version_no_v:
@@ -97,7 +99,8 @@ def _upsert_release_section(changelog_content: str, version_no_v: str, new_secti
         end = matches[idx + 1].start() if idx + 1 < len(matches) else len(changelog_content)
         before = changelog_content[:start]
         after = changelog_content[end:].lstrip("\n")
-        return before + new_section + ("\n" + after if after else "")
+        changelog_content = before.rstrip("\n") + ("\n\n" + after if after else "")
+        break
 
     # 2) Insert after Unreleased block when present.
     unreleased_re = re.compile(r"^## \[Unreleased\]\s*$", re.MULTILINE)
@@ -112,6 +115,88 @@ def _upsert_release_section(changelog_content: str, version_no_v: str, new_secti
 
     # 3) Fallback: prepend release section.
     return new_section + changelog_content
+
+
+def _list_worktree_changes() -> list[str]:
+    """Return git status porcelain lines for tracked and untracked changes."""
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return []
+    return [line for line in result.stdout.splitlines() if line.strip()]
+
+
+def ensure_clean_worktree() -> bool:
+    """Abort release before mutating files when the worktree is dirty."""
+    changes = _list_worktree_changes()
+    if not changes:
+        return True
+
+    print("✗ Working tree is not clean. Aborting release before modifying files.")
+    print("  Commit, stash, or discard these changes first:")
+    for line in changes[:20]:
+        print(f"  {line}")
+    if len(changes) > 20:
+        print(f"  ... and {len(changes) - 20} more")
+    return False
+
+
+def _tag_exists(tag_name: str, *, remote: bool) -> bool:
+    if remote:
+        result = subprocess.run(
+            ["git", "ls-remote", "--tags", "--refs", "origin", tag_name],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        return bool(result.stdout.strip())
+
+    result = subprocess.run(
+        ["git", "tag", "-l", tag_name],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return bool(result.stdout.strip())
+
+
+def ensure_release_target_available(tag_name: str) -> bool:
+    """Fail early when the target tag already exists locally or remotely."""
+    if _tag_exists(tag_name, remote=False):
+        print(f"✗ Local tag already exists: {tag_name}")
+        print("  Clean up the previous partial release before retrying.")
+        return False
+    if _tag_exists(tag_name, remote=True):
+        print(f"✗ Remote tag already exists on origin: {tag_name}")
+        print("  Bump to the next version before retrying.")
+        return False
+    return True
+
+
+def rollback_local_release_state(
+    original_head: str, tag_name: str, created_commit: bool, created_tag: bool
+) -> None:
+    """Remove a local release tag/commit and restore release-managed files."""
+    if created_tag:
+        subprocess.run(["git", "tag", "-d", tag_name], cwd=ROOT, check=False)
+
+    if created_commit:
+        subprocess.run(["git", "reset", "--soft", original_head], cwd=ROOT, check=False)
+        subprocess.run(
+            ["git", "restore", "--source=HEAD", "--staged", "--worktree", *MANAGED_RELEASE_FILES],
+            cwd=ROOT,
+            check=False,
+        )
+
+    if created_commit or created_tag:
+        print("↩ Rolled back local release state after failure.")
 
 
 def get_latest_version() -> tuple[int, int, int]:
@@ -378,8 +463,22 @@ def main() -> int:
 
     # Full release: update files, commit, tag, push
     version_no_v = next_version.lstrip("v")
+    original_head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    created_release_commit = False
+    created_release_tag = False
 
     try:
+        if not ensure_clean_worktree():
+            return 1
+        if not ensure_release_target_available(next_version):
+            return 1
+
         # Update pyproject.toml
         pyproject_content = PYPROJECT.read_text("utf-8")
         pyproject_content = re.sub(
@@ -427,32 +526,25 @@ def main() -> int:
             cwd=ROOT,
             check=True,
         )
-
-        existing_local_tag = subprocess.run(
-            ["git", "tag", "-l", next_version],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        if existing_local_tag:
-            print(f"✗ Local tag already exists: {next_version}")
-            print("  Delete it manually or bump to the next patch version.")
-            return 1
+        created_release_commit = True
 
         subprocess.run(
             ["git", "tag", "-a", next_version, "-m", f"Release {next_version}"],
             cwd=ROOT,
             check=True,
         )
+        created_release_tag = True
 
         # Preflight: run push gates AFTER commit so CHANGELOG gate sees
         # the release commit.  On failure, undo the commit+tag.
         if not run_pre_push_preflight():
             print("\n✗ Release preflight failed after creating commit/tag.")
-            print("  Nothing was auto-rolled back to avoid destructive side effects.")
-            print(f"  Optional cleanup: git tag -d {next_version}")
-            print("  Optional cleanup: git reset --soft HEAD~1")
+            rollback_local_release_state(
+                original_head,
+                next_version,
+                created_commit=created_release_commit,
+                created_tag=created_release_tag,
+            )
             return 1
 
         current_branch = subprocess.run(
@@ -479,9 +571,21 @@ def main() -> int:
         return 0
 
     except subprocess.CalledProcessError as e:
+        rollback_local_release_state(
+            original_head,
+            next_version,
+            created_commit=created_release_commit,
+            created_tag=created_release_tag,
+        )
         print(f"✗ Error: {e}")
         return 1
     except Exception as e:
+        rollback_local_release_state(
+            original_head,
+            next_version,
+            created_commit=created_release_commit,
+            created_tag=created_release_tag,
+        )
         print(f"✗ Error: {e}")
         return 1
 

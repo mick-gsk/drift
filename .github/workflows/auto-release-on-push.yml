@@ -15,6 +15,7 @@ concurrency:
 jobs:
   create-release-if-needed:
     name: Create tag + release when version is untagged
+    if: "${{ startsWith(github.event.head_commit.message, 'chore: Release ') }}"
     runs-on: self-hosted
     timeout-minutes: 20
 
@@ -55,7 +56,11 @@ jobs:
         shell: powershell
         run: |
           git --version
-          gh --version
+          if (Get-Command gh -ErrorAction SilentlyContinue) {
+            gh --version
+          } else {
+            Write-Warning "GitHub CLI (gh) not found; release creation step will be skipped if needed."
+          }
 
       - name: Resolve release tag from pyproject.toml
         id: version
@@ -79,11 +84,16 @@ jobs:
           } else {
             "tag_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           }
-          gh release view "$env:TAG" *> $null
-          if ($LASTEXITCODE -eq 0) {
-            "release_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          if (Get-Command gh -ErrorAction SilentlyContinue) {
+            gh release view "$env:TAG" *> $null
+            if ($LASTEXITCODE -eq 0) {
+              "release_exists=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            } else {
+              "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            }
           } else {
             "release_exists=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            "gh_available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           }
           $global:LASTEXITCODE = 0
 
@@ -100,7 +110,7 @@ jobs:
           Write-Host "Created missing tag $env:TAG"
 
       - name: Create missing GitHub release
-        if: steps.check.outputs.release_exists != 'true'
+        if: steps.check.outputs.release_exists != 'true' && steps.check.outputs.gh_available != 'false'
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
@@ -128,6 +138,12 @@ jobs:
 
           Write-Error "Failed to create release for $env:TAG after $maxAttempts attempts"
           exit 1
+
+      - name: Skip release creation when gh is unavailable
+        if: steps.check.outputs.release_exists != 'true' && steps.check.outputs.gh_available == 'false'
+        shell: powershell
+        run: |
+          Write-Warning "GitHub CLI (gh) unavailable on runner. Skipping release creation; tag push still triggers publish workflow."
 
       - name: Skip summary
         if: steps.check.outputs.tag_exists == 'true' && steps.check.outputs.release_exists == 'true'

@@ -30,15 +30,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+      - name: Resolve Python executable
+        shell: powershell
+        run: |
+          $resolved = $false
+          if (Get-Command python -ErrorAction SilentlyContinue) {
+            python --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved -and (Get-Command py -ErrorAction SilentlyContinue)) {
+            py --version
+            if ($LASTEXITCODE -eq 0) {
+              "PYTHON_BIN=py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              $resolved = $true
+            }
+          }
+          if (-not $resolved) {
+            Write-Error "Neither 'python' nor 'py' is available on this self-hosted runner."
+            exit 1
+          }
 
       - name: Block major-only tags and validate SemVer format
         # Rejects v1, v2, etc. – those must only come from automation.
         # Accepts v1.2.3 style and validates pyproject.toml matches.
         shell: powershell
-        run: python scripts/check_version.py --tag "${{ github.ref_name }}"
+        run: |
+          & $env:PYTHON_BIN scripts/check_version.py --tag "${{ github.ref_name }}"
 
   create-release:
     name: Create GitHub release from validated tag

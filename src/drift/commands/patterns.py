@@ -32,7 +32,12 @@ from drift.commands import console
     default=None,
     help="Filter by pattern category.",
 )
-def patterns(repo: Path, category: str | None) -> None:
+@click.option(
+    "--target-path",
+    default=None,
+    help="Restrict pattern discovery to a subdirectory.",
+)
+def patterns(repo: Path, category: str | None, target_path: str | None) -> None:
     """Show discovered code patterns in the repository."""
     from rich.table import Table
 
@@ -42,7 +47,7 @@ def patterns(repo: Path, category: str | None) -> None:
     cfg = DriftConfig.load(repo)
 
     with console.status("[bold blue]Discovering patterns..."):
-        analysis = analyze_repo(repo, cfg)
+        analysis = analyze_repo(repo, cfg, target_path=target_path)
 
     for cat, instances in sorted(analysis.pattern_catalog.items(), key=lambda x: x[0].value):
         if category and cat.value != category:

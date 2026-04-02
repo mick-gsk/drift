@@ -1,37 +1,88 @@
 ---
+name: "Drift Agent Workflow Test"
 agent: agent
-description: "Drift Agent-Workflow-Test: Vollständiger CLI- und Praxis-Test aller aktuell verfügbaren drift-Funktionen gegen das Repo, mit Agent-UX-Bewertung, Sandbox-Workflows und GitHub-Issue-Erstellung."
+description: "End-to-end drift CLI workflow test optimized for Claude Opus 4.6: inventory every command, exercise real maintainer workflows, rate agent UX, and file GitHub issues for reproducible problems."
 ---
 
-# Drift Agent-Workflow-Test
+# Drift Agent Workflow Test
 
-Du bist ein Coding Agent, der `drift-analyzer` in einem realen Maintainer- und Agenten-Workflow testet. Führe den folgenden Workflow **vollständig** durch und dokumentiere nach jedem Schritt, ob die Antwort fuer dich als Agent **ausreichend, unzureichend oder irrefuehrend** war.
+You are Claude Opus 4.6 acting as a coding agent that must test `drift-analyzer` in a real maintainer workflow, not a toy demo. Complete the workflow end to end. After every meaningful step, explicitly judge the command response from an agent perspective as `sufficient`, `insufficient`, or `misleading`.
 
-## Ziel
+## Objective
 
-Teste **alle aktuell verfuegbaren CLI-Funktionen** von `drift-analyzer` in einem praxisnahen Workflow und erzeuge am Ende einen strukturierten Ergebnisbericht mit:
-- Welche Befehle funktioniert haben
-- Welche Befehle unklare oder unbrauchbare Ergebnisse lieferten
-- Wo du als Agent in einer Sackgasse gelandet bist
-- Welche Befehle fuer reale Maintainer-, CI-, Refactoring- und AI-Integrations-Workflows brauchbar sind
-- Konkrete Verbesserungsvorschlaege
+Test **all currently available CLI capabilities** of `drift-analyzer` in realistic repository workflows and produce a final report that answers:
+- Which commands worked well in practice
+- Which commands produced unclear, incomplete, or low-value results
+- Where an autonomous agent reached a dead end
+- Which commands are usable for real maintainer, CI, refactoring, onboarding, and AI-integration workflows
+- Which improvements should be prioritized next
 
-## Leitregeln
+## Claude Execution Mode
 
-- Nutze shell- und plattformgerechte Kommandos. Wenn Beispiele POSIX-Syntax enthalten, darfst du sie fuer PowerShell oder die aktuelle Umgebung aequivalent umsetzen.
-- Ermittle den aktuellen CLI-Umfang **dynamisch** ueber `drift --help` und `drift <command> --help`. Gehe nie von einer statischen Liste aus.
-- **Jeder** gefundene Top-Level-Befehl muss im Bericht erscheinen und einen Status haben: `getestet`, `begruendet uebersprungen` oder `blockiert`.
-- Bei Gruppenbefehlen wie `baseline` und `config` musst du auch die relevanten Subcommands inventarisieren und testen.
-- Teste schreibende Befehle bevorzugt in einer Sandbox unter `work_artifacts/drift_agent_test_<DATUM>/sandbox/`, damit das echte Repo nicht unnoetig verschmutzt wird.
-- Teste nach Moeglichkeit **echte Repo-Szenarien** statt kuenstlicher Mini-Beispiele. Kuenstliche Aenderungen sind nur erlaubt, wenn ein Befehl zwingend einen Diff oder ein leeres Repo benoetigt.
-- Wenn ein Befehl nicht sinnvoll komplett ausgefuehrt werden kann (z.B. lang laufender MCP-Server), musst du den realistisch maximal sinnvollen Test trotzdem durchfuehren und die Grenze dokumentieren.
-- Wenn ein Befehl mehrere materiell unterschiedliche Ausgabe- oder Integrationsmodi hat, teste mindestens einen menschenorientierten und einen maschinenorientierten Pfad und dokumentiere ungetestete Modi explizit.
-- Speichere relevante Rohoutputs, JSON-Artefakte und erzeugte Dateien unter `work_artifacts/drift_agent_test_<DATUM>/` und verweise im Bericht darauf.
-- Fuer Fehlerpfade sollst du, wo sinnvoll, auch maschinenlesbare Fehler testen, z.B. mit `DRIFT_ERROR_FORMAT=json`.
+Use these operating rules throughout the workflow:
+- Be evidence-first. Separate what the CLI actually returned from your interpretation of it.
+- Be explicit about uncertainty. If you have to infer intent, say so.
+- Keep a live coverage matrix from Phase 0 onward. Do not reconstruct it from memory at the end.
+- Prefer real repository scenarios over synthetic examples. Only use artificial changes when a command strictly requires a diff, empty repo, or isolated write target.
+- When output is long, save the raw output to an evidence file and summarize only the decision-relevant parts in the report.
+- Treat agent UX as the main evaluation target: can an autonomous coding agent continue confidently after this response?
+- Compare competing next-step interpretations before deciding that a command is sufficient or misleading.
+- Prefer structured verdict tables over loose prose once enough evidence is available.
 
-## Pflicht-Coverage
+## Rating Rubric
 
-Die aktuelle Inventur ueber `drift --help` ist verbindlich. Solange diese Befehle verfuegbar sind, muessen sie mindestens einmal in einem sinnvollen Workflow vorkommen:
+Use these labels consistently:
+
+- `sufficient`: the response gives enough trustworthy detail for the next step without guessing
+- `insufficient`: partially useful, but missing key data, prioritization, filtering, or decision support
+- `misleading`: likely to push the agent toward a wrong action or false confidence
+
+Use these execution statuses consistently:
+
+- `tested`
+- `justified_skip`
+- `blocked`
+
+## Required Outputs
+
+Create and maintain these artifacts:
+
+1. Evidence directory: `work_artifacts/drift_agent_test_<DATE>/`
+2. Sandbox directory for write-heavy tests: `work_artifacts/drift_agent_test_<DATE>/sandbox/`
+3. Final report: `work_artifacts/drift_agent_test_<DATE>.md`
+4. Coverage matrix covering every discovered command and relevant subcommand
+
+Recommended evidence naming pattern:
+
+- `phase00_help.txt`
+- `phase01_scan_concise.txt`
+- `phase03_fix_plan_signal.json`
+- `phase08_invalid_signal_error.json`
+
+For every executed command, capture at minimum:
+
+- exact command
+- exit status if available
+- raw output evidence file or `n/a`
+- short agent-UX verdict
+- next-step implication
+
+## Ground Rules
+
+- Use shell- and platform-appropriate commands. If examples are written in POSIX syntax, translate them to PowerShell or the current environment when needed.
+- Discover the CLI surface **dynamically** via `drift --help` and `drift <command> --help`. Never assume the command list is static.
+- Every discovered top-level command must appear in the final report with one status: `tested`, `justified_skip`, or `blocked`.
+- For grouped commands such as `baseline` and `config`, inventory and test the relevant subcommands as well.
+- Prefer write operations inside the sandbox unless the command only makes sense against the real repository.
+- If a command cannot be fully exercised in this environment, still perform the most realistic partial test and document the exact boundary.
+- If a command has materially different human-oriented and machine-oriented output modes, test at least one of each and explicitly note what was not tested.
+- Save relevant raw outputs, JSON artifacts, SARIF files, generated prompts, and badge outputs under `work_artifacts/drift_agent_test_<DATE>/`.
+- For error handling, test machine-readable failures where meaningful, for example with `DRIFT_ERROR_FORMAT=json`.
+- Do not file GitHub issues for purely local environment noise unless the CLI error handling itself is the product problem.
+
+## Mandatory Coverage
+
+The live inventory from `drift --help` is authoritative. As long as these commands exist, they must appear in a meaningful workflow at least once:
 
 - `scan`
 - `analyze`
@@ -54,34 +105,34 @@ Die aktuelle Inventur ueber `drift --help` ist verbindlich. Solange diese Befehl
 - `self`
 - `badge`
 
-Falls `drift --help` weitere Befehle zeigt, erweitere die Coverage automatisch und teste auch diese.
+If `drift --help` reveals additional commands, extend coverage automatically and test them too.
 
 ---
 
-## Phase 0: Setup und CLI-Inventur
+## Phase 0: Setup and CLI Inventory
 
-**Dieser Schritt ist verpflichtend und darf nicht übersprungen werden.**
+**This phase is mandatory and may not be skipped.**
 
-Installiere die neueste Version von `drift-analyzer` von PyPI und verifiziere die Installation:
+Install the latest `drift-analyzer` from PyPI and verify installation:
 
 ```bash
 pip install --upgrade drift-analyzer
 drift scan --help
 ```
 
-Pruefe die installierte Version:
+Check the installed version:
 
 ```bash
 python -c "import drift; print(drift.__version__)"
 ```
 
-Vergleiche mit der aktuellsten veroeffentlichten Version auf PyPI:
+Compare it with the newest version on PyPI:
 
 ```bash
 pip index versions drift-analyzer 2>/dev/null || pip install drift-analyzer== 2>&1 | grep -oP 'from versions: \K.*'
 ```
 
-Inventarisiere anschliessend den realen CLI-Umfang:
+Then inventory the real CLI surface:
 
 ```bash
 drift --help
@@ -89,226 +140,226 @@ drift baseline --help
 drift config --help
 ```
 
-Erstelle danach sofort eine **Coverage-Matrix** aller gefundenen Befehle und Subcommands mit diesen Spalten:
+Immediately create a **coverage matrix** with these columns and keep it updated for the rest of the workflow:
 
-| Kommando | Kategorie | Geplanter Praxisfall | Status | Evidence-Datei |
-|----------|-----------|----------------------|--------|----------------|
+| Command | Category | Planned real-world use case | Status | Evidence file |
+|---------|----------|-----------------------------|--------|---------------|
 
-### Bewerte:
-- [ ] Die installierte Version entspricht der neuesten auf PyPI verfügbaren Version
-- [ ] `drift scan --help` zeigt die erwarteten Parameter (u.a. `--max-findings`, `--response-detail`)
-- [ ] `drift --help` wurde inventarisiert und die Coverage-Matrix ist vollstaendig angelegt
-- [ ] `baseline`- und `config`-Subcommands wurden gesondert inventarisiert
-- [ ] Falls die Version **nicht** die neueste ist: Dokumentiere die Abweichung und brich **nicht** ab, sondern teste mit der verfuegbaren Version und vermerke dies im Ergebnisbericht
+### Evaluate
+- [ ] The installed version matches the newest version available on PyPI
+- [ ] `drift scan --help` exposes the expected parameters, including `--max-findings` and `--response-detail`
+- [ ] `drift --help` was inventoried and the coverage matrix was created immediately
+- [ ] `baseline` and `config` subcommands were inventoried separately
+- [ ] If the installed version is not the newest, the gap was documented and testing continued with the available version
 
-Halte die installierte Version fest — sie wird im Ergebnisbericht unter `drift-Version` eingetragen.
+Record the installed version exactly. Use it later in the final report under `drift-Version`.
 
 ---
 
-## Phase 1: Agent Session Triage auf dem echten Repo
+## Phase 1: Agent Session Triage on the Real Repository
 
-Nutze das aktuelle Repository so, wie ein Coding Agent es zu Beginn einer Session nutzen wuerde.
+Use the current repository the way a coding agent would at the beginning of a real session.
 
-Fuehre mindestens aus:
+Run at minimum:
 
 ```bash
 drift scan --max-findings 15 --response-detail concise
 drift scan --max-findings 15 --response-detail detailed
 ```
 
-Wiederhole den Scan anschliessend in mindestens einem realistischen Scope, den du aus dem ersten Scan ableitest:
+Then rerun the scan in at least one realistic scope derived from the first scan:
 
 ```bash
-drift scan --target-path <ORDNER_MIT_HOHER_RELEVANZ> --max-findings 10 --response-detail concise
+drift scan --target-path <HIGH_VALUE_FOLDER> --max-findings 10 --response-detail concise
 ```
 
-### Bewerte:
-- [ ] Sind die `recommended_next_actions` klar genug, um deinen nächsten Schritt zu bestimmen?
-- [ ] Ist `accept_change` eindeutig interpretierbar?
-- [ ] Gibt es einen klaren Einstiegspunkt (z.B. `fix_first`, höchst-priorisierter Befund)?
-- [ ] Bei >20 Findings: Wird ein Baseline-Workflow empfohlen?
-- [ ] Unterscheiden sich `concise` und `detailed` sinnvoll aus Agentensicht?
-- [ ] Laesst sich aus dem Scan ein konkreter Reparatur- oder Review-Workflow ableiten?
+### Evaluate
+- [ ] Are `recommended_next_actions` clear enough to determine the next step?
+- [ ] Is `accept_change` unambiguous?
+- [ ] Is there a clear entry point such as `fix_first` or an obviously highest-priority finding?
+- [ ] If findings exceed 20, is a baseline workflow recommended?
+- [ ] Do `concise` and `detailed` differ in a way that is materially useful for an agent?
+- [ ] Can a concrete repair or review workflow be derived from the scan?
 
 ---
 
-## Phase 2: Explain — Signalverständnis prüfen
+## Phase 2: Explain - Test Signal Understanding
 
-Nimm das Signal mit dem hoechsten Score aus Phase 1 und fuehre aus:
+Take the highest-scoring signal from Phase 1 and run:
 
 ```bash
 drift explain <SIGNAL_ABBREVIATION>
 ```
 
-Falls der Scan mehrere deutlich unterschiedliche Problemklassen zeigt, erklaere mindestens **zwei** Signale: das dominante Signal und ein zweites Signal mit abweichender Ursache.
+If the scan surfaced multiple clearly different problem classes, explain at least **two** signals: the dominant one and a second one with a different cause pattern.
 
-### Bewerte:
-- [ ] Erklärt die Antwort das Signal so, dass du als Agent darauf reagieren kannst?
-- [ ] Ist klar, welche Code-Muster dieses Signal auslösen?
-- [ ] Gibt es actionable Hinweise (nicht nur Theorie)?
-- [ ] Ist klar, wie das Signal in einen echten Refactoring- oder Review-Schritt uebersetzt wird?
+### Evaluate
+- [ ] Does the explanation tell an agent how to react?
+- [ ] Is it clear which code patterns trigger the signal?
+- [ ] Are there actionable hints rather than only theory?
+- [ ] Is it clear how the signal translates into a real refactoring or review step?
 
 ---
 
-## Phase 3: Fix-Plan und reale Reparaturvorbereitung
+## Phase 3: Fix Plan and Real Repair Preparation
 
-### 3a: Ungescoped (gesamtes Repo)
+### 3a: Unscoped plan for the whole repository
 
 ```bash
 drift fix-plan --max-tasks 5
 ```
 
-### 3b: Gescoped auf einen Unterordner
+### 3b: Scoped to one folder
 
-Wähle den Ordner mit den meisten Findings aus Phase 1:
+Choose the folder with the most relevant findings from Phase 1:
 
 ```bash
-drift fix-plan --max-tasks 5 --target-path <ORDNER>
+drift fix-plan --max-tasks 5 --target-path <FOLDER>
 ```
 
-### 3c: Gescoped auf ein einzelnes Signal
+### 3c: Scoped to one signal
 
 ```bash
 drift fix-plan --signal <SIGNAL> --max-tasks 3
 ```
 
-### 3d: Konkreter Task fuer echte Umsetzung
+### 3d: Concrete task for real execution
 
-Waehle den aus Agentensicht am besten umsetzbaren Task aus den obigen Ergebnissen und versuche, **eine reale, kleine und risikoarme Verbesserung** im Repository vorzubereiten. Nutze dafuer, wenn sinnvoll, auch einen engeren Plan:
+Choose the most implementable task from the results above and attempt to prepare **one real, small, low-risk improvement** in the repository. If useful, tighten the plan further with:
 
 ```bash
 drift fix-plan --finding-id <FINDING_ID>
 ```
 
-Wenn keine sichere echte Verbesserung moeglich ist, dokumentiere die Gruende und benenne den kleinsten realistischen naechsten Schritt, statt sofort auf eine kuenstliche Aenderung auszuweichen.
+If no safe real improvement is possible, document why and name the smallest realistic next step instead of jumping straight to an artificial change.
 
-### Bewerte für jede Variante:
-- [ ] Sind die Tasks konkret genug, um sie direkt umzusetzen?
-- [ ] Enthalten die Tasks Datei + Zeilennummer?
-- [ ] Gibt es `success_criteria` pro Task?
-- [ ] Ist `automation_fitness` für jeden Task angegeben?
-- [ ] Wird bei `--target-path` korrekt gefiltert (keine Tasks außerhalb)?
-- [ ] Hilft `--finding-id` dabei, von Planung auf echte Umsetzung umzuschalten?
-- [ ] Ist klar, welcher Task fuer einen autonomen Coding-Agenten zuerst sinnvoll ist?
+### Evaluate each variant
+- [ ] Are the tasks concrete enough to execute directly?
+- [ ] Do they include file paths and line numbers?
+- [ ] Is there `success_criteria` for each task?
+- [ ] Is `automation_fitness` present for each task?
+- [ ] Does `--target-path` filter correctly with no tasks outside scope?
+- [ ] Does `--finding-id` help transition from planning to real implementation?
+- [ ] Is it obvious which task an autonomous coding agent should attempt first?
 
 ---
 
-## Phase 4: Reale Change-Review-Schleife
+## Phase 4: Real Change Review Loop
 
-Wenn du in Phase 3 eine echte kleine Aenderung umgesetzt hast, pruefe den Arbeitsbaum so, wie ein Agent oder Reviewer ihn vor einem Commit pruefen wuerde.
+If you made a real small change in Phase 3, inspect the working tree the way an agent or reviewer would before a commit.
 
-Fuehre mindestens aus:
+Run at minimum:
 
 ```bash
 drift diff --uncommitted --response-detail detailed
 ```
 
-Wenn du gezielt gestagte Aenderungen vorbereitet hast, teste zusaetzlich:
+If you intentionally prepared staged changes, also test:
 
 ```bash
 drift diff --staged-only --response-detail concise
 ```
 
-Falls keine echte Aenderung moeglich war, erstelle eine minimale Testaenderung **nur als Fallback** und dokumentiere, warum der praxisnahe Pfad nicht moeglich war.
+If no real change was possible, create a minimal test change **only as a fallback** and explicitly document why the realistic path was not possible.
 
-### Bewerte:
-- [ ] Ist `accept_change` klar begründet?
-- [ ] Werden `in_scope_accept` und `out_of_scope_noise` unterschieden?
-- [ ] Wenn `accept_change=false` nur wegen out-of-scope Noise: Wird das explizit kommuniziert?
-- [ ] Sind die `recommended_next_actions` handlungsrelevant?
-- [ ] Gibt es eine Sackgasse, aus der du als Agent nicht herauskommst?
-- [ ] Unterstuetzt der Diff-Output einen echten Pre-Commit- oder PR-Review-Workflow?
+### Evaluate
+- [ ] Is `accept_change` justified clearly?
+- [ ] Are `in_scope_accept` and `out_of_scope_noise` distinguished?
+- [ ] If `accept_change=false` is caused only by out-of-scope noise, is that stated explicitly?
+- [ ] Are `recommended_next_actions` operationally useful?
+- [ ] Is there any dead end where the agent cannot continue?
+- [ ] Does the diff output support a real pre-commit or PR review workflow?
 
 ---
 
-## Phase 5: Validate, Check und CI-Relevanz
+## Phase 5: Validate, Check, and CI Relevance
 
-### 5a: Ergebnis bestaetigen
+### 5a: Confirm the result
 
 ```bash
 drift validate
 ```
 
-Wenn in Phase 3 oder 4 eine Baseline oder Datei-Artefakte entstanden sind, pruefe zusaetzlich einen praxisnahen Vergleich:
+If a baseline or generated file artifacts exist from earlier phases, also test a realistic comparison path:
 
 ```bash
-drift validate --baseline <BASELINE_DATEI>
+drift validate --baseline <BASELINE_FILE>
 ```
 
-### 5b: CI- und Gate-Workflow pruefen
+### 5b: Test CI and gate usage
 
-Fuehre den Befehl so aus, wie er in CI oder pre-push genutzt werden koennte:
+Run the command the way it would be used in CI or a pre-push gate:
 
 ```bash
 drift check --fail-on none --json --compact
 drift check --fail-on high --output-format rich
 ```
 
-Wenn eine Baseline vorliegt, teste auch deren Einfluss:
+If a baseline exists, also test its effect:
 
 ```bash
-drift check --fail-on none --baseline <BASELINE_DATEI> --json --compact
+drift check --fail-on none --baseline <BASELINE_FILE> --json --compact
 ```
 
-### Bewerte:
-- [ ] Bestätigt die Antwort den Fortschritt gegenüber Phase 1?
-- [ ] Ist klar, ob die Änderungen die Drift-Score verbessert haben?
-- [ ] Ist `check` fuer CI, pre-push oder PR-Gates direkt brauchbar?
-- [ ] Sind Exit-Verhalten, Ausgabeformat und `fail-on` aus Agentensicht eindeutig?
+### Evaluate
+- [ ] Does the response confirm progress relative to Phase 1?
+- [ ] Is it clear whether the changes improved the drift score?
+- [ ] Is `check` directly usable for CI, pre-push, or PR gates?
+- [ ] Are exit behavior, output format, and `fail-on` semantics clear from an agent perspective?
 
 ---
 
-## Phase 6: Vollanalyse, Baseline und Repository-Intelligence
+## Phase 6: Full Analysis, Baseline, and Repository Intelligence
 
-Diese Phase prueft die Befehle, die Maintainer fuer tiefere Architekturarbeit nutzen.
+This phase tests the commands maintainers would use for deeper architecture work.
 
-### 6a: Vollanalyse
+### 6a: Full analysis
 
 ```bash
 drift analyze --repo . --output-format rich
-drift analyze --repo . --output-format json -o work_artifacts/drift_agent_test_<DATUM>/analyze.json
-drift analyze --repo . --output-format sarif -o work_artifacts/drift_agent_test_<DATUM>/analyze.sarif
+drift analyze --repo . --output-format json -o work_artifacts/drift_agent_test_<DATE>/analyze.json
+drift analyze --repo . --output-format sarif -o work_artifacts/drift_agent_test_<DATE>/analyze.sarif
 ```
 
-### 6b: Baseline fuer inkrementelle Einfuehrung
+### 6b: Baseline for incremental adoption
 
 ```bash
-drift baseline save --repo . --output work_artifacts/drift_agent_test_<DATUM>/.drift-baseline.json
-drift baseline diff --repo . --baseline-file work_artifacts/drift_agent_test_<DATUM>/.drift-baseline.json --format json
+drift baseline save --repo . --output work_artifacts/drift_agent_test_<DATE>/.drift-baseline.json
+drift baseline diff --repo . --baseline-file work_artifacts/drift_agent_test_<DATE>/.drift-baseline.json --format json
 ```
 
-### 6c: Repository-Intelligence und Reporting
+### 6c: Repository intelligence and reporting
 
-Teste anschliessend die uebrigen Analyse- und Reporting-Befehle in passenden realen Faellen:
+Then test the remaining analysis and reporting commands in appropriate real cases:
 
 ```bash
 drift patterns
 drift timeline
 drift trend
 drift self --format json
-drift badge --output work_artifacts/drift_agent_test_<DATUM>/badge.txt
+drift badge --output work_artifacts/drift_agent_test_<DATE>/badge.txt
 ```
 
-### Bewerte:
-- [ ] Ist `analyze` fuer einen Maintainer aussagekraeftig genug, um Prioritaeten abzuleiten?
-- [ ] Ist `baseline save/diff` fuer inkrementelle Einfuehrung oder Noise-Reduktion wirklich brauchbar?
-- [ ] Helfen `patterns`, `timeline` und `trend` bei echten Architekturentscheidungen oder liefern sie nur Zusatzoberflaeche?
-- [ ] Ist `self` fuer Produkt-Dogfooding, Regressionen oder Demo-Zwecke nuetzlich?
-- [ ] Erzeugt `badge` einen sinnvollen Output fuer README/CI-Artefakte?
+### Evaluate
+- [ ] Is `analyze` informative enough for a maintainer to derive priorities?
+- [ ] Is `baseline save/diff` genuinely useful for incremental adoption or noise reduction?
+- [ ] Do `patterns`, `timeline`, and `trend` help real architecture decisions, or do they mostly add surface area?
+- [ ] Is `self` useful for dogfooding, regression detection, or demos?
+- [ ] Does `badge` generate a meaningful output for README or CI artifacts?
 
 ---
 
-## Phase 7: Setup-, Config- und AI-Integrations-Workflows
+## Phase 7: Setup, Config, and AI Integration Workflows
 
-Diese Phase testet reale Einfuehrungs- und Agentenintegrationspfade.
+This phase tests real onboarding and agent-integration paths.
 
-### 7a: Sandbox vorbereiten
+### 7a: Prepare a sandbox
 
-Lege unter `work_artifacts/drift_agent_test_<DATUM>/sandbox/` ein isoliertes Test-Repo oder Testverzeichnis an. Nutze diese Sandbox fuer schreibende Integrationsbefehle.
+Create an isolated test repository or test directory under `work_artifacts/drift_agent_test_<DATE>/sandbox/`. Use it for write-heavy integration commands.
 
-### 7b: Init und Config
+### 7b: Init and config
 
-Teste den Onboarding-Workflow in der Sandbox:
+Test the onboarding workflow in the sandbox:
 
 ```bash
 drift init --full --repo <SANDBOX_REPO>
@@ -316,244 +367,253 @@ drift config validate --repo <SANDBOX_REPO>
 drift config show --repo <SANDBOX_REPO>
 ```
 
-### 7c: Copilot- und Prompt-Kontext
+### 7c: Copilot and prompt context
 
-Teste sowohl Vorschau als auch Dateiausgabe:
+Test both preview and file-output paths:
 
 ```bash
 drift copilot-context --repo .
-drift copilot-context --repo . --write -o work_artifacts/drift_agent_test_<DATUM>/copilot-instructions.md
+drift copilot-context --repo . --write -o work_artifacts/drift_agent_test_<DATE>/copilot-instructions.md
 
-drift export-context --repo . --format instructions --write -o work_artifacts/drift_agent_test_<DATUM>/negative-context.instructions.md
-drift export-context --repo . --format prompt --write -o work_artifacts/drift_agent_test_<DATUM>/negative-context.prompt.md
-drift export-context --repo . --format raw --write -o work_artifacts/drift_agent_test_<DATUM>/negative-context.raw.md
+drift export-context --repo . --format instructions --write -o work_artifacts/drift_agent_test_<DATE>/negative-context.instructions.md
+drift export-context --repo . --format prompt --write -o work_artifacts/drift_agent_test_<DATE>/negative-context.prompt.md
+drift export-context --repo . --format raw --write -o work_artifacts/drift_agent_test_<DATE>/negative-context.raw.md
 ```
 
-### 7d: MCP-Integration
+### 7d: MCP integration
 
-Teste mindestens diese beiden Pfade:
+Test at least these two paths:
 
 ```bash
 drift mcp
 drift mcp --serve
 ```
 
-Wenn `drift mcp --serve` erfolgreich startet und blockiert, fuehre den Test mit Timeout oder als kurzzeitigem Hintergrundprozess aus und bewerte Startverhalten, Vorbedingungen und Bedienbarkeit. Wenn die Umgebung die optionalen Abhaengigkeiten nicht hat, bewerte die Fehlermeldung auf Agententauglichkeit.
+If `drift mcp --serve` starts successfully and blocks, run it with a timeout or as a short-lived background process and evaluate startup behavior, prerequisites, and usability. If optional dependencies are missing, evaluate whether the error is agent-usable.
 
-### Bewerte:
-- [ ] Ist `init` fuer ein neues Repo sofort brauchbar?
-- [ ] Sind `config validate` und `config show` fuer Troubleshooting und Team-Onboarding ausreichend?
-- [ ] Sind `copilot-context` und `export-context` fuer reale AI-Workflows verwendbar?
-- [ ] Ist der MCP-Pfad fuer einen Agenten klar genug dokumentiert und testbar?
+### Evaluate
+- [ ] Is `init` immediately usable for a new repository?
+- [ ] Are `config validate` and `config show` sufficient for troubleshooting and team onboarding?
+- [ ] Are `copilot-context` and `export-context` usable in real AI workflows?
+- [ ] Is the MCP path documented and testable clearly enough for an agent?
 
 ---
 
-## Phase 8: Edge Cases und maschinenlesbare Fehler testen
+## Phase 8: Edge Cases and Machine-Readable Errors
 
-### 8a: Ungueltiges Signal
+### 8a: Invalid signal
 
 ```bash
 drift fix-plan --signal INVALID_SIGNAL
 ```
 
-- [ ] Gibt es eine hilfreiche Fehlermeldung mit gültigen Werten?
+- [ ] Is there a helpful error message with valid values?
 
-### 8b: Leerer Target-Path
+### 8b: Empty target path
 
 ```bash
 drift fix-plan --target-path nonexistent/path
 ```
 
-- [ ] Wird klar kommuniziert, dass keine Tasks gefunden wurden?
+- [ ] Is it communicated clearly that no tasks were found?
 
-### 8c: Scan mit Signal-Filter
+### 8c: Scan with signal filter
 
 ```bash
 drift scan --signals PFS,AVS --max-findings 5
 ```
 
-- [ ] Werden nur die angeforderten Signale angezeigt?
+- [ ] Are only the requested signals shown?
 
-### 8d: Fehlende Baseline
+### 8d: Missing baseline
 
 ```bash
 drift baseline diff --repo <SANDBOX_REPO>
 ```
 
-- [ ] Ist die Fehlermeldung klar und fuehrt sie zum naechsten sinnvollen Schritt?
+- [ ] Is the error message clear and does it lead to the next sensible step?
 
-### 8e: Did-you-mean fuer falsche Optionen
+### 8e: Did-you-mean for wrong option names
 
 ```bash
 drift scan --max-fidings 5
 ```
 
-- [ ] Gibt es einen brauchbaren Korrekturhinweis?
+- [ ] Is there a useful correction hint?
 
-### 8f: Maschinenlesbarer Fehlerpfad
+### 8f: Machine-readable error path
 
 ```bash
 DRIFT_ERROR_FORMAT=json drift fix-plan --signal INVALID_SIGNAL
 ```
 
-- [ ] Ist das Fehlerformat fuer Agenten stabil, vollstaendig und direkt automatisierbar?
+- [ ] Is the error format stable, complete, and directly automatable for agent workflows?
 
 ---
 
-## Phase 9: Ergebnisbericht erstellen
+## Phase 9: Final Report
 
-Erstelle einen strukturierten Bericht im folgenden Format:
+Create a structured report in this format:
 
 ```markdown
-# Drift Agent-Workflow-Testergebnis
+# Drift Agent Workflow Test Result
 
-**Datum:** [DATUM]
-**drift-Version:** [VERSION aus drift scan output]
-**Repository:** [REPO-NAME]
+**Date:** [DATE]
+**drift-Version:** [VERSION from the installed CLI]
+**Repository:** [REPO NAME]
 
-## Zusammenfassung
+## Summary
 
-| Phase | Befehl | Ergebnis | Agent-Tauglichkeit |
-|-------|--------|----------|-------------------|
-| 1     | scan   | ✅/⚠️/❌ | [kurze Bewertung] |
-| 2     | explain | ✅/⚠️/❌ | [kurze Bewertung] |
-| 3a    | fix-plan | ✅/⚠️/❌ | [kurze Bewertung] |
-| 3b    | fix-plan --target-path | ✅/⚠️/❌ | [kurze Bewertung] |
-| 3c    | fix-plan --signal | ✅/⚠️/❌ | [kurze Bewertung] |
-| 3d    | fix-plan --finding-id | ✅/⚠️/❌ | [kurze Bewertung] |
-| 4     | diff   | ✅/⚠️/❌ | [kurze Bewertung] |
-| 5a    | validate | ✅/⚠️/❌ | [kurze Bewertung] |
-| 5b    | check | ✅/⚠️/❌ | [kurze Bewertung] |
-| 6a    | analyze | ✅/⚠️/❌ | [kurze Bewertung] |
-| 6b    | baseline save/diff | ✅/⚠️/❌ | [kurze Bewertung] |
-| 6c    | patterns/timeline/trend/self/badge | ✅/⚠️/❌ | [kurze Bewertung] |
-| 7b    | init + config | ✅/⚠️/❌ | [kurze Bewertung] |
-| 7c    | copilot-context + export-context | ✅/⚠️/❌ | [kurze Bewertung] |
-| 7d    | mcp | ✅/⚠️/❌ | [kurze Bewertung] |
-| 8a    | invalid signal | ✅/⚠️/❌ | [kurze Bewertung] |
-| 8b    | empty result | ✅/⚠️/❌ | [kurze Bewertung] |
-| 8c    | signal filter | ✅/⚠️/❌ | [kurze Bewertung] |
-| 8d    | missing baseline | ✅/⚠️/❌ | [kurze Bewertung] |
-| 8e    | did-you-mean | ✅/⚠️/❌ | [kurze Bewertung] |
-| 8f    | machine-readable errors | ✅/⚠️/❌ | [kurze Bewertung] |
+| Phase | Command | Result | Agent suitability |
+|-------|---------|--------|-------------------|
+| 1     | scan | ✅/⚠️/❌ | [short judgment] |
+| 2     | explain | ✅/⚠️/❌ | [short judgment] |
+| 3a    | fix-plan | ✅/⚠️/❌ | [short judgment] |
+| 3b    | fix-plan --target-path | ✅/⚠️/❌ | [short judgment] |
+| 3c    | fix-plan --signal | ✅/⚠️/❌ | [short judgment] |
+| 3d    | fix-plan --finding-id | ✅/⚠️/❌ | [short judgment] |
+| 4     | diff | ✅/⚠️/❌ | [short judgment] |
+| 5a    | validate | ✅/⚠️/❌ | [short judgment] |
+| 5b    | check | ✅/⚠️/❌ | [short judgment] |
+| 6a    | analyze | ✅/⚠️/❌ | [short judgment] |
+| 6b    | baseline save/diff | ✅/⚠️/❌ | [short judgment] |
+| 6c    | patterns/timeline/trend/self/badge | ✅/⚠️/❌ | [short judgment] |
+| 7b    | init + config | ✅/⚠️/❌ | [short judgment] |
+| 7c    | copilot-context + export-context | ✅/⚠️/❌ | [short judgment] |
+| 7d    | mcp | ✅/⚠️/❌ | [short judgment] |
+| 8a    | invalid signal | ✅/⚠️/❌ | [short judgment] |
+| 8b    | empty result | ✅/⚠️/❌ | [short judgment] |
+| 8c    | signal filter | ✅/⚠️/❌ | [short judgment] |
+| 8d    | missing baseline | ✅/⚠️/❌ | [short judgment] |
+| 8e    | did-you-mean | ✅/⚠️/❌ | [short judgment] |
+| 8f    | machine-readable errors | ✅/⚠️/❌ | [short judgment] |
 
-## Coverage-Matrix
+## Coverage Matrix
 
-| Kommando | Testfall | Status | Agent-Tauglichkeit | Evidence |
-|----------|----------|--------|--------------------|----------|
-| [jeder inventarisierte Befehl und Subcommand] | [...] | getestet / uebersprungen / blockiert | ausreichend / unzureichend / irrefuehrend | [Pfad oder n/a] |
+| Command | Test case | Status | Agent rating | Evidence |
+|---------|-----------|--------|--------------|----------|
+| [every inventoried command and subcommand] | [...] | tested / justified_skip / blocked | sufficient / insufficient / misleading | [path or n/a] |
 
-## Praxis-Workflows
+## Practical Workflows
 
-### 1. Session-Start eines Coding-Agents
-[Welche Befehle waren hier wirklich hilfreich?]
+### 1. Coding agent session start
+[Which commands were genuinely useful here?]
 
-### 2. Echte Reparatur- oder Refactoring-Vorbereitung
-[Welche Befehle haben direkt bei der Umsetzung geholfen?]
+### 2. Real repair or refactoring preparation
+[Which commands directly helped with implementation planning?]
 
-### 3. PR-/CI-Gate
-[Welche Befehle sind fuer Review, Pre-Commit oder CI brauchbar?]
+### 3. PR or CI gate
+[Which commands are usable for review, pre-commit, or CI?]
 
-### 4. Team-Onboarding / erstmalige Einfuehrung
-[Wie brauchbar sind init, baseline und config?]
+### 4. Team onboarding or first-time adoption
+[How usable are init, baseline, and config?]
 
-### 5. AI-Integration
-[Wie brauchbar sind copilot-context, export-context und mcp?]
+### 5. AI integration
+[How usable are copilot-context, export-context, and mcp?]
 
-## Sackgassen (Agent konnte nicht weitermachen)
+## Dead Ends
 
-[Liste aller Stellen, wo der Workflow blockiert war]
+[List every point where the workflow could not continue cleanly]
 
-## Unklare Antworten (Agent musste raten)
+## Ambiguous Answers
 
-[Liste aller Stellen, wo die API-Antwort mehrdeutig war]
+[List every point where the agent had to guess]
 
-## Verbesserungsvorschläge (priorisiert)
+## Prioritized Improvements
 
-1. [Höchste Priorität — blockiert Agent-Workflow]
+1. [Highest priority - blocks agent workflow]
 2. [...]
 3. [...]
 ```
 
-Speichere den Bericht als `work_artifacts/drift_agent_test_[DATUM].md`.
+Save the report as `work_artifacts/drift_agent_test_<DATE>.md`.
+
+When reporting findings, separate:
+
+- `Observed behavior`
+- `Why this matters for an agent`
+- `Recommended product improvement`
 
 ---
 
-## Phase 10: GitHub Issues für Drift erstellen
+## Phase 10: Create GitHub Issues for Drift
 
-**Dieser Schritt ist der eigentliche Zweck des Tests.** Die im Bericht identifizierten Probleme werden als Issues im drift-Repo ([sauremilk/drift](https://github.com/sauremilk/drift)) angelegt, damit sie in zukünftige Releases einfließen können.
+**This is the main purpose of the workflow.** Convert the problems identified in the report into issues in the drift repository at [sauremilk/drift](https://github.com/sauremilk/drift).
 
-### Regeln für Issue-Erstellung
+### Rules for issue creation
 
-- Erstelle **nur Issues für Probleme mit ❌ oder ⚠️** aus der Zusammenfassungstabelle
-- **Kein Issue** für ✅-Ergebnisse
-- **Maximal ein Issue pro konkretem Problem** — keine Duplikate
-- Prüfe vor der Erstellung, ob ein ähnliches Issue im Repo bereits existiert
-- Verweise im Issue immer auf den konkreten Praxis-Workflow, in dem das Problem auftrat
-- Nenne immer das konkrete Kommando und wenn moeglich die gespeicherte Evidence-Datei aus `work_artifacts/`
+- Create issues **only** for problems rated ⚠️ or ❌ in the summary
+- Create **no issue** for ✅ outcomes
+- Create at most one issue per concrete problem; avoid duplicates
+- Search the repository first to see whether a similar issue already exists
+- Always reference the practical workflow where the problem occurred
+- Always mention the exact command and, when available, the evidence file under `work_artifacts/`
+- Only file issues for reproducible product defects, missing guidance, or agent-UX gaps supported by evidence
 
-### Issue-Format
+### Issue format
 
-Für jedes Problem aus den Abschnitten "Sackgassen" und "Unklare Antworten" erstelle ein Issue mit:
+For each problem from `Dead Ends` and `Ambiguous Answers`, create an issue with:
 
-**Titel:** `[agent-ux] <kurze Problembeschreibung in einem Satz>`
+**Title:** `[agent-ux] <one-sentence problem summary>`
 
-**Body-Template:**
-```
-## Beobachtetes Verhalten
+**Body template:**
 
-[Was hat der Agent als Antwort bekommen?]
+```markdown
+## Observed behavior
 
-## Erwartetes Verhalten
+[What did the agent actually receive?]
 
-[Was hätte der Agent brauchen, um weitermachen zu können?]
+## Expected behavior
 
-## Reproduktion
+[What would the agent have needed in order to continue confidently?]
+
+## Reproduction
 
 drift-Version: [VERSION]
-Befehl: `drift <befehl> [parameter]`
-Repo: [REPO-NAME]
+Command: `drift <command> [parameters]`
+Repo: [REPO NAME]
 
-## Auswirkung
+## Impact
 
-- [ ] Sackgasse (Agent kann nicht weitermachen)
-- [ ] Fehlinterpretation möglich (Agent muss raten)
-- [ ] Informationsverlust (relevante Daten fehlen in Antwort)
+- [ ] Dead end (agent cannot continue)
+- [ ] Misinterpretation risk (agent must guess)
+- [ ] Information loss (relevant data is missing from the response)
 
-## Quelle
+## Source
 
-Automatisch erstellt durch `prompts/drift-agent-workflow-test.prompt.md` am [DATUM].
+Automatically created from `.github/prompts/drift-agent-workflow-test.prompt.md` on [DATE].
 ```
 
 **Labels:** `agent-ux`
 
-### Prioritätsregel
+### Priority rule
 
-Erstelle Issues in dieser Reihenfolge:
-1. Sackgassen zuerst (blockieren den Workflow vollständig)
-2. Unklare Antworten (erzeugen Fehler in Folgeschritten)
-3. Fehlende Informationen (führen zu suboptimalen Entscheidungen)
+Create issues in this order:
 
-### Abschluss
+1. Dead ends first
+2. Ambiguous answers second
+3. Missing information third
 
-Gib am Ende eine Liste aller erstellten Issues aus:
+### Completion output
 
-```
-Erstellte Issues:
-- #[NR]: [Titel] — [URL]
+At the end, print a list of all created issues:
+
+```text
+Created issues:
+- #[NUMBER]: [TITLE] - [URL]
 - ...
 
-Übersprungene Probleme (bereits als Issue vorhanden):
-- [Titel] → #[NR]
+Skipped problems (already covered by an existing issue):
+- [TITLE] -> #[NUMBER]
 ```
 
-## Erfolgskriterium
+## Success Criteria
 
-Der Workflow ist nur dann abgeschlossen, wenn:
+The workflow is complete only if:
 
-- die Coverage-Matrix **alle aktuell verfuegbaren Befehle** aus `drift --help` inklusive relevanter Subcommands abdeckt
-- mindestens vier reale Nutzungsszenarien getestet wurden: Session-Start, Reparatur/Refactoring, CI/Gate, Onboarding/Einfuehrung oder AI-Integration
-- fuer schreibende Befehle echte Artefakte in `work_artifacts/` oder einer Sandbox erzeugt wurden
-- die Unterschiede zwischen hilfreichen, unklaren und irrefuehrenden Antworten nachvollziehbar belegt sind
-- alle Issue-wuerdigen Probleme als neue oder bereits vorhandene GitHub-Issues dokumentiert sind
+- the coverage matrix includes **all currently available commands** from `drift --help`, plus relevant subcommands
+- at least four real usage scenarios were exercised: session start, repair/refactoring, CI/gate, onboarding/adoption, and AI integration
+- write-oriented commands produced real artifacts in `work_artifacts/` or the sandbox
+- the distinction between helpful, unclear, and misleading responses is evidence-backed
+- every issue-worthy problem is documented as either a newly created issue or an already existing issue
 

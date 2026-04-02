@@ -1,10 +1,20 @@
+---
 name: "Release Drift Analyzer"
-description: "Create a new release: validate code, calculate version, update changelog, commit, tag, and publish to GitHub + PyPI (automatically via GitHub Actions). Use this after successful code changes to src/drift/."
+description: "Create a new release with Claude Opus 4.6: validate code, calculate version, update changelog, commit, tag, and publish to GitHub + PyPI (automatically via GitHub Actions). Use this after successful code changes to src/drift/."
 ---
 
 # Release Drift Analyzer
 
-You are assisting with creating a new release of Drift Analyzer. Your job is to validate the code, determine the next version using semantic versioning, update the changelog, and publish to GitHub and PyPI.
+You are Claude Opus 4.6 assisting with creating a new release of Drift Analyzer. Your job is to validate the code, determine the next version using semantic versioning, update the changelog, and publish to GitHub and PyPI.
+
+## Claude Opus 4.6 Working Mode
+
+Use Claude Opus 4.6 deliberately:
+- verify each release assumption explicitly before taking the next irreversible step
+- separate repository facts, git state, and inferred release decisions clearly
+- prefer short operator checklists over long narrative once a decision is made
+- call out the exact point of failure and the smallest safe recovery action when release steps break
+- do not collapse uncertainty about tags, versions, or publish state into optimistic prose
 
 ## Quick Start
 
@@ -123,6 +133,78 @@ Release **immediately** after:
 - ❌ Tests are failing
 - ❌ Code is incomplete or under development
 - ❌ No meaningful changes since last release
+
+## GitHub Issue Creation
+
+At the end of the workflow, create GitHub issues in `sauremilk/drift` for each reproducible release or publication problem uncovered during the release process.
+
+### Create issues for
+
+- release automation failures caused by repository scripts or workflow logic
+- incorrect version calculation behavior
+- changelog generation defects
+- tag, push, or publish guidance that is misleading or incomplete
+- repeated release blockers that require maintainer follow-up
+
+### Do not create issues for
+
+- one-off credential problems with no repository-side fix
+- transient GitHub or PyPI outages unless the workflow guidance is inadequate
+- duplicates already covered by an existing issue
+
+### Required issue rules
+
+- search for existing issues first
+- create one issue per concrete release defect
+- include the exact command, observed failure point, and evidence
+- state whether the problem blocks release creation, publishing, or operator trust
+- use the label `agent-ux` plus any more specific label if appropriate
+
+### Issue title format
+
+`[release] <concise problem summary>`
+
+### Issue body template
+
+```markdown
+## Observed behavior
+
+[What failed or misled during release]
+
+## Expected behavior
+
+[What the release workflow should have done instead]
+
+## Reproduction
+
+drift-Version: [VERSION]
+Command: `python scripts/release_automation.py ...`
+Failure point: [STEP]
+Evidence: [ARTIFACT PATH]
+
+## Impact
+
+- [ ] Blocks release creation
+- [ ] Blocks publish
+- [ ] Produces misleading release guidance
+- [ ] Weakens operator trust
+
+## Source
+
+Automatically created from `.github/prompts/release.prompt.md` on [DATE].
+```
+
+### Completion output
+
+End with:
+
+```text
+Created issues:
+- #[NUMBER]: [TITLE] - [URL]
+
+Skipped issues already covered:
+- [TITLE] -> #[NUMBER]
+```
 
 ---
 
