@@ -51,14 +51,15 @@ jobs:
           semantic-release -v version --no-push --no-vcs-release --skip-build
 
           # Check if a new tag was created on HEAD.
-          # Use cmd to avoid PowerShell NativeCommandError when no exact tag exists.
-          $tag = cmd /c "git describe --tags --exact-match HEAD 2>nul"
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tag)) {
+          # `git tag --points-at` is stable in PowerShell even when no tag exists.
+          $tag = (git tag --points-at HEAD | Select-Object -First 1)
+          if ([string]::IsNullOrWhiteSpace($tag)) {
             Write-Output "No new version - nothing to release."
             "released=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit 0
           }
 
+          $tag = $tag.Trim()
           $version = $tag -replace '^v', ''
           Write-Output "Detected release: tag=$tag version=$version"
           "released=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append

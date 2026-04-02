@@ -85,36 +85,61 @@ jobs:
           New-Item -ItemType Directory -Force -Path $env:AGENT_TOOLSDIRECTORY | Out-Null
           Write-Host "Using isolated tool cache: $env:AGENT_TOOLSDIRECTORY"
 
-      # v6 currently fails on this self-hosted Windows runner due registry cleanup permissions.
-      # Keep v5 until runner permissions/migration are fixed.
-      - uses: actions/setup-python@v5
+      - name: Setup Python from toolcache (preferred)
+        id: setup_python
+        uses: actions/setup-python@v5
+        continue-on-error: true
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Resolve Python executable
+      - name: Resolve Python executable with fallback
         shell: powershell
         run: |
-          $resolved = $false
-          if (Get-Command python -ErrorAction SilentlyContinue) {
+          $requested = "${{ matrix.python-version }}"
+          $source = ""
+
+          if ("${{ steps.setup_python.outcome }}" -eq "success") {
             python --version
             if ($LASTEXITCODE -eq 0) {
-              "PYTHON_BIN=python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-              $resolved = $true
+              $source = "toolcache"
             }
           }
-          if (-not $resolved -and (Get-Command py -ErrorAction SilentlyContinue)) {
-            py --version
-            if ($LASTEXITCODE -eq 0) {
-              "PYTHON_BIN=py" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-              $resolved = $true
+
+          if (-not $source) {
+            if (Get-Command py -ErrorAction SilentlyContinue) {
+              py -$requested --version
+              if ($LASTEXITCODE -eq 0) {
+                $source = "py-launcher"
+              }
             }
           }
-          if (-not $resolved) {
-            Write-Error "Neither 'python' nor 'py' is available on this runner."
+
+          if (-not $source) {
+            Write-Error "No usable Python interpreter found for $requested."
             exit 1
           }
+
+          if (Test-Path ".venv-ci") {
+            Remove-Item ".venv-ci" -Recurse -Force
+          }
+
+          if ($source -eq "toolcache") {
+            python -m venv .venv-ci
+          } else {
+            py -$requested -m venv .venv-ci
+          }
+
+          $venvPython = Join-Path $PWD ".venv-ci\Scripts\python.exe"
+          if (-not (Test-Path $venvPython)) {
+            Write-Error "Expected interpreter not found: $venvPython"
+            exit 1
+          }
+
+          & $venvPython --version
+          "PYTHON_BIN=$venvPython" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Output "Resolved Python via $source: $venvPython"
 
       - name: Install dependencies
         shell: powershell
