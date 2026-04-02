@@ -407,14 +407,14 @@ class TestWarningsSuppression:
     """Verify third-party warnings are suppressed at import time."""
 
     def test_passlib_warnings_filtered(self) -> None:
-        """cli.py has warnings.filterwarnings for passlib SyntaxWarning."""
+        """cli.py suppresses SyntaxWarnings at import time."""
         import ast
         from pathlib import Path
 
         cli_path = Path(cli.__file__)
         tree = ast.parse(cli_path.read_text(encoding="utf-8"))
 
-        # Find a call to warnings.filterwarnings with "passlib" in the args
+        # Find a call to warnings.filterwarnings that targets SyntaxWarning
         found = False
         for node in ast.walk(tree):
             if (
@@ -422,9 +422,17 @@ class TestWarningsSuppression:
                 and isinstance(node.func, ast.Attribute)
                 and node.func.attr == "filterwarnings"
             ):
-                for arg in node.args + [kw.value for kw in node.keywords]:
-                    is_str = isinstance(arg, ast.Constant) and isinstance(arg.value, str)
-                    if is_str and "passlib" in arg.value:
+                for kw in node.keywords:
+                    if kw.arg == "category":
+                        if isinstance(kw.value, ast.Name) and kw.value.id == "SyntaxWarning":
+                            found = True
+                            break
+                if not found:
+                    for arg in node.args:
+                        if isinstance(arg, ast.Name) and arg.id == "SyntaxWarning":
+                            found = True
+                            break
+                if found:
                         found = True
                         break
-        assert found, "cli.py must contain warnings.filterwarnings with passlib pattern"
+        assert found, "cli.py must contain warnings.filterwarnings for SyntaxWarning"
