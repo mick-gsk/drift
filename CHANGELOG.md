@@ -21,11 +21,11 @@
 
 ## [1.5.0] – 2026-04-02
 
-Short version: Suggest closest subcommand for unknown commands. (+4 more commits)
+Short version: Add baseline_recommended and baseline_reason for noisy diffs.
 
 ### Changed
 
-- Suggest closest subcommand for unknown commands. (+4 more commits)
+- Add baseline_recommended and baseline_reason for noisy diffs.
 
 
 ## [1.4.0] – 2026-04-02
