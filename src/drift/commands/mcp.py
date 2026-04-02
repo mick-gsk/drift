@@ -49,8 +49,7 @@ def _raise_missing_mcp_extra(exc: Exception) -> NoReturn:
     help="Allow --serve on interactive terminals (debug only).",
 )
 def mcp(serve: bool, list_tools: bool, show_schema: bool, allow_tty: bool) -> None:
-    """
-    Start drift as an MCP server for VS Code / Copilot Chat.
+    """Run drift in MCP command modes for VS Code / Copilot Chat integration.
 
     Requires the optional ``mcp`` extra::
 
