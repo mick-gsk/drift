@@ -21,11 +21,11 @@
 
 ## [1.5.0] – 2026-04-02
 
-Short version: Add baseline_recommended and baseline_reason for noisy diffs.
+Short version: Release 1.5.0. (+1 more commits)
 
 ### Changed
 
-- Add baseline_recommended and baseline_reason for noisy diffs.
+- Release 1.5.0. (+1 more commits)
 
 
 ## [1.4.0] – 2026-04-02
