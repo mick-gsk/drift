@@ -6,6 +6,7 @@
 .githooks
 .github
 .gitignore
+.devcontainer
 .pre-commit-hooks.yaml
 .pre-commit-config.yaml
 .markdownlint-cli2.jsonc
@@ -14,6 +15,7 @@
 .shellcheckrc
 .vscode
 CHANGELOG.md
+CITATION.cff
 CLAUDE.md
 CODE_OF_CONDUCT.md
 conda.recipe

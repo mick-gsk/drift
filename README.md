@@ -5,13 +5,13 @@
 **Deterministic architecture erosion detection for AI-accelerated codebases**
 
 [![CI](https://github.com/sauremilk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/sauremilk/drift/actions/workflows/ci.yml)
-[![Precision 97.3% (single-rater)](https://img.shields.io/badge/precision-97.3%25%20(single--rater)-yellow)](docs/STUDY.md)
+[![Precision (lenient)](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/sauremilk/drift/main/benchmark_results/ground_truth_analysis.json&query=%24.total.precision_lenient&label=precision%20lenient&color=yellow)](benchmark_results/ground_truth_analysis.json)
 [![codecov](https://codecov.io/gh/sauremilk/drift/branch/main/graph/badge.svg)](https://codecov.io/gh/sauremilk/drift)
 [![SARIF](https://img.shields.io/badge/output-SARIF-blueviolet)](https://docs.github.com/en/code-security/code-scanning)
 <br>
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Python versions](https://img.shields.io/pypi/pyversions/drift-analyzer)](https://pypi.org/project/drift-analyzer/)
+[![License](https://img.shields.io/github/license/sauremilk/drift)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/sauremilk/drift?style=social)](https://github.com/sauremilk/drift)
 
 97.3% precision (single-rater) · 22 signals · deterministic · no LLM in pipeline · [full study](docs/STUDY.md) · [docs](https://sauremilk.github.io/drift/)
