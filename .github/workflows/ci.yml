@@ -85,7 +85,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $env:AGENT_TOOLSDIRECTORY | Out-Null
           Write-Host "Using isolated tool cache: $env:AGENT_TOOLSDIRECTORY"
 
-      - uses: actions/setup-python@v6
+      # v6 currently fails on this self-hosted Windows runner due registry cleanup permissions.
+      # Keep v5 until runner permissions/migration are fixed.
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip

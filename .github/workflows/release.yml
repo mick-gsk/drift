@@ -50,8 +50,9 @@ jobs:
           # Run version detection and local commit+tag (no push yet)
           semantic-release -v version --no-push --no-vcs-release --skip-build
 
-          # Check if a new tag was created on HEAD
-          $tag = git describe --tags --exact-match HEAD 2>$null
+          # Check if a new tag was created on HEAD.
+          # Use cmd to avoid PowerShell NativeCommandError when no exact tag exists.
+          $tag = cmd /c "git describe --tags --exact-match HEAD 2>nul"
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tag)) {
             Write-Output "No new version - nothing to release."
             "released=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append

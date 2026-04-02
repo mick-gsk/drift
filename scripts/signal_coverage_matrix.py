@@ -52,7 +52,7 @@ STEM_TO_ABBREV: dict[str, str] = {
     "dead_code_accumulation": "DCA",
     "missing_authorization": "MAZ",
     "insecure_default": "ISD",
-    "hardcoded_secret": "HSC",
+    "hardcoded_secret": "HSC",  # pragma: allowlist secret
 }
 
 # Ordered for display (roughly by introduction date).
