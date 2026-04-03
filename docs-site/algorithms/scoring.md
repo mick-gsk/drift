@@ -33,18 +33,18 @@ $$\text{signal\_score} = \overline{s} \times \min\!\left(1,\; \frac{\ln(1 + n)}{
 | Doc-Implementation Drift (DIA) | 0.04 | Promoted from report-only (v0.7.0) |
 | Broad Exception Monoculture (BEM) | 0.04 | Promoted from report-only (v0.7.0) |
 | Test Polarity Deficit (TPD) | 0.04 | Promoted from report-only (v0.7.0) |
-| Naming Contract Violation (NBV) | 0.04 | Added in v0.7.0 ([ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)) |
+| Naming Contract Violation (NBV) | 0.04 | Added in v0.7.0 ([ADR-008](https://github.com/mick-gsk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)) |
 | Guard Clause Deficit (GCD) | 0.03 | Promoted from report-only (v0.7.0) |
-| Bypass Accumulation (BAT) | 0.03 | Added in v0.7.0 ([ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)) |
-| Exception Contract Drift (ECM) | 0.03 | Added in v0.7.1 ([ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)) |
+| Bypass Accumulation (BAT) | 0.03 | Added in v0.7.0 ([ADR-008](https://github.com/mick-gsk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)) |
+| Exception Contract Drift (ECM) | 0.03 | Added in v0.7.1 ([ADR-008](https://github.com/mick-gsk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)) |
 | Cohesion Deficit (COD) | 0.01 | Added in v0.7.3 as cohesion-focused coherence detector |
 | Co-Change Coupling (CCC) | 0.005 | Added in v0.8.0 for hidden git-history coupling without explicit imports |
 
-Core weights were originally calibrated via ablation study (remove each signal, measure F1 delta, assign proportional weight). Promoted signals received conservative initial weights. See [ADR-003](https://github.com/sauremilk/drift/blob/main/docs/adr/003-composite-scoring-model.md).
+Core weights were originally calibrated via ablation study (remove each signal, measure F1 delta, assign proportional weight). Promoted signals received conservative initial weights. See [ADR-003](https://github.com/mick-gsk/drift/blob/main/docs/adr/003-composite-scoring-model.md).
 
 ### Historical note
 
-The v0.5 benchmark study used 6 core signals at higher weights (PFS=0.22, AVS=0.22, MDS=0.17, TVS=0.17, EDS=0.12, SMS=0.10) with 4 report-only signals at weight 0.00. Precision claims in the study apply to that model. See [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md) for the original report-only rationale.
+The v0.5 benchmark study used 6 core signals at higher weights (PFS=0.22, AVS=0.22, MDS=0.17, TVS=0.17, EDS=0.12, SMS=0.10) with 4 report-only signals at weight 0.00. Precision claims in the study apply to that model. See [ADR-007](https://github.com/mick-gsk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md) for the original report-only rationale.
 
 ## Severity Mapping
 

@@ -6,7 +6,7 @@ body:
       value: |
         **Before posting**, please check:
         - [Documentation](https://sauremilk.github.io/drift/)
-        - [Existing discussions](https://github.com/sauremilk/drift/discussions)
+        - [Existing discussions](https://github.com/mick-gsk/drift/discussions)
 
   - type: textarea
     id: question

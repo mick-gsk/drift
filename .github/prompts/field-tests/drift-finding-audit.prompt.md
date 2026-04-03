@@ -24,7 +24,7 @@ Du prüfst, ob die Drift-Findings für ein beliebiges Repository semantisch korr
 
 - **Testet:** Ob Drift-Signale für DIESES Repo korrekt feuern
 - **Testet NICHT:** Ob das Ziel-Repo repariert werden sollte
-- **Issues gehen an:** `sauremilk/drift` — nicht ans Ziel-Repo
+- **Issues gehen an:** `mick-gsk/drift` — nicht ans Ziel-Repo
 
 ## Arbeitsmodus
 
@@ -271,7 +271,7 @@ Wenn du die Architekturentscheidung des Repos nicht sicher beurteilen kannst, kl
 
 ## GitHub-Issue-Erstellung
 
-Am Ende des Workflows GitHub-Issues auf `sauremilk/drift` erstellen gemäß `.github/prompts/_partials/issue-filing-external.md`.
+Am Ende des Workflows GitHub-Issues auf `mick-gsk/drift` erstellen gemäß `.github/prompts/_partials/issue-filing-external.md`.
 
 **Prompt-Kürzel für Titel:** `finding-audit`
 

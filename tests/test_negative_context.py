@@ -16,8 +16,10 @@ from drift.models import (
     SignalType,
 )
 from drift.negative_context import (
+    _FALLBACK_ONLY_SIGNALS,
     _GENERATORS,
     _neg_id,
+    _policy_uncovered_signal_types,
     findings_to_negative_context,
     negative_context_to_dict,
 )
@@ -199,6 +201,52 @@ class TestGenerators:
         result = findings_to_negative_context([f])
         assert len(result) >= 1
         assert result[0].category == NegativeContextCategory.ERROR_HANDLING
+
+    def test_tvs_generator(self) -> None:
+        f = _finding(
+            signal_type=SignalType.TEMPORAL_VOLATILITY,
+            metadata={"module": "services/payments.py", "change_frequency_30d": 12},
+        )
+        result = findings_to_negative_context([f])
+        assert len(result) >= 1
+        nc = result[0]
+        assert nc.source_signal == SignalType.TEMPORAL_VOLATILITY
+        assert nc.metadata.get("fallback_policy") is None
+
+    def test_sms_generator(self) -> None:
+        f = _finding(
+            signal_type=SignalType.SYSTEM_MISALIGNMENT,
+            metadata={"expected_contract": "service layer", "actual_behavior": "controller logic"},
+        )
+        result = findings_to_negative_context([f])
+        assert len(result) >= 1
+        nc = result[0]
+        assert nc.source_signal == SignalType.SYSTEM_MISALIGNMENT
+        assert "expected" in nc.description.lower()
+
+    def test_tsa_generator(self) -> None:
+        f = _finding(
+            signal_type=SignalType.TS_ARCHITECTURE,
+            metadata={"source": "ui", "target": "infra", "rule": "ui -> infra forbidden"},
+        )
+        result = findings_to_negative_context([f])
+        assert len(result) >= 1
+        nc = result[0]
+        assert nc.source_signal == SignalType.TS_ARCHITECTURE
+        assert "ui" in nc.description
+        assert "infra" in nc.description
+
+    def test_signaltype_policy_coverage_is_complete(self) -> None:
+        missing = _policy_uncovered_signal_types()
+        assert not missing, (
+            "NegativeContext policy is incomplete. Missing SignalType entries: "
+            f"{sorted(signal.value for signal in missing)}"
+        )
+
+    def test_fallback_only_policy_is_explicit(self) -> None:
+        # Every fallback-only signal must be explicitly declared and enum-valid.
+        assert _FALLBACK_ONLY_SIGNALS <= set(SignalType)
+        assert _FALLBACK_ONLY_SIGNALS.isdisjoint(_GENERATORS)
 
 
 # ---------------------------------------------------------------------------

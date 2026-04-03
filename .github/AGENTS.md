@@ -55,7 +55,7 @@ Navigations-Guide: `.github/prompts/README.md`
 ## Field-Test-Prompts (externe Repos)
 
 Prompts unter `.github/prompts/field-tests/` testen drift in **beliebigen Repositories**.
-Issues gehen an `sauremilk/drift`. Details: `.github/prompts/field-tests/README.md`
+Issues gehen an `mick-gsk/drift`. Details: `.github/prompts/field-tests/README.md`
 
 | Prompt | Zweck | Empfohlene Reihenfolge |
 |--------|-------|------------------------|

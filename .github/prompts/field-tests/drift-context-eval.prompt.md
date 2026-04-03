@@ -24,7 +24,7 @@ Du bewertest, ob die von Drift exportierten Kontexte für ein beliebiges Reposit
 
 - **Testet:** Ob Drift-Exporte für einen Agent nützlich sind, der DIESES Repo nicht kennt
 - **Testet NICHT:** Ob die Findings korrekt sind (→ `drift-finding-audit`)
-- **Issues gehen an:** `sauremilk/drift` — nicht ans Ziel-Repo
+- **Issues gehen an:** `mick-gsk/drift` — nicht ans Ziel-Repo
 
 ## Arbeitsmodus
 
@@ -249,7 +249,7 @@ Wenn ein Format informativ aussieht, aber hauptsächlich generischen Inhalt lief
 
 ## GitHub-Issue-Erstellung
 
-Am Ende des Workflows GitHub-Issues auf `sauremilk/drift` erstellen gemäß `.github/prompts/_partials/issue-filing-external.md`.
+Am Ende des Workflows GitHub-Issues auf `mick-gsk/drift` erstellen gemäß `.github/prompts/_partials/issue-filing-external.md`.
 
 **Prompt-Kürzel für Titel:** `context-eval`
 

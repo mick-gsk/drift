@@ -17,9 +17,9 @@ permissions:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
-    # NOTE: Uses self-hosted Windows runner until the GitHub-hosted billing lock is resolved.
+    # NOTE: Uses GitHub-hosted Windows runner.
     # Migration back to GitHub-hosted runners remains tracked in issue #90.
-    runs-on: self-hosted
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:

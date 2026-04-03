@@ -15,9 +15,8 @@ concurrency:
 jobs:
   label:
     if: ${{ github.actor != 'dependabot[bot]' }}
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     steps:
       - uses: actions/labeler@v5
         with:

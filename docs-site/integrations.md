@@ -44,7 +44,7 @@ Drift provides two pre-commit hooks so you can add architectural checks to any r
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/sauremilk/drift
+  - repo: https://github.com/mick-gsk/drift
     rev: v0.9.0
     hooks:
       - id: drift-check          # blocks on high-severity findings

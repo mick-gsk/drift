@@ -17,7 +17,7 @@ pip install drift-analyzer
 ## From Source
 
 ```bash
-git clone https://github.com/sauremilk/drift.git
+git clone https://github.com/mick-gsk/drift.git
 cd drift
 pip install -e ".[dev]"
 ```

@@ -50,7 +50,7 @@ Start here if you want to fix code, improve documentation, reduce false positive
 - [Contributing](contributing.md)
 - [Product Strategy](product-strategy.md)
 - [Changelog](changelog.md)
-- Repository guides: [README](https://github.com/sauremilk/drift/blob/main/README.md), [CONTRIBUTING.md](https://github.com/sauremilk/drift/blob/main/CONTRIBUTING.md), [DEVELOPER.md](https://github.com/sauremilk/drift/blob/main/DEVELOPER.md), [POLICY.md](https://github.com/sauremilk/drift/blob/main/POLICY.md)
+- Repository guides: [README](https://github.com/mick-gsk/drift/blob/main/README.md), [CONTRIBUTING.md](https://github.com/mick-gsk/drift/blob/main/CONTRIBUTING.md), [DEVELOPER.md](https://github.com/mick-gsk/drift/blob/main/DEVELOPER.md), [POLICY.md](https://github.com/mick-gsk/drift/blob/main/POLICY.md)
 
 Recommended order:
 

@@ -1,6 +1,6 @@
 # Quick Start
 
-> Repo: `sauremilk/drift` · Package: `drift-analyzer` · Command: `drift`
+> Repo: `mick-gsk/drift` · Package: `drift-analyzer` · Command: `drift`
 
 ## 0. Before you try it
 
@@ -68,7 +68,7 @@ drift self
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/sauremilk/drift
+  - repo: https://github.com/mick-gsk/drift
     rev: v0.9.0
     hooks:
       - id: drift-report          # start report-only, switch to drift-check later

@@ -13,7 +13,7 @@ Increase top-of-funnel discovery for drift via curated lists with high evaluator
 - Suggested entry:
 
 ```markdown
-* [drift](https://github.com/sauremilk/drift) - Deterministic architecture erosion detection for AI-accelerated Python codebases with actionable findings and CI integration.
+* [drift](https://github.com/mick-gsk/drift) - Deterministic architecture erosion detection for AI-accelerated Python codebases with actionable findings and CI integration.
 ```
 
 - Suggested PR title:
@@ -26,7 +26,7 @@ Add drift to Code Analysis section
 
 ```markdown
 ## What this adds
-Adds [drift](https://github.com/sauremilk/drift), an open-source static analyzer focused on architectural coherence in AI-accelerated Python repositories.
+Adds [drift](https://github.com/mick-gsk/drift), an open-source static analyzer focused on architectural coherence in AI-accelerated Python repositories.
 
 ## Why it belongs
 - Deterministic analysis (no LLM dependency in the detection pipeline)
@@ -50,7 +50,7 @@ If preferred, I can shorten the one-line description further.
     Deterministic architecture erosion detection for AI-accelerated Python codebases,
     with actionable findings for pattern fragmentation, architecture violations,
     near-duplicate logic, explainability deficits, and temporal instability.
-  homepage: https://github.com/sauremilk/drift
+  homepage: https://github.com/mick-gsk/drift
   license: MIT
 ```
 
@@ -71,7 +71,7 @@ Adds `drift` to the Python tooling list.
 - Deterministic and reproducible output
 - Supports terminal, JSON, and SARIF output for team workflows
 
-Homepage: https://github.com/sauremilk/drift
+Homepage: https://github.com/mick-gsk/drift
 ```
 
 ## Submission Checklist

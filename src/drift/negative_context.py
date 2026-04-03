@@ -45,6 +45,7 @@ _SIGNAL_CATEGORY: dict[SignalType, NegativeContextCategory] = {
     SignalType.CO_CHANGE_COUPLING: NegativeContextCategory.ARCHITECTURE,
     SignalType.FAN_OUT_EXPLOSION: NegativeContextCategory.ARCHITECTURE,
     SignalType.COHESION_DEFICIT: NegativeContextCategory.ARCHITECTURE,
+    SignalType.TS_ARCHITECTURE: NegativeContextCategory.ARCHITECTURE,
     # Testing
     SignalType.TEST_POLARITY_DEFICIT: NegativeContextCategory.TESTING,
     # Naming
@@ -70,6 +71,17 @@ _SIGNAL_CATEGORY: dict[SignalType, NegativeContextCategory] = {
 
 GeneratorFn = Callable[[Finding], list[NegativeContext]]
 _GENERATORS: dict[SignalType, GeneratorFn] = {}
+_FALLBACK_ONLY_SIGNALS: frozenset[SignalType] = frozenset()
+
+
+def _policy_covered_signal_types() -> set[SignalType]:
+    """Return all signal types explicitly covered by NC policy."""
+    return set(_GENERATORS) | set(_FALLBACK_ONLY_SIGNALS)
+
+
+def _policy_uncovered_signal_types() -> set[SignalType]:
+    """Return signal types lacking both dedicated and fallback-only policy."""
+    return set(SignalType) - _policy_covered_signal_types()
 
 
 def _register(signal_type: SignalType) -> Callable[[GeneratorFn], GeneratorFn]:
@@ -922,6 +934,120 @@ def _gen_foe(finding: Finding) -> list[NegativeContext]:
     )]
 
 
+@_register(SignalType.TEMPORAL_VOLATILITY)
+def _gen_tvs(finding: Finding) -> list[NegativeContext]:
+    """Frequent churn hotspot; avoid stacking risk on unstable areas."""
+    meta = finding.metadata
+    module = meta.get("module") or (
+        finding.file_path.as_posix() if finding.file_path else "module"
+    )
+    change_frequency = meta.get("change_frequency_30d", meta.get("change_frequency", 0))
+    recent_commits = meta.get("recent_commits", meta.get("commit_count", 0))
+
+    return [NegativeContext(
+        anti_pattern_id=_neg_id(SignalType.TEMPORAL_VOLATILITY, finding),
+        category=NegativeContextCategory.ARCHITECTURE,
+        source_signal=SignalType.TEMPORAL_VOLATILITY,
+        severity=finding.severity,
+        scope=NegativeContextScope.MODULE,
+        description=(
+            f"Module '{module}' is a high-churn hotspot "
+            f"(change_frequency={change_frequency}, recent_commits={recent_commits}). "
+            "Do not add unrelated logic in volatile areas."
+        ),
+        forbidden_pattern=(
+            "# ANTI-PATTERN: Piggybacking unrelated refactors onto a volatile module\n"
+            f"# '{module}' is already changing rapidly"
+        ),
+        canonical_alternative=(
+            "# REQUIRED: Keep changes minimal and isolated in volatile hotspots\n"
+            "# Move unrelated improvements into separate, focused modules or follow-up PRs"
+        ),
+        affected_files=_affected(finding),
+        confidence=0.8,
+        rationale=(
+            "High temporal volatility increases regression risk; unrelated changes in "
+            "hotspots reduce reviewability and stability."
+        ),
+    )]
+
+
+@_register(SignalType.SYSTEM_MISALIGNMENT)
+def _gen_sms(finding: Finding) -> list[NegativeContext]:
+    """Cross-module/system mismatch; enforce local system contracts."""
+    meta = finding.metadata
+    module = meta.get("module") or (
+        finding.file_path.as_posix() if finding.file_path else "module"
+    )
+    expected_contract = meta.get(
+        "expected_contract", meta.get("expected_pattern", "expected contract")
+    )
+    actual_behavior = meta.get("actual_behavior", meta.get("detected_pattern", "observed behavior"))
+
+    return [NegativeContext(
+        anti_pattern_id=_neg_id(SignalType.SYSTEM_MISALIGNMENT, finding),
+        category=NegativeContextCategory.ARCHITECTURE,
+        source_signal=SignalType.SYSTEM_MISALIGNMENT,
+        severity=finding.severity,
+        scope=NegativeContextScope.MODULE,
+        description=(
+            f"System misalignment in '{module}': expected '{expected_contract}', "
+            f"observed '{actual_behavior}'. Avoid extending conflicting behavior."
+        ),
+        forbidden_pattern=(
+            "# ANTI-PATTERN: Reinforcing inconsistent system behavior\n"
+            f"# Expected: {expected_contract}\n"
+            f"# Observed: {actual_behavior}"
+        ),
+        canonical_alternative=(
+            "# REQUIRED: Align changes with the established system contract\n"
+            "# Prefer adapting this module to the dominant project behavior before adding features"
+        ),
+        affected_files=_affected(finding),
+        confidence=0.78,
+        rationale=(
+            "System-level inconsistencies accumulate when AI-generated changes follow local "
+            "outliers instead of repository-wide contracts."
+        ),
+    )]
+
+
+@_register(SignalType.TS_ARCHITECTURE)
+def _gen_tsa(finding: Finding) -> list[NegativeContext]:
+    """TypeScript boundary violations should preserve architecture constraints."""
+    meta = finding.metadata
+    source = meta.get("source", meta.get("src_layer", "source"))
+    target = meta.get("target", meta.get("dst_layer", "target"))
+    rule = meta.get("rule", "TypeScript architecture boundary")
+
+    return [NegativeContext(
+        anti_pattern_id=_neg_id(SignalType.TS_ARCHITECTURE, finding),
+        category=NegativeContextCategory.ARCHITECTURE,
+        source_signal=SignalType.TS_ARCHITECTURE,
+        severity=finding.severity,
+        scope=NegativeContextScope.MODULE,
+        description=(
+            f"TypeScript architecture constraint violated ({rule}): "
+            f"'{source}' should not depend on '{target}'."
+        ),
+        forbidden_pattern=(
+            "# ANTI-PATTERN: Cross-boundary TypeScript dependency\n"
+            f"# Violated rule: {rule}\n"
+            f"# {source} -> {target}"
+        ),
+        canonical_alternative=(
+            "# REQUIRED: Respect TS architecture boundaries\n"
+            "# Introduce shared interfaces/adapters instead of direct cross-layer imports"
+        ),
+        affected_files=_affected(finding),
+        confidence=0.82,
+        rationale=(
+            "TypeScript modules drift quickly when cross-layer imports are added without "
+            "respecting boundary rules."
+        ),
+    )]
+
+
 @_register(SignalType.BYPASS_ACCUMULATION)
 def _gen_bat(finding: Finding) -> list[NegativeContext]:
     """FM-11 (RPN 105): TODO/placeholder accumulation."""
@@ -1009,6 +1135,11 @@ def _gen_cod(finding: Finding) -> list[NegativeContext]:
 def _gen_fallback(finding: Finding) -> list[NegativeContext]:
     """Generic fallback for signals without a specific generator."""
     category = _SIGNAL_CATEGORY.get(finding.signal_type, NegativeContextCategory.ARCHITECTURE)
+    policy = (
+        "explicit_fallback_only"
+        if finding.signal_type in _FALLBACK_ONLY_SIGNALS
+        else "implicit_missing_policy"
+    )
     return [NegativeContext(
         anti_pattern_id=_neg_id(finding.signal_type, finding),
         category=category,
@@ -1021,6 +1152,7 @@ def _gen_fallback(finding: Finding) -> list[NegativeContext]:
         affected_files=_affected(finding),
         confidence=0.5,
         rationale=f"Drift signal '{finding.signal_type.value}' detected.",
+        metadata={"fallback_policy": policy},
     )]
 
 

@@ -5,7 +5,7 @@ body:
     attributes:
       value: |
         Share an idea or brainstorm about drift's future direction.
-        For concrete feature requests, please use the [issue template](https://github.com/sauremilk/drift/issues/new/choose) instead.
+        For concrete feature requests, please use the [issue template](https://github.com/mick-gsk/drift/issues/new/choose) instead.
 
   - type: textarea
     id: idea

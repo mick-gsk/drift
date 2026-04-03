@@ -121,4 +121,4 @@ If none of the above resolves your issue:
 
 1. Run with `-v` for debug logging
 2. Check [FAQ](../faq.md) for known limitations
-3. Open an issue at [github.com/sauremilk/drift](https://github.com/sauremilk/drift/issues)
+3. Open an issue at [github.com/mick-gsk/drift](https://github.com/mick-gsk/drift/issues)

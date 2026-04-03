@@ -5,7 +5,7 @@ Order = recommended priority.
 
 ## Naming + Claim Guardrails
 
-- Repo: `sauremilk/drift`
+- Repo: `mick-gsk/drift`
 - Package: `drift-analyzer`
 - Command: `drift`
 - Version: v1.3.0
@@ -56,16 +56,16 @@ New in v1.3.0:
 
 Package: pip install drift-analyzer
 CLI:    drift analyze --repo .
-CI:     uses: sauremilk/drift@v1 (GitHub Action, report-only by default)
+CI:     uses: mick-gsk/drift@v1 (GitHub Action, report-only by default)
 Hook:   pre-commit hook available
 
-https://github.com/sauremilk/drift
+https://github.com/mick-gsk/drift
 ```
 
 **Posting tips:**
 
 - Best timing: Monday–Tuesday, 9–11 AM US Eastern
-- URL: https://news.ycombinator.com/submitlink?u=https://github.com/sauremilk/drift
+- URL: https://news.ycombinator.com/submitlink?u=https://github.com/mick-gsk/drift
 
 ---
 
@@ -108,7 +108,7 @@ Key features:
 - `drift mcp` — built-in MCP server for AI coding assistants
 - `drift timeline` / `drift trend` — track architectural drift over time
 
-GitHub: https://github.com/sauremilk/drift
+GitHub: https://github.com/mick-gsk/drift
 ```
 
 **Subreddits (post all):**
@@ -137,7 +137,7 @@ GitHub: https://github.com/sauremilk/drift
     22 detectors covering pattern fragmentation, architecture violations, mutant
     duplicates, security signals, and more. Built-in MCP server, baseline
     management, and profiles for incremental adoption.
-  homepage: https://github.com/sauremilk/drift
+  homepage: https://github.com/mick-gsk/drift
   license: MIT
 ```
 
@@ -154,7 +154,7 @@ GitHub: https://github.com/sauremilk/drift
 **Entry:**
 
 ```
-* [drift](https://github.com/sauremilk/drift) - Deterministic architectural drift detection for AI-accelerated Python codebases. 22 detectors, MCP server, agent-native workflows.
+* [drift](https://github.com/mick-gsk/drift) - Deterministic architectural drift detection for AI-accelerated Python codebases. 22 detectors, MCP server, agent-native workflows.
 ```
 
 **PR title:** `Add drift to Code Analysis section`
@@ -203,7 +203,7 @@ Key design decisions:
 Not a pitch — genuinely curious how other teams track this kind of drift, and
 whether deterministic static analysis is the right abstraction.
 
-https://github.com/sauremilk/drift
+https://github.com/mick-gsk/drift
 ```
 
 **Posting note:** Experience-based discussion tone. No "I built X" spam.
@@ -272,9 +272,9 @@ drift analyze --repo .
 - `drift scan` / `drift diff` — agent-native workflows
 - `drift baseline` — incremental adoption
 - `drift timeline` / `drift trend` — track drift over time
-- GitHub Action: uses: sauremilk/drift@v1
+- GitHub Action: uses: mick-gsk/drift@v1
 
-→ https://github.com/sauremilk/drift
+→ https://github.com/mick-gsk/drift
 ```
 
 ---
@@ -431,7 +431,7 @@ drift trend --repo .
 ## CI integration
 
 ```yaml
-- uses: sauremilk/drift@v1
+- uses: mick-gsk/drift@v1
   with:
     fail-on: none
     upload-sarif: "true"
@@ -448,7 +448,7 @@ that reads the whole codebase instead of just the diff.
 
 ## Links
 
-- GitHub: [sauremilk/drift](https://github.com/sauremilk/drift)
+- GitHub: [mick-gsk/drift](https://github.com/mick-gsk/drift)
 - PyPI: [drift-analyzer](https://pypi.org/project/drift-analyzer/)
 - Docs: [sauremilk.github.io/drift](https://sauremilk.github.io/drift/)
 ````
@@ -478,7 +478,7 @@ incremental adoption.
 
 pip install -q drift-analyzer && drift init --profile vibe-coding && drift analyze --repo .
 
-Feedback welcome: https://github.com/sauremilk/drift
+Feedback welcome: https://github.com/mick-gsk/drift
 ```
 
 ---
@@ -488,7 +488,7 @@ Feedback welcome: https://github.com/sauremilk/drift
 ```bash
 # 1. Configure Trusted Publisher on PyPI:
 #    https://pypi.org/manage/account/publishing/
-#    GitHub repo: sauremilk/drift
+#    GitHub repo: mick-gsk/drift
 #    Workflow: publish.yml
 #    Environment: pypi
 

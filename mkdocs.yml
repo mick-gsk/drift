@@ -1,7 +1,7 @@
 site_name: Drift — Codebase Coherence Analyzer
 site_url: https://sauremilk.github.io/drift/
-repo_url: https://github.com/sauremilk/drift
-repo_name: sauremilk/drift
+repo_url: https://github.com/mick-gsk/drift
+repo_name: mick-gsk/drift
 site_description: Surface architectural drift, architecture degradation, and technical debt patterns in AI-assisted codebases
 
 docs_dir: docs-site

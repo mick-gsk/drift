@@ -27,7 +27,7 @@ jobs:
         with:
           fetch-depth: 0 # Full git history for temporal signals
 
-      - uses: sauremilk/drift@v1
+      - uses: mick-gsk/drift@v1
         with:
           fail-on: high # Fail CI on high/critical findings
           upload-sarif: "true" # Inline PR annotations via GitHub Code Scanning

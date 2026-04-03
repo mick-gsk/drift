@@ -149,7 +149,7 @@ Config file priority: `--config` flag > `drift.yaml` > `drift.yml` > `.drift.yam
 
 ```yaml
 - name: Drift Architecture Check
-  uses: sauremilk/drift@v0
+  uses: mick-gsk/drift@v0
   with:
     fail-on: high
     format: sarif

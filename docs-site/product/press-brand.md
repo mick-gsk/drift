@@ -26,7 +26,7 @@ Drift helps teams inspect architectural drift before it becomes normalized. The 
 ## Safe factual points
 
 - package name: `drift-analyzer`
-- repository: `sauremilk/drift`
+- repository: `mick-gsk/drift`
 - command: `drift`
 - runtime: Python 3.11+
 - outputs: rich terminal, JSON, SARIF

@@ -68,7 +68,7 @@ This is not a bug scanner. It is a coherence scanner.
 Start with a non-blocking phase:
 
 ```yaml
-- uses: sauremilk/drift@v1
+- uses: mick-gsk/drift@v1
   with:
     fail-on: none
     upload-sarif: "true"
@@ -77,7 +77,7 @@ Start with a non-blocking phase:
 Then tighten only after calibration:
 
 ```yaml
-- uses: sauremilk/drift@v1
+- uses: mick-gsk/drift@v1
   with:
     fail-on: high
     upload-sarif: "true"

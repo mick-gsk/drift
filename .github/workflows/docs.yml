@@ -19,9 +19,8 @@ concurrency:
 
 jobs:
   build:
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -43,9 +42,8 @@ jobs:
 
   deploy:
     needs: build
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

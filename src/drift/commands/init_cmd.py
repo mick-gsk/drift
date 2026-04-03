@@ -42,7 +42,7 @@ _GITHUB_WORKFLOW = textwrap.dedent("""\
           - uses: actions/checkout@v4
             with:
               fetch-depth: 0
-          - uses: sauremilk/drift@v1
+          - uses: mick-gsk/drift@v1
             id: drift
             with:
               fail-on: "{fail_on}"

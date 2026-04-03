@@ -5,7 +5,7 @@
 
 ## Capability Matrix
 
-Data from [STUDY.md §9](https://github.com/sauremilk/drift/blob/main/docs/STUDY.md)
+Data from [STUDY.md §9](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md)
 (15-repository benchmark, 2 642 classified findings).
 
 | Capability | drift | SonarQube | pylint / mypy | jscpd / CPD | Sourcegraph Cody |
@@ -83,7 +83,7 @@ All scores produced with default configuration (`drift analyze --since 90 --form
 | Flask | 65 | 1 405 | 0.358 | LOW | 18 | 4.7 s |
 | drift (self) | 66 | 436 | 0.514 | MEDIUM | 80 | 0.4 s |
 
-Source: [benchmark_results/all_results.json](https://github.com/sauremilk/drift/blob/main/benchmark_results/all_results.json)
+Source: [benchmark_results/all_results.json](https://github.com/mick-gsk/drift/blob/main/benchmark_results/all_results.json)
 
 ## Recommended Stack
 

@@ -22,7 +22,7 @@ Du testest ob der Drift-Analyzer in einem beliebigen Repository funktioniert —
 
 - **Testet:** Die Drift-CLI und ihre Outputs
 - **Testet NICHT:** Ob das Ziel-Repo Architekturprobleme hat
-- **Issues gehen an:** `sauremilk/drift` — nicht ans Ziel-Repo
+- **Issues gehen an:** `mick-gsk/drift` — nicht ans Ziel-Repo
 
 ## Arbeitsmodus
 
@@ -239,7 +239,7 @@ Wenn drift abstürzt oder keine Ergebnisse liefert: `fail`. Wenn Ergebnisse komm
 
 ## GitHub-Issue-Erstellung
 
-Am Ende des Workflows GitHub-Issues auf `sauremilk/drift` erstellen gemäß `.github/prompts/_partials/issue-filing-external.md`.
+Am Ende des Workflows GitHub-Issues auf `mick-gsk/drift` erstellen gemäß `.github/prompts/_partials/issue-filing-external.md`.
 
 **Prompt-Kürzel für Titel:** `field-test`
 

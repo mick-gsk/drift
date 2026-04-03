@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 100
-      - uses: sauremilk/drift@v1
+      - uses: mick-gsk/drift@v1
         with:
           args: >-
             check

@@ -116,7 +116,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: sauremilk/drift@v1
+      - uses: mick-gsk/drift@v1
         with:
           fail-on: none
           upload-sarif: "true"
@@ -139,7 +139,7 @@ a production codebase.
 patterns.
 
 ```bash
-git clone https://github.com/sauremilk/drift.git
+git clone https://github.com/mick-gsk/drift.git
 cd drift/examples/demo-project
 pip install -q drift-analyzer
 drift analyze --repo .

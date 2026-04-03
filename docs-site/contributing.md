@@ -1,7 +1,7 @@
 # Contributing
 
-See [CONTRIBUTING.md](https://github.com/sauremilk/drift/blob/main/CONTRIBUTING.md) for the full contributing guide
-and [ROADMAP.md](https://github.com/sauremilk/drift/blob/main/ROADMAP.md) for current priorities.
+See [CONTRIBUTING.md](https://github.com/mick-gsk/drift/blob/main/CONTRIBUTING.md) for the full contributing guide
+and [ROADMAP.md](https://github.com/mick-gsk/drift/blob/main/ROADMAP.md) for current priorities.
 
 ## Who this page is for
 
@@ -14,13 +14,13 @@ This page is for contributors and maintainers rather than first-time evaluators.
 The project keeps strict contribution standards because they protect reproducibility, signal quality, and trust in findings.
 
 Maintainers and repeat reviewers can use the repository operations docs on GitHub:
-[Maintainer Runbook](https://github.com/sauremilk/drift/blob/main/docs/MAINTAINER_RUNBOOK.md) and
-[Repository Governance](https://github.com/sauremilk/drift/blob/main/docs/REPOSITORY_GOVERNANCE.md).
+[Maintainer Runbook](https://github.com/mick-gsk/drift/blob/main/docs/MAINTAINER_RUNBOOK.md) and
+[Repository Governance](https://github.com/mick-gsk/drift/blob/main/docs/REPOSITORY_GOVERNANCE.md).
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/sauremilk/drift.git
+git clone https://github.com/mick-gsk/drift.git
 cd drift
 make install          # pip install -e ".[dev]" + git hooks
 make test-fast        # confirm everything passes
@@ -28,7 +28,7 @@ make test-fast        # confirm everything passes
 
 ## Good First Issues
 
-Look for issues labelled [`good first issue`](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — these are scoped to be completable in a few hours.
+Look for issues labelled [`good first issue`](https://github.com/mick-gsk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — these are scoped to be completable in a few hours.
 
 ## How we evaluate contributions
 

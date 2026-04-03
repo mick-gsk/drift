@@ -7,7 +7,7 @@ Quick-reference for contributors and agents. For detailed contribution rules see
 ## Setup (3 commands)
 
 ```bash
-git clone https://github.com/sauremilk/drift.git && cd drift
+git clone https://github.com/mick-gsk/drift.git && cd drift
 make install          # pip install -e ".[dev]" + git hooks
 make check            # lint + typecheck + test + self-analysis
 ```
@@ -304,7 +304,7 @@ This repository uses `main` as the single integration branch.
 ### 1) Verify branch state
 
 ```bash
-gh api repos/sauremilk/drift/branches --paginate --jq ".[] | {name: .name, protected: .protected}"
+gh api repos/mick-gsk/drift/branches --paginate --jq ".[] | {name: .name, protected: .protected}"
 ```
 
 ### 2) Configure branch protection for `main`
@@ -312,7 +312,7 @@ gh api repos/sauremilk/drift/branches --paginate --jq ".[] | {name: .name, prote
 Requires repository admin permissions. This setup enforces pull requests, at least one review, and status checks.
 
 ```bash
-gh api -X PUT repos/sauremilk/drift/branches/main/protection \
+gh api -X PUT repos/mick-gsk/drift/branches/main/protection \
      -H "Accept: application/vnd.github+json" \
      --input - <<'JSON'
 {

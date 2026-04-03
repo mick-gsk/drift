@@ -1493,7 +1493,7 @@ breaks down.
 ## 15. Community Validation Studies — Security by Default
 
 **Status:** `[PLANNED]` — collecting contributions via
-[issue templates](https://github.com/sauremilk/drift/issues/new/choose).
+[issue templates](https://github.com/mick-gsk/drift/issues/new/choose).
 
 This section will contain empirical evidence from community-contributed
 analyses focusing on security-related signals (MAZ, HSC, ISD).
@@ -1524,7 +1524,7 @@ frequency and severity, to extend detection rules.
 
 **Method:** Contributors run `drift analyze` on their repos and document
 insecure defaults that ISD did not detect, using the
-[repo benchmark template](https://github.com/sauremilk/drift/issues/new?template=study_repo_benchmark.md).
+[repo benchmark template](https://github.com/mick-gsk/drift/issues/new?template=study_repo_benchmark.md).
 
 **Sample minimum:** 15 FN reports from ≥ 5 repos.
 
@@ -1570,7 +1570,7 @@ problems through `drift analyze`, and how many get fixed within 30 days?
 
 **Method:** Two-phase protocol — (A) run drift, rate each finding for surprise
 and correctness; (B) 30-day follow-up on fix rate. Uses the
-[self-analysis template](https://github.com/sauremilk/drift/issues/new?template=study_self_analysis.md).
+[self-analysis template](https://github.com/mick-gsk/drift/issues/new?template=study_self_analysis.md).
 
 **Sample minimum:** 15 reports (phase A), 10 follow-ups (phase B).
 
@@ -1663,7 +1663,7 @@ conventional repo matched on language, LOC (±30%), age (±1 year), and domain.
 
 **Method:** Contributors rate 10 random findings on three Likert dimensions:
 understandability (1–5), actionability (1–5), prioritizability (1–5). Uses
-the [self-analysis template](https://github.com/sauremilk/drift/issues/new?template=study_self_analysis.md) (step 4).
+the [self-analysis template](https://github.com/mick-gsk/drift/issues/new?template=study_self_analysis.md) (step 4).
 
 **Sample minimum:** 10 contributors × 10 findings = 100 ratings.
 

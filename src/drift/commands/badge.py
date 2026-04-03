@@ -64,7 +64,7 @@ def badge(repo: Path, since: int, config: Path | None, style: str, output: Path 
     value = quote(f"{score:.2f}")
     url = f"https://img.shields.io/badge/{label}-{value}-{color}?style={style}"
 
-    md_snippet = f"[![Drift Score]({url})](https://github.com/sauremilk/drift)"
+    md_snippet = f"[![Drift Score]({url})](https://github.com/mick-gsk/drift)"
 
     if output:
         output.write_text(url, encoding="utf-8")

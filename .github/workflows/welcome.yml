@@ -25,8 +25,8 @@ jobs:
             Thanks for opening your first issue! 👋
 
             We'll get back to you within 72 hours. In the meantime:
-            - Check [SUPPORT.md](https://github.com/sauremilk/drift/blob/main/SUPPORT.md) for the right channel
-            - Search existing [issues](https://github.com/sauremilk/drift/issues) and [discussions](https://github.com/sauremilk/drift/discussions)
+            - Check [SUPPORT.md](https://github.com/mick-gsk/drift/blob/main/SUPPORT.md) for the right channel
+            - Search existing [issues](https://github.com/mick-gsk/drift/issues) and [discussions](https://github.com/mick-gsk/drift/discussions)
 
             If this is a false-positive report, please include the drift version, signal name, and a minimal code example.
           pr-message: |
@@ -37,4 +37,4 @@ jobs:
             - [ ] The PR template is filled out
             - [ ] Tests are included for new behavior
 
-            See [CONTRIBUTING.md](https://github.com/sauremilk/drift/blob/main/CONTRIBUTING.md) for the full checklist.
+            See [CONTRIBUTING.md](https://github.com/mick-gsk/drift/blob/main/CONTRIBUTING.md) for the full checklist.

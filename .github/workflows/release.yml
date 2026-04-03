@@ -15,9 +15,8 @@ concurrency:
 jobs:
   release:
     name: Semantic Release
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     # Skip release-commit pushes (safety net; GITHUB_TOKEN pushes
     # already don't trigger workflows, but guard explicitly).
     if: "!startsWith(github.event.head_commit.message, 'chore: Release ')"
@@ -84,9 +83,8 @@ jobs:
     name: Build and publish to PyPI
     needs: release
     if: needs.release.outputs.released == 'true'
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     environment: pypi
 
     steps:
@@ -115,9 +113,8 @@ jobs:
     name: Update major-version tag (e.g. v1 → latest patch)
     needs: [release, publish]
     if: needs.release.outputs.released == 'true'
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     permissions:
       contents: write
 

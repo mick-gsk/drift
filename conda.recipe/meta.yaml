@@ -41,7 +41,7 @@ test:
     - drift --version
 
 about:
-  home: https://github.com/sauremilk/drift
+  home: https://github.com/mick-gsk/drift
   license: MIT
   license_file: LICENSE
   summary: >-
@@ -53,7 +53,7 @@ about:
     and SARIF for CI integration. All 15 signals are configurable via a YAML
     config file.
   doc_url: https://sauremilk.github.io/drift/
-  dev_url: https://github.com/sauremilk/drift
+  dev_url: https://github.com/mick-gsk/drift
 
 extra:
   recipe-maintainers:

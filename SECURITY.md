@@ -26,7 +26,7 @@ If you discover a security vulnerability in drift, **please do not open a public
 Instead, report it privately:
 
 1. **Email:** Send a detailed description to the maintainer via the contact listed on the [GitHub profile](https://github.com/sauremilk).
-2. **GitHub Security Advisory:** Use the [private vulnerability reporting](https://github.com/sauremilk/drift/security/advisories/new) feature.
+2. **GitHub Security Advisory:** Use the [private vulnerability reporting](https://github.com/mick-gsk/drift/security/advisories/new) feature.
 
 Please include:
 
@@ -106,7 +106,7 @@ The following are explicitly **not** security issues in drift:
 | --- | --- | --- |
 | Privileged file-system crafting | Malicious `.py` files causing misleading findings | Attacker already has write access — same trust boundary. |
 | Resource exhaustion on huge repos | OOM or long runtime on 100k+ file repositories | Operational concern, not a vulnerability. Use `--max-files` and resource limits. |
-| Static-analysis false positives | A signal reports a finding that is not a real problem | Signal-quality issue, not a security issue. Report via [false-positive template](https://github.com/sauremilk/drift/issues/new?template=false_positive.yml). |
+| Static-analysis false positives | A signal reports a finding that is not a real problem | Signal-quality issue, not a security issue. Report via [false-positive template](https://github.com/mick-gsk/drift/issues/new?template=false_positive.yml). |
 | Secret-scanning baseline entries | `.secrets.baseline` contains hashed fixture secrets | Intentional test fixtures; hashes are not reversible. |
 | Git history tampering | Rewritten Git history producing different drift results | drift trusts `git log` output; history integrity is the repository owner's responsibility. |
 

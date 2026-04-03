@@ -14,14 +14,13 @@ concurrency:
 jobs:
   version-check:
     name: Version format check
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Resolve Python executable
-        # [win-only] PowerShell-based resolver for self-hosted Windows runner.
+        # [win-only] PowerShell-based resolver for GitHub-hosted Windows runner.
         shell: powershell
         run: |
           $resolved = $false
@@ -63,9 +62,8 @@ jobs:
           & $env:PYTHON_BIN scripts/check_model_consistency.py
 
   test:
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     needs: version-check
     env:
       AGENT_TOOLSDIRECTORY: ${{ github.workspace }}\\.python-toolcache
@@ -100,7 +98,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           # Keep setup-python focused on interpreter provisioning.
-          # pip caching is handled explicitly via actions/cache for better control on self-hosted runners.
+          # pip caching is handled explicitly via actions/cache for better control in CI.
 
       - name: Restore pip cache
         uses: actions/cache@v4

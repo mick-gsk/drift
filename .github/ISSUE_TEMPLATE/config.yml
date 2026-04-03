@@ -1,17 +1,17 @@
 blank_issues_enabled: false
 contact_links:
   - name: Community studies — participate in drift research
-    url: https://github.com/sauremilk/drift/blob/main/CONTRIBUTING.md#participate-in-community-studies
+    url: https://github.com/mick-gsk/drift/blob/main/CONTRIBUTING.md#participate-in-community-studies
     about: Help validate drift's signals by running analyses, rating findings, or benchmarking repos.
   - name: Support and channel guide
-    url: https://github.com/sauremilk/drift/blob/main/SUPPORT.md
+    url: https://github.com/mick-gsk/drift/blob/main/SUPPORT.md
     about: Use SUPPORT.md to pick the right channel for questions, bugs, ideas, and security.
   - name: Questions and usage help
-    url: https://github.com/sauremilk/drift/discussions
+    url: https://github.com/mick-gsk/drift/discussions
     about: Please ask and answer general questions in Discussions.
   - name: Documentation
     url: https://sauremilk.github.io/drift/
     about: Check the docs site for setup, configuration, and examples.
   - name: Security report
-    url: https://github.com/sauremilk/drift/security/policy
+    url: https://github.com/mick-gsk/drift/security/policy
     about: Please report security vulnerabilities via the Security Policy page.

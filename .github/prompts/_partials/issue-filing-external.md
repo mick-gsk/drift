@@ -4,11 +4,11 @@
 > Basis-Regeln aus `_partials/issue-filing.md` gelten zusätzlich (Deduplizierung, Ein-Issue-pro-Problem, Evidenz-Pflicht).
 >
 > **Sprache: Issues werden IMMER auf Englisch verfasst.**
-> **Ziel-Repo: Issues gehen IMMER an `sauremilk/drift`** — nicht ans analysierte Ziel-Repo.
+> **Ziel-Repo: Issues gehen IMMER an `mick-gsk/drift`** — nicht ans analysierte Ziel-Repo.
 
 ## Allgemeine Regeln
 
-1. **Vor Erstellung** prüfen, ob ein passendes Issue auf `sauremilk/drift` bereits existiert
+1. **Vor Erstellung** prüfen, ob ein passendes Issue auf `mick-gsk/drift` bereits existiert
 2. **Ein Issue pro Problem** — keine Sammel-Issues
 3. **Evidenz-Pflicht** — exaktes Kommando, drift-Version, Ziel-Repo-Infos angeben
 4. **Nur reproduzierbare Defekte** — kein lokales Umgebungsrauschen
@@ -96,7 +96,7 @@ Tested on [OWNER/REPO-NAME] at commit [SHORT-HASH].
 - Lokale Umgebungsprobleme (falsche Python-Version, fehlende Dependencies)
 - Einzelfälle ohne Generalisierungspotential
 - Subjektive Formatpräferenzen
-- Duplikate bereits existierender Issues auf `sauremilk/drift`
+- Duplikate bereits existierender Issues auf `mick-gsk/drift`
 
 ### Generalisierungs-Heuristik
 
@@ -110,7 +110,7 @@ Vor Issue-Erstellung fragen: *Würde dieses Problem auch in einem anderen Repo d
 Nach Issue-Erstellung:
 
 ```text
-Created issues on sauremilk/drift:
+Created issues on mick-gsk/drift:
 - #[NUMBER]: [TITLE] - [URL]
 
 Skipped issues (already exist):

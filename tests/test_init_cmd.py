@@ -116,7 +116,7 @@ class TestInitCommand:
         wf = tmp_path / ".github" / "workflows" / "drift.yml"
         assert wf.exists()
         content = wf.read_text()
-        assert "sauremilk/drift@v1" in content
+        assert "mick-gsk/drift@v1" in content
         assert "fetch-depth: 0" in content
 
     def test_init_hooks_creates_pre_push(self, tmp_path: Path) -> None:

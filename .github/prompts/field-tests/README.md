@@ -6,7 +6,7 @@
 
 Diese Prompts testen den Drift-Analyzer in **beliebigen Repositories** — nicht nur im Drift-Repo selbst. Externe Repos sind der Härtetest für Signal-Precision, False-Positive-Rate und Output-Nützlichkeit.
 
-**Issues gehen immer an `sauremilk/drift`** — nicht ans analysierte Ziel-Repo.
+**Issues gehen immer an `mick-gsk/drift`** — nicht ans analysierte Ziel-Repo.
 
 ## Voraussetzungen
 
@@ -60,5 +60,5 @@ work_artifacts/context_eval_<YYYY-MM-DD>/
 | Ziel-Repo | Drift selbst | Beliebiges Repo |
 | Drift-Wissen | Kann Interna nutzen | Nur CLI-Signale |
 | Oracle | `ground_truth_labels.json` | Aus Repo-Architektur abgeleitet |
-| Issues an | `sauremilk/drift` | `sauremilk/drift` |
+| Issues an | `mick-gsk/drift` | `mick-gsk/drift` |
 | Issue-Template | `issue-filing.md` | `issue-filing-external.md` |

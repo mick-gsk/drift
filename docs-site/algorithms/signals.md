@@ -1,6 +1,6 @@
 # Signal Reference
 
-Drift tracks 23 total signals across architectural erosion and security-by-default patterns. 15 signals are currently scoring-active and 8 are report-only until precision/recall validation is complete. Signals are grouped by origin: 6 core signals (ablation-validated since v0.5), 4 consistency proxy signals (promoted from report-only in v0.7.0 via [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md)), 3 contract signals (added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)), 1 cohesion signal (COD), 1 co-change coupling signal (CCC), 1 TypeScript architecture signal (TSA), 4 structural report-only signals, and 3 security report-only signals.
+Drift tracks 23 total signals across architectural erosion and security-by-default patterns. 15 signals are currently scoring-active and 8 are report-only until precision/recall validation is complete. Signals are grouped by origin: 6 core signals (ablation-validated since v0.5), 4 consistency proxy signals (promoted from report-only in v0.7.0 via [ADR-007](https://github.com/mick-gsk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md)), 3 contract signals (added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/mick-gsk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)), 1 cohesion signal (COD), 1 co-change coupling signal (CCC), 1 TypeScript architecture signal (TSA), 4 structural report-only signals, and 3 security report-only signals.
 
 ## Signal Table (All 23)
 
@@ -92,7 +92,7 @@ Reference: [Negative Context](../reference/negative-context.md)
 
 ## Consistency Proxy Signals
 
-Promoted from report-only to scoring-active in v0.7.0 with conservative initial weights. See [ADR-007](https://github.com/sauremilk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md) for the original rationale.
+Promoted from report-only to scoring-active in v0.7.0 with conservative initial weights. See [ADR-007](https://github.com/mick-gsk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md) for the original rationale.
 
 ### Doc-Implementation Drift (DIA)
 
@@ -120,7 +120,7 @@ Promoted from report-only to scoring-active in v0.7.0 with conservative initial 
 
 ## Contract Signals
 
-Added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/sauremilk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md).
+Added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/mick-gsk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md).
 
 ### Naming Contract Violation (NBV)
 

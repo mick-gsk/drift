@@ -56,10 +56,10 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://sauremilk.github.io/drift/"
-Repository = "https://github.com/sauremilk/drift"
-Issues = "https://github.com/sauremilk/drift/issues"
+Repository = "https://github.com/mick-gsk/drift"
+Issues = "https://github.com/mick-gsk/drift/issues"
 Documentation = "https://sauremilk.github.io/drift/"
-Changelog = "https://github.com/sauremilk/drift/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/mick-gsk/drift/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 typescript = [

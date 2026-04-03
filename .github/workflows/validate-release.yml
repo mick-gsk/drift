@@ -25,9 +25,8 @@ concurrency:
 jobs:
   validate-tag:
     name: Validate tag & pyproject.toml consistency
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -50,7 +49,7 @@ jobs:
             }
           }
           if (-not $resolved) {
-            Write-Error "Neither 'python' nor 'py' is available on this self-hosted runner."
+            Write-Error "Neither 'python' nor 'py' is available on this runner."
             exit 1
           }
 
@@ -64,9 +63,8 @@ jobs:
   create-release:
     name: Create GitHub release from validated tag
     needs: validate-tag
-    # NOTE: Uses self-hosted Windows runner (GitHub-hosted runners temporarily unavailable).
-    # Migration to ubuntu-latest tracked in: https://github.com/sauremilk/drift/issues/90
-    runs-on: self-hosted
+    # NOTE: Uses GitHub-hosted Windows runner.
+    runs-on: windows-latest
     steps:
       - name: Create published release if missing
         shell: powershell

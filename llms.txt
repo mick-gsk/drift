@@ -6,7 +6,7 @@ Release status: v0.8.2 (2026-03-28)
 
 Package: drift-analyzer
 Install: pip install -q drift-analyzer  (add -q for quiet output, hiding verbose dependency chains)
-Repository: https://github.com/sauremilk/drift
+Repository: https://github.com/mick-gsk/drift
 Documentation: https://sauremilk.github.io/drift/
 Command: drift analyze --repo .
 
@@ -50,10 +50,10 @@ Command: drift analyze --repo .
 
 ## Optional
 
-- [Full Benchmark Study](https://github.com/sauremilk/drift/blob/main/docs/STUDY.md): 97.3% precision on 263 ground-truth-labeled findings across 15 repositories
-- [Changelog](https://github.com/sauremilk/drift/blob/main/CHANGELOG.md): version history and signal improvements
+- [Full Benchmark Study](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md): 97.3% precision on 263 ground-truth-labeled findings across 15 repositories
+- [Changelog](https://github.com/mick-gsk/drift/blob/main/CHANGELOG.md): version history and signal improvements
 - [Case Studies](https://sauremilk.github.io/drift/case-studies/): FastAPI, Pydantic, Django
-- [GitHub Action](https://github.com/sauremilk/drift/blob/main/action.yml): CI integration with SARIF upload
+- [GitHub Action](https://github.com/mick-gsk/drift/blob/main/action.yml): CI integration with SARIF upload
 
 ## Keywords
 

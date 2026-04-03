@@ -4,17 +4,17 @@
 
 **Deterministic architecture erosion detection for AI-accelerated codebases**
 
-[![CI](https://github.com/sauremilk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/sauremilk/drift/actions/workflows/ci.yml)
-[![Precision (lenient)](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/sauremilk/drift/main/benchmark_results/ground_truth_analysis.json&query=%24.total.precision_lenient&label=precision%20lenient&color=yellow)](benchmark_results/ground_truth_analysis.json)
-[![Signals](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/sauremilk/drift/main/benchmark_results/signal_coverage_matrix.json&query=%24.current_total&label=signals&color=blue)](benchmark_results/signal_coverage_matrix.json)
-[![codecov](https://codecov.io/gh/sauremilk/drift/branch/main/graph/badge.svg)](https://codecov.io/gh/sauremilk/drift)
+[![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
+[![Precision (lenient)](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/mick-gsk/drift/main/benchmark_results/ground_truth_analysis.json&query=%24.total.precision_lenient&label=precision%20lenient&color=yellow)](benchmark_results/ground_truth_analysis.json)
+[![Signals](https://img.shields.io/badge/dynamic/json?url=https://raw.githubusercontent.com/mick-gsk/drift/main/benchmark_results/signal_coverage_matrix.json&query=%24.current_total&label=signals&color=blue)](benchmark_results/signal_coverage_matrix.json)
+[![codecov](https://codecov.io/gh/mick-gsk/drift/branch/main/graph/badge.svg)](https://codecov.io/gh/mick-gsk/drift)
 [![SARIF](https://img.shields.io/badge/output-SARIF-blueviolet)](https://docs.github.com/en/code-security/code-scanning)
 [![Agent API](https://img.shields.io/badge/API-MCP%20agent--native-green)](docs/STUDY.md#15-agent-loop-efficiency)
 <br>
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![Python versions](https://img.shields.io/pypi/pyversions/drift-analyzer)](https://pypi.org/project/drift-analyzer/)
-[![License](https://img.shields.io/github/license/sauremilk/drift)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/sauremilk/drift?style=social)](https://github.com/sauremilk/drift)
+[![License](https://img.shields.io/github/license/mick-gsk/drift)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/mick-gsk/drift?style=social)](https://github.com/mick-gsk/drift)
 
 97.3% precision (single-rater) · 23 signals · deterministic · no LLM in pipeline · [full study](docs/STUDY.md) · [docs](https://sauremilk.github.io/drift/)
 
@@ -67,7 +67,7 @@ drift fix-plan --repo .         # get actionable repair tasks
 ### Add to CI (start report-only)
 
 ```yaml
-- uses: sauremilk/drift@v1
+- uses: mick-gsk/drift@v1
   with:
     fail-on: none               # report findings without blocking
     upload-sarif: "true"        # findings appear as PR annotations
@@ -158,7 +158,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: sauremilk/drift@v1
+      - uses: mick-gsk/drift@v1
         with:
           fail-on: none           # report findings without blocking CI
           upload-sarif: "true"    # findings appear as PR annotations
@@ -167,7 +167,7 @@ jobs:
 Once the team has reviewed findings for a few sprints, tighten the gate:
 
 ```yaml
-      - uses: sauremilk/drift@v1
+      - uses: mick-gsk/drift@v1
         with:
           fail-on: high           # block only high-severity findings
           upload-sarif: "true"
@@ -187,7 +187,7 @@ The fastest way to add drift to your workflow:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: https://github.com/sauremilk/drift
+  - repo: https://github.com/mick-gsk/drift
     rev: v1.4.2
     hooks:
       - id: drift-check          # blocks on high-severity findings
@@ -337,15 +337,15 @@ Full rationale and matrix: [Stability and Release Status](docs-site/stability.md
 
 Drift's biggest blind spots are found by people running it on codebases the maintainers have never seen. **Your real-world experience is a direct contribution to signal quality** — whether you write code or not.
 
-If Drift surprised you with an unexpected result, that's valuable feedback: [open an issue](https://github.com/sauremilk/drift/issues) or start a [discussion](https://github.com/sauremilk/drift/discussions). A well-documented false positive can be more valuable than a new feature.
+If Drift surprised you with an unexpected result, that's valuable feedback: [open an issue](https://github.com/mick-gsk/drift/issues) or start a [discussion](https://github.com/mick-gsk/drift/discussions). A well-documented false positive can be more valuable than a new feature.
 
 | I want to… | Go here |
 |---|---|
-| Ask a usage question | [Discussions](https://github.com/sauremilk/drift/discussions) |
-| Report a false positive / false negative | [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md) |
-| Report a bug | [Bug report](https://github.com/sauremilk/drift/issues/new?template=bug_report.md) |
-| Suggest a feature | [Feature request](https://github.com/sauremilk/drift/issues/new?template=feature_request.md) |
-| Propose a contribution before coding | [Contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) |
+| Ask a usage question | [Discussions](https://github.com/mick-gsk/drift/discussions) |
+| Report a false positive / false negative | [FP/FN template](https://github.com/mick-gsk/drift/issues/new?template=false_positive.md) |
+| Report a bug | [Bug report](https://github.com/mick-gsk/drift/issues/new?template=bug_report.md) |
+| Suggest a feature | [Feature request](https://github.com/mick-gsk/drift/issues/new?template=feature_request.md) |
+| Propose a contribution before coding | [Contribution proposal](https://github.com/mick-gsk/drift/issues/new?template=contribution_proposal.md) |
 | Report a security vulnerability | [SECURITY.md](SECURITY.md) — not a public issue |
 
 ### New here? Start contributing
@@ -353,16 +353,16 @@ If Drift surprised you with an unexpected result, that's valuable feedback: [ope
 You don't need to understand the whole analyzer to help. Start at the level that fits your time:
 
 1. **15 min:** Fix a typo or clarify a docs example → open a PR directly
-2. **30 min:** Report an unexpected finding with reproduction steps → [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md)
-3. **1 hour:** Add an edge-case test → pick a [`good first issue`](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+2. **30 min:** Report an unexpected finding with reproduction steps → [FP/FN template](https://github.com/mick-gsk/drift/issues/new?template=false_positive.md)
+3. **1 hour:** Add an edge-case test → pick a [`good first issue`](https://github.com/mick-gsk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 4. **2+ hours:** Improve signal logic or finding explanations → see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ```bash
-git clone https://github.com/sauremilk/drift.git && cd drift && make install
+git clone https://github.com/mick-gsk/drift.git && cd drift && make install
 make test-fast    # confirm everything passes, then start
 ```
 
-**First contribution? We'll help you scope it.** Open a [contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) or ask in [Discussions](https://github.com/sauremilk/drift/discussions) if you're unsure where to start.
+**First contribution? We'll help you scope it.** Open a [contribution proposal](https://github.com/mick-gsk/drift/issues/new?template=contribution_proposal.md) or ask in [Discussions](https://github.com/mick-gsk/drift/discussions) if you're unsure where to start.
 
 **Typical first contributions:**
 

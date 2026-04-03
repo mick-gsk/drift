@@ -44,7 +44,7 @@ Details: [field-tests/README.md](field-tests/README.md)
 | [drift-finding-audit](field-tests/drift-finding-audit.prompt.md) | Tiefenprüfung: Findings korrekt? TP/FP/FN | field-test = `pass` |
 | [drift-context-eval](field-tests/drift-context-eval.prompt.md) | Kontext-Qualität: Exports nützlich für AI? | field-test = `pass` |
 
-**Issues gehen an `sauremilk/drift`**, nicht ans analysierte Ziel-Repo.
+**Issues gehen an `mick-gsk/drift`**, nicht ans analysierte Ziel-Repo.
 
 ## Shared Components
 

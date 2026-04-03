@@ -56,7 +56,7 @@ See [Scoring Model](algorithms/scoring.md).
 
 97.3% strict precision across 263 ground-truth-labeled findings on 15 repositories (v0.3). All false positives came from a single signal (DIA) that carries zero scoring weight.
 
-See [Benchmarking and Trust](benchmarking.md) and [STUDY.md](https://github.com/sauremilk/drift/blob/main/docs/STUDY.md).
+See [Benchmarking and Trust](benchmarking.md) and [STUDY.md](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md).
 
 ## Can drift detect dependency cycles in Python?
 

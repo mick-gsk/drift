@@ -6,11 +6,11 @@ Use the right channel so requests are handled quickly and in context. When in do
 
 | I want to… | Go here |
 |---|---|
-| Ask a usage question or get help | [GitHub Discussions](https://github.com/sauremilk/drift/discussions) |
-| Report a false positive / false negative | [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md) |
-| Report a bug | [Bug report template](https://github.com/sauremilk/drift/issues/new?template=bug_report.md) |
-| Suggest a feature or improvement | [Feature request template](https://github.com/sauremilk/drift/issues/new?template=feature_request.md) |
-| Propose a contribution before coding | [Contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) |
+| Ask a usage question or get help | [GitHub Discussions](https://github.com/mick-gsk/drift/discussions) |
+| Report a false positive / false negative | [FP/FN template](https://github.com/mick-gsk/drift/issues/new?template=false_positive.md) |
+| Report a bug | [Bug report template](https://github.com/mick-gsk/drift/issues/new?template=bug_report.md) |
+| Suggest a feature or improvement | [Feature request template](https://github.com/mick-gsk/drift/issues/new?template=feature_request.md) |
+| Propose a contribution before coding | [Contribution proposal](https://github.com/mick-gsk/drift/issues/new?template=contribution_proposal.md) |
 | Submit a small docs or typo fix | Open a PR directly — no issue needed |
 | Report a security vulnerability | [SECURITY.md](SECURITY.md) — do not open a public issue |
 | Understand how to contribute | [CONTRIBUTING.md](CONTRIBUTING.md) |

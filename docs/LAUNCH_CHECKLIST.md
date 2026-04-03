@@ -14,7 +14,7 @@ Last updated: v1.3.0 (2026-04-01)
 - [x] **Pre-Commit Hooks** — `.pre-commit-hooks.yaml` mit `drift-check` (gate) und `drift-report` (report-only). Remote-Hook-Anleitung in README und `docs-site/integrations.md`.
 - [x] **Demo-GIF rendern** — `demos/demo.gif` gerendert (356 KB), im README verlinkt.
 - [ ] **PyPI Release veröffentlichen** — Workflow `publish.yml` ist fertig (Trusted Publishing). Schritte:
-  1. PyPI Trusted Publisher konfigurieren: https://pypi.org/manage/account/publishing/ (Repo: `sauremilk/drift`, Workflow: `publish.yml`, Environment: `pypi`)
+  1. PyPI Trusted Publisher konfigurieren: https://pypi.org/manage/account/publishing/ (Repo: `mick-gsk/drift`, Workflow: `publish.yml`, Environment: `pypi`)
   2. GitHub Environment `pypi` im Repo erstellen (Settings → Environments)
   3. Release erstellen: `gh release create v1.1.0 --title "v1.1.0" --generate-notes`
   4. Workflow veröffentlicht automatisch zu PyPI
@@ -45,7 +45,7 @@ Alle Texte stehen in [`OUTREACH.md`](OUTREACH.md) — Copy-Paste-fertig.
 
 Optimaler Zeitpunkt: Dienstag oder Mittwoch, 15–17 Uhr CET (9–11 Uhr US Eastern).
 
-- [ ] Show HN abschicken → https://news.ycombinator.com/submitlink?u=https://github.com/sauremilk/drift
+- [ ] Show HN abschicken → https://news.ycombinator.com/submitlink?u=https://github.com/mick-gsk/drift
 - [ ] Reddit-Posts gleichzeitig: r/Python, r/programming, r/softwarearchitecture, r/ExperiencedDevs
 - [ ] Twitter/X Thread veröffentlichen
 - [ ] Discord: Python Discord (#showcase), The Programmer's Hangout, AI Engineer Discord

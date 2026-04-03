@@ -16,7 +16,7 @@ This guide is structured so you can start small and grow into deeper work at you
 ## Quick start
 
 ```bash
-git clone https://github.com/sauremilk/drift.git
+git clone https://github.com/mick-gsk/drift.git
 cd drift
 make install          # pip install -e ".[dev]" + git hooks
 make check            # lint + typecheck + test + self-analysis
@@ -33,12 +33,12 @@ Maintainers and repeat reviewers should also use:
 
 First contribution? Welcome. Here's the fastest path:
 
-1. Pick a scoped issue labelled [**good first issue**](https://github.com/sauremilk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — each one includes affected files, a clear definition of done, and a difficulty estimate
+1. Pick a scoped issue labelled [**good first issue**](https://github.com/mick-gsk/drift/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — each one includes affected files, a clear definition of done, and a difficulty estimate
 2. Follow [Quick start](#quick-start) above to set up locally
 3. Run `make test-fast` before and after your change
 4. Open a focused PR and explain what changed, why, and how you validated it
 
-Unsure whether something is worth contributing? Open a [contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) — we'll help you scope it. If Drift surprised you with an unexpected result, that is valuable feedback even without a code fix.
+Unsure whether something is worth contributing? Open a [contribution proposal](https://github.com/mick-gsk/drift/issues/new?template=contribution_proposal.md) — we'll help you scope it. If Drift surprised you with an unexpected result, that is valuable feedback even without a code fix.
 
 ## Participate in community studies
 
@@ -48,9 +48,9 @@ is a first-class contribution — you do not need to write code.
 
 | Level | Time | What you do | Template |
 |:---:|---|---|---|
-| 1 | ~15 min | Run `drift analyze` on your own repo, rate findings | [Self-analysis](https://github.com/sauremilk/drift/issues/new?template=study_self_analysis.md) |
-| 2 | ~30 min | Classify a set of findings as TP / FP / Unclear | [Finding rating](https://github.com/sauremilk/drift/issues/new?template=study_finding_rating.md) |
-| 3 | 1–3 h | Analyze a repo for a specific study (security, debt, etc.) | [Repo benchmark](https://github.com/sauremilk/drift/issues/new?template=study_repo_benchmark.md) |
+| 1 | ~15 min | Run `drift analyze` on your own repo, rate findings | [Self-analysis](https://github.com/mick-gsk/drift/issues/new?template=study_self_analysis.md) |
+| 2 | ~30 min | Classify a set of findings as TP / FP / Unclear | [Finding rating](https://github.com/mick-gsk/drift/issues/new?template=study_finding_rating.md) |
+| 3 | 1–3 h | Analyze a repo for a specific study (security, debt, etc.) | [Repo benchmark](https://github.com/mick-gsk/drift/issues/new?template=study_repo_benchmark.md) |
 
 Currently open studies are documented in [STUDY.md §15–§17](docs/STUDY.md).
 All studies follow the quality criteria in [POLICY.md §13](POLICY.md).
@@ -73,11 +73,11 @@ Not sure where to go? Use this routing table:
 
 | I want to… | Go here |
 |---|---|
-| Ask a usage question | [GitHub Discussions](https://github.com/sauremilk/drift/discussions) |
-| Report a false positive / false negative | [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md) |
-| Report a bug | [Bug report template](https://github.com/sauremilk/drift/issues/new?template=bug_report.md) |
-| Suggest a feature or improvement | [Feature request template](https://github.com/sauremilk/drift/issues/new?template=feature_request.md) |
-| Propose a larger contribution before coding | [Contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) |
+| Ask a usage question | [GitHub Discussions](https://github.com/mick-gsk/drift/discussions) |
+| Report a false positive / false negative | [FP/FN template](https://github.com/mick-gsk/drift/issues/new?template=false_positive.md) |
+| Report a bug | [Bug report template](https://github.com/mick-gsk/drift/issues/new?template=bug_report.md) |
+| Suggest a feature or improvement | [Feature request template](https://github.com/mick-gsk/drift/issues/new?template=feature_request.md) |
+| Propose a larger contribution before coding | [Contribution proposal](https://github.com/mick-gsk/drift/issues/new?template=contribution_proposal.md) |
 | Submit a small docs/typo improvement | Open a PR directly — no issue needed |
 | Report a security vulnerability | [SECURITY.md](SECURITY.md) — do not open a public issue |
 
@@ -109,7 +109,7 @@ Drift needs different kinds of contributions, and many of the most impactful one
 
 > **Real-world reproduction cases directly improve Drift's credibility.** You don't need to fix a problem to make a valuable contribution — clearly documenting it is often the harder and more important part.
 
-Check the [open issues](https://github.com/sauremilk/drift/issues) for current priorities and [ROADMAP.md](ROADMAP.md) for what the project needs most right now.
+Check the [open issues](https://github.com/mick-gsk/drift/issues) for current priorities and [ROADMAP.md](ROADMAP.md) for what the project needs most right now.
 
 ### High-value contributions
 
@@ -154,7 +154,7 @@ PRs that only produce one of the following will be closed with an explanation:
 
 This is not about gatekeeping — it protects the project from well-intentioned
 work that dilutes finding quality. When in doubt, open a
-[contribution proposal](https://github.com/sauremilk/drift/issues/new?template=contribution_proposal.md) first.
+[contribution proposal](https://github.com/mick-gsk/drift/issues/new?template=contribution_proposal.md) first.
 
 ## Non-code contributions are first-class
 
@@ -162,7 +162,7 @@ Drift is an analysis tool — its credibility depends on evidence, not just code
 
 | Contribution | Why it's valuable | How to submit |
 |---|---|---|
-| FP/FN report with reproduction | Directly feeds precision improvement — the project's top priority | [FP/FN template](https://github.com/sauremilk/drift/issues/new?template=false_positive.md) |
+| FP/FN report with reproduction | Directly feeds precision improvement — the project's top priority | [FP/FN template](https://github.com/mick-gsk/drift/issues/new?template=false_positive.md) |
 | Minimal reproduction repo | Lets maintainers debug edge cases without guessing | Link in an issue or PR |
 | Benchmark on a new codebase | Expands the evidence base beyond the study corpus | `drift analyze --format json` output attached to an issue |
 | Finding explanation improvement | Makes Drift actionable for non-experts | PR changing `reason`/`next_action` strings |
@@ -350,7 +350,7 @@ who can push directly to `main`.
 
 ### GitHub Actions Major-Version-Tag
 
-Because Drift is a GitHub Action (`uses: sauremilk/drift@v1`), there is one additional convention:
+Because Drift is a GitHub Action (`uses: mick-gsk/drift@v1`), there is one additional convention:
 the **major-version tag** (`v1`, `v2`) acts as a moving pointer. This means:
 
 - Users reference `@v1` and automatically receive all minor/patch updates
