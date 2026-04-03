@@ -327,16 +327,36 @@ class ArchitectureViolationSignal(BaseSignal):
             known = {pr.file_path.as_posix() for pr in parse_results}
             findings.extend(self._check_co_change(graph, commits, known))
 
-        # --- Deduplicate findings by (title, file_path) ---
-        seen: set[tuple[str, str]] = set()
+        # --- Deduplicate findings by canonical semantic key ---
+        seen: set[tuple[str, ...]] = set()
         deduped: list[Finding] = []
         for f in findings:
-            key = (f.title, f.file_path.as_posix() if f.file_path else "")
+            key = self._finding_dedupe_key(f)
             if key not in seen:
                 seen.add(key)
                 deduped.append(f)
 
         return deduped
+
+    def _finding_dedupe_key(self, finding: Finding) -> tuple[str, ...]:
+        """Build a stable dedup key that collapses same-edge cross-pass AVS findings."""
+        file_path = finding.file_path.as_posix() if finding.file_path else ""
+        start_line = str(int(finding.start_line or 0))
+        end_line = str(int(finding.end_line or 0))
+        rule_id = finding.rule_id or self.signal_type.value
+        title = (finding.title or "").strip()
+
+        # Policy-boundary and inferred-upward checks can report the same
+        # source-line -> target edge with different titles. Collapse by edge.
+        import_target = finding.metadata.get("import_target") if finding.metadata else None
+        if isinstance(import_target, str) and import_target and int(start_line) > 0:
+            return ("import-edge", file_path, start_line, import_target)
+
+        if int(start_line) > 0 and finding.related_files:
+            related = ",".join(sorted(p.as_posix() for p in finding.related_files))
+            return ("line-related", rule_id, file_path, start_line, related)
+
+        return ("generic", rule_id, file_path, start_line, end_line, title)
 
     def _check_boundary(
         self,
@@ -348,6 +368,10 @@ class ArchitectureViolationSignal(BaseSignal):
         from_pattern = boundary.from_pattern
         deny_patterns = boundary.deny_import
 
+        module_to_file: dict[str, Path] = {}
+        for pr in parse_results:
+            module_to_file.setdefault(_module_for_path(pr.file_path), pr.file_path)
+
         for imp in all_imports:
             src = imp.source_file.as_posix()
             if not _matches_pattern(src, from_pattern):
@@ -356,6 +380,7 @@ class ArchitectureViolationSignal(BaseSignal):
             for deny in deny_patterns:
                 target = imp.imported_module.replace(".", "/")
                 if _matches_pattern(target, deny) or _matches_pattern(imp.imported_module, deny):
+                    resolved_target = module_to_file.get(imp.imported_module)
                     findings.append(
                         Finding(
                             signal_type=self.signal_type,
@@ -369,6 +394,7 @@ class ArchitectureViolationSignal(BaseSignal):
                             ),
                             file_path=imp.source_file,
                             start_line=imp.line_number,
+                            related_files=[resolved_target] if resolved_target is not None else [],
                             fix=(
                                 f"Remove import '{imp.imported_module}' in "
                                 f"{imp.source_file.name}:{imp.line_number}. "
@@ -377,6 +403,11 @@ class ArchitectureViolationSignal(BaseSignal):
                             metadata={
                                 "rule": boundary.name,
                                 "import": imp.imported_module,
+                                "import_target": (
+                                    resolved_target.as_posix()
+                                    if resolved_target is not None
+                                    else imp.imported_module
+                                ),
                             },
                         )
                     )
@@ -472,6 +503,7 @@ class ArchitectureViolationSignal(BaseSignal):
                             "dst_layer": dst_layer,
                             "hub_dampened": dst in hub_nodes,
                             "blast_radius": blast_radius.get(src, 0) if blast_radius else 0,
+                            "import_target": dst,
                         },
                     )
                 )

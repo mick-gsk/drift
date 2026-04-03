@@ -1,45 +1,64 @@
 ---
 name: "Drift CI Gate"
 agent: agent
-description: "Use when validating whether drift is safe to run in CI or pre-push gates with Claude Opus 4.6: test exit codes, fail-on behavior, idempotence, output contracts, and machine-readable artifacts."
+description: "Validiert, ob Drift zuverlässig genug für CI-Pipelines und Pre-Push-Gates ist: Exit-Codes, Fail-On-Verhalten, Idempotenz, Output-Verträge und maschinenlesbare Artefakte."
 ---
 
 # Drift CI Gate
 
-You are Claude Opus 4.6 validating whether Drift behaves reliably enough for CI pipelines, pre-push checks, and automated quality gates.
+Du validierst, ob Drift zuverlässig genug für den Einsatz in CI-Pipelines, Pre-Push-Checks und automatisierten Quality-Gates ist.
 
-## Claude Opus 4.6 Working Mode
+> **Pflicht:** Vor Ausführung dieses Prompts das Drift Policy Gate durchlaufen
+> (siehe `.github/prompts/_partials/konventionen.md` und `.github/instructions/drift-policy.instructions.md`).
 
-Use Claude Opus 4.6 deliberately:
-- distinguish observed process behavior from inferred contract violations
-- compare repeated runs carefully before labeling something flaky or deterministic
-- prefer compact matrices over narrative when checking exit-code and format consistency
-- call out the exact operational consequence of each defect for CI users
-- avoid overstating confidence when a failure could still be environment-specific
+## Relevante Referenzen
 
-## Objective
+- **Instruction:** `.github/instructions/drift-push-gates.instructions.md` (Pre-Push-Gate-Definitionen)
+- **Instruction:** `.github/instructions/drift-policy.instructions.md`
+- **Bewertungssystem:** `.github/prompts/_partials/bewertungs-taxonomie.md`
+- **Issue-Filing:** `.github/prompts/_partials/issue-filing.md`
+- **Verwandte Prompts:** `drift-agent-workflow-test.prompt.md` (Phase 5b + Phase 8 testen Exit-Codes/Edge-Cases)
+- **SARIF-Spezifikation:** https://docs.oasis-open.org/sarif/sarif/v2.1.0/
 
-Determine whether Drift can be trusted as a production gate by testing exit-code behavior, repeatability, boundary conditions, and machine-readable outputs.
+## Arbeitsmodus
 
-## Success Criteria
+- Unterscheide beobachtetes Prozessverhalten von abgeleiteten Vertragsverletzungen.
+- Vergleiche wiederholte Läufe sorgfältig, bevor du etwas als flaky oder deterministisch einstufst.
+- Bevorzuge kompakte Matrizen statt Prosa beim Prüfen von Exit-Code- und Format-Konsistenz.
+- Benenne für jeden Defekt die exakte operationelle Konsequenz für CI-Nutzer.
+- Vermeide überzogenes Vertrauen, wenn ein Fehler umgebungsspezifisch sein könnte.
 
-The task is complete only if you can answer:
-- whether exit codes match the documented or implied contract
-- whether repeated runs on the same repo state stay stable enough for CI
-- whether machine-readable formats are valid and decision-ready
-- which failure modes would make Drift unsafe or noisy in pipelines
+## Ziel
 
-## Operating Rules
+Bestimme, ob Drift als Production-Gate vertrauenswürdig ist, indem du Exit-Code-Verhalten, Wiederholbarkeit, Randbedingungen und maschinenlesbare Outputs testest.
 
-- Focus on operational reliability, not signal semantics.
-- Run the same checks multiple times when stability matters.
-- Treat non-determinism as a product risk unless clearly justified.
-- Prefer machine-readable evidence whenever the command supports it.
-- Distinguish product defects from environment-only failures.
+## Erfolgskriterien
 
-## Required Artifacts
+Die Aufgabe ist erst abgeschlossen, wenn du beantworten kannst:
+- Stimmen Exit-Codes mit dem dokumentierten oder impliziten Vertrag überein?
+- Sind wiederholte Läufe auf demselben Repo-State stabil genug für CI?
+- Sind maschinenlesbare Formate valide und entscheidungsfertig?
+- Welche Failure-Modi würden Drift in Pipelines unsicher oder störend machen?
 
-Create artifacts under `work_artifacts/drift_ci_gate_<DATE>/`:
+## Arbeitsregeln
+
+- Fokus auf operationelle Zuverlässigkeit, nicht auf Signal-Semantik.
+- Gleiche Checks mehrfach ausführen, wenn Stabilität relevant ist.
+- Nicht-Determinismus als Produktrisiko behandeln, sofern nicht klar gerechtfertigt.
+- Maschinenlesbare Evidenz bevorzugen, wenn das Kommando es unterstützt.
+- Produktdefekte von umgebungsspezifischen Failures unterscheiden.
+
+## Bewertungs-Labels
+
+Verwende ausschließlich Labels aus `.github/prompts/_partials/bewertungs-taxonomie.md`:
+
+- **Ergebnis-Bewertung** pro Test: `pass` / `review` / `fail`
+- **Abdeckungs-Status**: `tested` / `skipped` / `blocked`
+- **Idempotenz-Klassifikation**: `stable` / `ordering-unstable` / `content-unstable`
+
+## Artefakte
+
+Erstelle Artefakte unter `work_artifacts/ci_gate_<YYYY-MM-DD>/`:
 
 1. `gate_runs/`
 2. `exit_code_matrix.md`
@@ -49,253 +68,199 @@ Create artifacts under `work_artifacts/drift_ci_gate_<DATE>/`:
 
 ## Workflow
 
-### Phase 0: Inventory gate-relevant commands
+### Phase 0: Gate-relevante Kommandos inventarisieren
 
-Identify the commands and options relevant to CI use, especially:
-- `check`
+Identifiziere die für CI relevanten Kommandos und Optionen, insbesondere:
+- `check` (mit `--fail-on`, `--json`, `--compact`, `--output-format`)
 - `validate`
-- output-format variants
-- JSON and SARIF paths
-- baseline-aware gate flows
+- JSON- und SARIF-Output-Pfade
+- Baseline-gesteuerte Gate-Flows
 
-### Phase 1: Test exit-code contracts
+Verifiziere den Exit-Code-Vertrag anhand der CLI-Hilfe (`drift check --help`). Falls die Hilfe keine Exit-Codes dokumentiert, dokumentiere das als fehlenden Vertrag.
 
-#### Exit-Code Contract
+### Phase 1: Exit-Code-Verträge testen
 
-Use this expected baseline unless the CLI help or docs state otherwise:
+#### Exit-Code-Baseline
 
-| Code | Meaning |
-|------|----------|
-| `0`  | Command succeeded and gate passed under current threshold |
-| `1`  | Command succeeded and gate failed due to findings or policy |
-| `2`  | Usage, config, or input error (e.g. unknown flag, missing path) |
-| `>2` | Internal or unexpected runtime failure |
+| Code | Erwartete Bedeutung |
+|------|---------------------|
+| `0` | Kommando erfolgreich, Gate bestanden |
+| `1` | Kommando erfolgreich, Gate durchgefallen (Findings über Schwelle) |
+| `2` | Usage-, Config- oder Input-Fehler |
+| `>2` | Interner oder unerwarteter Laufzeitfehler |
 
-If observed behavior differs, document whether the CLI explicitly declares a different contract.
+Falls die CLI-Hilfe einen abweichenden Vertrag definiert: diesen verwenden und Abweichung dokumentieren.
 
-#### Phase 1a: Clean-pass scenario
-
-Run the gate with `--fail-on none` to establish a baseline where no gate failure is expected.
-Record the exit code and verify it is `0` regardless of finding count.
-
-#### Phase 1b: Fail-threshold scenario
-
-Run the gate with a `--fail-on` level expected to trigger on the current repo state (e.g. `--fail-on medium` if medium findings exist).
-Verify the exit code is `1` and that the output identifies the findings that caused the failure.
-
-#### Phase 1c: Usage-error scenario
-
-Intentionally pass an invalid option or a malformed argument (e.g. `--fail-on invalid_level` or `--output-format nonsense`).
-Verify the exit code is `2` and that the output is a structured, actionable error message rather than a stack trace.
-
-#### Phase 1d: Baseline-gated scenario
-
-Run the same gate command with and without a baseline file.
-Verify that baseline presence changes only the intended gate decision and does not alter the finding set or exit code for identical findings.
-
-At minimum also cover:
+#### Phase 1a: Clean-Pass-Szenario
 
 ```bash
 drift check --fail-on none --json --compact
+```
+Erwartung: Exit-Code 0, unabhängig von Finding-Anzahl.
+
+#### Phase 1b: Fail-Threshold-Szenario
+
+```bash
+drift check --fail-on medium
 drift check --fail-on high --output-format rich
 ```
+Erwartung: Exit-Code 1, wenn Findings der entsprechenden Severity existieren. Output muss die auslösenden Findings identifizieren.
 
-Add more variants if the CLI exposes them.
+#### Phase 1c: Usage-Error-Szenario
 
-### Phase 2: Test idempotence
+```bash
+drift check --fail-on invalid_level
+```
+Erwartung: Exit-Code 2, strukturierte Fehlermeldung (kein Stack-Trace).
 
-Run the same gate command at least three times on an unchanged repository state.
+#### Phase 1d: Baseline-gesteuertes Szenario
 
-For each run, compare the following dimensions independently:
+Gleiches Gate-Kommando mit und ohne Baseline-Datei ausführen. Prüfen, ob Baseline-Präsenz nur die Gate-Entscheidung ändert, nicht den Finding-Set.
 
-| Dimension | What to check |
-|-----------|---------------|
-| Exit-code stability | All runs return the same exit code |
-| Finding stability | Total count, per-severity counts, and finding IDs are stable |
-| Output stability | JSON fields that change between runs are identified and classified |
+### Phase 2: Idempotenz testen
 
-Classify any observed drift between runs as exactly one of:
+Gleiches Gate-Kommando mindestens dreimal auf unverändertem Repo-State ausführen.
 
-- `metadata-only` — e.g. timestamps, run IDs; acceptable in CI if findings are stable
-- `ordering-only` — finding order differs but set is identical; acceptable only if output format is deterministic by contract
-- `content-change` — finding counts, IDs, or severities differ; this is a CI risk and must be documented as a defect
+Pro Lauf diese Dimensionen unabhängig vergleichen:
 
-A gate that produces `content-change` variance across runs on identical repo state is **not CI-ready**.
+| Dimension | Was prüfen |
+|-----------|------------|
+| Exit-Code-Stabilität | Alle Läufe gleicher Exit-Code |
+| Finding-Stabilität | Gesamtzahl, pro-Severity-Zähler und Finding-IDs stabil |
+| Output-Stabilität | JSON-Felder identifizieren, die sich zwischen Läufen ändern |
 
-### Phase 3: Test boundary conditions
+Klassifikation gemäß Taxonomie (`stable` / `ordering-unstable` / `content-unstable`).
 
-Try boundary-style inputs that matter in CI, such as:
-- very low and very high `--max-findings`
-- baseline present vs absent
-- compact vs rich output
-- read-only or non-writable output destinations if relevant
+Ein Gate mit `content-unstable`-Varianz ist **nicht CI-ready**.
 
-If a boundary condition cannot be tested here, document the reason and the next-best proxy.
+**Hinweis zu `ordering-unstable`:** Wenn Findings in zufälliger Reihenfolge erscheinen, kann der JSON-Diff groß wirken, obwohl der Inhalt identisch ist. Normalisiere die Finding-Liste (sortiert nach Signal+Datei+Zeile) vor dem Vergleich, um `ordering-unstable` von `content-unstable` zu trennen.
 
-### Phase 4: Validate machine-readable outputs
+### Phase 3: Randbedingungen testen
 
-#### JSON minimum contract
+CI-relevante Boundary-Inputs:
+- Sehr niedriges und sehr hohes `--max-findings`
+- Baseline vorhanden vs. abwesend
+- `--compact` vs. `--output-format rich`
+- Read-only oder nicht-schreibbare Output-Zieldateien
 
-For JSON outputs, verify at minimum:
-- top-level object parses without error
-- stable top-level keys are present across runs (identify any that are missing or renamed)
-- findings are represented as structured records, not only prose summaries
-- `severity`, `signal`, and `file path` (or equivalent) are machine-extractable when findings exist
-- the structure is diff-able: a second run on the same repo produces a JSON diff classifiable as `metadata-only`, `ordering-only`, or `content-change`
+Falls eine Randbedingung nicht testbar ist: Grund dokumentieren und nächstbesten Proxy angeben.
 
-#### SARIF minimum contract
+### Phase 4: Maschinenlesbare Outputs validieren
 
-For SARIF outputs, verify at minimum:
-- file is valid JSON
-- `runs` key exists at the top level
-- `runs[0].results` exists
-- each result contains a stable `ruleId` or equivalent identifier
-- each result contains enough location information to be actionable in a GitHub annotation context
+#### JSON-Mindestvertrag
 
-If either format fails its minimum contract, record the exact missing field and classify the severity of the gap for automation use.
+Für JSON-Outputs mindestens prüfen:
+- Top-Level-Objekt parst fehlerfrei
+- Stabile Top-Level-Keys über Läufe hinweg vorhanden
+- Findings als strukturierte Records, nicht als Prosa
+- Folgende Felder maschinenextrahierbar (exakte Feldnamen aus `drift check --json` Output ableiten):
+  - Finding-Severity (z.B. `severity`)
+  - Signal-Bezeichnung (z.B. `signal`)
+  - Dateipfad (z.B. `file_path` oder `file`)
+- Diff-barkeit: Zweiter Lauf produziert JSON-Diff klassifizierbar als `stable`, `ordering-unstable` oder `content-unstable`
 
-### Phase 4b: CI-realism checks
+#### SARIF-Mindestvertrag
 
-Verify behavior in conditions that reflect actual CI pipeline environments:
+Für SARIF-Outputs mindestens prüfen (gemäß SARIF v2.1.0 Spec):
+- Datei ist valides JSON
+- `$schema`-Feld vorhanden
+- `version` = `"2.1.0"`
+- `runs` Key auf Top-Level mit `runs[0].tool.driver`
+- `runs[0].results` existiert
+- Jedes Result enthält:
+  - `ruleId` (stabile Signal-ID)
+  - `message.text` (Beschreibung)
+  - `locations[0].physicalLocation.artifactLocation.uri` (Dateipfad)
+  - `locations[0].physicalLocation.region.startLine` (Zeilennummer, falls verfügbar)
+- Genug Location-Information für GitHub-Annotations-Kontext
 
-- **Non-writable output path**: Direct JSON or SARIF output to a non-writable path. Verify the tool fails gracefully with an actionable error message and a non-zero exit code, rather than silently succeeding or crashing with a stack trace.
-- **Non-interactive output**: Run with `--compact` or `--json` in a context where no TTY is present (pipe to a file or `nul`). Verify output is machine-readable and does not contain ANSI escape codes or progress spinners that would corrupt structured output.
-- **Large compact output**: If the repo has many findings, verify `--compact` mode does not truncate structured data that automation would need.
+Falls ein Mindestvertrag scheitert: exaktes fehlendes Feld und Schweregrad für Automation dokumentieren.
 
-#### Recommended CI command selection
+### Phase 4b: CI-Realism-Checks
 
-At the end of Phase 4b, commit to exactly one default CI gate command and justify it in one sentence each for:
-- **determinism**: why the command produces stable output
-- **machine-readability**: why downstream automation can parse it reliably
-- **noise level**: why the `--fail-on` threshold is appropriate for the target use case
-- **ease of adoption**: whether a new team could drop this command into a workflow without additional configuration
+Verhalten unter tatsächlichen CI-Pipeline-Bedingungen prüfen:
 
----
+- **Nicht-schreibbarer Output-Pfad**: JSON/SARIF an nicht-schreibbaren Pfad umleiten. Erwartung: Graceful Fail mit actionabler Fehlermeldung und non-zero Exit-Code.
+- **Nicht-interaktiver Output**: Mit `--compact` oder `--json` in Datei pipsen (kein TTY). Erwartung: Output enthält keine ANSI-Escape-Codes oder Progress-Spinner.
+- **Großes Compact-Output**: Bei vielen Findings prüfen, ob `--compact` strukturierte Daten nicht abschneidet.
+- **Exit-Code-Verträge**: Prüfen, ob Exit-Codes konsistent sind, wenn stdout/stderr umgeleitet werden.
+- **Retry-Verhalten**: Identisches Kommando nach einem Fehler erneut ausführen — produziert es konsistente Ergebnisse?
 
-### Phase 5: Produce the report
+#### Empfohlenes CI-Kommando
 
-Use this report structure:
+Am Ende von Phase 4b genau ein Default-CI-Gate-Kommando festlegen und in je einem Satz begründen:
+
+| Kriterium | Begründung |
+|-----------|------------|
+| **Determinismus** | Warum produziert das Kommando stabile Ausgabe? |
+| **Maschinenlesbarkeit** | Warum kann Downstream-Automation es zuverlässig parsen? |
+| **Noise-Level** | Warum ist die `--fail-on`-Schwelle passend? |
+| **Adoption** | Kann ein neues Team es ohne Extra-Konfiguration in einen Workflow einbauen? |
+
+### Phase 5: Report erstellen
 
 ```markdown
 # Drift CI Gate Report
 
-**Date:** [DATE]
+**Datum:** <YYYY-MM-DD>
 **drift-Version:** [VERSION]
-**Repository:** [REPO NAME]
+**Repository:** [REPO-NAME]
 
-## Gate Verdict
+## Gate-Urteil
 
 `ready` / `conditional` / `unsafe`
 
-## Exit Code Matrix
+## Exit-Code-Matrix
 
-| Command | Expected | Observed | Stable? | Verdict |
-|---------|----------|----------|---------|---------|
+| Kommando | Erwartet | Beobachtet | Stabil? | Bewertung |
+|----------|----------|------------|---------|-----------|
 
-## Idempotence
+## Idempotenz
 
-| Run Set | Stable? | Evidence | Notes |
-|---------|---------|----------|-------|
+| Lauf-Set | Stabil? | Klassifikation | Evidenz | Anmerkungen |
+|----------|---------|----------------|---------|-------------|
 
-## Machine-Readable Outputs
+## Maschinenlesbare Outputs
 
-| Format | Valid? | Usable in automation? | Notes |
-|--------|--------|-----------------------|-------|
+| Format | Valide? | Automation-tauglich? | Fehlende Felder | Anmerkungen |
+|--------|---------|---------------------|-----------------|-------------|
 
-## Pipeline Risks
+## Pipeline-Risiken
 
 1. [...]
 2. [...]
-3. [...]
 
-## Recommended CI Policy
+## Empfohlene CI-Policy
 
-**Command:** `[exact command]`
+**Kommando:** `[exaktes Kommando]`
 
-| Dimension | Assessment |
-|-----------|------------|
-| Determinism | [one sentence] |
-| Machine-readability | [one sentence] |
-| Noise level | [one sentence] |
-| Ease of adoption | [one sentence] |
+| Kriterium | Bewertung |
+|-----------|-----------|
+| Determinismus | [ein Satz] |
+| Maschinenlesbarkeit | [ein Satz] |
+| Noise-Level | [ein Satz] |
+| Adoption | [ein Satz] |
 ```
 
-## Decision Rule
+## Entscheidungsregel
 
-If the output contract is not stable enough for automation, do not call the tool CI-ready.
+Wenn der Output-Vertrag nicht stabil genug für Automation ist, das Tool nicht als CI-ready bezeichnen.
 
-## GitHub Issue Creation
+## GitHub-Issue-Erstellung
 
-At the end of the workflow, create GitHub issues in `sauremilk/drift` for every reproducible CI or gate defect uncovered by the evaluation.
+Am Ende des Workflows GitHub-Issues erstellen gemäß `.github/prompts/_partials/issue-filing.md`.
 
-### Create issues for
+**Prompt-Kürzel für Titel:** `ci-gate`
 
-Prioritize creation in this order — CI blockers first, cosmetic issues last:
+### Issues erstellen für (Prioritätsreihenfolge)
 
-1. **CI blockers** — exit-code mismatches (observed ≠ contract)
-2. **Flaky behavior** — `content-change` variance across runs on identical repo state
-3. **Machine-readable output defects** — JSON or SARIF fails minimum contract
-4. **Ambiguous gate semantics** — behavior is technically consistent but too unclear for safe CI adoption
+1. **CI-Blocker** — Exit-Code-Mismatches (beobachtet ≠ Vertrag)
+2. **Flaky-Verhalten** — `content-unstable` Varianz bei identischem Repo-State
+3. **Format-Defekte** — JSON oder SARIF verletzt Mindestvertrag
+4. **Ambigue Gate-Semantik** — technisch konsistent, aber zu unklar für sichere CI-Adoption
 
-Also create issues for failures caused by Drift behavior rather than purely external infrastructure noise.
+### Keine Issues erstellen für
 
-### Do not create issues for
-
-- transient local runner failures with no product implication
-- already known issues that fully cover the observed defect
-- unsupported test scenarios that were clearly outside the command contract
-
-### Required issue rules
-
-- search for existing issues first
-- create one issue per concrete defect
-- include the exact command, observed exit code, expected exit code, and artifact path
-- state whether the defect blocks CI adoption, causes flaky gates, or weakens machine-readability
-- use the label `agent-ux` plus any more specific label if appropriate
-
-### Issue title format
-
-`[ci-gate] <concise problem summary>`
-
-### Issue body template
-
-```markdown
-## Observed behavior
-
-[What the gate command returned]
-
-## Expected behavior
-
-[What CI-safe behavior was expected]
-
-## Reproduction
-
-drift-Version: [VERSION]
-Command: `drift ...`
-Observed exit code: [CODE]
-Expected exit code: [CODE]
-Evidence: [ARTIFACT PATH]
-
-## Impact
-
-- [ ] CI blocker
-- [ ] Flaky behavior
-- [ ] Machine-readable output defect
-- [ ] Ambiguous gate semantics
-
-## Source
-
-Automatically created from `.github/prompts/drift-ci-gate.prompt.md` on [DATE].
-```
-
-### Completion output
-
-End with:
-
-```text
-Created issues:
-- #[NUMBER]: [TITLE] - [URL]
-
-Skipped issues already covered:
-- [TITLE] -> #[NUMBER]
-```
+- Vorübergehende lokale Runner-Failures ohne Produktbezug
+- Bereits bekannte Issues, die den Defekt vollständig abdecken
+- Test-Szenarien außerhalb des Kommandovertrags

@@ -252,3 +252,20 @@ class TestGenerateRecommendationsEdgeCases:
         recs = generate_recommendations(findings)
         # High-impact recs come first
         assert recs[0].impact == "high"
+
+
+class TestMutantDuplicateFallbacks:
+    def test_mutant_duplicate_recommendation_avoids_question_placeholders(self):
+        finding = _make_finding(
+            SignalType.MUTANT_DUPLICATE,
+            metadata={"similarity": 0.91},
+            file_path=Path("src/a.py"),
+            related_files=[Path("src/b.py")],
+        )
+        finding.start_line = 12
+
+        recs = generate_recommendations([finding])
+        assert len(recs) == 1
+        assert "?" not in recs[0].title
+        assert "?" not in recs[0].description
+        assert "src/a.py:12" in recs[0].title

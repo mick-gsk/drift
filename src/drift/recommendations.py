@@ -97,18 +97,38 @@ def _recommend_mutant_duplicate(finding: Finding) -> Recommendation | None:
     """Suggest merging near-duplicate functions."""
     meta = finding.metadata
 
+    def _safe_text(value: object) -> str:
+        return str(value).strip() if isinstance(value, str) and str(value).strip() else ""
+
+    def _location_label(path: str, line: int | None) -> str:
+        if path and line and line > 0:
+            return f"{path}:{line}"
+        if path:
+            return path
+        return "unknown-location"
+
+    primary_path = finding.file_path.as_posix() if finding.file_path else ""
+    secondary_path = finding.related_files[0].as_posix() if finding.related_files else ""
+    primary_loc = _location_label(primary_path, finding.start_line)
+    secondary_loc = _location_label(secondary_path, None)
+
     # Exact duplicates store a "functions" list instead of function_a/function_b.
     funcs_list = meta.get("functions")
     if funcs_list and len(funcs_list) >= 2:
-        func_a = funcs_list[0].get("name", "?")
-        func_b = funcs_list[1].get("name", "?")
-        file_a = funcs_list[0].get("file", "")
-        file_b = funcs_list[1].get("file", "")
+        func_a = _safe_text(funcs_list[0].get("name")) or f"function@{primary_loc}"
+        func_b = _safe_text(funcs_list[1].get("name")) or f"function@{secondary_loc}"
+        file_a = _safe_text(funcs_list[0].get("file")) or primary_path
+        file_b = _safe_text(funcs_list[1].get("file")) or secondary_path
     else:
-        func_a = meta.get("function_a", "?")
-        func_b = meta.get("function_b", "?")
-        file_a = meta.get("file_a", "")
-        file_b = meta.get("file_b", "")
+        func_a = _safe_text(meta.get("function_a")) or finding.symbol or f"function@{primary_loc}"
+        func_b = _safe_text(meta.get("function_b")) or f"function@{secondary_loc}"
+        file_a = _safe_text(meta.get("file_a")) or primary_path
+        file_b = _safe_text(meta.get("file_b")) or secondary_path
+
+    if not file_a:
+        file_a = primary_path or "current-file"
+    if not file_b:
+        file_b = secondary_path or file_a
 
     similarity = meta.get("similarity", 0.0)
 

@@ -1,45 +1,62 @@
 ---
 name: "Drift Onboarding"
 agent: agent
-description: "Use when testing first-time adoption of drift in a new or unfamiliar repository with Claude Opus 4.6: validate init, config, first-run success, and time-to-value for a new team or contributor."
+description: "Testet die Erstnutzer-Erfahrung bei Drift-Adoption in einem neuen Repository: Init, Config, First-Run-Erfolg und Time-to-Value für neue Teams oder Contributors."
 ---
 
 # Drift Onboarding
 
-You are Claude Opus 4.6 evaluating how quickly a new maintainer, contributor, or team can get value from Drift in a repository they have not configured before.
+Du evaluierst, wie schnell ein neuer Maintainer, Contributor oder ein Team mit Drift in einem bisher nicht konfigurierten Repository Nutzen erzielen kann.
 
-## Claude Opus 4.6 Working Mode
+> **Pflicht:** Vor Ausführung dieses Prompts das Drift Policy Gate durchlaufen
+> (siehe `.github/prompts/_partials/konventionen.md` und `.github/instructions/drift-policy.instructions.md`).
 
-Use Claude Opus 4.6 deliberately:
-- think like a capable newcomer with no hidden maintainer knowledge
-- distinguish confusing product behavior from normal first-run learning cost
-- reduce each onboarding problem to the first missing clue that would unblock a user
-- prefer concrete friction logs over broad impressions
-- summarize time-to-value in terms of commands, decisions, and uncertainty points
+## Relevante Referenzen
 
-## Objective
+- **Instruction:** `.github/instructions/drift-policy.instructions.md`
+- **Bewertungssystem:** `.github/prompts/_partials/bewertungs-taxonomie.md`
+- **Issue-Filing:** `.github/prompts/_partials/issue-filing.md`
+- **Verwandte Prompts:** `drift-agent-workflow-test.prompt.md` (Phase 7b testet Onboarding breiter)
+- **Onboarding-Doku:** `DEVELOPER.md`, `CONTRIBUTING.md`
 
-Determine whether Drift onboarding is understandable, low-friction, and robust enough for first-time use.
+## Arbeitsmodus
 
-## Success Criteria
+- Denke wie ein fähiger Neueinsteiger ohne verstecktes Maintainer-Wissen.
+- Unterscheide verwirrende Produktverhalten von normalem Erstnutzer-Lernaufwand.
+- Reduziere jedes Onboarding-Problem auf den ersten fehlenden Hinweis, der den User entblocken würde.
+- Bevorzuge konkrete Friktions-Logs gegenüber allgemeinen Eindrücken.
+- Fasse Time-to-Value in Kommandos, Entscheidungen und Unsicherheitspunkten zusammen.
 
-The task is complete only if you can answer:
-- how easy it is to initialize Drift in a fresh repo or sandbox
-- whether config workflows are understandable and debuggable
-- whether a first useful result can be reached quickly
-- which onboarding gaps most slow down adoption
+## Ziel
 
-## Operating Rules
+Bestimme, ob das Drift-Onboarding verständlich, reibungsarm und robust genug für Erstnutzer ist.
 
-- Evaluate from the perspective of a new user, not an existing maintainer who already knows the repo.
-- Prefer a sandbox or isolated repo path for write-heavy onboarding commands.
-- Count confusing prerequisites and silent assumptions as onboarding defects.
-- Record the first point where a new user would likely hesitate.
-- Measure time-to-value in terms of reaching a meaningful first result, not just creating files.
+## Erfolgskriterien
 
-## Required Artifacts
+Die Aufgabe ist erst abgeschlossen, wenn du beantworten kannst:
+- Wie einfach ist es, Drift in einem frischen Repo oder einer Sandbox zu initialisieren?
+- Sind Config-Workflows verständlich und debugbar?
+- Kann ein erstes nützliches Ergebnis schnell erreicht werden?
+- Welche Onboarding-Lücken verlangsamen die Adoption am meisten?
 
-Create artifacts under `work_artifacts/drift_onboarding_<DATE>/`:
+## Arbeitsregeln
+
+- Bewerte aus der Perspektive eines neuen Users, nicht eines bestehenden Maintainers.
+- Bevorzuge eine Sandbox oder einen isolierten Repo-Pfad für schreibintensive Onboarding-Kommandos.
+- Zähle verwirrende Voraussetzungen und stillschweigende Annahmen als Onboarding-Defekte.
+- Protokolliere den ersten Punkt, an dem ein neuer User wahrscheinlich zögern würde.
+- Miss Time-to-Value am Erreichen eines sinnvollen ersten Ergebnisses, nicht am bloßen Erstellen von Dateien.
+
+## Bewertungs-Labels
+
+Verwende ausschließlich Labels aus `.github/prompts/_partials/bewertungs-taxonomie.md`:
+
+- **Ergebnis-Bewertung** pro Schritt: `pass` / `review` / `fail`
+- **Risiko-Level** pro Friktionspunkt: `low` / `medium` / `high` / `critical`
+
+## Artefakte
+
+Erstelle Artefakte unter `work_artifacts/onboarding_<YYYY-MM-DD>/`:
 
 1. `sandbox/`
 2. `init_output.txt`
@@ -50,159 +67,127 @@ Create artifacts under `work_artifacts/drift_onboarding_<DATE>/`:
 
 ## Workflow
 
-### Phase 0: Start from a newcomer viewpoint
+### Phase 0: Neueinsteiger-Perspektive einnehmen
 
-Assume no prior repo-specific Drift knowledge beyond what the CLI and generated files provide.
+Nimm an, du hast kein repo-spezifisches Drift-Wissen außer dem, was CLI und generierte Dateien liefern.
 
-Document:
-- what the obvious first command is
-- what prerequisites are visible or hidden
-- what a newcomer would need to know before proceeding
+Dokumentiere:
+- Was ist das offensichtliche erste Kommando?
+- Welche Voraussetzungen sind sichtbar oder versteckt?
+- Was müsste ein Neueinsteiger wissen, bevor er fortfährt?
+- Gibt es Hinweise auf `DEVELOPER.md` oder `CONTRIBUTING.md`?
 
-### Phase 1: Initialize in a sandbox
+### Phase 1: In Sandbox initialisieren
 
-Use a sandbox path such as:
-
-```bash
-drift init --full --repo <SANDBOX_REPO>
-```
-
-Judge:
-- whether the generated files are understandable
-- whether the defaults feel sensible
-- whether the command output explains what to do next
-
-### Phase 2: Validate and inspect config
-
-Run:
+Erstelle eine Sandbox und initialisiere Drift:
 
 ```bash
-drift config validate --repo <SANDBOX_REPO>
-drift config show --repo <SANDBOX_REPO>
+mkdir -p work_artifacts/onboarding_<YYYY-MM-DD>/sandbox
+cd work_artifacts/onboarding_<YYYY-MM-DD>/sandbox
+git init
+echo "def example(): pass" > main.py
+git add . && git commit -m "init"
+drift init --full --repo .
 ```
 
-Judge:
-- whether config problems are easy to diagnose
-- whether the shown config is actually useful for humans
-- whether the next step after config is clear
+Bewerte:
+- Sind die generierten Dateien verständlich?
+- Sind die Defaults sinnvoll?
+- Erklärt die Kommandoausgabe, was als nächstes zu tun ist?
 
-### Phase 3: Reach first value
+**Generierte-Assets-Rubrik** — jedes erzeugte Artefakt bewerten nach:
+1. **Verständlich?** — Kann ein Neueinsteiger ohne Doku verstehen, was die Datei bewirkt?
+2. **Vollständig?** — Enthält die Datei alle nötigen Felder/Optionen für den Startfall?
+3. **Korrekt?** — Spiegeln die Defaults das erwartete Verhalten wider?
 
-From the initialized state, attempt the most natural first analysis step.
+### Phase 2: Config validieren und inspizieren
 
-Record:
-- how many commands were needed before a meaningful result appeared
-- where a newcomer would likely need help
-- whether the outputs make the product feel trustworthy early
+```bash
+drift config validate --repo <SANDBOX>
+drift config show --repo <SANDBOX>
+```
 
-### Phase 4: Produce the report
+Bewerte:
+- Sind Config-Probleme leicht diagnostizierbar?
+- Ist die angezeigte Config tatsächlich nützlich für Menschen?
+- Ist der nächste Schritt nach Config klar?
 
-Use this report structure:
+### Phase 3: Ersten Nutzen erreichen
+
+Vom initialisierten Zustand aus den natürlichsten ersten Analyseschritt ausführen:
+
+```bash
+drift analyze --repo <SANDBOX> --format json
+```
+
+Dies ist das Mindest-Kommando für das erste sinnvolle Ergebnis.
+
+Wenn das Sandbox-Repo zu klein für aussagekräftige Findings ist, wiederhole mit dem echten Repository:
+
+```bash
+drift scan --max-findings 5 --response-detail concise
+```
+
+Protokolliere:
+- Wie viele Kommandos waren nötig, bevor ein sinnvolles Ergebnis erschien?
+- Wo würde ein Neueinsteiger wahrscheinlich Hilfe brauchen?
+- Fühlt sich das Produkt früh genug vertrauenswürdig an?
+
+### Phase 4: Report erstellen
 
 ```markdown
 # Drift Onboarding Report
 
-**Date:** [DATE]
+**Datum:** <YYYY-MM-DD>
 **drift-Version:** [VERSION]
-**Repository:** [REPO NAME OR SANDBOX]
+**Repository:** [REPO-NAME oder SANDBOX]
 
-## Time to Value
+## Time-to-Value
 
-| Step | Command | Outcome | Friction | Notes |
-|------|---------|---------|----------|-------|
+| Schritt | Kommando | Ergebnis | Bewertung | Friktion | Anmerkungen |
+|---------|----------|----------|-----------|----------|-------------|
 
-## Onboarding Friction Points
+## Onboarding-Friktionspunkte
 
-| Step | Problem | Why it slows adoption | Suggested fix |
-|------|---------|-----------------------|---------------|
+| Schritt | Problem | Risiko-Level | Warum es Adoption verlangsamt | Lösungsvorschlag |
+|---------|---------|-------------|-------------------------------|------------------|
 
-## Generated Assets Review
+## Generierte Assets
 
-| File or Output | Helpful? | Confusing? | Notes |
-|----------------|----------|------------|-------|
+| Datei/Ausgabe | Verständlich? | Vollständig? | Korrekt? | Anmerkungen |
+|---------------|---------------|-------------|----------|-------------|
 
-## First-Run Trust Assessment
+## First-Run-Vertrauensbewertung
 
-[Did the product feel reliable and understandable early enough?]
+[Konkretes Urteil basierend auf Evidenz — nicht nur subjektiver Eindruck.
+Kriterien: Keine unerwarteten Fehler? Ausgabe konsistent? Nächster Schritt klar?]
 
-## Priority Improvements
+## Prioritäre Verbesserungen
 
 1. [...]
 2. [...]
 3. [...]
 ```
 
-## Decision Rule
+## Entscheidungsregel
 
-If a newcomer would need outside maintainer knowledge to succeed, count that as onboarding friction even if the workflow eventually works.
+Wenn ein Neueinsteiger externes Maintainer-Wissen braucht, um erfolgreich zu sein, zählt das als Onboarding-Friktion — selbst wenn der Workflow am Ende funktioniert.
 
-## GitHub Issue Creation
+## GitHub-Issue-Erstellung
 
-At the end of the workflow, create GitHub issues in `sauremilk/drift` for each reproducible onboarding defect that materially slows first-time adoption.
+Am Ende des Workflows GitHub-Issues erstellen gemäß `.github/prompts/_partials/issue-filing.md`.
 
-### Create issues for
+**Prompt-Kürzel für Titel:** `onboarding`
 
-- confusing or incomplete `init` behavior
-- config validation or display flows that are hard to diagnose
-- missing next-step guidance after setup
-- defaults or generated files that make first-run success harder than necessary
+### Issues erstellen für
 
-### Do not create issues for
+- Verwirrendes oder unvollständiges `init`-Verhalten
+- Config-Validierung oder -Anzeige, die schwer diagnostizierbar sind
+- Fehlende Next-Step-Guidance nach Setup
+- Defaults oder generierte Dateien, die den Ersterfolg erschweren
 
-- purely local environment quirks outside Drift's responsibility
-- subjective style preferences without onboarding impact
-- duplicates already covered by an existing issue
+### Keine Issues erstellen für
 
-### Required issue rules
-
-- search for existing issues first
-- create one issue per concrete onboarding defect
-- include the exact command, sandbox or repo context, and evidence file
-- explain why the problem increases time-to-value or blocks first-run success
-- use the label `agent-ux` plus any more specific label if appropriate
-
-### Issue title format
-
-`[onboarding] <concise problem summary>`
-
-### Issue body template
-
-```markdown
-## Observed behavior
-
-[What the newcomer saw]
-
-## Expected behavior
-
-[What would have made first-time use clearer or faster]
-
-## Reproduction
-
-drift-Version: [VERSION]
-Command: `drift ...`
-Context: [SANDBOX OR REPO]
-Evidence: [ARTIFACT PATH]
-
-## Impact
-
-- [ ] Slows time-to-value
-- [ ] Blocks first-run success
-- [ ] Causes config confusion
-- [ ] Hides the next step
-
-## Source
-
-Automatically created from `.github/prompts/drift-onboarding.prompt.md` on [DATE].
-```
-
-### Completion output
-
-End with:
-
-```text
-Created issues:
-- #[NUMBER]: [TITLE] - [URL]
-
-Skipped issues already covered:
-- [TITLE] -> #[NUMBER]
-```
+- Rein lokale Umgebungsprobleme außerhalb von Drifts Verantwortung
+- Subjektive Stilpräferenzen ohne Onboarding-Auswirkung
+- Duplikate bereits existierender Issues

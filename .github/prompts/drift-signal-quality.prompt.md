@@ -1,53 +1,72 @@
 ---
 name: "Drift Signal Quality"
 agent: agent
-description: "Use when testing whether drift findings are actually correct with Claude Opus 4.6: measure signal precision and recall, compare scan vs analyze, and document TP/FP/FN evidence."
+description: "Testet, ob Drift-Findings korrekt sind: Signal-Precision und -Recall messen, scan vs. analyze vergleichen, TP/FP/FN-Evidenz dokumentieren."
 ---
 
 # Drift Signal Quality
 
-You are Claude Opus 4.6 validating whether Drift signals are semantically correct, trustworthy, and stable enough for downstream workflows. Prioritize signal quality over command breadth.
+Du validierst, ob Drift-Signale semantisch korrekt, vertrauenswürdig und stabil genug für nachgelagerte Workflows sind. Signalqualität hat Vorrang vor Kommando-Breite.
 
-## Claude Opus 4.6 Working Mode
+> **Pflicht:** Vor Ausführung dieses Prompts das Drift Policy Gate durchlaufen
+> (siehe `.github/prompts/_partials/konventionen.md` und `.github/instructions/drift-policy.instructions.md`).
 
-Use Claude Opus 4.6 deliberately:
-- separate oracle facts, CLI observations, and conclusions into clearly different statements
-- compare competing explanations before calling a signal wrong or correct
-- compress large result sets into decision-oriented summaries instead of repeating raw output
-- surface uncertainty explicitly when the oracle is weak or incomplete
-- prefer a small number of strong, well-evidenced judgments over broad but shallow coverage
+## Relevante Referenzen
 
-## Objective
+- **Instruction:** `.github/instructions/drift-policy.instructions.md` (Policy §18: Audit-Pflicht bei Signalarbeit)
+- **Bewertungssystem:** `.github/prompts/_partials/bewertungs-taxonomie.md`
+- **Issue-Filing:** `.github/prompts/_partials/issue-filing.md`
+- **Signal-Implementierung:** `src/drift/signals/` (15 Detektoren: PFS, AVS, MDS, EDS, TVS, SMS, DIA, BEM, TPD, GCD, NBV, BAT, ECM, COD, CCC)
+- **Existierende Benchmarks:** `benchmark_results/ground_truth_labels.json` (Oracle-Quelle)
+- **Verwandte Prompts:** `drift-agent-workflow-test.prompt.md` (Phase 1+2 testen Signale in Workflows)
 
-Determine whether Drift reports the right architectural problems, avoids false positives, and remains internally consistent across analysis modes.
+## Arbeitsmodus
 
-## Success Criteria
+- Trenne Oracle-Fakten, CLI-Beobachtungen und Schlussfolgerungen in klar unterschiedliche Aussagen.
+- Vergleiche konkurrierende Erklärungen, bevor du ein Signal als falsch oder korrekt bezeichnest.
+- Verdichte große Ergebnismengen in entscheidungsorientierte Zusammenfassungen statt Raw-Output zu wiederholen.
+- Mache Unsicherheit explizit, wenn der Oracle schwach oder unvollständig ist.
+- Bevorzuge wenige starke, gut belegte Urteile gegenüber breiter aber flacher Abdeckung.
 
-The task is complete only if you can answer all of the following with evidence:
-- Which signals produced true positives, false positives, and false negatives
-- Whether `scan` and `analyze` tell a materially consistent story
-- Whether any signal is too noisy or too weak for agent-driven repair workflows
-- Which signal-quality improvements should be prioritized next
+## Ziel
 
-## Operating Rules
+Bestimme, ob Drift die richtigen Architekturprobleme meldet, False Positives vermeidet und intern konsistent über Analysemodi bleibt.
 
-- Be evidence-first. For each quality claim, cite the triggering file, code pattern, and Drift output.
-- Prefer repository-realistic cases. Use synthetic fixtures only when the repo does not expose a clean oracle for a given signal.
-- Separate observed behavior from judgment.
-- If signal quality is unclear, say what additional oracle or benchmark would be required.
-- Treat signal trustworthiness as more important than output volume.
+## Erfolgskriterien
 
-## Evaluation Labels
+Die Aufgabe ist erst abgeschlossen, wenn du mit Evidenz beantworten kannst:
+- Welche Signale produzierten True Positives, False Positives und False Negatives?
+- Erzählen `scan` und `analyze` eine materiell konsistente Geschichte?
+- Ist ein Signal zu verrauscht oder zu schwach für agent-gesteuerte Reparatur-Workflows?
+- Welche Signal-Qualitäts-Verbesserungen sollten als nächstes priorisiert werden?
 
-Use these labels consistently for every signal you assess:
+## Arbeitsregeln
 
-- `trusted`: behavior matches the oracle closely enough for agent use
-- `needs_review`: partly useful, but precision or recall is not good enough to trust blindly
-- `unsafe`: currently too misleading for autonomous decisions
+- Evidenz-first. Für jede Qualitätsaussage die auslösende Datei, das Code-Pattern und die Drift-Ausgabe zitieren.
+- Repo-realistische Fälle bevorzugen. Synthetische Fixtures nur verwenden, wenn das Repo keinen sauberen Oracle für ein gegebenes Signal bietet.
+- Beobachtetes Verhalten von Urteil trennen.
+- Wenn Signalqualität unklar ist: sagen welcher zusätzliche Oracle oder Benchmark nötig wäre.
+- Signal-Vertrauenswürdigkeit ist wichtiger als Output-Volumen.
 
-## Required Artifacts
+## Bewertungs-Labels
 
-Create artifacts under `work_artifacts/drift_signal_quality_<DATE>/`:
+Verwende ausschließlich Labels aus `.github/prompts/_partials/bewertungs-taxonomie.md`:
+
+- **Signal-Vertrauensstufe**: `trusted` / `needs_review` / `unsafe`
+- **Actionability-Score**: `1 automated` / `2 guided` / `3 human-review` / `4 blocked`
+- **Cross-Validation**: `metadata-only` / `priority-shift` / `contradiction`
+- **Idempotenz**: `stable` / `ordering-unstable` / `content-unstable`
+
+**Precision-Schwellen:**
+- ≥ 70%: `trusted`
+- 50–69%: `needs_review`
+- < 50%: `unsafe`
+
+**Actionability-Schwelle für Produktionseinsatz:** Score ≤ 2 = agent-tauglich, Score 3 = nur mit Maintainer-Freigabe.
+
+## Artefakte
+
+Erstelle Artefakte unter `work_artifacts/signal_quality_<YYYY-MM-DD>/`:
 
 1. `signal_inventory.md`
 2. `scan_results.json`
@@ -57,33 +76,38 @@ Create artifacts under `work_artifacts/drift_signal_quality_<DATE>/`:
 
 ## Workflow
 
-### Phase 0: Establish the signal inventory
+### Phase 0: Signal-Inventar erstellen
 
-Inventory the currently available signals from real CLI output and record their abbreviations, names, and any available descriptions.
+Signale aus realer CLI-Ausgabe inventarisieren und Abkürzungen, Namen und verfügbare Beschreibungen erfassen.
 
-At minimum, verify:
-- which signals are exposed directly to users
-- which commands can be used as evidence sources for signal behavior
-- whether signal-level filtering is available
+Mindestens prüfen:
+- Welche Signale sind direkt für User exponiert?
+- Welche Kommandos können als Evidenzquellen für Signalverhalten dienen?
+- Ist Signal-Level-Filterung verfügbar?
 
-### Phase 1: Build an oracle set
+### Phase 1: Oracle-Set aufbauen
 
-Create or identify a small but explicit oracle for each signal you test.
+Für jedes getestete Signal einen kleinen, aber expliziten Oracle erstellen oder identifizieren.
 
-Use one of these oracle sources:
-- an existing repository location with a clearly explainable architectural issue
-- a focused sandbox fixture with one known violation pattern
-- a previously documented benchmark or validation artifact in the repo
+**Oracle-Quellen (in Prioritätsreihenfolge):**
+1. `benchmark_results/ground_truth_labels.json` — existierende Ground-Truth-Labels
+2. Ein existierender Repo-Standort mit klar erklärbarem Architekturproblem
+3. Ein fokussierter Sandbox-Fixture mit einem bekannten Violations-Pattern
+4. Ein zuvor dokumentiertes Benchmark- oder Validierungsartefakt
 
-For each oracle case, record:
-- expected signal
-- expected severity or ranking behavior if relevant
-- why this should be considered a positive case
-- what a false positive would look like nearby
+**Mindestanforderung pro Signal:**
+- ≥ 2 bestätigte True Positives (aus unterschiedlichen Dateien/Patterns)
+- ≥ 1 bestätigter False-Positive-Gegenbeispielfall (Code, das ähnlich aussieht, aber kein Treffer sein sollte)
+
+Für jeden Oracle-Fall dokumentieren:
+- Erwartetes Signal
+- Erwartetes Severity- oder Ranking-Verhalten (falls relevant)
+- Warum dies als positiver Fall gelten sollte
+- Was ein False Positive in der Nähe aussehen würde
 
 ### Synthetisches Fixture-Template
 
-Wenn kein sauberer repo-interner Oracle-Fall existiert, erstelle unter `work_artifacts/drift_signal_quality_<DATE>/fixtures/` eine Datei pro Signal:
+Wenn kein sauberer repo-interner Oracle-Fall existiert, erstelle unter `work_artifacts/signal_quality_<YYYY-MM-DD>/fixtures/` eine Datei pro Signal:
 
 ```python
 # fixture_<SIGNAL>.py
@@ -96,35 +120,35 @@ Wenn kein sauberer repo-interner Oracle-Fall existiert, erstelle unter `work_art
 
 Pro Fixture dokumentiere explizit:
 - Welche Code-Zeile genau das Signal triggern soll
-- Was eine benachbarte nicht-verletzende Variante waere (Precision/FP-Pruefung)
+- Was eine benachbarte nicht-verletzende Variante wäre (Precision/FP-Prüfung)
 - Aus welcher `drift explain`-Ausgabe das Trigger-Muster abgeleitet wurde
 
-### Phase 2: Measure repository results
+### Phase 2: Repository-Ergebnisse messen
 
-Run both user-facing and deeper analysis commands where relevant, such as:
+Beide Analyse-Modi ausführen:
 
 ```bash
 drift scan --max-findings 25 --response-detail detailed
 drift analyze --repo . --output-format json
 ```
 
-If signal filtering is available, test focused runs for selected signals.
+Falls Signal-Filterung verfügbar, fokussierte Läufe für ausgewählte Signale testen.
 
-For each tested signal, capture:
-- true positives
-- false positives
-- false negatives
-- ambiguous cases that require maintainer judgment
+Pro getestetem Signal erfassen:
+- True Positives
+- False Positives
+- False Negatives
+- Ambigue Fälle, die Maintainer-Urteil erfordern
 
 ### Severity-Kalibrierung
 
-Fuer jeden TP zusaetzlich bewerten:
-- Ist die gemeldete Severity (`high`/`medium`/`low`) plausibel fuer den konkreten Code-Kontext?
-- Wenn Severity falsch erscheint: dokumentiere die Diskrepanz als `severity_mismatch`
+Für jeden TP zusätzlich bewerten:
+- Ist die gemeldete Severity (`high`/`medium`/`low`) plausibel für den konkreten Code-Kontext?
+- Wenn Severity falsch erscheint: Diskrepanz als `severity_mismatch` dokumentieren
 
-### Stabilitaets-Check
+### Stabilitäts-Check
 
-Fuehre `drift scan` und `drift analyze` je zweimal aus, ohne Code-Aenderungen dazwischen:
+`drift scan` und `drift analyze` je zweimal ausführen, ohne Code-Änderungen dazwischen:
 
 ```bash
 drift scan --max-findings 25 --json > scan_run1.json
@@ -133,174 +157,102 @@ drift analyze --repo . --output-format json > analyze_run1.json
 drift analyze --repo . --output-format json > analyze_run2.json
 ```
 
-Vergleiche jeweils nach Entfernen nicht-deterministischer Metadaten.
+Vergleich nach Entfernen nicht-deterministischer Metadaten.
 
-Klassifikation:
-- `stable`: keine Differenz außer Laufmetadaten/Timestamps
-- `ordering-unstable`: gleiche Findings, aber instabile Reihenfolge (Ranking nicht verlaesslich)
-- `content-unstable`: unterschiedliche Findings ohne Codeaenderung (Product-Bug, als Issue erfassen)
+Klassifikation gemäß Taxonomie: `stable` / `ordering-unstable` / `content-unstable`
 
-### Phase 3: Cross-validate outputs
+### Phase 3: Cross-Validation
 
-Compare `scan` and `analyze` for the same repository state.
+`scan` und `analyze` für denselben Repository-State vergleichen.
 
-Check whether:
-- the same major problems appear in both views
-- the dominant signals are ranked consistently enough to guide action
-- the machine-readable output preserves the same meaning as the human-facing summary
+Prüfen, ob:
+- Dieselben Hauptprobleme in beiden Ansichten erscheinen
+- Die dominanten Signale konsistent genug gerankt sind, um Handlung zu leiten
+- Der maschinenlesbare Output dieselbe Bedeutung wie die menschenlesbare Zusammenfassung bewahrt
 
-Document mismatches explicitly.
+### Cross-Validation-Tiefencheck
 
-### Cross-Validation Tiefencheck
-
-Pro Finding, das in beiden Commands auftaucht, vergleiche:
-- Signal-ID oder Signalbezeichnung: identisch?
+Pro Finding, das in beiden Kommandos auftaucht, vergleiche:
+- Signal-ID oder -Bezeichnung: identisch?
 - Severity: identisch?
 - Betroffene Datei und Zeile: identisch?
-- Beschreibungstext: semantisch konsistent (nicht zwingend woertlich)?
+- Beschreibungstext: semantisch konsistent?
 
-Klassifikation pro Diskrepanz:
-- `metadata-only`: nur kosmetisch, kein Entscheidungsimpact
-- `priority-shift`: Severity oder Ranking unterscheiden sich und koennen Agenten fehlleiten
-- `contradiction`: inhaltlich gegensaetzliche Aussage, als `unsafe` bewerten
+Klassifikation pro Diskrepanz gemäß Taxonomie: `metadata-only` / `priority-shift` / `contradiction`
 
-### Phase 4: Judge actionability
+### Phase 4: Actionability bewerten
 
-For each tested signal, answer:
-- Can an agent trust this signal enough to start a fix plan?
-- Does the output identify a clear cause or only a vague symptom?
-- Would an autonomous change based on this signal be safe, risky, or blocked?
+Für jedes getestete Signal beantworten:
+- Kann ein Agent diesem Signal genug vertrauen, um einen Fix-Plan zu starten?
+- Identifiziert der Output eine klare Ursache oder nur ein vages Symptom?
+- Wäre eine autonome Änderung basierend auf diesem Signal sicher, riskant oder blockiert?
 
-### Actionability-Score (1-4)
+Actionability-Score gemäß Taxonomie vergeben: `1 automated` / `2 guided` / `3 human-review` / `4 blocked`
 
-Ergaenze pro Signal einen Actionability-Score:
-- `1 automated`: Agent kann direkt handeln, Fix ist mechanisch ableitbar
-- `2 guided`: Agent kann handeln, braucht aber einen expliziten Fix-Plan als Zwischenschritt
-- `3 human-review-required`: Signal ist plausibel, aber Fix-Entscheidung braucht Maintainer-Urteil
-- `4 blocked`: keine sichere naechste Aktion moeglich
-
-### Signal-to-Noise Threshold
+### Signal-to-Noise-Schwelle
 
 Nach der TP/FP/FN-Messung:
-- Berechne geschaetzte Precision pro Signal: `TP / (TP + FP)`
-- Nutze Schwellenwerte fuer das Urteil:
-	- unter 70%: mindestens `needs_review`
-	- unter 50%: `unsafe`
-- Berechne zusaetzlich auf Repo-Ebene den Anteil voraussichtlich legitimer Findings
+- Geschätzte Precision pro Signal berechnen: `TP / (TP + FP)`
+- Schwellenwerte für Urteil anwenden (siehe Bewertungs-Labels oben)
+- Zusätzlich auf Repo-Ebene den Anteil voraussichtlich legitimer Findings berechnen
 
-### Phase 5: Produce the report
-
-Use this report structure:
+### Phase 5: Report erstellen
 
 ```markdown
 # Drift Signal Quality Report
 
-**Date:** [DATE]
+**Datum:** <YYYY-MM-DD>
 **drift-Version:** [VERSION]
-**Repository:** [REPO NAME]
+**Repository:** [REPO-NAME]
 
-## Summary Table
+## Summary-Tabelle
 
-| Signal | Oracle coverage | TP | FP | FN | Severity-Matches | Severity-Mismatches | Precision | Actionability (1-4) | Verdict | Notes |
-|--------|------------------|----|----|----|------------------|---------------------|-----------|--------------------|---------|-------|
+| Signal | Oracle-Abdeckung | TP | FP | FN | Severity-Match | Severity-Mismatch | Precision | Actionability (1-4) | Vertrauensstufe | Anmerkungen |
+|--------|------------------|----|----|----|----------------|-------------------|-----------|---------------------|-----------------|-------------|
 
 ## Cross-Validation
 
-| Comparison | Consistent? | Evidence | Impact |
-|------------|-------------|----------|--------|
+| Vergleich | Konsistent? | Klassifikation | Evidenz | Impact |
+|-----------|-------------|----------------|---------|--------|
 
-Use discrepancy labels in this section when relevant: `metadata-only`, `priority-shift`, `contradiction`.
+## Vertraute Signale (trusted)
 
-## Trusted Signals
+[Liste]
 
-[List]
+## Review-pflichtige Signale (needs_review)
 
-## Signals Needing Review
+[Liste]
 
-[List]
+## Unsichere Signale (unsafe)
 
-## Unsafe Signals
+[Liste]
 
-[List]
-
-## Priority Improvements
+## Prioritäre Verbesserungen
 
 1. [...]
 2. [...]
 3. [...]
 ```
 
-## Decision Rule
+## Entscheidungsregel
 
-If the signal output is not trustworthy enough for an autonomous next step, say so plainly. Do not hide uncertainty behind a generic summary.
+Wenn der Signal-Output nicht vertrauenswürdig genug für einen autonomen nächsten Schritt ist: das klar sagen. Unsicherheit nicht hinter einer generischen Zusammenfassung verstecken.
 
-## GitHub Issue Creation
+## GitHub-Issue-Erstellung
 
-At the end of the workflow, create GitHub issues in `sauremilk/drift` for every reproducible signal-quality problem that is important enough to act on.
+Am Ende des Workflows GitHub-Issues erstellen gemäß `.github/prompts/_partials/issue-filing.md`.
 
-### Create issues for
+**Prompt-Kürzel für Titel:** `signal-quality`
 
-- signals rated `unsafe`
-- repeated or high-impact `needs_review` cases
-- cross-validation mismatches between `scan` and `analyze`
-- missing explanations, filtering, or output structure that prevents reliable signal evaluation
+### Issues erstellen für
 
-### Do not create issues for
+- Signale mit Bewertung `unsafe`
+- Wiederholte oder schwerwiegende `needs_review`-Fälle
+- Cross-Validation-Mismatches zwischen `scan` und `analyze`
+- Fehlende Erklärungen, Filterung oder Output-Struktur, die zuverlässige Signalevaluation verhindert
 
-- one-off local environment noise
-- cases where the oracle itself is weak and the product problem is not yet reproducible
-- duplicate problems already covered by an existing issue
+### Keine Issues erstellen für
 
-### Required issue rules
-
-- search for an existing issue first
-- create at most one issue per concrete problem
-- reference the exact signal, command, and evidence file
-- state whether the problem is primarily precision, recall, ranking, or explanation quality
-- use the label `agent-ux` plus any more specific label if appropriate
-
-### Issue title format
-
-`[signal-quality] <concise problem summary>`
-
-### Issue body template
-
-```markdown
-## Observed behavior
-
-[What Drift reported, and why it appears wrong or incomplete]
-
-## Expected behavior
-
-[What the signal should have reported instead]
-
-## Reproduction
-
-drift-Version: [VERSION]
-Signal: [SIGNAL]
-Command: `drift ...`
-Evidence: [ARTIFACT PATH]
-
-## Impact
-
-- [ ] Precision problem
-- [ ] Recall problem
-- [ ] Ranking problem
-- [ ] Explanation problem
-
-## Source
-
-Automatically created from `.github/prompts/drift-signal-quality.prompt.md` on [DATE].
-```
-
-### Completion output
-
-End with:
-
-```text
-Created issues:
-- #[NUMBER]: [TITLE] - [URL]
-
-Skipped issues already covered:
-- [TITLE] -> #[NUMBER]
-```
+- Einmaliges lokales Umgebungsrauschen
+- Fälle, in denen der Oracle selbst schwach ist und das Produktproblem nicht reproduzierbar
+- Duplikate bereits existierender Issues

@@ -1,211 +1,157 @@
 ---
 name: "Release Drift Analyzer"
-description: "Create a new release with Claude Opus 4.6: validate code, calculate version, update changelog, commit, tag, and publish to GitHub + PyPI (automatically via GitHub Actions). Use this after successful code changes to src/drift/."
+description: "Release-Workflow: Code validieren, Version berechnen, Changelog aktualisieren, committen, taggen und via GitHub Actions auf PyPI publizieren. Verwende nach erfolgreichen Codeänderungen an src/drift/."
 ---
 
 # Release Drift Analyzer
 
-You are Claude Opus 4.6 assisting with creating a new release of Drift Analyzer. Your job is to validate the code, determine the next version using semantic versioning, update the changelog, and publish to GitHub and PyPI.
+Du unterstützt beim Erstellen eines neuen Drift-Analyzer-Releases. Deine Aufgabe: Code validieren, nächste Version per Semantic Versioning bestimmen, Changelog aktualisieren und auf GitHub + PyPI publizieren.
 
-## Claude Opus 4.6 Working Mode
+> **Pflicht:** Vor Ausführung dieses Prompts das Drift Policy Gate durchlaufen
+> (siehe `.github/prompts/_partials/konventionen.md` und `.github/instructions/drift-policy.instructions.md`).
 
-Use Claude Opus 4.6 deliberately:
-- verify each release assumption explicitly before taking the next irreversible step
-- separate repository facts, git state, and inferred release decisions clearly
-- prefer short operator checklists over long narrative once a decision is made
-- call out the exact point of failure and the smallest safe recovery action when release steps break
-- do not collapse uncertainty about tags, versions, or publish state into optimistic prose
+## Relevante Referenzen
 
-## Quick Start
+- **Skill:** `.github/skills/drift-release/SKILL.md` (vollständiger Release-Workflow)
+- **Instructions:** `.github/instructions/drift-release-automation.instructions.md`, `.github/instructions/drift-release-mandatory.instructions.md`
+- **Bewertungssystem:** `.github/prompts/_partials/bewertungs-taxonomie.md`
+- **Issue-Filing:** `.github/prompts/_partials/issue-filing.md`
+- **PSR-Config:** `pyproject.toml` → `[tool.semantic_release]`
+- **CI-Workflow:** `.github/workflows/release.yml`
+
+## Arbeitsmodus
+
+- Verifiziere jede Release-Annahme explizit, bevor du den nächsten irreversiblen Schritt einleitest.
+- Trenne Repository-Fakten, Git-State und abgeleitete Release-Entscheidungen klar.
+- Bevorzuge kurze Operator-Checklisten statt langer Prosa, sobald eine Entscheidung gefallen ist.
+- Benenne den exakten Fehlerpunkt und die kleinste sichere Recovery-Aktion, wenn Release-Schritte scheitern.
+- Kollabiere keine Unsicherheit über Tags, Versionen oder Publish-State in optimistische Prosa.
+
+## CI-Primat
+
+> **Releases werden vollständig automatisch durch python-semantic-release (PSR) in CI verwaltet.**
+> Die CI-Pipeline `.github/workflows/release.yml` läuft bei jedem Push auf `main`.
+> Agenten müssen **keinen manuellen Release-Befehl** ausführen.
+
+### Was der Agent tut
+
+1. **Conventional Commits verwenden** — PSR leitet die Versionierung ab:
+   - `feat: ...` → MINOR (0.**x**.0)
+   - `fix: ...` → PATCH (0.0.**x**)
+   - `BREAKING CHANGE:` / `BREAKING: ...` → MAJOR (**x**.0.0)
+2. **Tests lokal ausführen** vor dem Commit
+3. **Committen und pushen** — PSR übernimmt alles Weitere
+
+### Was PSR automatisch macht (in CI)
+
+1. Analysiert Commits seit letztem Tag
+2. Berechnet nächste Version (SemVer, Precedence: BREAKING > feat > fix)
+3. Aktualisiert `pyproject.toml` + `CHANGELOG.md`
+4. Erstellt Release-Commit + Git-Tag
+5. Erstellt GitHub Release
+6. Baut + publiziert auf PyPI
+
+### Lokaler Fallback (nur bei CI-Ausfall)
 
 ```bash
 python scripts/release_automation.py --full-release
 ```
 
-This single command handles everything:
-1. ✅ Runs quick tests
-2. ✅ Calculates next version (Semantic Versioning)
-3. ✅ Updates CHANGELOG.md
-4. ✅ Creates release commit
-5. ✅ Creates git tag (e.g., v0.11.0)
-6. ✅ Pushes to GitHub
-7. ✅ Triggers PyPI publication via GitHub Actions
+## Schritt-für-Schritt-Workflow
 
-## Versioning Rules (Semantic Versioning)
+### 1. Code-Qualität prüfen
 
-Analyze recent **commit messages** to determine the version bump:
-
-| Message Pattern | Version Bump | Example |
-|---|---|---|
-| `feat: ...` | MINOR (0.**x**.0) | feat: add new signal → v0.8.0 |
-| `fix: ...` | PATCH (0.0.**x**) | fix: false positive → v0.7.2 |
-| `BREAKING CHANGE:` or `BREAKING: ...` | MAJOR (**x**.0.0) | BREAKING: remove API → v1.0.0 |
-
-**Priority:** BREAKING > feat > fix
-
-## Step-by-Step Workflow
-
-### 1. Verify Code Quality
 ```bash
 python -m pytest tests/ --tb=short --ignore=tests/test_smoke.py -q --maxfail=1
 ```
-- Run ONLY if code changes were significant
-- Stop if tests fail — do NOT continue to release
 
-### 2. Calculate Next Version
+- Bei Testfailures: **STOPP** — nicht mit dem Release fortfahren.
+
+### 2. Nächste Version berechnen
+
 ```bash
 python scripts/release_automation.py --calc-version
 ```
-- Script reads recent commits
-- Determines MAJOR.MINOR.PATCH bump
-- Shows calculated version (e.g., v0.11.0)
 
-### 3. Review & Confirm
-Before proceeding, confirm:
-- ✅ Calculated version looks correct
-- ✅ Last git tag matches expected previous version
-- ✅ Recent commits make sense for this bump
-- ✅ No uncommitted changes remain
+- Script liest aktuelle Commits
+- Bestimmt MAJOR.MINOR.PATCH-Bump
+- Zeigt berechnete Version (z.B. v0.11.0)
 
-### 4. Execute Full Release
+### 3. Prüfen und bestätigen
+
+Vor dem Fortfahren sicherstellen:
+- Berechnete Version sieht korrekt aus
+- Letzter Git-Tag stimmt mit erwarteter Vorversion überein
+- Aktuelle Commits ergeben Sinn für diesen Bump
+- Keine uncommitted Changes vorhanden
+
+### 4. Vollständiges Release ausführen
+
 ```bash
 python scripts/release_automation.py --full-release
 ```
 
-**Output should show:**
-```
-============================================================
-Drift Release Automation
-============================================================
-▶ Running quick tests...
-✓ Tests passed
+### 5. Auf GitHub & PyPI verifizieren
 
-▶ Next version: v0.11.0
-✓ Updated pyproject.toml: version = 0.11.0
-✓ Updated CHANGELOG.md with version 0.11.0
-
-▶ Staging changes for version 0.11.0...
-Creating release commit...
-✓ Committed: chore: Release 0.11.0 — update version and changelog
-▶ Creating git tag v0.11.0...
-✓ Tagged: v0.11.0
-Pushing to origin/main and tags...
-✓ Pushed main and v0.11.0
-
-✅ Release v0.11.0 complete!
-   → GitHub release will be created automatically
-   → PyPI publication via .github/workflows/publish.yml (triggered by tag)
-```
-
-### 5. Verify on GitHub & PyPI
-- Wait 1-2 minutes
-- Check: [GitHub Releases](https://github.com/sauremilk/drift/releases) — should see new tag
-- Check: [PyPI drift-analyzer](https://pypi.org/project/drift-analyzer/) — should see new version
+- GitHub Releases prüfen — neuer Tag sollte sichtbar sein
+- PyPI drift-analyzer prüfen — neue Version sollte verfügbar sein
+- CI-Logs prüfen bei Verzögerung (statt feste Wartezeit)
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| Tests fail | Fix errors in code first, don't proceed with release |
-| Version calculation wrong | Check recent commits use correct `feat:` / `fix:` / `BREAKING:` prefixes |
-| Tag already exists | Increment the patch version manually (e.g., v0.11.0 → v0.11.1) |
-| Push fails | Ensure you have write access to main branch |
-| PyPI publish fails | GitHub release was created OK — PyPI will retry on next workflow trigger |
+| Problem | Lösung |
+|---------|--------|
+| Tests schlagen fehl | Fehler im Code zuerst beheben, nicht mit Release fortfahren |
+| Version-Berechnung falsch | Prüfe, ob aktuelle Commits korrekte `feat:`/`fix:`/`BREAKING:`-Prefixe nutzen |
+| Tag existiert bereits | Patch-Version inkrementieren (z.B. v0.11.0 → v0.11.1) |
+| Push schlägt fehl | Schreibrechte auf main-Branch sicherstellen |
+| PyPI-Publish schlägt fehl | GitHub-Release wurde erstellt — PyPI wird beim nächsten Workflow-Trigger wiederholt |
 
-## Important Notes
+## Rollback bei partieller Failure
 
-- 🔐 PyPI token is pre-configured in GitHub Actions
-- 🔄 Local release testing: Uses `scripts/release_automation.py`
-- 📋 Changelog auto-generated from commit history
-- 🏷️ Git tags enable GitHub to create releases automatically
-- ⚙️ GitHub Actions publish.yml is triggered by tag push
+| Situation | Recovery |
+|-----------|---------|
+| Git-Tag erstellt, aber PyPI-Publish fehlgeschlagen | CI-Workflow manuell re-triggern via `workflow_dispatch` |
+| Release-Commit erstellt, aber Push fehlgeschlagen | `git push origin main --tags` manuell wiederholen |
+| Falsche Version veröffentlicht | Neuen Patch-Release mit Korrektur erstellen (PyPI-Versionen können nicht gelöscht werden) |
 
-## When to Release
+## Wichtige Hinweise
 
-Release **immediately** after:
-- ✅ Significant feature added (would be `feat:` commit)
-- ✅ Important bug fixed (would be `fix:` commit)
-- ✅ Breaking change (would be `BREAKING:` commit)
-- ✅ All tests pass
-- ✅ Documentation updated
+- PyPI-Token ist in GitHub Actions vorkonfiguriert (Environment `pypi`, Secret `PYPI_RELEASE`)
+- Changelog wird automatisch von PSR aus Commit-History generiert
+- Git-Tags lösen automatische GitHub-Releases aus
+- `PYTHONUTF8=1` ist im CI-Workflow gesetzt (verhindert UTF-8-Encoding-Probleme auf Windows)
 
-**Do NOT release** if:
-- ❌ Tests are failing
-- ❌ Code is incomplete or under development
-- ❌ No meaningful changes since last release
+## Wann releasen
 
-## GitHub Issue Creation
+**Sofort** nach:
+- Signifikantem Feature (`feat:`-Commit)
+- Wichtigem Bugfix (`fix:`-Commit)
+- Breaking Change (`BREAKING:`-Commit)
+- Alle Tests bestehen
+- Dokumentation aktualisiert
 
-At the end of the workflow, create GitHub issues in `sauremilk/drift` for each reproducible release or publication problem uncovered during the release process.
+**Nicht releasen** wenn:
+- Tests fehlschlagen
+- Code ist unvollständig oder in Entwicklung
+- Keine sinnvollen Änderungen seit letztem Release
 
-### Create issues for
+## GitHub-Issue-Erstellung
 
-- release automation failures caused by repository scripts or workflow logic
-- incorrect version calculation behavior
-- changelog generation defects
-- tag, push, or publish guidance that is misleading or incomplete
-- repeated release blockers that require maintainer follow-up
+Am Ende des Workflows GitHub-Issues erstellen gemäß `.github/prompts/_partials/issue-filing.md`.
 
-### Do not create issues for
+**Prompt-Kürzel für Titel:** `release`
 
-- one-off credential problems with no repository-side fix
-- transient GitHub or PyPI outages unless the workflow guidance is inadequate
-- duplicates already covered by an existing issue
+### Issues erstellen für
 
-### Required issue rules
+- Release-Automations-Failures durch Repository-Scripts oder Workflow-Logik
+- Fehlerhafte Versionsberechnung
+- Changelog-Generierungs-Defekte
+- Irreführende oder unvollständige Tag/Push/Publish-Anleitung
+- Wiederkehrende Release-Blocker
 
-- search for existing issues first
-- create one issue per concrete release defect
-- include the exact command, observed failure point, and evidence
-- state whether the problem blocks release creation, publishing, or operator trust
-- use the label `agent-ux` plus any more specific label if appropriate
+### Keine Issues erstellen für
 
-### Issue title format
-
-`[release] <concise problem summary>`
-
-### Issue body template
-
-```markdown
-## Observed behavior
-
-[What failed or misled during release]
-
-## Expected behavior
-
-[What the release workflow should have done instead]
-
-## Reproduction
-
-drift-Version: [VERSION]
-Command: `python scripts/release_automation.py ...`
-Failure point: [STEP]
-Evidence: [ARTIFACT PATH]
-
-## Impact
-
-- [ ] Blocks release creation
-- [ ] Blocks publish
-- [ ] Produces misleading release guidance
-- [ ] Weakens operator trust
-
-## Source
-
-Automatically created from `.github/prompts/release.prompt.md` on [DATE].
-```
-
-### Completion output
-
-End with:
-
-```text
-Created issues:
-- #[NUMBER]: [TITLE] - [URL]
-
-Skipped issues already covered:
-- [TITLE] -> #[NUMBER]
-```
-
----
-
-**Need help?** See `.github/instructions/drift-release-automation.instructions.md` for detailed reference.
+- Einmalige Credential-Probleme ohne Repository-seitigen Fix
+- Vorübergehende GitHub-/PyPI-Ausfälle (sofern Workflow-Guidance ausreichend)
+- Duplikate bereits existierender Issues

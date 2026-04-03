@@ -60,8 +60,8 @@
 | B4 | `dia_url_as_dir` | DIA parst URL-Pfade als fehlende Verzeichnisse | ✅ dia_tp/dia_tn existieren; URL-Edge-Case fehlt | **Partiell** |
 | B5 | `domain_names` | Code verwendet Domain-Konventionen (RFC-Prefixe, Krypto-Namen) | ❌ Kein Domain-Fixture | **Lücke** |
 | B6 | `nbv_no_whitelist` | NBV hat kein Domain-Wörterbuch → meldet konventionelle Namen als Violations | ❌ Kein Test | **Lücke** |
-| B7 | `multi_pass` | Signal produziert Findings aus verschiedenen Analyse-Passes (AVS: God-Module, Zones, Cycles) | ✅ avs_tp/avs_tn; Dedup-Logik existiert | **Dedup-Gap** |
-| B8 | `same_key` | Findings haben identischen Key (rule_id, file, line, title) aus verschiedenen Passes | ✅ Dedup-Test in json_output.py | **Partiell** — Cross-Pass-Dedup fehlt |
+| B7 | `multi_pass` | Signal produziert Findings aus verschiedenen Analyse-Passes (AVS: God-Module, Zones, Cycles) | ✅ avs_tp/avs_tn; AVS-Cross-Pass-Dedup (import-edge key) implementiert | **In Verifikation** |
+| B8 | `same_key` | Findings haben identischen Key (rule_id, file, line, title) aus verschiedenen Passes | ✅ Dedup-Test in json_output.py + AVS-Regressionstest vorhanden | **In Verifikation** — Benchmark-Delta ausstehend |
 | B9 | `no_lib_tag` | Config hat keinen Context-Tag `library` oder kein automatisches Library-Detection | ❌ Kein Test | **Lücke** |
 | B10 | `no_context_adapt` | Signal-Thresholds sind nicht kontextabhängig (Library vs. Application) | ❌ Kein Test | **Lücke** |
 | B11 | `secret_shaped_var_name` | Variablenname enthält Secret-Keywort (`token`, `secret`, `api_key`) ohne echten Credential-Wert | ✅ HSC-Regex + Regressionstests vorhanden | **Abgedeckt** |
@@ -74,7 +74,7 @@
 | DCA-Library-FP | B1 AND B2 → Signal-FP → TOP | Hoch bei Libraries | Library-Heuristik implementieren |
 | DIA-URL-FP | B3 AND B4 → Signal-FP → TOP | Hoch bei Repos mit Badges | URL-Pattern-Exclusion in DIA |
 | NBV-Domain-FP | B5 AND B6 → Signal-FP → TOP | Mittel bei Krypto/Type-Code | Domain-Whitelist einführen |
-| AVS-Dedup-FP | B7 AND B8 → Dedup-Fehler → TOP | Mittel | Cross-Pass-Dedup |
+| AVS-Dedup-FP | B7 AND B8 → Dedup-Fehler → TOP | Niedrig bis Mittel | Cross-Pass-Dedup implementiert (2026-04-03), Monitoring aktiv |
 | TVS-Score-FP | SC-01 direkt → Scoring-Inflation → TOP | Hoch (TVS weight=0.13 ohne Validierung) | TVS report-only oder Confidence-Discount |
 | Library-Context-FP | B9 AND B10 → Kontext-Mismatch → TOP | Hoch bei Libraries | Automatische Kontext-Erkennung |
 | HSC-Symbol-FP | B11 AND B12 → Signal-FP → TOP | Mittel | Enum-/Schema-Kontext-Suppression im HSC-Signal |

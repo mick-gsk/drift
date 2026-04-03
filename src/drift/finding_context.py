@@ -62,13 +62,34 @@ def classify_path_context(path: Path | None, config: DriftConfig) -> str:
     return config.finding_context.default_context
 
 
+def _ensure_metadata_dict(finding: Finding) -> dict[str, object]:
+    """Return mutable metadata dict for finding-like objects.
+
+    Some API/test paths pass lightweight finding-like objects (e.g. SimpleNamespace)
+    without a ``metadata`` attribute. Normalize those to an empty dict so context
+    classification remains robust.
+    """
+    meta = getattr(finding, "metadata", None)
+    if isinstance(meta, dict):
+        return meta
+    new_meta: dict[str, object] = {}
+    try:
+        setattr(finding, "metadata", new_meta)
+    except Exception:
+        # Fallback for objects that disallow attribute writes.
+        return new_meta
+    return new_meta
+
+
 def classify_finding_context(finding: Finding, config: DriftConfig) -> str:
     """Classify a finding into an operational context."""
-    existing = finding.metadata.get("finding_context")
+    metadata = _ensure_metadata_dict(finding)
+
+    existing = metadata.get("finding_context")
     if isinstance(existing, str) and existing.strip():
         return _normalise_context(existing, fallback=config.finding_context.default_context)
 
-    tags = finding.metadata.get("context_tags")
+    tags = metadata.get("context_tags")
     if isinstance(tags, list):
         lowered = {_normalise_context(str(tag)) for tag in tags}
         if "fixture" in lowered:
@@ -80,10 +101,7 @@ def classify_finding_context(finding: Finding, config: DriftConfig) -> str:
         if "docs" in lowered:
             return "docs"
 
-    generated_markers = (
-        finding.metadata.get("generated") is True
-        or finding.metadata.get("is_generated") is True
-    )
+    generated_markers = metadata.get("generated") is True or metadata.get("is_generated") is True
     if generated_markers:
         return "generated"
 
@@ -93,7 +111,8 @@ def classify_finding_context(finding: Finding, config: DriftConfig) -> str:
 def annotate_finding_contexts(findings: list[Finding], config: DriftConfig) -> None:
     """Populate ``metadata.finding_context`` for all findings in place."""
     for finding in findings:
-        finding.metadata["finding_context"] = classify_finding_context(finding, config)
+        metadata = _ensure_metadata_dict(finding)
+        metadata["finding_context"] = classify_finding_context(finding, config)
 
 
 def is_non_operational_context(context: str, config: DriftConfig) -> bool:
@@ -118,7 +137,8 @@ def split_findings_by_context(
 
     for finding in findings:
         context = classify_finding_context(finding, config)
-        finding.metadata["finding_context"] = context
+        metadata = _ensure_metadata_dict(finding)
+        metadata["finding_context"] = context
         counts[context] += 1
         if include_non_operational or not is_non_operational_context(context, config):
             prioritized.append(finding)

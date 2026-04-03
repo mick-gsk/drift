@@ -1,53 +1,67 @@
 ---
-description: Predefined agents available in the Drift workspace
+description: Agents, Skills und Evaluation-Prompts im Drift-Workspace
 ---
 
-# Drift Agents
+# Drift Agents & Prompts
 
-## 🚀 Release Agent
+## Release Agent
 
-**Quick Release** — After code changes to `src/drift/`, use this agent to quickly handle the full release workflow.
+**Quick Release** — Nach Code-Änderungen an `src/drift/` den vollständigen Release-Workflow ausführen.
 
-### How to Use
+### Verwendung
 
-In the chat, mention:
-- "Release version"
-- "Create release"
-- "Publish to PyPI"
+Im Chat erwähnen: „Release version", „Create release", „Publish to PyPI".
 
-The agent will:
-1. Validate code quality
-2. Calculate semantic version
-3. Update CHANGELOG + pyproject.toml
-4. Create release commit + tag
-5. Push to GitHub
-6. Trigger PyPI publication
+Der Agent: Validiert → Version berechnet → CHANGELOG + pyproject.toml → Commit + Tag → Push → PyPI.
 
-### Single Command Alternative
+> **Hinweis:** Releases werden automatisch via python-semantic-release in CI verwaltet.  
+> Lokaler Fallback nur bei CI-Ausfall: `python scripts/release_automation.py --full-release`
 
-If you prefer command-line:
+### Wann verwenden
 
-```bash
-python scripts/release_automation.py --full-release
-```
-
-### When to Use
-
-✅ After: `feat:`, `fix:`, or `BREAKING:` commits to `src/drift/`  
-✅ When: Tests pass and code is committed  
-❌ Don't use: For incomplete work or failing tests
+- Nach `feat:`, `fix:` oder `BREAKING:`-Commits auf `src/drift/`
+- Wenn Tests bestehen und Code committed ist
+- Nicht bei unfertiger Arbeit oder fehlschlagenden Tests
 
 ---
 
-## Skills Available
+## Evaluation-Prompts
 
-- **`/release`** — Full release workflow (recommended shortcut)
-- Use `/` in chat to discover available prompts/skills
+Prompts unter `.github/prompts/` evaluieren die Drift-CLI aus verschiedenen Perspektiven.
+Navigations-Guide: `.github/prompts/README.md`
+
+| Prompt | Zweck | Empfohlene Reihenfolge |
+|--------|-------|------------------------|
+| `drift-onboarding` | First-Use-Erfahrung (Zero-Knowledge) | 1 |
+| `drift-agent-workflow-test` | Vollständiger CLI-Pfadtest | 2 |
+| `drift-signal-quality` | Signal-Precision/Recall messen | 3 |
+| `drift-ci-gate` | CI-Integration validieren | 4 |
+| `drift-ai-integration` | LLM-Context-Qualität bewerten | 5 |
+| `drift-agent-ux` | Agent-UX-Audit (Auffindbarkeit, Latenz, Fehler) | 6 |
+| `PR-Orchestrator` | PR-Bewertung aus Agent-Perspektive | nach Bedarf |
+| `release` | Release-Workflow validieren | nach Bedarf |
+
+### Shared Components
+
+| Datei | Zweck |
+|-------|-------|
+| `_partials/bewertungs-taxonomie.md` | Einheitliche Bewertungs-Labels |
+| `_partials/konventionen.md` | Gemeinsame Konventionen (Policy Gate, Pfade, Sandbox) |
+| `_partials/issue-filing.md` | Konsolidiertes Issue-Filing-Template |
 
 ---
 
-## Documentation
+## Skills
+
+- **`drift-release`** — Vollständiger Release-Workflow
+- **`drift-pr-review`** — PR-Review gemäß Drift Policy
+- **`drift-security-triage`** — Security-Report-Triage
+
+---
+
+## Dokumentation
 
 - **Release Skill:** `.github/skills/drift-release/SKILL.md`
 - **Release Instructions:** `.github/instructions/drift-release-automation.instructions.md`
-- **Release Prompt:** `/release`
+- **Policy:** `.github/instructions/drift-policy.instructions.md`
+- **Push Gates:** `.github/instructions/drift-push-gates.instructions.md`

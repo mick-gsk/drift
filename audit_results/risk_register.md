@@ -114,7 +114,7 @@ Dieses Risk Register gilt für drift-analyzer als:
 |----|-----------|--------|-------------|--------|-------|--------|----------|---------------|--------|--------|
 | **RQ-01** | Erkennungsqualität | DCA meldet Library-Exports als Dead Code → >90% FP bei Libraries | RPN 720 🔴 | FMEA FP-01, FTA B1/B2 | Maintainer | DCA FP-Rate | ≤ 30% | weight=0.0 (report-only); Library-Heuristik implementieren | **Mitigiert** (report-only); Fix ausstehend | Q2 2026 |
 | **RQ-02** | Erkennungsqualität | DIA parst URLs als fehlende Verzeichnisse → ~40% FP | RPN 288 🟡 | FMEA FP-02, FTA B3/B4 | Maintainer | DIA FP-Rate | ≤ 30% | URL-Fragment-Exclusion in DIA-Parser | **Offen** | Q2 2026 |
-| **RQ-03** | Erkennungsqualität | AVS-Findings doppelt gemeldet → +15–20% Noise | RPN 252 🟡 | FMEA FP-03, FTA B7/B8 | Maintainer | AVS Dedup-Rate | 0% Duplikate | Cross-Pass-Deduplication | **Offen** (go-no-go Blocker) | Q2 2026 |
+| **RQ-03** | Erkennungsqualität | AVS-Findings doppelt gemeldet → +15–20% Noise | RPN 252 🟡 | FMEA FP-03, FTA B7/B8 | Maintainer | AVS Dedup-Rate | 0% Duplikate | Cross-Pass-Deduplication (import-edge key im AVS-Signal) | **In Verifikation** (Fix implementiert 2026-04-03, Benchmark-Delta ausstehend) | Q2 2026 |
 | **RQ-04** | Erkennungsqualität | SMS erkennt neuartige Dependencies nicht → Recall 0.0 | RPN 256 🟡 | FMEA FN-01, FTA C1 | Maintainer | SMS Mutation-Recall | ≥ 0.50 | Import-Pattern-Erweiterung | **Offen** | Q2 2026 |
 | **RQ-05** | Erkennungsqualität | PFS erkennt 2-Varianten-Fragmentation nicht → Recall 0.5 | RPN 210 🟡 | FMEA FN-02, FTA C5 | Maintainer | PFS Mutation-Recall | ≥ 0.80 | Threshold-Kalibrierung | **Offen** | Q3 2026 |
 | **RQ-06** | Erkennungsqualität | TSA kann in Legacy-TS-Repos ohne Layer-Kontrakt übermelden (FP-Risiko) | RPN 120 🟡 | FMEA FP-09, FTA FT-1 TSA-Pfad | Maintainer | TSA FP-Rate | ≤ 30% | Report-only behalten; TS-Repo-Validierung vor Weight-Promotion | **Neu** | Q2 2026 |
@@ -146,7 +146,7 @@ Dieses Risk Register gilt für drift-analyzer als:
 | 4 | **External Precision Validation (Rating-Kit)** | RM-02 | Mittel | Validiert Metriken-Framework | Phase 1 (Vertrauen) |
 | 5 | **SMS Import-Pattern-Update** | RQ-04 | Niedrig | -50% auf FN-01 | Phase 2 (Relevanz) |
 | 6 | **DIA URL-Fragment-Exclusion** | RQ-02 | Niedrig | -63% auf FP-02 | Phase 2 (Relevanz) |
-| 7 | **AVS Cross-Pass-Dedup** | RQ-03 | Niedrig | -100% auf AVS-Duplikate | Phase 2 (Relevanz) |
+| 7 | **AVS Cross-Pass-Dedup (Regression-Monitoring)** | RQ-03 | Niedrig | -100% auf AVS-Duplikate | Phase 2 (Relevanz) |
 | 8 | **BOM-Strip in Config-Loader** | RS-04 | Niedrig | Eliminiert DRIFT-1002 | Phase 3 (Einführbarkeit) |
 | 9 | **Related-files target-path Filter** | RS-03 | Niedrig | Schließt Info-Disclosure | Phase 3 (Einführbarkeit) |
 | 10 | **--no-repo-config CLI-Option** | RS-01 | Niedrig | Reduziert Config-Injection-Risiko | Phase 3 (Einführbarkeit) |

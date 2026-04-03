@@ -29,7 +29,7 @@
 |----|--------|-------------|---|---|---|-----|---------|---------------|--------|
 | FP-01 | DCA | Library-Exports als Dead Code gemeldet (\_\_all\_\_, Re-Exports) | 9 | 9 | 8 | **720** 🔴 | >90% FP bei Libraries (signal-audit); weight=0.0 (report-only) | Library-Heuristik: `setup.py`/`pyproject.toml` + `__init__` Re-Exports erkennen → DCA supprimieren | **Blocker** — report-only bleibt bis Fix |
 | FP-02 | DIA | Badge-URLs und URL-Fragmente als fehlende Verzeichnisse | 6 | 8 | 6 | **288** 🟡 | ~40% FP-Rate (signal-audit); `strict: 0.63` (ground_truth) | URL-Fragment-Detection: `http(s)://`, `#`-Anker, Badge-Patterns ausschließen | Offen |
-| FP-03 | AVS | Identische Findings 2–3× gemeldet (God-Module, Zones, Cycles aus verschiedenen Passes) | 7 | 6 | 6 | **252** 🟡 | +15–20% Finding-Volumen (go-no-go Blocker #2); `strict: 0.30` vs `lenient: 0.80` | Deduplizierung: UNIQUE(rule_id, file, start_line, title) auf Pass-Ebene | **Blocker** |
+| FP-03 | AVS | Identische Findings 2–3× gemeldet (God-Module, Zones, Cycles aus verschiedenen Passes) | 7 | 6 | 6 | **252** 🟡 | +15–20% Finding-Volumen (go-no-go Blocker #2); `strict: 0.30` vs `lenient: 0.80` | Cross-Pass-Edge-Deduplizierung im AVS-Signal (import-edge key) + Regressionstest | **In Verifikation (2026-04-03)** |
 | FP-04 | NBV | Domain-Konventionen (RFC, Krypto, Type-System) als Naming-Violations | 5 | 4 | 5 | **100** 🟢 | ~50% FP bei Krypto/Type-Code (signal-audit); `kex_`, `auth_` Patterns | Domain-Whitelist für bekannte Namenskonventionen (RFC, Framework-Suffixe) | Wünschenswert |
 | FP-05 | PFS | Redundante Findings über Verzeichnishierarchie (selbes Pattern auf Parent + Child) | 5 | 7 | 5 | **175** 🟡 | Finding-Redundanz bei tiefen Verzeichnisbäumen (signal-audit) | Deep-Finding-Only: nur tiefste Ebene reporten; Parent-Aggregation optional | Wünschenswert |
 | FP-06 | EDS | Überflutung: 70+ korrekte Findings pro Repo → Noise | 4 | 6 | 3 | **72** 🟢 | `precision_strict: 1.0` aber 72 Findings im Ground-Truth-Sample | Top-N-Filterung (default: 10 pro Signal); Severity-Gate für EDS | Wünschenswert |
@@ -59,7 +59,7 @@
 
 | ID | Signal | Fehlermodus | S | O | D | RPN | Evidenz | Gegenmaßnahme | Status |
 |----|--------|-------------|---|---|---|-----|---------|---------------|--------|
-| CL-01 | MDS | Remediation-Platzhalter `?` statt echtem Symbolnamen | 6 | 7 | 3 | **126** 🟡 | Go-no-go Blocker #3: schlechter Ersteindruck | Symbol-Extraction in MDS-Remediation; Fallback auf Datei:Zeile | **Blocker** |
+| CL-01 | MDS | Remediation-Platzhalter `?` statt echtem Symbolnamen | 6 | 7 | 3 | **126** 🟡 | Go-no-go Blocker #3: schlechter Ersteindruck | MDS-Recommendation-Fallback auf Datei:Zeile statt `?` + Regressionstest | **In Verifikation (2026-04-03)** |
 | CL-02 | Alle | Findings ohne klare nächste Maßnahme (nur Problembeschreibung) | 5 | 4 | 5 | **100** 🟢 | signal-audit: 13% der Findings = „unklar formuliert" | Remediation-Templates pro Signal; `explain`-Befehl verlinken | Wünschenswert |
 | CL-03 | EDS/PFS | Massenhafte gleichartige Findings → Informationsüberflutung | 5 | 6 | 4 | **120** 🟡 | signal-audit: EDS 70+ Findings, PFS redundant über Ebenen | Gruppierung gleichartiger Findings; Summary statt Einzelliste | Wünschenswert |
 | CL-04 | AVS | „God Module" ohne Erklärung warum problematisch im Kontext | 4 | 3 | 5 | **60** 🟢 | signal-audit: korrekt aber „schwach" bei 17% | Kontextuelle Erklärung: Abhängigkeitsanzahl, Änderungsfrequenz, Kopplung | Niedrig |
@@ -110,7 +110,7 @@
 | 2 | KX-01 | Library-FP-Cluster (DCA/DIA/NBV) | **336** 🔴 | Kontext | **Priorität** |
 | 3 | FP-02 | DIA URL-Fragmente als Missing Dirs | **288** 🟡 | FP | Offen |
 | 4 | FN-01 | SMS: neuartige Dependencies unerkannt | **256** 🟡 | FN | **Priorität** |
-| 5 | FP-03 | AVS Duplikate | **252** 🟡 | FP | **Blocker** |
+| 5 | FP-03 | AVS Duplikate | **252** 🟡 | FP | **In Verifikation (2026-04-03)** |
 | 6 | SC-01 | TVS im Score trotz 0% Validation | **210** 🟡 | Scoring | **Priorität** |
 | 7 | FN-02 | PFS: 2-Varianten-Lücke | **210** 🟡 | FN | Offen |
 | 8 | FN-03 | AVS: dynamische Imports unsichtbar | **189** 🟡 | FN | Offen |
@@ -125,11 +125,11 @@
 |----|-------------|--------------|--------------|-------|
 | FP-01 | — | — | — | Kein Library-Kontext-Fixture |
 | FP-02 | dia_tp, dia_tn | dia: 3/3 = 1.0 | strict: 0.63 | Kein URL-Fragment-Fixture |
-| FP-03 | avs_tp, avs_tn, avs_circular_tp | avs: 2/2 = 1.0 | strict: 0.30 | Kein Dedup-Fixture |
+| FP-03 | avs_tp, avs_tn, avs_circular_tp | avs: 2/2 = 1.0 | strict: 0.30 | Dedup-Fixture vorhanden (`test_policy_and_inferred_same_edge_are_deduplicated`) |
 | FN-01 | sms_tp, sms_tn | sms: 0/1 = **0.0** | strict: 1.0 | **Mutation-Lücke** |
 | FN-02 | pfs_tp, pfs_tn + 3 Varianten | pfs: 1/2 = **0.5** | strict: 1.0 | **2-Varianten-Fixture fehlt** |
 | SC-01 | tvs_tp, tvs_tn | tvs: 1/1 = 1.0 | strict: **0.0** (30/30 Disputed) | **Validierungs-Lücke** |
-| CL-01 | — | — | — | Kein Remediation-Quality-Test |
+| CL-01 | — | — | — | Remediation-Quality-Test vorhanden (keine `?`-Platzhalter bei MDS-Fallback) |
 | DG-01 | — | — | — | Kein Timeout-Degradation-E2E-Test |
 | KX-01 | — | — | — | Kein Library-Kontext-Fixture |
 

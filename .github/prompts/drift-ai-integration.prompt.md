@@ -1,49 +1,67 @@
 ---
 name: "Drift AI Integration"
 agent: agent
-description: "Use when evaluating whether drift outputs are genuinely useful to LLMs and agent frameworks with Claude Opus 4.6: compare context exports, test MCP readiness, and judge prompt-quality signal density."
+description: "Evaluiert, ob Drift-Outputs für LLMs und Agent-Frameworks tatsächlich nützlich sind: Context-Exporte vergleichen, MCP-Readiness testen, Prompt-Qualität und Signal-Dichte bewerten."
 ---
 
 # Drift AI Integration
 
-You are Claude Opus 4.6 evaluating Drift as a context-generation and tool-integration layer for LLMs and coding agents.
+Du evaluierst Drift als Kontext-Generierungs- und Tool-Integrationsschicht für LLMs und Coding-Agents.
 
-## Claude Opus 4.6 Working Mode
+> **Pflicht:** Vor Ausführung dieses Prompts das Drift Policy Gate durchlaufen
+> (siehe `.github/prompts/_partials/konventionen.md` und `.github/instructions/drift-policy.instructions.md`).
 
-Use Claude Opus 4.6 deliberately:
-- judge each AI-facing output for token efficiency as well as semantic usefulness
-- compare formats side by side and explain tradeoffs instead of scoring them in isolation
-- separate human readability from agent usefulness when those differ
-- be explicit about whether missing structure blocks automation or merely lowers quality
-- summarize context defects in terms of what an LLM would do wrong next
+## Relevante Referenzen
 
-## Objective
+- **Instruction:** `.github/instructions/drift-policy.instructions.md`
+- **Bewertungssystem:** `.github/prompts/_partials/bewertungs-taxonomie.md`
+- **Issue-Filing:** `.github/prompts/_partials/issue-filing.md`
+- **Verwandte Prompts:** `drift-agent-workflow-test.prompt.md` (Phase 7c testet copilot-context/export-context)
+- **ADR:** `.internal/decisions/ADR-002-export-context-format-semantics.md` (Format-Semantik-Entscheidung)
+- **Implementierung:** `src/drift/negative_context_export.py` (Export-Logik)
 
-Determine whether Drift produces AI-facing outputs that are concise, faithful, and operationally useful for prompt injection, agent planning, and MCP-based tool use.
+## Arbeitsmodus
 
-## Success Criteria
+- Bewerte jeden AI-facing Output auf Token-Effizienz UND semantischen Nutzen.
+- Vergleiche Formate Seite an Seite und erkläre Tradeoffs statt sie isoliert zu scoren.
+- Trenne menschliche Lesbarkeit von Agent-Nützlichkeit, wenn diese divergieren.
+- Sage explizit, ob fehlende Struktur Automation blockiert oder nur Qualität senkt.
+- Fasse Kontext-Defekte in Begriffen zusammen, was ein LLM als nächstes falsch machen würde.
 
-The task is complete only if you can answer:
-- which exported context formats are the most useful for AI workflows
-- whether the generated context is precise enough to help an agent act
-- whether MCP startup and usage are understandable and testable
-- which AI-facing outputs are redundant, noisy, or missing key structure
-- whether each format fits in realistic LLM context budgets (8k / 32k tokens)
-- whether output is stable across repeated runs on the same repo state
-- whether format structure is machine-parsable without NLP
-- which format is recommended for each concrete integration use case
+## Ziel
 
-## Operating Rules
+Bestimme, ob Drift AI-facing Outputs produziert, die prägnant, treu und operationell nützlich für Prompt-Injection, Agent-Planung und MCP-basierte Tool-Nutzung sind.
 
-- Judge outputs from the perspective of an LLM consumer, not only a human reader.
-- Penalize redundancy if it adds tokens without improving actionability.
-- Prefer side-by-side comparisons when multiple formats expose the same information.
-- Be explicit about whether a format is better for humans, prompts, or machine orchestration.
-- If an MCP path cannot be fully exercised, document the deepest realistic test boundary.
+## Erfolgskriterien
 
-## Required Artifacts
+Die Aufgabe ist erst abgeschlossen, wenn du beantworten kannst:
+- Welche exportierten Kontextformate sind am nützlichsten für AI-Workflows?
+- Ist der generierte Kontext präzise genug, damit ein Agent handeln kann?
+- Sind MCP-Startup und -Nutzung verständlich und testbar?
+- Welche AI-facing Outputs sind redundant, verrauscht oder fehlt Schlüsselstruktur?
+- Passt jedes Format in realistische LLM-Kontextbudgets (8k / 32k Tokens)?
+- Ist der Output über wiederholte Läufe auf gleichem Repo-State stabil?
+- Ist die Format-Struktur maschinenlesbar (parsbar ohne NLP)?
+- Welches Format ist für welchen konkreten Integrationsfall empfohlen?
 
-Create artifacts under `work_artifacts/drift_ai_integration_<DATE>/`:
+## Arbeitsregeln
+
+- Bewerte Outputs aus LLM-Consumer-Perspektive, nicht nur Mensch-Perspektive.
+- Bestraft Redundanz, wenn sie Tokens kostet ohne Actionability zu verbessern.
+- Bevorzuge Side-by-Side-Vergleiche, wenn mehrere Formate die gleiche Information zeigen.
+- Sage explizit, ob ein Format besser für Menschen, Prompts oder Machine-Orchestration ist.
+- Wenn ein MCP-Pfad nicht vollständig testbar ist, dokumentiere die tiefste realistische Testgrenze.
+
+## Bewertungs-Labels
+
+Verwende ausschließlich Labels aus `.github/prompts/_partials/bewertungs-taxonomie.md`:
+
+- **Ergebnis-Bewertung** pro Format/Test: `pass` / `review` / `fail`
+- **Risiko-Level**: `low` / `medium` / `high` / `critical`
+
+## Artefakte
+
+Erstelle Artefakte unter `work_artifacts/ai_integration_<YYYY-MM-DD>/`:
 
 1. `copilot_context_preview.md`
 2. `export_instructions.md`
@@ -54,20 +72,23 @@ Create artifacts under `work_artifacts/drift_ai_integration_<DATE>/`:
 
 ## Workflow
 
-### Phase 0: Inventory AI-facing surfaces
+### Phase 0: AI-facing Oberflächen inventarisieren
 
-Identify all currently exposed AI-facing features, including at minimum:
+Identifiziere alle derzeit exponierten AI-facing Features:
 - `copilot-context`
-- `export-context`
+- `export-context` (Formate: `instructions`, `prompt`, `raw`)
 - `mcp`
 
-Document what each surface appears intended to do before judging quality.
+Dokumentiere, was jede Oberfläche beabsichtigt, bevor du Qualität bewertest.
 
-### Phase 1: Compare exported context formats
+**Format-Semantik (gemäß ADR-002):**
+- `instructions` — Ausführliches Markdown für System-Prompts
+- `prompt` — Kompakte einzeilige DO_NOT→INSTEAD-Regeln
+- `raw` — Maschinenlesbares JSON (Schema: `drift-negative-context-v1`)
 
-Test both preview and written outputs where supported.
+### Phase 1: Exportierte Kontextformate vergleichen
 
-At minimum, compare:
+Teste sowohl Preview- als auch File-Outputs:
 
 ```bash
 drift copilot-context --repo .
@@ -76,238 +97,186 @@ drift export-context --repo . --format prompt
 drift export-context --repo . --format raw
 ```
 
-For each format, judge:
-- clarity
-- redundancy
-- actionability
-- compatibility with agent workflows
+Für jedes Format bewerten:
+- Klarheit
+- Redundanz
+- Actionability
+- Kompatibilität mit Agent-Workflows
 
-### Token-Budget Check
+### Token-Budget-Check
 
-For each format, estimate token cost and fit:
-
-```bash
-python -c "import pathlib; txt = pathlib.Path('export_instructions.md').read_text(); words = len(txt.split()); print(f'words={words}, tokens_est={int(words*1.35)}')"
-```
-
-Repeat for each saved artifact (`export_prompt.md`, `export_raw.md`, `copilot_context_preview.md`).
-
-| Format       | Words (approx) | Tokens (approx) | Fits 8k? | Fits 32k? | Usable as single-file agent context? |
-|--------------|---------------|-----------------|----------|-----------|--------------------------------------|
-| instructions |               |                 |          |           |                                      |
-| prompt       |               |                 |          |           |                                      |
-| raw          |               |                 |          |           |                                      |
-| copilot-ctx  |               |                 |          |           |                                      |
-
-If a format exceeds 32k tokens at typical repo size, flag it as **context-budget-risk**.
-
-### Stability Check
-
-Run each format twice without any repo changes and diff:
+Für jedes Format Token-Kosten schätzen:
 
 ```bash
-drift export-context --repo . --format instructions -o run1.md
-drift export-context --repo . --format instructions -o run2.md
-diff run1.md run2.md
+python -c "import pathlib; txt = pathlib.Path('<DATEI>').read_text(); words = len(txt.split()); print(f'words={words}, tokens_est={int(words*1.35)}')"
 ```
 
-Classify each format:
-- `stable`: no diff or only metadata (timestamp, version)
-- `format-unstable`: same content, different ordering/formatting — bad for caching
-- `content-unstable`: content differs without repo change — this is a bug
+> **Hinweis:** Die Formel `words × 1.35` ist eine Heuristik. Für präzise Messungen `tiktoken` (OpenAI) oder den Tokenizer des Ziel-LLMs verwenden. Für diese Evaluation reicht die Heuristik als Größenordnungsschätzung.
 
-### Structure Check
+| Format | Wörter (ca.) | Tokens (ca.) | Passt in 8k? | Passt in 32k? | Als Single-File-Agent-Kontext nutzbar? |
+|--------|-------------|-------------|-------------|--------------|---------------------------------------|
+| instructions | | | | | |
+| prompt | | | | | |
+| raw | | | | | |
+| copilot-ctx | | | | | |
 
-For each format, assess machine parseability:
-- Are there stable sections (headings, keys) extractable programmatically?
-- Are signal identifiers in sync with CLI output (same abbreviations, IDs)?
-- Can an automation tool isolate individual rules/constraints without NLP?
+Wenn ein Format bei typischer Repo-Größe 32k Tokens überschreitet: als **context-budget-risk** flaggen.
+Token-Budget-Schwelle ist konfigurierbar; Default 32k entspricht konservativer Schätzung für Modelle mit 128k-Kontext, die noch Platz für Aufgabe + Code brauchen.
 
-Classify:
-- `unstructured`: free text only, not parsable
-- `semi-structured`: lists/sections but no stable keys
-- `structured`: clearly parsable blocks with stable IDs/keys
+### Stabilitäts-Check
 
-### Phase 2: Test usefulness as agent context
+**Beide** Oberflächen jeweils zweimal ohne Repo-Änderungen ausführen und diffen:
 
-Evaluate whether the exported content would help an LLM:
-- understand the repository state quickly
-- identify likely architectural risks
-- choose a sensible next command or fix path
-- avoid wasting context window on low-value repetition
+```bash
+drift export-context --repo . --format instructions -o run1_instructions.md
+drift export-context --repo . --format instructions -o run2_instructions.md
+diff run1_instructions.md run2_instructions.md
 
-### Phase 2b: End-to-End Inject Test
+drift copilot-context --repo . > run1_copilot.md
+drift copilot-context --repo . > run2_copilot.md
+diff run1_copilot.md run2_copilot.md
+```
 
-This is the only test that empirically proves whether `export-context` improves model behavior.
+Klassifikation pro Format:
+- `stable`: kein Diff oder nur Metadaten (Timestamp, Version)
+- `format-unstable`: gleicher Inhalt, andere Reihenfolge/Formatierung — schlecht für Caching
+- `content-unstable`: Inhalt differiert ohne Repo-Änderung — Bug
 
-Prepare a minimal oracle file with 2–3 known Drift violations (use an existing benchmark fixture or create a small synthetic example). Then run two variants:
+### Struktur-Check
 
-**Variant A — without Drift context:**
-Provide only the oracle code to the model. Ask: "What architectural problems do you see in this codebase?"
+Pro Format Maschinen-Parsbarkeit bewerten:
+- Gibt es stabile Sections (Headings, Keys) die programmatisch extrahierbar sind?
+- Sind Signal-Bezeichner konsistent mit CLI-Output (gleiche Abkürzungen, IDs)?
+- Kann ein Automations-Tool einzelne Regeln/Constraints ohne NLP isolieren?
 
-**Variant B — with Drift context:**
-Inject the best-scoring export format as a system prompt. Ask the identical question.
+Klassifikation:
+- `unstructured`: Nur Freitext, nicht parsbar
+- `semi-structured`: Listen/Sections, aber keine stabilen Keys
+- `structured`: Klar parsbare Blöcke mit stabilen IDs/Keys
 
-Document for both variants:
-- Which violations were identified?
-- Which were missed?
-- Were there hallucinations not in the oracle?
-- Did the injected context cause any false guidance?
+### Phase 2: Nützlichkeit als Agent-Kontext testen
 
-| Metric | Without context | With context | Delta |
-|--------|----------------|--------------|-------|
-| Violations identified | | | |
-| Violations missed | | | |
-| Hallucinations | | | |
-| Token cost of context injection | n/a | | |
+Bewerte, ob der exportierte Inhalt einem LLM hilft:
+- Repository-Zustand schnell verstehen
+- Wahrscheinliche Architekturrisiken identifizieren
+- Sinnvolles nächstes Kommando oder Fix-Pfad wählen
+- Kontext-Fenster nicht mit low-value Wiederholung verschwenden
 
-Conclusion: Is the token cost justified by the quality gain?
+### Phase 2b: End-to-End-Inject-Test
 
-### Phase 3: Test MCP readiness
+Dies ist der einzige Test, der empirisch belegt, ob `export-context` Modellverhalten verbessert.
 
-Inspect both informational and serving paths:
+Bereite eine minimale Oracle-Datei mit 2–3 bekannten Drift-Violations vor (aus existierenden Benchmark-Fixtures oder kleinem synthetischen Beispiel). Dann zwei Varianten ausführen:
+
+**Variante A — ohne Drift-Kontext:**
+Nur Oracle-Code dem Modell übergeben. Frage: „Welche Architektur-Probleme siehst du in diesem Code?"
+
+**Variante B — mit Drift-Kontext:**
+Best-scoring Export-Format als System-Prompt injizieren. Identische Frage stellen.
+
+| Metrik | Ohne Kontext | Mit Kontext | Delta |
+|--------|-------------|------------|-------|
+| Violations erkannt | | | |
+| Violations übersehen | | | |
+| Halluzinationen | | | |
+| Token-Kosten der Injection | n/a | | |
+
+> **Hinweis:** Dieser Test erfordert manuelle oder LLM-gestützte Bewertung. Falls eine automatisierte Auswertung nicht möglich ist, Ergebnisse als qualitativ kennzeichnen.
+
+Schlussfolgerung: Rechtfertigen die Token-Kosten den Qualitätsgewinn?
+
+### Phase 3: MCP-Readiness testen
+
+Beide Pfade prüfen:
 
 ```bash
 drift mcp
 drift mcp --serve
 ```
 
-Judge:
-- discoverability of prerequisites
-- startup clarity
-- failure clarity if optional dependencies are missing
-- practical usability for a real agent client
+Bewerte:
+- Auffindbarkeit der Voraussetzungen
+- Klarheit beim Startup
+- Klarheit bei Fehler (wenn optionale Dependencies fehlen)
+- Praktische Nutzbarkeit für einen realen Agent-Client
 
-### MCP Client Perspective
+### MCP-Client-Perspektive
 
-Extract the tool definitions exposed by the MCP server (via `--list` flag, startup output, or JSON schema). For each tool:
-- Is the name self-explanatory from an LLM perspective?
-- Is the description sufficient to invoke the tool correctly without extra documentation?
-- Are parameters clearly typed with sensible defaults?
+Tool-Definitionen des MCP-Servers extrahieren (via Startup-Output, JSON-Schema oder Dokumentation). Für jedes Tool:
+- Ist der Name aus LLM-Perspektive selbsterklärend?
+- Ist die Beschreibung ausreichend, um das Tool korrekt aufzurufen?
+- Sind Parameter klar typisiert mit sinnvollen Defaults?
 
-Classify overall MCP readiness:
-- `mcp-ready`: directly usable in a standard MCP client without extra documentation
-- `mcp-fragile`: functional, but only with hand-written supplementary explanation
-- `mcp-unusable`: missing or misleading tool metadata that prevents reliable use
+MCP-Readiness-Klassifikation:
+- `mcp-ready`: Direkt nutzbar in Standard-MCP-Client ohne Extra-Doku
+- `mcp-fragile`: Funktional, aber nur mit handgeschriebener Ergänzung
+- `mcp-unusable`: Fehlende oder irreführende Tool-Metadaten verhindern zuverlässige Nutzung
 
-### Phase 4: Produce the report
-
-Use this report structure:
+### Phase 4: Report erstellen
 
 ```markdown
 # Drift AI Integration Report
 
-**Date:** [DATE]
+**Datum:** <YYYY-MM-DD>
 **drift-Version:** [VERSION]
-**Repository:** [REPO NAME]
+**Repository:** [REPO-NAME]
 
-## Format Comparison
+## Format-Vergleich
 
-| Surface | Best for | Strengths | Weaknesses | Verdict |
-|---------|----------|-----------|------------|---------|
+| Oberfläche | Bestes für | Stärken | Schwächen | Bewertung |
+|------------|-----------|---------|-----------|-----------|
 
-## Context Quality
+## Kontext-Qualität
 
-| Criterion | instructions | prompt | raw | Notes |
-|-----------|--------------|--------|-----|-------|
-| Clarity | | | | |
-| Actionability | | | | |
-| Redundancy | | | | |
-| Agent usefulness | | | | |
+| Kriterium | instructions | prompt | raw | copilot-ctx | Anmerkungen |
+|-----------|-------------|--------|-----|-------------|-------------|
+| Klarheit | | | | | |
+| Actionability | | | | | |
+| Redundanz | | | | | |
+| Agent-Nützlichkeit | | | | | |
+| Token-Effizienz | | | | | |
 
-## MCP Readiness
+## MCP-Readiness
 
-| Path | Tested depth | Result | Agent usability | Notes |
-|------|--------------|--------|-----------------|-------|
+| Pfad | Testtiefe | Ergebnis | Agent-Nutzbarkeit | Anmerkungen |
+|------|-----------|----------|-------------------|-------------|
 
-## Priority Improvements
+## Prioritäre Verbesserungen
 
 1. [...]
 2. [...]
 3. [...]
 
-## Recommended Integration Paths
+## Empfohlene Integrationspfade
 
-| Use case | Recommended format | Reason |
-|----------|--------------------|--------|
+| Use Case | Empfohlenes Format | Begründung |
+|----------|--------------------|------------|
 | System-Prompt in Coding Agent | | |
-| GitHub Actions annotation | | |
+| GitHub Actions Annotation | | |
 | MCP Tool Integration | | |
 | Human Code Review Prep | | |
 | Automated Orchestration Pipeline | | |
 ```
 
-## Decision Rule
+## Entscheidungsregel
 
-If a format looks informative but would waste tokens or fail to guide an agent, do not rate it highly.
+Wenn ein Format informativ aussieht, aber Tokens verschwendet oder den Agent nicht sinnvoll lenkt: nicht hoch bewerten.
 
-## GitHub Issue Creation
+## GitHub-Issue-Erstellung
 
-At the end of the workflow, create GitHub issues in `sauremilk/drift` for each reproducible AI-integration defect that would matter to LLM or agent consumers.
+Am Ende des Workflows GitHub-Issues erstellen gemäß `.github/prompts/_partials/issue-filing.md`.
 
-### Create issues for
+**Prompt-Kürzel für Titel:** `ai-integration`
 
-- exported context that is too noisy, incomplete, or misleading for agent use
-- meaningful inconsistencies between `instructions`, `prompt`, and `raw` outputs
-- MCP startup or usage problems caused by Drift behavior or missing guidance
-- missing structure that prevents practical use in prompts or tooling
+### Issues erstellen für
 
-### Do not create issues for
+- Exportierter Kontext, der zu verrauscht, unvollständig oder irreführend für Agent-Nutzung ist
+- Wesentliche Inkonsistenzen zwischen `instructions`, `prompt` und `raw`
+- MCP-Startup- oder Nutzungsprobleme durch Drift-Verhalten oder fehlende Anleitung
+- Fehlende Struktur, die praktische Nutzung in Prompts oder Tooling verhindert
 
-- purely subjective formatting preferences without workflow impact
-- local client limitations outside Drift's responsibility
-- duplicates already covered by an existing issue
+### Keine Issues erstellen für
 
-### Required issue rules
-
-- search for existing issues first
-- create one issue per concrete AI-facing defect
-- cite the exact command, format, and evidence file
-- explain whether the problem is about clarity, redundancy, actionability, or MCP usability
-- use the label `agent-ux` plus any more specific label if appropriate
-
-### Issue title format
-
-`[ai-integration] <concise problem summary>`
-
-### Issue body template
-
-```markdown
-## Observed behavior
-
-[What the AI-facing surface produced]
-
-## Expected behavior
-
-[What an LLM or agent client needed instead]
-
-## Reproduction
-
-drift-Version: [VERSION]
-Surface: [copilot-context / export-context / mcp]
-Command: `drift ...`
-Evidence: [ARTIFACT PATH]
-
-## Impact
-
-- [ ] Context too noisy
-- [ ] Context missing key structure
-- [ ] Misleading AI guidance
-- [ ] MCP usability defect
-
-## Source
-
-Automatically created from `.github/prompts/drift-ai-integration.prompt.md` on [DATE].
-```
-
-### Completion output
-
-End with:
-
-```text
-Created issues:
-- #[NUMBER]: [TITLE] - [URL]
-
-Skipped issues already covered:
-- [TITLE] -> #[NUMBER]
-```
+- Rein subjektive Formatpräferenzen ohne Workflow-Impact
+- Lokale Client-Einschränkungen außerhalb von Drifts Verantwortung
+- Duplikate bereits existierender Issues

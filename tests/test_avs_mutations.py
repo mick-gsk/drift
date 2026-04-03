@@ -321,6 +321,36 @@ class TestPolicyViolationMutations:
         assert policy[0].severity == Severity.HIGH
 
 
+class TestCrossPassDeduplication:
+    """Ensure policy + inferred-layer checks do not emit duplicate AVS findings."""
+
+    def test_policy_and_inferred_same_edge_are_deduplicated(self):
+        from drift.config import LayerBoundary
+
+        cfg = DriftConfig()
+        cfg.policies = PolicyConfig(
+            layer_boundaries=[
+                LayerBoundary(
+                    name="no-api-import-in-db",
+                    **{"from": "db/*"},
+                    deny_import=["api.*"],
+                )
+            ]
+        )
+
+        results = [
+            _pr("db/queries.py", [_imp("db/queries.py", "api.routes", line=42)]),
+            _pr("api/routes.py", []),
+        ]
+
+        signal = ArchitectureViolationSignal()
+        findings = signal.analyze(results, {}, cfg)
+
+        assert len(findings) == 1
+        assert findings[0].file_path == Path("db/queries.py")
+        assert findings[0].start_line == 42
+
+
 # ── Mutation 8: Fix text format validation ───────────────────────────────
 
 

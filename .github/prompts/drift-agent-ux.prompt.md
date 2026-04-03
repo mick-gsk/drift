@@ -1,306 +1,262 @@
 ---
 name: "Drift Agent UX"
 agent: agent
-description: "Use when testing whether drift guides an autonomous coding agent without guesswork with Claude Opus 4.6: audit decision chains, dead ends, ambiguity points, and recovery paths."
+description: "Bewertet Drift-CLI aus Agent-Perspektive: Auffindbarkeit, Feedback-Latenz, Fehlermeldungen, End-to-End-Konsistenz. Vergleicht Agent-UX mit menschlicher UX."
 ---
 
 # Drift Agent UX
 
-You are Claude Opus 4.6 evaluating Drift as a decision-support tool for an autonomous coding agent. The core question is whether the tool helps the agent continue confidently after each output.
+Du evaluierst die Drift-CLI aus der Perspektive eines Agent-Users. Dein Fokus liegt auf Auffindbarkeit, Latenz, Fehlernachrichten und konsistentem Verhalten über Kommandos hinweg.
 
-## Claude Opus 4.6 Working Mode
+> **Pflicht:** Vor Ausführung dieses Prompts das Drift Policy Gate durchlaufen
+> (siehe `.github/prompts/_partials/konventionen.md` und `.github/instructions/drift-policy.instructions.md`).
 
-Use Claude Opus 4.6 deliberately:
-- model the next action explicitly after each step instead of leaving it implicit
-- separate plausible alternatives when the workflow could branch in more than one direction
-- keep a tight chain of evidence from command output to agent decision
-- identify the smallest missing datum that would remove ambiguity
-- prefer concise trajectory logs over broad commentary that does not change the next move
+## Relevante Referenzen
 
-## Objective
+- **Instruction:** `.github/instructions/drift-policy.instructions.md`
+- **Bewertungssystem:** `.github/prompts/_partials/bewertungs-taxonomie.md`
+- **Issue-Filing:** `.github/prompts/_partials/issue-filing.md`
+- **Verwandte Prompts:** `drift-agent-workflow-test.prompt.md` (CI-Realism), `drift-ci-gate.prompt.md` (Gate-Perspektive)
+- **CLI-Implementierung:** `src/drift/commands/` (Click-CLI-Subcommands)
 
-Audit the end-to-end agent trajectory through Drift and identify where the tool enables action, where it causes hesitation, and where it creates dead ends.
+## Arbeitsmodus
 
-## Success Criteria
+- Interagiere als Agent: systematisch, breadth-first, exit-code-gesteuert.
+- Beobachte und dokumentiere statt sofort zu bewerten.
+- Erkläre die Kognition hinter jedem Urteil (z.B. „ein Mensch würde X tun, ein Agent bräuchte Y").
+- Wenn ein Workflow abbricht, bestimme die günstigste Abbruchursache, nicht die schlimmste.
+- Unterscheide Agent-UX-Probleme von allgemeinen CLI-Bugs.
 
-The task is complete only if you can show:
-- where the agent had a clear next move
-- where the agent had to guess between multiple paths
-- where the workflow broke or stalled
-- whether alternative entry paths are materially weaker or stronger
-- whether command-to-command descriptions stay consistent enough for agent use
-- which output changes would most improve autonomous usability
+## Ziel
 
-## Operating Rules
+Bestimme, ob ein Coding-Agent Drift installieren, erkunden, nutzen und auf Ergebnisse reagieren kann — ohne Vorwissen, ohne Dokumentationslektüre, mit reinen CLI-Signalen.
 
-- Evaluate the outputs as an agent, not as a human maintainer with extra intuition.
-- After each major command, state the most likely next action and why.
-- If multiple next actions seem plausible, record the ambiguity explicitly.
-- Distinguish between a recoverable slowdown and a hard dead end.
-- Prefer real repository trajectories over isolated command checks.
+## Erfolgskriterien
 
-## Rating Labels
+Die Aufgabe ist erst abgeschlossen, wenn du beantworten kannst:
+- Konnte der Agent alle relevanten Kommandos und Optionen entdecken (`--help`-Auffindbarkeit)?
+- Sind Fehlermeldungen informativ genug, um autonomes Recovery zu leiten?
+- Ist die CLI-Latenz akzeptabel für interaktive Agent-Schleifen?
+- Sind Output-Formate über Kommandos und Läufe hinweg konsistent?
 
-Use these labels after each major step:
+## Arbeitsregeln
 
-- `clear`: next action is obvious and well-supported
-- `ambiguous`: more than one plausible next action exists and the output does not prioritize enough
-- `blocked`: the workflow cannot continue safely without outside guessing
+- Dokumentiere jedes Kommando mit Exit-Code und Antwortzeit.
+- Behandle Latenz > 15 Sekunden als agent-disruptiv; errechne Recovery-Möglichkeit (Timeout + Retry vs. Abbruch).
+- Verwende `--help` als primäre Auffindbarkeitsquelle — nicht Dokumentation.
+- Prüfe Output-Metadaten auf Konsistenz über Formate.
+- Bewerte Fehlermeldungen auf Actionability für autonomes Recovery.
+- Falls `--help` Optionen beschreibt, die im realen Output nicht sichtbar sind: dokumentiere die Diskrepanz.
 
-## Required Artifacts
+## Bewertungs-Labels
 
-Create artifacts under `work_artifacts/drift_agent_ux_<DATE>/`:
+Verwende ausschließlich Labels aus `.github/prompts/_partials/bewertungs-taxonomie.md`:
 
-1. `trajectory_log.md`
-2. `ambiguity_matrix.md`
-3. `dead_ends.md`
-4. `recovery_paths.md`
-5. `latency_log.md`
-6. `consistency_audit.md`
-7. `agent_ux_report.md`
+- **Ergebnis-Bewertung:** `pass` / `review` / `fail`
+- **Risiko-Level:** `low` / `medium` / `high` / `critical`
+- **Auffindbarkeits-Skala:** `self-explanatory` / `documented` / `hidden` / `misleading`
+- **Actionability-Score:** `1 automated` / `2 guided` / `3 human-review` / `4 blocked`
+
+## Artefakte
+
+Erstelle Artefakte unter `work_artifacts/agent_ux_<YYYY-MM-DD>/`:
+
+1. `discovery_log.md`
+2. `latency_matrix.md`
+3. `error_catalog.md`
+4. `consistency_audit.md`
+5. `agent_ux_report.md`
 
 ## Workflow
 
-### Phase 0: Blind start
+### Phase 0: Auffindbarkeit
 
-Begin as if you know nothing about the repository beyond what the tool itself reveals.
-
-Document:
-- first command chosen
-- why it was chosen
-- what orientation the output gave you
-
-### Phase 1: Run the core trajectory
-
-Use a real agent-oriented chain such as:
+Erkunde die CLI als Zero-Knowledge-Agent.
 
 ```bash
-drift scan --max-findings 15 --response-detail concise
-drift fix-plan --max-tasks 5
-drift diff --uncommitted --response-detail detailed
-drift check --fail-on none --json --compact
+drift --help
+drift --version
 ```
 
-Adapt the exact chain to the repository state if necessary, but keep it realistic.
+Für jedes Top-Level-Kommando:
+```bash
+drift <command> --help
+```
 
-### Phase 1b: Test alternative entry paths
+**Auffindbarkeits-Bewertung pro Kommando:**
 
-Test at least one second realistic entry path and compare whether the agent reaches the same level of orientation quality.
+| Kommando | Sichtbar in `--help`? | Beschreibung verständlich ohne Kontext? | Optionen vollständig? | Auffindbarkeit |
+|----------|----------------------|----------------------------------------|----------------------|----------------|
+| | | | | `self-explanatory` / `documented` / `hidden` / `misleading` |
 
-Candidate paths:
+**Subcommand-Konventionen-Check:**
+- Verwenden alle Kommandos konsistente Benennung? (z.B. `kebab-case` vs. `snake_case`)
+- Haben gemeinsame Optionen (z.B. `--repo`, `--format`) konsistente Defaults?
+- Gibt es Aliases oder undokumentierte Kurzformen?
 
-**Onboarding path**
+### Phase 1: Latenz-Profiling
+
+Für jedes Kommando die Ausführungszeit messen:
 
 ```bash
-drift init --full
-drift config show
-drift scan --max-findings 5
+Measure-Command { drift <command> [args] } | Select-Object TotalMilliseconds
 ```
 
-**AI integration path**
+| Kommando | Args | Latenz (ms) | Bewertung | Anmerkung |
+|----------|------|-------------|-----------|-----------|
+| | | | | |
+
+**Latenz-Klassifikation:**
+- < 2s: `acceptable` — Agent kann synchron warten
+- 2–15s: `tolerable` — Agent sollte Timeout-Handling implementieren
+- > 15s: `disruptive` — Agent-Loop wird unterbrochen
+
+**Bei disruptiver Latenz zusätzlich dokumentieren:**
+- Gibt es eine leichtgewichtigere Alternative (z.B. `scan` statt `analyze`)?
+- Unterstützt das Kommando `--max-findings` oder ähnliche Begrenzung?
+- Ist Recovery nach Timeout möglich (identisches Ergebnis bei erneutem Lauf)?
+
+### Phase 2: Fehler-Verhalten
+
+Provoziere realistische Fehlerszenarien:
 
 ```bash
-drift copilot-context
-drift scan --max-findings 10
-drift fix-plan --max-tasks 3
+drift analyze --repo /nonexistent
+drift analyze --format unknown_format
+drift scan --max-findings -1
+drift export-context --repo . --format nonexistent
 ```
 
-Judge whether one entry path is noticeably weaker, more ambiguous, or more dependent on outside knowledge than another.
+Pro Fehlerfall dokumentieren:
 
-### Phase 1c: Test the returning-agent path
+| Fehlerszenario | Exit-Code | Fehlermeldung | Actionability (1-4) | Anmerkung |
+|----------------|-----------|---------------|---------------------|-----------|
+| | | | | |
 
-Simulate an agent that has already used Drift before and now needs to understand what changed since the last run.
+**Fehler-Qualitätskriterien:**
+1. Enthält die Nachricht den konkreten Parameterwert, der fehlschlug?
+2. Schlägt die Nachricht eine Korrektur vor (z.B. gültige Werte auflisten)?
+3. Unterscheidet der Exit-Code Konfigurationsfehler von Analyseproblemen?
+4. Ist die Fehlermeldung maschinell parsbar (Prefix-Konvention oder JSON)?
 
-Use a realistic baseline-aware flow such as:
+### Phase 3: Output-Konsistenz
+
+Vergleiche Output-Formate für identische Eingabe:
 
 ```bash
-drift baseline diff --baseline-file .drift-baseline.json
-drift check --fail-on high --baseline .drift-baseline.json
-drift diff --uncommitted --response-detail concise
+drift analyze --repo . --format json > results_json.json
+drift analyze --repo . --format sarif > results_sarif.json
+drift analyze --repo .
 ```
 
-Core question: does the tool clearly tell the agent what changed since the previous run, or must the agent reconstruct that state on its own?
+**Konsistenz-Audit pro Format-Paar:**
 
-### Phase 2: Audit each handoff
+| Attribut | JSON | SARIF | Rich-Terminal | Konsistenz |
+|----------|------|-------|---------------|------------|
+| Anzahl Findings | | | | `metadata-only` / `priority-shift` / `contradiction` |
+| Signal-IDs | | | | |
+| Severity-Labels | | | | |
+| Betroffene Dateien | | | | |
+| Reihenfolge | | | | |
 
-For each handoff in the chain, record:
-- what the tool said
-- what next action seemed implied
-- whether that action was safe to take
-- what missing information would have reduced uncertainty
+### Idempotenz-Check
 
-### Latency rating per handoff
+Für JSON und SARIF: Zweimalige Ausführung, Ergebnisse diffen:
 
-For each major step, also rate runtime feedback quality:
+```bash
+drift analyze --repo . --format json > run1.json
+drift analyze --repo . --format json > run2.json
+diff run1.json run2.json
+```
 
-- `immediate`: result arrives in under 3 seconds and does not need progress feedback
-- `waiting`: 3 to 15 seconds with no meaningful progress signal, so the agent cannot tell whether the tool is still healthy
-- `blocking`: more than 15 seconds without useful output, so the agent would need to interrupt or guess externally
+Klassifikation: `stable` / `ordering-unstable` / `content-unstable`
 
-Treat `blocking` as a hard UX problem unless the tool clearly documents the long-running mode.
+### Phase 4: Help-zu-Output-Konsistenz
 
-### Cross-command consistency audit
+Für jedes Kommando, das `--help` Optionen dokumentiert:
+- Teste jede dokumentierte Option
+- Dokumentiere Diskrepanzen zwischen Beschreibung und Verhalten
 
-Take the top finding from `scan` and verify whether Drift stays semantically consistent across commands.
+| Kommando | Option | Dokumentiert als | Tatsächliches Verhalten | Konsistent? |
+|----------|--------|-----------------|------------------------|-------------|
 
-Check at minimum:
-- whether the same problem appears in `analyze` under the same or clearly equivalent name or identifier
-- whether `fix-plan` proposes a remedy that matches the cause described by `explain`
-- whether severity stays materially consistent across `scan`, `analyze`, and `check`
+### Phase 5: End-to-End-Agent-Szenario
 
-Record meaningful discrepancies as `ambiguous` or `blocked` depending on whether the agent could still continue safely.
+Simuliere einen vollständigen Agent-Workflow:
 
-### Phase 3: Test recovery behavior
+```
+1. drift --help                          → Kommandos entdecken
+2. drift analyze --repo . --format json  → Ergebnisse erhalten
+3. Ergebnisse parsen, höchstes Risiko identifizieren
+4. drift explain <signal>                → Signal verstehen
+5. Fix-Entscheidung treffen
+```
 
-Whenever a step is rated `ambiguous` or `blocked`, test the most reasonable recovery path.
+Fließt der Workflow ohne menschliches Eingreifen? Wo bricht er ab?
 
-Examples:
-- narrower scope
-- different output detail level
-- follow-up explain command
-- machine-readable variant for extra evidence
-
-Judge whether the recovery path is discoverable or accidental.
-
-### Discoverability scale for recovery paths
-
-| Score | Meaning |
-|------|---------|
-| `explicit` | The tool directly names the recovery command or next action |
-| `hinted` | The tool gives enough clue that the recovery can be inferred reliably |
-| `pattern-match` | Only an experienced user would know the right recovery path |
-| `dark` | The output gives no hint; recovery depends on trial and error |
-
-Only `explicit` and `hinted` count as agent-usable recovery behavior.
-
-### Phase 4: Produce the report
-
-Use this report structure:
+### Phase 6: Report erstellen
 
 ```markdown
 # Drift Agent UX Report
 
-**Date:** [DATE]
+**Datum:** <YYYY-MM-DD>
 **drift-Version:** [VERSION]
-**Repository:** [REPO NAME]
+**Plattform:** [OS/SHELL]
 
-## Trajectory Summary
+## UX Scorecard
 
-| Step | Command | Rating | Latency | Next Action | Outcome |
-|------|---------|--------|---------|-------------|---------|
+| Dimension | Bewertung | Evidenz | Impact |
+|-----------|-----------|---------|--------|
+| Auffindbarkeit | | | |
+| Latenz | | | |
+| Fehlermeldungen | | | |
+| Output-Konsistenz | | | |
+| Help-Genauigkeit | | | |
+| End-to-End-Flow | | | |
 
-## Entry Path Comparison
+## Latenz-Matrix
 
-| Entry Path | Orientation Quality | Weakest Handoff | Notes |
-|------------|---------------------|-----------------|-------|
+[Tabelle aus Phase 1]
 
-## Ambiguity Matrix
+## Fehlerkatalog
 
-| Step | Ambiguity | Why the output was not decisive | Suggested product fix |
-|------|-----------|----------------------------------|-----------------------|
+[Tabelle aus Phase 2]
 
-## Dead Ends
+## Konsistenz-Befunde
 
-| Step | What blocked progress | Evidence | Minimal fix |
-|------|----------------------|----------|-------------|
+[Tabelle aus Phase 3]
 
-## Recovery Paths
+## Auffindbarkeits-Audit
 
-| Problem | Recovery attempted | Discoverable? | Effective? |
-|---------|--------------------|---------------|------------|
+[Tabellen aus Phase 0 + 4]
 
-## Cross-Command Consistency
-
-| Finding | scan | analyze | explain/fix-plan/check | Consistent? | Impact |
-|---------|------|---------|------------------------|-------------|--------|
-
-## Highest-Value UX Improvements
+## Prioritäre Verbesserungen
 
 1. [...]
 2. [...]
 3. [...]
 ```
 
-## Decision Rule
+## Entscheidungsregel
 
-If the agent could continue only because of outside repo knowledge rather than Drift output, count that as a product gap.
+Wenn ein Agent einen Workflow nur mit Dokumentationslektüre abschließen kann, ist die CLI-UX unzureichend für Agent-Nutzung. CLI-Signale müssen für sich sprechen.
 
-## GitHub Issue Creation
+## GitHub-Issue-Erstellung
 
-At the end of the workflow, create GitHub issues in `sauremilk/drift` for each reproducible dead end, ambiguity point, or missing guidance that materially harms autonomous agent use.
+Am Ende des Workflows GitHub-Issues erstellen gemäß `.github/prompts/_partials/issue-filing.md`.
 
-### Create issues for
+**Prompt-Kürzel für Titel:** `agent-ux`
 
-- steps rated `blocked`
-- repeated `ambiguous` steps with no clear recovery hint
-- misleading outputs that point the agent toward the wrong next action
-- missing follow-up guidance that forces repo-specific guesswork
+### Issues erstellen für
 
-### Do not create issues for
+- Exit-Codes, die autonomes Recovery verhindern
+- Fehlermeldungen ohne Actionability (Score 3 oder 4)
+- Latenz-Probleme, die Agent-Schleifen unterbrechen (> 15s ohne Recovery)
+- Output-Inkonsistenzen zwischen Formaten (Klassifikation `contradiction`)
+- Help-Output, der von tatsächlichem Verhalten abweicht
 
-- ambiguity caused only by missing external context that Drift never claims to provide
-- one-off local setup noise with no product implication
-- duplicates already covered by an existing issue
+### Keine Issues erstellen für
 
-### Required issue rules
-
-- search for existing issues first
-- create one issue per concrete UX gap
-- cite the exact step, command, and evidence file
-- explain the next action the agent needed but could not infer confidently
-- use the label `agent-ux`
-
-### Issue priority
-
-Create issues in this order:
-
-1. `blocked` ratings
-2. `ambiguous` ratings with `dark` recovery
-3. `ambiguous` ratings with `pattern-match` recovery
-4. cross-command consistency discrepancies that could misdirect the next action
-
-### Issue title format
-
-`[agent-ux] <concise problem summary>`
-
-### Issue body template
-
-```markdown
-## Observed behavior
-
-[What the agent received]
-
-## Expected behavior
-
-[What the tool needed to provide for the agent to continue confidently]
-
-## Reproduction
-
-drift-Version: [VERSION]
-Step: [WORKFLOW STEP]
-Command: `drift ...`
-Evidence: [ARTIFACT PATH]
-
-## Impact
-
-- [ ] Dead end
-- [ ] Ambiguity
-- [ ] Misleading next step
-- [ ] Missing recovery guidance
-
-## Source
-
-Automatically created from `.github/prompts/drift-agent-ux.prompt.md` on [DATE].
-```
-
-### Completion output
-
-End with:
-
-```text
-Created issues:
-- #[NUMBER]: [TITLE] - [URL]
-
-Skipped issues already covered:
-- [TITLE] -> #[NUMBER]
-```
+- Subjektive Formatpräferenzen ohne Agent-Impact
+- Lokale Umgebungseffekte auf Latenz (z.B. Antivirus)
+- Duplikate bereits existierender Issues
