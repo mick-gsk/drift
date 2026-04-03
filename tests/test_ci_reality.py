@@ -240,7 +240,12 @@ class TestConcurrentExecution:
         config = _standard_config()
 
         def _run() -> float:
-            analysis = analyze_repo(DRIFT_REPO, config=config, since_days=90)
+            analysis = analyze_repo(
+                DRIFT_REPO,
+                config=config,
+                since_days=90,
+                target_path="src/drift",
+            )
             return analysis.drift_score
 
         with ThreadPoolExecutor(max_workers=2) as pool:
