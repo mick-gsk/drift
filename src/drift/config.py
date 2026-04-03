@@ -94,9 +94,9 @@ class SignalWeights(BaseModel):
     Weights are normalised internally — they don't need to sum to 1.0,
     but a warning is emitted if they deviate significantly.
 
-    As of v0.7.0 all signals are scoring-active (no report-only signals).
-    Previously report-only signals (ADR-007/008) receive conservative
-    initial weights; auto-calibration adjusts at runtime.
+    Signals can be run in report-only mode by assigning weight 0.0.
+    This keeps detection visible while removing score impact until
+    precision/recall is sufficiently validated.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -106,7 +106,7 @@ class SignalWeights(BaseModel):
     architecture_violation: float = 0.16
     mutant_duplicate: float = 0.13
     explainability_deficit: float = 0.09
-    temporal_volatility: float = 0.13
+    temporal_volatility: float = 0.0
     system_misalignment: float = 0.08
 
     # Promoted from report-only (v0.7.0)
@@ -196,7 +196,7 @@ class FindingContextPolicy(BaseModel):
         ]
     )
     non_operational_contexts: list[str] = Field(
-        default_factory=lambda: ["fixture", "generated", "migration", "docs"]
+        default_factory=lambda: ["fixture", "generated", "migration", "docs", "library"]
     )
     default_context: str = "production"
 

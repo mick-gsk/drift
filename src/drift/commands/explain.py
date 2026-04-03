@@ -119,7 +119,7 @@ _SIGNAL_INFO: dict[str, dict[str, str]] = {
     "TVS": {
         "signal_type": "temporal_volatility",
         "name": "Temporal Volatility Score",
-        "weight": "0.13",
+        "weight": "0.0 (report-only)",
         "description": (
             "Detects anomalous change frequency — files modified far more often "
             "than their peers, especially with many different authors."

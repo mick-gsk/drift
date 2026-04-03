@@ -29,6 +29,8 @@ from drift.models import (
 from drift.signals._utils import (
     _SUPPORTED_LANGUAGES,
     _TS_LANGUAGES,
+    is_library_finding_path,
+    is_likely_library_repo,
     is_test_file,
     ts_parse_source,
     ts_walk,
@@ -306,6 +308,7 @@ class NamingContractViolationSignal(BaseSignal):
     ) -> list[Finding]:
         min_loc = config.thresholds.nbv_min_function_loc
         findings: list[Finding] = []
+        library_repo = is_likely_library_repo(parse_results)
 
         for pr in parse_results:
             if pr.language not in _SUPPORTED_LANGUAGES:
@@ -378,6 +381,8 @@ class NamingContractViolationSignal(BaseSignal):
                             "prefix_rule": matched_prefix,
                             "expected_contract": description,
                             "checker": checker_name,
+                            "library_context_candidate": library_repo
+                            and is_library_finding_path(pr.file_path),
                         },
                     )
                 )

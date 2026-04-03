@@ -86,6 +86,29 @@ class TestDCATruePositive:
         assert f.metadata["dead_count"] >= 2
         assert "unused_a" in str(f.metadata["dead_symbols"])
 
+    def test_library_layout_marks_context_candidate(self) -> None:
+        pr_lib = ParseResult(
+            file_path=Path("src/mylib/contracts.py"),
+            language="python",
+            functions=[
+                _func("validate_schema", "src/mylib/contracts.py", 10),
+                _func("ensure_types", "src/mylib/contracts.py", 20),
+            ],
+            imports=[],
+        )
+        pr_other = ParseResult(
+            file_path=Path("src/mylib/utils.py"),
+            language="python",
+            functions=[_func("helper", "src/mylib/utils.py", 5)],
+            imports=[],
+        )
+
+        signal = DeadCodeAccumulationSignal()
+        findings = signal.analyze([pr_lib, pr_other], {}, DriftConfig())
+
+        assert len(findings) == 1
+        assert findings[0].metadata.get("library_context_candidate") is True
+
 
 class TestDCATrueNegative:
     """Used exports should not trigger DCA."""

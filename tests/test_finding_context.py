@@ -5,13 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 
 from drift.config import DriftConfig, FindingContextPolicy, FindingContextRule
-from drift.finding_context import classify_path_context, split_findings_by_context
+from drift.finding_context import (
+    classify_finding_context,
+    classify_path_context,
+    split_findings_by_context,
+)
 from drift.models import Finding, Severity, SignalType
 
 
-def _finding(path: str) -> Finding:
+def _finding(path: str, *, signal_type: SignalType = SignalType.PATTERN_FRAGMENTATION) -> Finding:
     return Finding(
-        signal_type=SignalType.PATTERN_FRAGMENTATION,
+        signal_type=signal_type,
         severity=Severity.HIGH,
         score=0.8,
         impact=0.8,
@@ -92,3 +96,35 @@ def test_split_findings_include_non_operational_opt_in() -> None:
 
     assert len(prioritized) == 2
     assert len(excluded) == 0
+
+
+def test_library_context_from_signal_metadata_candidate() -> None:
+    cfg = DriftConfig()
+    finding = _finding(
+        "src/core/contracts.py",
+        signal_type=SignalType.NAMING_CONTRACT_VIOLATION,
+    )
+    finding.metadata["library_context_candidate"] = True
+
+    assert classify_finding_context(finding, cfg) == "library"
+
+
+def test_split_findings_excludes_library_context_by_default() -> None:
+    cfg = DriftConfig()
+    library_finding = _finding(
+        "src/public/api.py",
+        signal_type=SignalType.DEAD_CODE_ACCUMULATION,
+    )
+    library_finding.metadata["library_context_candidate"] = True
+    findings = [library_finding, _finding("src/core/b.py")]
+
+    prioritized, excluded, counts = split_findings_by_context(
+        findings,
+        cfg,
+        include_non_operational=False,
+    )
+
+    assert len(prioritized) == 1
+    assert len(excluded) == 1
+    assert counts["library"] == 1
+    assert counts["production"] == 1

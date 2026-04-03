@@ -70,7 +70,7 @@
 
 | ID | Bereich | Fehlermodus | S | O | D | RPN | Evidenz | Gegenmaßnahme | Status |
 |----|---------|-------------|---|---|---|-----|---------|---------------|--------|
-| SC-01 | Gewichtung | TVS (weight=0.13) fließt in Score trotz 0% validierter Precision | 7 | 6 | 5 | **210** 🟡 | TVS: 30/30 Disputed; weight=0.13 (dritthöchste) beeinflusst Composite substanziell | TVS-Gewicht auf 0.0 (report-only) bis Validierung abgeschlossen; oder Confidence-Discount | **Priorität** |
+| SC-01 | Gewichtung | TVS beeinflusst Composite Score trotz 0% validierter Precision | 7 | 6 | 5 | **210** 🟡 | TVS: 30/30 Disputed; zuvor weight=0.13 mit substanzieller Score-Wirkung | TVS auf report-only gesetzt (weight=0.0) bis Validierung; optional später Confidence-Discount | **In Verifikation (2026-04-03)** |
 | SC-02 | Gewichtung | DCA-Findings (weight=0.0) rauschen nicht in Score, aber in Finding-Count und UX-Wahrnehmung | 5 | 7 | 4 | **140** 🟡 | DCA >90% FP bei Libraries (signal-audit) | Finding-Count-Display ohne report-only-Signale; klare report-only-Markierung im Output | Wünschenswert |
 | SC-03 | Breadth | Log-basierter Breadth-Faktor überhöht multi-file Findings mit geringem Score | 4 | 3 | 6 | **72** 🟢 | `impact = weight × score × (1 + log(1 + related_count))` | Cap auf Breadth-Faktor oder Minimum-Score-Gate vor Breadth-Anwendung | Niedrig |
 | SC-04 | Dampening | >10 Findings pro Signal: sub-lineares Wachstum kann echte Großprobleme abschwächen | 5 | 3 | 7 | **105** 🟡 | Dampening ab 10 Findings; bei 70 EDS-Findings → stark abgeschwächt | Differenzierte Dampening-Kurve je Signal (EDS flacher, AVS steiler) | Offen |
@@ -95,7 +95,7 @@
 
 | ID | Kontext | Fehlermodus | S | O | D | RPN | Evidenz | Gegenmaßnahme | Status |
 |----|---------|-------------|---|---|---|-----|---------|---------------|--------|
-| KX-01 | Library-Repos | DCA/DIA/NBV FP-Cluster: Library-Patterns (Re-Exports, Plugins, RFC-Namen) erzeugen systematische Fehlalarme | 8 | 7 | 6 | **336** 🔴 | signal-audit: DCA >90% FP, DIA ~40% FP, NBV ~50% FP bei Libraries | Automatische Library-Erkennung (`setup.py`, `pyproject.toml [project]`); Context-Tag `library` → Signal-Anpassung | **Priorität** |
+| KX-01 | Library-Repos | DCA/DIA/NBV FP-Cluster: Library-Patterns (Re-Exports, Plugins, RFC-Namen) erzeugen systematische Fehlalarme | 8 | 7 | 6 | **336** 🔴 | signal-audit: DCA >90% FP, DIA ~40% FP, NBV ~50% FP bei Libraries | Automatische Library-Erkennung + `finding_context=library` für DCA/DIA/NBV; Feldvalidierung auf externen Library-Repos | **In Verifikation (2026-04-03)** |
 | KX-02 | Monorepos | PFS/AVS Overload: Hunderte Module → Finding-Explosion | 6 | 4 | 5 | **120** 🟡 | Frappe-Audit: 1.179 Dateien, 913 Findings | Module-Scoping per `path_overrides`; Standard-Empfehlung in Dokumentation | Wünschenswert |
 | KX-03 | Minimale Repos | EDS/SMS Noise: <10 Dateien → Signale statistisch nicht aussagekräftig | 4 | 5 | 4 | **80** 🟢 | Arrow-Audit: 10 Dateien, 20 Findings (akzeptabel) | Minimum-File-Count-Gate pro Signal; Warnung unter Schwelle | Niedrig |
 | KX-04 | Ungewöhnl. Git-History | Squash-Merges, Force-Pushes → TVS/CCC können nicht sinnvoll kalkulieren | 5 | 3 | 7 | **105** 🟡 | Nicht systematisch getestet; TVS 30/30 Disputed | Git-History-Qualitätscheck vor Temporal-Signalen; Confidence-Marker | Offen |
@@ -107,11 +107,11 @@
 | Rang | ID | Fehlermodus | RPN | Kategorie | Status |
 |------|----|-------------|-----|-----------|--------|
 | 1 | FP-01 | DCA Library-Exports als Dead Code | **720** 🔴 | FP | Report-only (mitigiert durch weight=0.0) |
-| 2 | KX-01 | Library-FP-Cluster (DCA/DIA/NBV) | **336** 🔴 | Kontext | **Priorität** |
+| 2 | KX-01 | Library-FP-Cluster (DCA/DIA/NBV) | **336** 🔴 | Kontext | **In Verifikation (2026-04-03)** |
 | 3 | FP-02 | DIA URL-Fragmente als Missing Dirs | **288** 🟡 | FP | Offen |
 | 4 | FN-01 | SMS: neuartige Dependencies unerkannt | **256** 🟡 | FN | **Priorität** |
 | 5 | FP-03 | AVS Duplikate | **252** 🟡 | FP | **In Verifikation (2026-04-03)** |
-| 6 | SC-01 | TVS im Score trotz 0% Validation | **210** 🟡 | Scoring | **Priorität** |
+| 6 | SC-01 | TVS im Score trotz 0% Validation | **210** 🟡 | Scoring | **In Verifikation (2026-04-03)** |
 | 7 | FN-02 | PFS: 2-Varianten-Lücke | **210** 🟡 | FN | Offen |
 | 8 | FN-03 | AVS: dynamische Imports unsichtbar | **189** 🟡 | FN | Offen |
 | 9 | FP-05 | PFS Verzeichnis-Redundanz | **175** 🟡 | FP | Wünschenswert |

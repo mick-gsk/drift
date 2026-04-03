@@ -49,10 +49,12 @@ policies:
     assert config.policies.max_pattern_variants == {"error_handling": 2}
 
 
-def test_weight_sum_approximately_one():
+def test_weight_sum_with_report_only_signals_remains_reasonable():
     w = DriftConfig().weights
     total = sum(w.as_dict().values())
-    assert abs(total - 1.0) < 0.02
+    # Some signals can be intentionally report-only (weight=0.0), so the
+    # default sum need not be exactly 1.0 but should stay in a stable range.
+    assert 0.85 <= total <= 1.05
 
 
 def test_load_yaml_unknown_top_level_key_raises(tmp_path: Path):

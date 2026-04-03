@@ -45,7 +45,7 @@ _register(
             "pattern_fragmentation": 0.16,
             "architecture_violation": 0.16,
             "mutant_duplicate": 0.13,
-            "temporal_volatility": 0.13,
+            "temporal_volatility": 0.0,
             "explainability_deficit": 0.09,
             "system_misalignment": 0.08,
             "doc_impl_drift": 0.04,
@@ -87,7 +87,7 @@ _register(
             "pattern_fragmentation": 0.18,
             # Architecture erosion
             "architecture_violation": 0.14,
-            "temporal_volatility": 0.10,
+            "temporal_volatility": 0.0,
             "system_misalignment": 0.08,
             # ↑ Explainability + quality bypass (AI-specific deficit patterns)
             "explainability_deficit": 0.10,
@@ -147,7 +147,7 @@ _register(
             "pattern_fragmentation": 0.16,
             "architecture_violation": 0.16,
             "mutant_duplicate": 0.13,
-            "temporal_volatility": 0.13,
+            "temporal_volatility": 0.0,
             "explainability_deficit": 0.09,
             "system_misalignment": 0.08,
             "doc_impl_drift": 0.04,

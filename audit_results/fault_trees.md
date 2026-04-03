@@ -75,8 +75,8 @@
 | DIA-URL-FP | B3 AND B4 → Signal-FP → TOP | Hoch bei Repos mit Badges | URL-Pattern-Exclusion in DIA |
 | NBV-Domain-FP | B5 AND B6 → Signal-FP → TOP | Mittel bei Krypto/Type-Code | Domain-Whitelist einführen |
 | AVS-Dedup-FP | B7 AND B8 → Dedup-Fehler → TOP | Niedrig bis Mittel | Cross-Pass-Dedup implementiert (2026-04-03), Monitoring aktiv |
-| TVS-Score-FP | SC-01 direkt → Scoring-Inflation → TOP | Hoch (TVS weight=0.13 ohne Validierung) | TVS report-only oder Confidence-Discount |
-| Library-Context-FP | B9 AND B10 → Kontext-Mismatch → TOP | Hoch bei Libraries | Automatische Kontext-Erkennung |
+| TVS-Score-FP | SC-01 direkt → Scoring-Inflation → TOP | Niedrig bis Mittel (TVS report-only aktiv) | TVS report-only implementiert (2026-04-03); Confidence-Discount optional bei Re-Aktivierung |
+| Library-Context-FP | B9 AND B10 → Kontext-Mismatch → TOP | Mittel bis Hoch (Rollout in Verifikation) | Library-Kontext-Erkennung für DCA/DIA/NBV implementiert (2026-04-03); Feldvalidierung läuft |
 | HSC-Symbol-FP | B11 AND B12 → Signal-FP → TOP | Mittel | Enum-/Schema-Kontext-Suppression im HSC-Signal |
 
 ---

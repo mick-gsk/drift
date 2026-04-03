@@ -20,14 +20,14 @@ $$\text{signal\_score} = \overline{s} \times \min\!\left(1,\; \frac{\ln(1 + n)}{
 
 ## Default Weights (v0.8.0)
 
-All 15 signals are scoring-active. Weights are normalised at runtime; `auto_calibrate` (default: on) rebalances based on signal variance.
+14 signals are currently scoring-active. TVS is currently report-only (`weight=0.0`) pending re-validation. Weights are normalised at runtime; `auto_calibrate` (default: on) rebalances based on signal variance.
 
 | Signal | Weight | Rationale |
 |---|---|---|
 | Pattern Fragmentation (PFS) | 0.16 | Highest ablation-study impact on F1 |
 | Architecture Violation (AVS) | 0.16 | Critical for maintainability |
 | Mutant Duplicate (MDS) | 0.13 | Common AI pattern |
-| Temporal Volatility (TVS) | 0.13 | Predictive of future bugs |
+| Temporal Volatility (TVS) | 0.0 (report-only) | Temporarily score-neutral until precision is re-validated |
 | Explainability Deficit (EDS) | 0.09 | Important but noisy |
 | System Misalignment (SMS) | 0.08 | Cross-module novelty detection |
 | Doc-Implementation Drift (DIA) | 0.04 | Promoted from report-only (v0.7.0) |

@@ -19,6 +19,7 @@ from typing import Any
 
 from drift.config import DriftConfig
 from drift.models import FileHistory, Finding, ParseResult, Severity, SignalType
+from drift.signals._utils import is_library_finding_path, is_likely_library_repo
 from drift.signals.base import BaseSignal, register_signal
 
 logger = logging.getLogger("drift.dia")
@@ -297,6 +298,7 @@ class DocImplDriftSignal(BaseSignal):
         config: DriftConfig,
     ) -> list[Finding]:
         findings: list[Finding] = []
+        library_repo = is_likely_library_repo(parse_results)
         repo_path = self.repo_path
         if repo_path is None:
             return findings
@@ -357,7 +359,11 @@ class DocImplDriftSignal(BaseSignal):
                                 f"Remove '{ref}/' from README.md or create the"
                                 f" directory."
                             ),
-                        metadata={"referenced_dir": ref},
+                        metadata={
+                            "referenced_dir": ref,
+                            "library_context_candidate": library_repo
+                            and is_library_finding_path(readme_path.relative_to(repo_path)),
+                        },
                     )
                 )
 
@@ -384,13 +390,22 @@ class DocImplDriftSignal(BaseSignal):
                                     f"Add a section for '{src_dir}/' to README.md"
                                     f" with a short description of the module."
                             ),
-                            metadata={"undocumented_dir": src_dir},
+                            metadata={
+                                "undocumented_dir": src_dir,
+                                "library_context_candidate": library_repo
+                                and is_library_finding_path(Path(src_dir)),
+                            },
                         )
                     )
 
         # ── ADR / architecture doc scanning ──
         findings.extend(
-            self._scan_adr_files(parse_results, source_dirs, actual_imports)
+            self._scan_adr_files(
+                parse_results,
+                source_dirs,
+                actual_imports,
+                library_repo=library_repo,
+            )
         )
 
         return findings
@@ -400,6 +415,8 @@ class DocImplDriftSignal(BaseSignal):
         parse_results: list[ParseResult],
         source_dirs: set[str],
         actual_imports: set[str],
+        *,
+        library_repo: bool,
     ) -> list[Finding]:
         """Scan ADR and architecture docs for stale directory claims."""
         findings: list[Finding] = []
@@ -449,6 +466,8 @@ class DocImplDriftSignal(BaseSignal):
                                 metadata={
                                     "referenced_dir": ref,
                                     "adr_file": rel_path.as_posix(),
+                                    "library_context_candidate": library_repo
+                                    and is_library_finding_path(rel_path),
                                 },
                             )
                         )

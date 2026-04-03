@@ -17,6 +17,13 @@ if TYPE_CHECKING:
     from drift.models import Finding
 
 
+_LIBRARY_CONTEXT_SIGNALS: frozenset[str] = frozenset({
+    "dead_code_accumulation",
+    "doc_impl_drift",
+    "naming_contract_violation",
+})
+
+
 def _normalise_context(raw: str | None, *, fallback: str = "production") -> str:
     if not raw:
         return fallback
@@ -92,6 +99,8 @@ def classify_finding_context(finding: Finding, config: DriftConfig) -> str:
     tags = metadata.get("context_tags")
     if isinstance(tags, list):
         lowered = {_normalise_context(str(tag)) for tag in tags}
+        if "library" in lowered:
+            return "library"
         if "fixture" in lowered:
             return "fixture"
         if "generated" in lowered:
@@ -100,6 +109,13 @@ def classify_finding_context(finding: Finding, config: DriftConfig) -> str:
             return "migration"
         if "docs" in lowered:
             return "docs"
+
+    signal_type = str(getattr(finding, "signal_type", "")).strip().lower()
+    if (
+        signal_type in _LIBRARY_CONTEXT_SIGNALS
+        and metadata.get("library_context_candidate") is True
+    ):
+        return "library"
 
     generated_markers = metadata.get("generated") is True or metadata.get("is_generated") is True
     if generated_markers:

@@ -27,7 +27,12 @@ from drift.models import (
     Severity,
     SignalType,
 )
-from drift.signals._utils import _SUPPORTED_LANGUAGES, is_test_file
+from drift.signals._utils import (
+    _SUPPORTED_LANGUAGES,
+    is_library_finding_path,
+    is_likely_library_repo,
+    is_test_file,
+)
 from drift.signals.base import BaseSignal, register_signal
 
 # Files that typically re-export or serve as entry points.
@@ -127,6 +132,7 @@ class DeadCodeAccumulationSignal(BaseSignal):
         config: DriftConfig,
     ) -> list[Finding]:
         ignore_re_exports = config.thresholds.dca_ignore_re_exports
+        library_repo = is_likely_library_repo(parse_results)
 
         # Phase 1: collect all exported (public) symbols per file
         # symbol_name → list of (file_path, kind, start_line)
@@ -253,6 +259,8 @@ class DeadCodeAccumulationSignal(BaseSignal):
                         "dead_count": dead_count,
                         "total_exports": total_exports,
                         "dead_ratio": round(dead_ratio, 3),
+                        "library_context_candidate": library_repo
+                        and is_library_finding_path(file_path),
                     },
                     rule_id="dead_code_accumulation",
                 )

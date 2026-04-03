@@ -47,7 +47,21 @@ Navigations-Guide: `.github/prompts/README.md`
 |-------|-------|
 | `_partials/bewertungs-taxonomie.md` | Einheitliche Bewertungs-Labels |
 | `_partials/konventionen.md` | Gemeinsame Konventionen (Policy Gate, Pfade, Sandbox) |
-| `_partials/issue-filing.md` | Konsolidiertes Issue-Filing-Template |
+| `_partials/issue-filing.md` | Issue-Filing-Template (interne Prompts) |
+| `_partials/issue-filing-external.md` | Issue-Filing-Template (Field-Tests, Cross-Repo) |
+
+---
+
+## Field-Test-Prompts (externe Repos)
+
+Prompts unter `.github/prompts/field-tests/` testen drift in **beliebigen Repositories**.
+Issues gehen an `sauremilk/drift`. Details: `.github/prompts/field-tests/README.md`
+
+| Prompt | Zweck | Empfohlene Reihenfolge |
+|--------|-------|------------------------|
+| `drift-field-test` | Smoke-Test: Funktioniert drift? | 1 |
+| `drift-finding-audit` | Tiefenprüfung: Findings korrekt? | 2 |
+| `drift-context-eval` | Kontext-Qualität für AI-Workflows | 3 |
 
 ---
 

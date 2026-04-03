@@ -112,7 +112,7 @@ Dieses Risk Register gilt für drift-analyzer als:
 
 | ID | Kategorie | Risiko | RPN/Schwere | Quelle | Owner | Metrik | Schwelle | Gegenmaßnahme | Status | Review |
 |----|-----------|--------|-------------|--------|-------|--------|----------|---------------|--------|--------|
-| **RQ-01** | Erkennungsqualität | DCA meldet Library-Exports als Dead Code → >90% FP bei Libraries | RPN 720 🔴 | FMEA FP-01, FTA B1/B2 | Maintainer | DCA FP-Rate | ≤ 30% | weight=0.0 (report-only); Library-Heuristik implementieren | **Mitigiert** (report-only); Fix ausstehend | Q2 2026 |
+| **RQ-01** | Erkennungsqualität | DCA meldet Library-Exports als Dead Code → >90% FP bei Libraries | RPN 720 🔴 | FMEA FP-01, FTA B1/B2 | Maintainer | DCA FP-Rate | ≤ 30% | weight=0.0 (report-only); Library-Kontext-Erkennung für DCA/DIA/NBV implementiert, Feldvalidierung ausstehend | **In Verifikation** (2026-04-03) | Q2 2026 |
 | **RQ-02** | Erkennungsqualität | DIA parst URLs als fehlende Verzeichnisse → ~40% FP | RPN 288 🟡 | FMEA FP-02, FTA B3/B4 | Maintainer | DIA FP-Rate | ≤ 30% | URL-Fragment-Exclusion in DIA-Parser | **Offen** | Q2 2026 |
 | **RQ-03** | Erkennungsqualität | AVS-Findings doppelt gemeldet → +15–20% Noise | RPN 252 🟡 | FMEA FP-03, FTA B7/B8 | Maintainer | AVS Dedup-Rate | 0% Duplikate | Cross-Pass-Deduplication (import-edge key im AVS-Signal) | **In Verifikation** (Fix implementiert 2026-04-03, Benchmark-Delta ausstehend) | Q2 2026 |
 | **RQ-04** | Erkennungsqualität | SMS erkennt neuartige Dependencies nicht → Recall 0.0 | RPN 256 🟡 | FMEA FN-01, FTA C1 | Maintainer | SMS Mutation-Recall | ≥ 0.50 | Import-Pattern-Erweiterung | **Offen** | Q2 2026 |
@@ -120,7 +120,7 @@ Dieses Risk Register gilt für drift-analyzer als:
 | **RQ-06** | Erkennungsqualität | TSA kann in Legacy-TS-Repos ohne Layer-Kontrakt übermelden (FP-Risiko) | RPN 120 🟡 | FMEA FP-09, FTA FT-1 TSA-Pfad | Maintainer | TSA FP-Rate | ≤ 30% | Report-only behalten; TS-Repo-Validierung vor Weight-Promotion | **Neu** | Q2 2026 |
 | **RQ-07** | Erkennungsqualität | TSA kann dynamische Imports/Alias-Pfade übersehen (FN-Risiko) | RPN 168 🟡 | FMEA FN-08, FTA FT-2 TSA-Pfad | Maintainer | TSA Mutation-Recall | ≥ 0.50 | TS-spezifische Recall-Suite + Resolver-Heuristik | **Neu** | Q2 2026 |
 | **RQ-08** | Erkennungsqualität | HSC markiert Enum-/Schema-Symbolkonstanten als Hardcoded Secret (FP-Risiko) | RPN 150 🟡 | FMEA FP-10, FTA FT-1 HSC-Pfad | Maintainer | HSC FP-Rate in Symbolkontexten | ≤ 5% | Kontext-Suppression für Enum-Member + symbolische self-mapping Literale; TP-Prefix-Erkennung beibehalten | **Mitigiert** (Issue #46) | Q2 2026 |
-| **RC-01** | Kontext | Library-Repos produzieren systematisch FP-Cluster (DCA/DIA/NBV) | RPN 336 🔴 | FMEA KX-01, FTA B9/B10 | Maintainer | FP-Rate bei Library-Repos | ≤ 30% gesamt | Automatische Library-Erkennung; Context-Tag; Signal-Anpassung | **Offen** | Q2 2026 |
+| **RC-01** | Kontext | Library-Repos produzieren systematisch FP-Cluster (DCA/DIA/NBV) | RPN 336 🔴 | FMEA KX-01, FTA B9/B10 | Maintainer | FP-Rate bei Library-Repos | ≤ 30% gesamt | Library-Kontext-Erkennung ausgerollt: `library_context_candidate` + `finding_context=library` für DCA/DIA/NBV; Präzisionsmessung auf externen Library-Repos | **In Verifikation** (2026-04-03) | Q2 2026 |
 | **RS-01** | Sicherheit | Config in Fork/PR kann kritische Signale deaktivieren | Mittel | STRIDE S-TB2-01, T-TB2-01 | Maintainer | — | — | `--no-repo-config` Option; Warnung bei >50% Core-Signale deaktiviert | **Offen** | Q3 2026 |
 | **RS-02** | Sicherheit | AI-Attribution heuristisch manipulierbar (Co-author-Spoofing) | Mittel | STRIDE S-TB4-01, R-TB4-01 | Maintainer | — | — | „Heuristisch" Marker; Confidence-Level; Docs-Einschränkung | **Akzeptiert** (Design-Limitation) | Q4 2026 |
 | **RS-03** | Sicherheit | related_files leaken Pfade außerhalb target-path | Mittel | STRIDE I-TB5-01 | Maintainer | — | 0 Pfade außerhalb Scope | Related-files auf target-path filtern | **Offen** | Q2 2026 |
@@ -142,7 +142,7 @@ Dieses Risk Register gilt für drift-analyzer als:
 | Prio | Maßnahme | Risk-IDs | Aufwand | RPN-Reduktion | Roadmap-Phase |
 |------|----------|----------|---------|---------------|---------------|
 | 1 | **Degradation-Badge + Coverage-Metric** | RD-01, RD-02 | Niedrig | -57% auf DG-01/02/03 | Phase 1 (Vertrauen) |
-| 2 | **Library-Kontext-Erkennung** | RQ-01, RC-01 | Mittel | -67% auf FP-01, -60% auf KX-01 | Phase 1 (Vertrauen) |
+| 2 | **Library-Kontext-Erkennung** | RQ-01, RC-01 | Mittel | -67% auf FP-01, -60% auf KX-01 | **In Verifikation (2026-04-03)** |
 | 3 | **TVS report-only (Monitoring) / Confidence-Discount optional** | RM-01 | Niedrig | -100% Score-Impact (TVS) | Phase 1 (Vertrauen) |
 | 4 | **External Precision Validation (Rating-Kit)** | RM-02 | Mittel | Validiert Metriken-Framework | Phase 1 (Vertrauen) |
 | 5 | **SMS Import-Pattern-Update** | RQ-04 | Niedrig | -50% auf FN-01 | Phase 2 (Relevanz) |

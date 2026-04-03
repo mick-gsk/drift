@@ -30,13 +30,13 @@ exclude:
   - "**/examples/**"
   - "**/site/**"  # Generated documentation output (e.g. mkdocs)
 
-# Signal weights (should sum to ~1.0)
+# Signal weights (can be below ~1.0 when some signals are report-only)
 weights:
   # Core signals (ablation-validated)
   pattern_fragmentation: 0.16
   architecture_violation: 0.16
   mutant_duplicate: 0.13
-  temporal_volatility: 0.13
+  temporal_volatility: 0.0  # report-only until re-validation
   explainability_deficit: 0.09
   system_misalignment: 0.08
   # Promoted from report-only in v0.7.0

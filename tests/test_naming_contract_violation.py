@@ -363,3 +363,24 @@ def validate_response(resp: dict) -> dict:
         )
         findings = _run([pr])
         assert findings == []
+
+
+class TestLibraryContext:
+    def test_library_layout_marks_context_candidate(self, tmp_path: Path):
+        pr = _write_and_parse(
+            tmp_path,
+            "src/mylib/contracts.py",
+            '''\
+def validate_contract(payload: dict) -> dict:
+    """Validate contract shape."""
+    normalized = {}
+    for key in payload:
+        normalized[key] = payload[key]
+    return normalized
+''',
+        )
+
+        findings = _run([pr], repo_path=tmp_path)
+
+        assert len(findings) == 1
+        assert findings[0].metadata.get("library_context_candidate") is True

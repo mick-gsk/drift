@@ -85,8 +85,25 @@ jobs:
           New-Item -ItemType Directory -Force -Path $env:AGENT_TOOLSDIRECTORY | Out-Null
           Write-Host "Using isolated tool cache: $env:AGENT_TOOLSDIRECTORY"
 
+      - name: Probe local py launcher
+        id: probe_py
+        shell: powershell
+        run: |
+          $requested = "${{ matrix.python-version }}"
+          $hasLocal = $false
+
+          if (Get-Command py -ErrorAction SilentlyContinue) {
+            py -$requested --version
+            if ($LASTEXITCODE -eq 0) {
+              $hasLocal = $true
+            }
+          }
+
+          "has_local_python=$($hasLocal.ToString().ToLower())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Setup Python from toolcache (preferred)
         id: setup_python
+        if: steps.probe_py.outputs.has_local_python != 'true'
         uses: actions/setup-python@v5
         continue-on-error: true
         with:
@@ -139,7 +156,7 @@ jobs:
 
           & $venvPython --version
           "PYTHON_BIN=$venvPython" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Output "Resolved Python via $source: $venvPython"
+          Write-Output ("Resolved Python via {0}: {1}" -f $source, $venvPython)
 
       - name: Install dependencies
         shell: powershell

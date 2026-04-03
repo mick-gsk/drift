@@ -33,6 +33,19 @@ Für eine umfassende Drift-Bewertung diese Prompts in dieser Reihenfolge ausfüh
 | PR bewerten und Merge-Entscheidung treffen | **PR-Orchestrator** |
 | Neue Version veröffentlichen | **release** |
 
+## Field-Test-Prompts (externe Repos)
+
+Prompts unter `field-tests/` testen drift in **beliebigen Repositories** — nicht nur im Drift-Repo.
+Details: [field-tests/README.md](field-tests/README.md)
+
+| Prompt | Zweck | Voraussetzung |
+|--------|-------|---------------|
+| [drift-field-test](field-tests/drift-field-test.prompt.md) | Smoke-Test: Funktioniert drift in diesem Repo? | Keine |
+| [drift-finding-audit](field-tests/drift-finding-audit.prompt.md) | Tiefenprüfung: Findings korrekt? TP/FP/FN | field-test = `pass` |
+| [drift-context-eval](field-tests/drift-context-eval.prompt.md) | Kontext-Qualität: Exports nützlich für AI? | field-test = `pass` |
+
+**Issues gehen an `sauremilk/drift`**, nicht ans analysierte Ziel-Repo.
+
 ## Shared Components
 
 Alle Prompts nutzen gemeinsame Referenz-Dateien unter `_partials/`:
@@ -41,7 +54,8 @@ Alle Prompts nutzen gemeinsame Referenz-Dateien unter `_partials/`:
 |-------|--------|
 | [`_partials/bewertungs-taxonomie.md`](_partials/bewertungs-taxonomie.md) | Einheitliches Bewertungssystem (Labels, Scores, Klassifikationen) |
 | [`_partials/konventionen.md`](_partials/konventionen.md) | Policy-Gate-Pflicht, Datumsformat, Artefakt-Pfade, Sandbox-Erstellung |
-| [`_partials/issue-filing.md`](_partials/issue-filing.md) | Einheitliches GitHub-Issue-Template für alle Prompts |
+| [`_partials/issue-filing.md`](_partials/issue-filing.md) | Issue-Template für interne Prompts |
+| [`_partials/issue-filing-external.md`](_partials/issue-filing-external.md) | Issue-Template für Field-Test-Prompts (Cross-Repo) |
 
 ## Beziehung zum Instructions/Skills-Ökosystem
 

@@ -70,6 +70,10 @@ class TestResolveSignalNames:
 
 
 class TestApplySignalFilter:
+    def test_default_tvs_is_report_only(self):
+        cfg = DriftConfig()
+        assert cfg.weights.temporal_volatility == 0.0
+
     def test_select_keeps_only_selected(self):
         cfg = DriftConfig()
         apply_signal_filter(cfg, select="PFS,AVS", ignore=None)

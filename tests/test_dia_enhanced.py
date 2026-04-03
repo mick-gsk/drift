@@ -277,3 +277,28 @@ class TestAdrScanning:
             f.title == "ADR references missing directory: controllers/"
             for f in findings
         )
+
+
+class TestDiaLibraryContext:
+    def test_library_layout_marks_context_candidate(self, tmp_path):
+        from drift.config import DriftConfig
+        from drift.ingestion.ast_parser import parse_file
+        from drift.ingestion.file_discovery import discover_files
+        from drift.signals.doc_impl_drift import DocImplDriftSignal
+
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / "README.md").write_text("# Library\n\nUsage examples only.\n")
+        (repo / "src").mkdir()
+        (repo / "src" / "mylib.py").write_text("def public_api() -> None:\n    pass\n")
+
+        cfg = DriftConfig(include=["**/*.py"], exclude=["**/__pycache__/**"])
+        files = discover_files(repo, cfg.include, cfg.exclude)
+        parse_results = [parse_file(f.path, repo, f.language) for f in files]
+
+        signal = DocImplDriftSignal(repo_path=repo)
+        findings = signal.analyze(parse_results, {}, cfg)
+
+        src_findings = [f for f in findings if f.metadata.get("undocumented_dir") == "src"]
+        assert src_findings
+        assert src_findings[0].metadata.get("library_context_candidate") is True
