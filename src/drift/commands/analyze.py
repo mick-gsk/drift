@@ -207,10 +207,13 @@ def analyze(
         cfg.embeddings_enabled = False
     if embedding_model:
         cfg.embedding_model = embedding_model
+    active_signals: set[str] | None = None
     if select_signals or ignore_signals:
-        from drift.config import apply_signal_filter
+        from drift.config import apply_signal_filter, resolve_signal_names
 
         apply_signal_filter(cfg, select_signals, ignore_signals)
+        if select_signals:
+            active_signals = set(resolve_signal_names(select_signals))
 
     # For machine-readable formats, send progress to stderr so stdout stays clean
     progress_console = Console(stderr=True) if output_format != "rich" else effective_console
@@ -242,6 +245,7 @@ def analyze(
             target_path=path,
             on_progress=None if quiet else _on_progress,
             workers=workers if workers is not None else _DEFAULT_WORKERS,
+            active_signals=active_signals,
         )
         if not quiet and task_id is not None:
             progress.update(task_id, completed=_last_total)

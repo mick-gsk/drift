@@ -231,6 +231,13 @@ class IngestionPhase:
                 file_hashes[finfo.path.as_posix()] = content_hash
                 hit = cache.get(content_hash)
                 if hit is not None:
+                    # Fix stale path: cache is keyed by content hash,
+                    # so a hit may carry a file_path from a different
+                    # file with identical content (#115).
+                    if hit.file_path != finfo.path:
+                        hit.file_path = finfo.path
+                        for func in hit.functions:
+                            func.file_path = finfo.path
                     cached_results[idx] = hit
                     continue
             except OSError:

@@ -365,13 +365,25 @@ def render_findings(
         return
 
     if sort_by == "score":
-        sorted_findings = sorted(findings, key=lambda f: f.score, reverse=True)
+        sorted_findings = sorted(
+            findings,
+            key=lambda f: (
+                -f.score,
+                f.signal_type.value,
+                f.file_path.as_posix() if f.file_path else "",
+                f.start_line or 0,
+            ),
+        )
     else:
         # Sort by impact if available, fall back to score
         sorted_findings = sorted(
             findings,
-            key=lambda f: (f.impact if f.impact > 0 else f.score),
-            reverse=True,
+            key=lambda f: (
+                -(f.impact if f.impact > 0 else f.score),
+                f.signal_type.value,
+                f.file_path.as_posix() if f.file_path else "",
+                f.start_line or 0,
+            ),
         )
 
     table = Table(title="Findings", show_lines=True)

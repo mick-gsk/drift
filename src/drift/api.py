@@ -178,7 +178,15 @@ def _diverse_findings(findings: list, max_findings: int) -> list:
     1. One top finding per signal with score >= 0.5 (sorted by score desc)
     2. Fill remaining slots with highest-scored remaining findings
     """
-    by_score = sorted(findings, key=lambda f: f.impact, reverse=True)
+    by_score = sorted(
+        findings,
+        key=lambda f: (
+            -f.impact,
+            f.signal_type.value,
+            f.file_path.as_posix() if f.file_path else "",
+            f.start_line or 0,
+        ),
+    )
 
     # Phase 1: one top finding per signal (score >= 0.5)
     seen_signals: set[str] = set()
@@ -225,7 +233,13 @@ def _format_scan_response(
         limited = _diverse_findings(selected_findings, max_findings)
     else:
         ranked = sorted(
-            selected_findings, key=lambda f: f.impact, reverse=True,
+            selected_findings,
+            key=lambda f: (
+                -f.impact,
+                f.signal_type.value,
+                f.file_path.as_posix() if f.file_path else "",
+                f.start_line or 0,
+            ),
         )
         limited = ranked[:max_findings]
 
