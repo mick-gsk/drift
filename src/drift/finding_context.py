@@ -74,7 +74,7 @@ def _ensure_metadata_dict(finding: Finding) -> dict[str, object]:
         return meta
     new_meta: dict[str, object] = {}
     try:
-        setattr(finding, "metadata", new_meta)
+        finding.metadata = new_meta
     except Exception:
         # Fallback for objects that disallow attribute writes.
         return new_meta
