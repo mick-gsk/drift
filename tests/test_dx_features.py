@@ -41,6 +41,14 @@ class TestExplainSignalData:
         signal_type = _SIGNAL_INFO[abbr]["signal_type"]
         assert signal_type in _LOOKUP
 
+    @pytest.mark.parametrize("abbr", ["GCD", "NBV"])
+    def test_gcd_nbv_include_trigger_contract_metadata(self, abbr: str) -> None:
+        info = _SIGNAL_INFO[abbr]
+        assert "trigger_contract" in info
+        contract = info["trigger_contract"]
+        assert isinstance(contract, dict)
+        assert "thresholds" in contract
+
 
 class TestExplainCLI:
     """Test the Click command interface for explain."""
@@ -74,6 +82,13 @@ class TestExplainCLI:
         # Should show multi-signal table
         assert "PFS" in result.output
         assert "AVS" in result.output
+
+    @pytest.mark.parametrize("abbr", ["GCD", "NBV"])
+    def test_explain_shows_trigger_contract_for_signal(self, cli_runner, abbr: str) -> None:
+        result = cli_runner.invoke(explain, [abbr])
+        assert result.exit_code == 0
+        assert "Trigger contract" in result.output
+        assert "Thresholds" in result.output
 
 
 # ---------------------------------------------------------------------------
@@ -362,6 +377,22 @@ class TestExplainOutput:
         assert data["abbreviation"] == "PFS"
         assert "description" in data
         assert "fix_hint" in data
+
+    @pytest.mark.parametrize("abbr", ["GCD", "NBV"])
+    def test_explain_signal_output_includes_trigger_contract(
+        self,
+        cli_runner,
+        tmp_path,
+        abbr: str,
+    ) -> None:
+        import json
+
+        out = tmp_path / f"{abbr.lower()}_explain.json"
+        result = cli_runner.invoke(explain, [abbr, "-o", str(out)])
+        assert result.exit_code == 0
+        data = json.loads(out.read_text(encoding="utf-8"))
+        assert "trigger_contract" in data
+        assert "thresholds" in data["trigger_contract"]
 
     def test_explain_list_output_file(self, cli_runner, tmp_path) -> None:
         import json

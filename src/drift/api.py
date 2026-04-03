@@ -931,6 +931,7 @@ def explain(topic: str, *, repo_path: str | Path | None = None) -> dict[str, Any
                 detection_logic=info.get("detects", ""),
                 typical_cause="Multiple AI sessions or copy-paste-modify patterns.",
                 remediation_approach=info.get("fix_hint", ""),
+                trigger_contract=info.get("trigger_contract"),
                 related_signals=_related_signals(upper),
             )
             if repo_path:

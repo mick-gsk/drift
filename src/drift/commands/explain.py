@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -12,7 +13,7 @@ from drift.commands import console
 # Each entry: (abbreviation, SignalType value, full name, short description,
 #              what_it_detects, example, default_weight, tuning_hint)
 
-_SIGNAL_INFO: dict[str, dict[str, str]] = {
+_SIGNAL_INFO: dict[str, dict[str, Any]] = {
     "PFS": {
         "signal_type": "pattern_fragmentation",
         "name": "Pattern Fragmentation Score",
@@ -257,6 +258,36 @@ _SIGNAL_INFO: dict[str, dict[str, str]] = {
             "Add guard clauses at function entry: validate types, ranges, "
             "and preconditions before proceeding with business logic."
         ),
+        "trigger_contract": {
+            "scope": [
+                "Supported source languages only (Python/TypeScript/JavaScript).",
+                "Skips test files and index/init aggregator files.",
+            ],
+            "qualifying_function": [
+                "Public function name (no leading underscore).",
+                "At least 2 parameters.",
+                "Complexity >= 5.",
+            ],
+            "thresholds": {
+                "gcd_min_public_functions": 3,
+                "guarded_ratio_trigger_lt": 0.15,
+                "gcd_max_nesting_depth": 4,
+            },
+            "guard_clause_heuristics": [
+                "isinstance(param, ...)",
+                "assert statements referencing parameters",
+                "single-branch if that raises or returns",
+                (
+                    "validation decorators "
+                    "(validate/validator/validate_call/typechecked/beartype) "
+                    "count as guarded"
+                ),
+            ],
+            "trigger_when": [
+                "A module has at least gcd_min_public_functions qualifying functions.",
+                "The module-level guarded ratio is below 0.15.",
+            ],
+        },
     },
     "NBV": {
         "signal_type": "naming_contract_violation",
@@ -282,6 +313,30 @@ _SIGNAL_INFO: dict[str, dict[str, str]] = {
             "Align implementation with naming contract: validate_* should "
             "raise on invalid input or return bool. Rename if behavior is intentional."
         ),
+        "trigger_contract": {
+            "scope": [
+                "Supported source languages only (Python/TypeScript/JavaScript).",
+                "Skips test files.",
+            ],
+            "qualifying_function": [
+                "Public function name (no leading underscore).",
+                "Function LOC >= nbv_min_function_loc.",
+                (
+                    "Name matches a contract prefix "
+                    "(validate_, check_, ensure_, get_or_create_, is_, has_, try_)."
+                ),
+            ],
+            "thresholds": {
+                "nbv_min_function_loc": 3,
+            },
+            "trigger_when": [
+                "The function name matches a supported contract prefix.",
+                "Its corresponding contract checker fails.",
+            ],
+            "notes": [
+                "Single matching function can trigger a finding; no module density threshold.",
+            ],
+        },
     },
     "BAT": {
         "signal_type": "bypass_accumulation",
@@ -577,7 +632,7 @@ _SIGNAL_INFO: dict[str, dict[str, str]] = {
 }
 
 # Build a lookup by abbreviation (case-insensitive) and by signal_type value
-_LOOKUP: dict[str, dict[str, str]] = {}
+_LOOKUP: dict[str, dict[str, Any]] = {}
 for _abbr, _info in _SIGNAL_INFO.items():
     _LOOKUP[_abbr.lower()] = _info
     _LOOKUP[_info["signal_type"]] = _info
@@ -585,6 +640,34 @@ for _abbr, _info in _SIGNAL_INFO.items():
 
 def _all_abbreviations() -> list[str]:
     return sorted(_SIGNAL_INFO.keys())
+
+
+def _append_contract_section(body: Any, contract: dict[str, Any]) -> None:
+    """Append a readable trigger-contract section to rich text body."""
+    body.append("Trigger contract\n", style="bold underline")
+    ordered_sections = (
+        ("scope", "Scope"),
+        ("qualifying_function", "Qualifying function"),
+        ("thresholds", "Thresholds"),
+        ("guard_clause_heuristics", "Guard heuristics"),
+        ("trigger_when", "Triggers when"),
+        ("notes", "Notes"),
+    )
+    for key, label in ordered_sections:
+        value = contract.get(key)
+        if not value:
+            continue
+        body.append(f"{label}:\n", style="bold")
+        if isinstance(value, dict):
+            for k, v in value.items():
+                body.append(f"- {k}: {v}\n")
+            continue
+        if isinstance(value, list):
+            for item in value:
+                body.append(f"- {item}\n")
+            continue
+        body.append(f"- {value}\n")
+    body.append("\n")
 
 
 @click.command()
@@ -690,6 +773,8 @@ def explain(
             "example": info["example"],
             "fix_hint": info["fix_hint"],
         }
+        if "trigger_contract" in info:
+            sig_data["trigger_contract"] = info["trigger_contract"]
         output.write_text(
             json_mod.dumps(sig_data, indent=2) + "\n", encoding="utf-8",
         )
@@ -725,7 +810,7 @@ def _print_signal_list() -> None:
     console.print("\n[dim]Run [bold]drift explain <SIGNAL>[/bold] for full details.[/dim]")
 
 
-def _print_signal_detail(info: dict[str, str]) -> None:
+def _print_signal_detail(info: dict[str, Any]) -> None:
     """Print detailed explanation of a single signal."""
     from rich.panel import Panel
     from rich.text import Text
@@ -743,6 +828,10 @@ def _print_signal_detail(info: dict[str, str]) -> None:
 
     body.append("What it detects\n", style="bold underline")
     body.append(f"{info['detects']}\n\n")
+
+    trigger_contract = info.get("trigger_contract")
+    if isinstance(trigger_contract, dict):
+        _append_contract_section(body, trigger_contract)
 
     body.append("Example\n", style="bold underline")
     body.append(f"{info['example']}\n\n", style="dim")
@@ -793,7 +882,7 @@ def _print_error_code_detail(code: str) -> None:
     console.print(Panel(body, border_style="yellow", title=f"[bold]Error: {code}[/bold]"))
 
 
-def _print_repo_examples(info: dict[str, str], repo_root: Path) -> None:
+def _print_repo_examples(info: dict[str, Any], repo_root: Path) -> None:
     """Print local findings for a signal from the current repo."""
     from drift.api import _repo_examples_for_signal
 
