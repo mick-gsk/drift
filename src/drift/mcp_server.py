@@ -24,7 +24,9 @@ import json
 import os
 import re as _re
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
+
+import anyio
 
 MCPFastMCPImpl: Any
 
@@ -235,8 +237,7 @@ async def drift_scan(
             error["tool"] = "drift_scan"
             return json.dumps(error, default=str)
 
-    payload: str = await asyncio.to_thread(_sync)
-    return payload
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -300,8 +301,7 @@ async def drift_diff(
             error["tool"] = "drift_diff"
             return json.dumps(error, default=str)
 
-    payload: str = await asyncio.to_thread(_sync)
-    return payload
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -340,8 +340,7 @@ async def drift_explain(
             error["tool"] = "drift_explain"
             return json.dumps(error, default=str)
 
-    payload: str = await asyncio.to_thread(_sync)
-    return payload
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -408,8 +407,7 @@ async def drift_fix_plan(
             error["tool"] = "drift_fix_plan"
             return json.dumps(error, default=str)
 
-    payload: str = await asyncio.to_thread(_sync)
-    return payload
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -444,8 +442,7 @@ async def drift_validate(
             error["tool"] = "drift_validate"
             return json.dumps(error, default=str)
 
-    payload: str = await asyncio.to_thread(_sync)
-    return payload
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -507,8 +504,7 @@ async def drift_nudge(
             error["tool"] = "drift_nudge"
             return json.dumps(error, default=str)
 
-    payload: str = await asyncio.to_thread(_sync)
-    return payload
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -659,9 +655,11 @@ async def drift_negative_context(
         return json.dumps(result, default=str)
 
     try:
-        async with asyncio.timeout(_NEGATIVE_CONTEXT_TIMEOUT_SECONDS):
-            payload: str = await asyncio.to_thread(_sync)
-            return payload
+        with anyio.fail_after(_NEGATIVE_CONTEXT_TIMEOUT_SECONDS):
+            return cast(
+                str,
+                await anyio.to_thread.run_sync(_sync, abandon_on_cancel=True),
+            )
     except TimeoutError:
         timeout_response = _negative_context_timeout_response(
             path=path,
