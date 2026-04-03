@@ -80,7 +80,7 @@ def save(
 @click.option(
     "--baseline-file",
     "-b",
-    type=click.Path(exists=True, path_type=Path),
+    type=click.Path(path_type=Path),
     default=None,
     help=f"Baseline file to compare against (default: {DEFAULT_BASELINE_PATH}).",
 )

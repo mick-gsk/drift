@@ -218,6 +218,35 @@ class TestBaselineCLI:
         assert "--baseline-file" in result.output
         assert "--format" in result.output
 
+    def test_diff_missing_baseline_suggests_save_command(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        from drift.cli import main
+
+        runner = CliRunner()
+        repo = tmp_path / "repo"
+        repo.mkdir(parents=True, exist_ok=True)
+        baseline_file = tmp_path / "missing-baseline.json"
+
+        result = runner.invoke(
+            main,
+            [
+                "baseline",
+                "diff",
+                "--repo",
+                str(repo),
+                "--baseline-file",
+                str(baseline_file),
+            ],
+        )
+
+        assert result.exit_code == 1
+        assert "Baseline not found" in result.output
+        normalized = result.output.replace("\n", " ")
+        assert "drift baseline save --output" in normalized
+        assert baseline_file.name in normalized
+
 
 # ===========================================================================
 # CLI tests: --baseline flag on analyze / check
