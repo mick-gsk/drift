@@ -1,0 +1,1705 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "runs": [
+    {
+      "properties": {
+        "drift:analysisStatus": {
+          "affectedComponents": [],
+          "causes": [],
+          "degraded": false,
+          "events": [],
+          "isFullyReliable": true,
+          "status": "complete"
+        },
+        "drift:trend": {
+          "delta": 0.0,
+          "direction": "stable",
+          "previousScore": 0.516
+        }
+      },
+      "results": [
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/service_a.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Exact duplicates (2×): process_order\n2 identical copies (6 lines each) at: src\\myapp\\service_a.py:4, src\\myapp\\service_b.py:4. Consider consolidating.\nFIX: Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/service_b.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/service_a.py"
+                },
+                "region": {
+                  "startLine": 12
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Exact duplicates (2×): validate_input\n2 identical copies (9 lines each) at: src\\myapp\\service_a.py:12, src\\myapp\\service_b.py:12. Consider consolidating.\nFIX: Extract validate_input() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/service_b.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_postgres ↔ connect_redis\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:17 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_postgres ↔ connect_mongodb\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:26 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_postgres ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:35 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_postgres ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_postgres ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_postgres ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_postgres ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_redis ↔ connect_mongodb\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:26 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_redis ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:35 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_redis ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_redis ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_redis ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 17
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_redis ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 26
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:35 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 26
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 26
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 26
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 26
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 35
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 35
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 35
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 35
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 44
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_rabbitmq ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 44
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_rabbitmq ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 44
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_rabbitmq ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 53
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_kafka ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:53 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 53
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_kafka ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:53 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 62
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): connect_memcached ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:62 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_memcached() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/handler_v1.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Near-duplicate (100%): fetch_user_data ↔ get_customer_info\nsrc\\myapp\\handler_v1.py:4 and src\\myapp\\handler_v2.py:4 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract fetch_user_data() into src/myapp/shared.py. Similarity: 100%. Effort: S."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/handler_v2.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "mutant_duplicate"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/transform.py"
+                },
+                "region": {
+                  "endLine": 63,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Unexplained complexity: transform_dataset\nComplexity: 29, LOC: 60. No docstring. No corresponding test found. No return type annotation.\nFIX: Function transform_dataset (complexity 29): add Docstring, Tests, Return-Type."
+          },
+          "ruleId": "explainability_deficit"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/pricing.py"
+                },
+                "region": {
+                  "endLine": 52,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Unexplained complexity: calculate_pricing\nComplexity: 19, LOC: 49. No docstring. No corresponding test found. No return type annotation.\nFIX: Function calculate_pricing (complexity 19): add Docstring, Tests, Return-Type."
+          },
+          "ruleId": "explainability_deficit"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/validator.py"
+                },
+                "region": {
+                  "endLine": 28,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Unexplained complexity: process_registration\nComplexity: 10, LOC: 25. No docstring. No corresponding test found. No return type annotation.\nFIX: Function process_registration (complexity 10): add Docstring, Tests, Return-Type."
+          },
+          "ruleId": "explainability_deficit"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Guard clause deficit in src/myapp/processors/\n3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 38.7).\nFIX: Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 38.7): isinstance checks, None guards, or assert statements."
+          },
+          "ruleId": "guard_clause_deficit"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/models/core.py"
+                },
+                "region": {
+                  "endLine": 43,
+                  "startLine": 38
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Naming contract violation: Inventory.check_stock()\nFunction 'Inventory.check_stock' has prefix 'check_' but does not satisfy the expected contract: validate_*/check_* expects at least one raise or return False/None.\nFIX: Either add the missing behaviour to 'Inventory.check_stock()' (e.g. a raise statement or appropriate return) or rename it to reflect its actual purpose."
+          },
+          "ruleId": "naming_contract_violation"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/utils/naming.py"
+                },
+                "region": {
+                  "endLine": 8,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Naming contract violation: validate_user_profile()\nFunction 'validate_user_profile' has prefix 'validate_' but does not satisfy the expected contract: validate_*/check_* expects at least one raise or return False/None.\nFIX: Either add the missing behaviour to 'validate_user_profile()' (e.g. a raise statement or appropriate return) or rename it to reflect its actual purpose."
+          },
+          "ruleId": "naming_contract_violation"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/utils/naming.py"
+                },
+                "region": {
+                  "endLine": 17,
+                  "startLine": 11
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Naming contract violation: ensure_database_connection()\nFunction 'ensure_database_connection' has prefix 'ensure_' but does not satisfy the expected contract: ensure_* expects at least one raise statement.\nFIX: Either add the missing behaviour to 'ensure_database_connection()' (e.g. a raise statement or appropriate return) or rename it to reflect its actual purpose."
+          },
+          "ruleId": "naming_contract_violation"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "tests"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Happy-path-only test suite in tests/\n6 test functions with 12 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.\nFIX: Add negative tests to tests/ (6 test functions, only 0 negative assertions): use pytest.raises for expected exceptions, test edge cases (empty, None, invalid input)."
+          },
+          "ruleId": "test_polarity_deficit"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/transform.py"
+                },
+                "region": {
+                  "endLine": 63,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Deep nesting in transform_dataset()\nFunction 'transform_dataset' in src\\myapp\\processors\\transform.py has nesting depth 7 (threshold: 4). Deep nesting makes control flow hard to follow.\nFIX: Reduce nesting in 'transform_dataset' (depth 7, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions."
+          },
+          "ruleId": "deep_nesting"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/validator.py"
+                },
+                "region": {
+                  "endLine": 28,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Deep nesting in process_registration()\nFunction 'process_registration' in src\\myapp\\processors\\validator.py has nesting depth 6 (threshold: 4). Deep nesting makes control flow hard to follow.\nFIX: Reduce nesting in 'process_registration' (depth 6, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions."
+          },
+          "ruleId": "deep_nesting"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/pricing.py"
+                },
+                "region": {
+                  "endLine": 52,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Deep nesting in calculate_pricing()\nFunction 'calculate_pricing' in src\\myapp\\processors\\pricing.py has nesting depth 5 (threshold: 4). Deep nesting makes control flow hard to follow.\nFIX: Reduce nesting in 'calculate_pricing' (depth 5, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions."
+          },
+          "ruleId": "deep_nesting"
+        },
+        {
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "README.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "README references missing directory: connectors/\nREADME mentions 'connectors/' but no such directory exists. Documentation may be outdated.\nFIX: Remove 'connectors/' from README.md or create the directory."
+          },
+          "ruleId": "doc_impl_drift"
+        },
+        {
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "README.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "README references missing directory: handlers/\nREADME mentions 'handlers/' but no such directory exists. Documentation may be outdated.\nFIX: Remove 'handlers/' from README.md or create the directory."
+          },
+          "ruleId": "doc_impl_drift"
+        },
+        {
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "README.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "README references missing directory: middleware/\nREADME mentions 'middleware/' but no such directory exists. Documentation may be outdated.\nFIX: Remove 'middleware/' from README.md or create the directory."
+          },
+          "ruleId": "doc_impl_drift"
+        },
+        {
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "README.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "README references missing directory: models/\nREADME mentions 'models/' but no such directory exists. Documentation may be outdated.\nFIX: Remove 'models/' from README.md or create the directory."
+          },
+          "ruleId": "doc_impl_drift"
+        },
+        {
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "README.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "README references missing directory: myapp/\nREADME mentions 'myapp/' but no such directory exists. Documentation may be outdated.\nFIX: Remove 'myapp/' from README.md or create the directory."
+          },
+          "ruleId": "doc_impl_drift"
+        },
+        {
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "README.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "README references missing directory: utils/\nREADME mentions 'utils/' but no such directory exists. Documentation may be outdated.\nFIX: Remove 'utils/' from README.md or create the directory."
+          },
+          "ruleId": "doc_impl_drift"
+        },
+        {
+          "level": "note",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "README.md"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "README references missing directory: views/\nREADME mentions 'views/' but no such directory exists. Documentation may be outdated.\nFIX: Remove 'views/' from README.md or create the directory."
+          },
+          "ruleId": "doc_impl_drift"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/pricing.py"
+                },
+                "region": {
+                  "endLine": 52,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "High cognitive complexity in calculate_pricing()\nFunction 'calculate_pricing' in src\\myapp\\processors\\pricing.py has cognitive complexity 52 (threshold: 15). Complex control flow makes this function hard to understand and maintain.\nFIX: Reduce cognitive complexity of 'calculate_pricing' (currently 52, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions."
+          },
+          "ruleId": "cognitive_complexity"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/transform.py"
+                },
+                "region": {
+                  "endLine": 63,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "High cognitive complexity in transform_dataset()\nFunction 'transform_dataset' in src\\myapp\\processors\\transform.py has cognitive complexity 108 (threshold: 15). Complex control flow makes this function hard to understand and maintain.\nFIX: Reduce cognitive complexity of 'transform_dataset' (currently 108, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions."
+          },
+          "ruleId": "cognitive_complexity"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/processors/validator.py"
+                },
+                "region": {
+                  "endLine": 28,
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "High cognitive complexity in process_registration()\nFunction 'process_registration' in src\\myapp\\processors\\validator.py has cognitive complexity 27 (threshold: 15). Complex control flow makes this function hard to understand and maintain.\nFIX: Reduce cognitive complexity of 'process_registration' (currently 27, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions."
+          },
+          "ruleId": "cognitive_complexity"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/connectors/db.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "8 potentially unused exports in db.py\nsrc\\myapp\\connectors\\db.py exports 8/8 public symbols that are never imported elsewhere: connect_postgres, connect_redis, connect_mongodb, connect_elasticsearch, connect_rabbitmq, connect_kafka, connect_memcached, connect_dynamodb. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 8 unused exports in db.py: connect_postgres, connect_redis, connect_mongodb, connect_elasticsearch, connect_rabbitmq, connect_kafka, connect_memcached, connect_dynamodb. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/handlers/orders.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "2 potentially unused exports in orders.py\nsrc\\myapp\\handlers\\orders.py exports 2/3 public symbols that are never imported elsewhere: OrderError, PaymentError. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 2 unused exports in orders.py: OrderError, PaymentError. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/handlers/payments.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "2 potentially unused exports in payments.py\nsrc\\myapp\\handlers\\payments.py exports 2/2 public symbols that are never imported elsewhere: handle_payment, handle_refund. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 2 unused exports in payments.py: handle_payment, handle_refund. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/models/core.py"
+                },
+                "region": {
+                  "startLine": 7
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "9 potentially unused exports in core.py\nsrc\\myapp\\models\\core.py exports 9/9 public symbols that are never imported elsewhere: User.__init__, User.find_by_email, Product.__init__, Product.find_by_sku, Inventory.__init__, Inventory.check_stock, User, Product, Inventory. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 9 unused exports in core.py: User.__init__, User.find_by_email, Product.__init__, Product.find_by_sku, Inventory.__init__, Inventory.check_stock, User, Product, Inventory. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/models/enriched.py"
+                },
+                "region": {
+                  "startLine": 10
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "2 potentially unused exports in enriched.py\nsrc\\myapp\\models\\enriched.py exports 2/3 public symbols that are never imported elsewhere: EnrichedOrder.__init__, EnrichedOrder.process. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 2 unused exports in enriched.py: EnrichedOrder.__init__, EnrichedOrder.process. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/outlier_module.py"
+                },
+                "region": {
+                  "startLine": 8
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "3 potentially unused exports in outlier_module.py\nsrc\\myapp\\outlier_module.py exports 3/3 public symbols that are never imported elsewhere: read_shared_memory, call_native_lib, process_binary_data. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 3 unused exports in outlier_module.py: read_shared_memory, call_native_lib, process_binary_data. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/service_a.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "2 potentially unused exports in service_a.py\nsrc\\myapp\\service_a.py exports 2/2 public symbols that are never imported elsewhere: process_order, validate_input. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 2 unused exports in service_a.py: process_order, validate_input. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/service_b.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "2 potentially unused exports in service_b.py\nsrc\\myapp\\service_b.py exports 2/2 public symbols that are never imported elsewhere: process_order, validate_input. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 2 unused exports in service_b.py: process_order, validate_input. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/utils/formatting.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "2 potentially unused exports in formatting.py\nsrc\\myapp\\utils\\formatting.py exports 2/2 public symbols that are never imported elsewhere: format_currency, format_money. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 2 unused exports in formatting.py: format_currency, format_money. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        },
+        {
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/utils/naming.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "2 potentially unused exports in naming.py\nsrc\\myapp\\utils\\naming.py exports 2/2 public symbols that are never imported elsewhere: validate_user_profile, ensure_database_connection. Dead code increases maintenance cost and confuses contributors.\nFIX: Review and remove 2 unused exports in naming.py: validate_user_profile, ensure_database_connection. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns."
+          },
+          "ruleId": "dead_code_accumulation"
+        }
+      ],
+      "tool": {
+        "driver": {
+          "name": "drift",
+          "rules": [
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "id": "mutant_duplicate",
+              "shortDescription": {
+                "text": "mutant_duplicate"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "id": "explainability_deficit",
+              "shortDescription": {
+                "text": "explainability_deficit"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "id": "guard_clause_deficit",
+              "shortDescription": {
+                "text": "guard_clause_deficit"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "id": "naming_contract_violation",
+              "shortDescription": {
+                "text": "naming_contract_violation"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "id": "test_polarity_deficit",
+              "shortDescription": {
+                "text": "test_polarity_deficit"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "id": "deep_nesting",
+              "shortDescription": {
+                "text": "guard_clause_deficit"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "note"
+              },
+              "id": "doc_impl_drift",
+              "shortDescription": {
+                "text": "doc_impl_drift"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "id": "cognitive_complexity",
+              "shortDescription": {
+                "text": "cognitive_complexity"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "id": "dead_code_accumulation",
+              "shortDescription": {
+                "text": "dead_code_accumulation"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

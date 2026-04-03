@@ -288,3 +288,30 @@ def test_precision_recall_report(tmp_path: Path) -> None:
     assert report.aggregate_f1() >= 0.50, (
         f"Aggregate F1 too low: {report.aggregate_f1():.2f}\n" + report.summary()
     )
+
+    # ── Per-signal precision gates ────────────────────────────────────
+    # Signals with high expected precision get a stricter gate;
+    # signals with known FP issues get a lower but non-zero bar.
+    _PER_SIGNAL_PRECISION: dict[SignalType, float] = {
+        SignalType.PATTERN_FRAGMENTATION: 0.70,
+        SignalType.EXPLAINABILITY_DEFICIT: 0.70,
+        SignalType.SYSTEM_MISALIGNMENT: 0.70,
+        SignalType.MUTANT_DUPLICATE: 0.60,
+        SignalType.BROAD_EXCEPTION_MONOCULTURE: 0.60,
+        SignalType.GUARD_CLAUSE_DEFICIT: 0.60,
+        SignalType.NAMING_CONTRACT_VIOLATION: 0.60,
+        SignalType.BYPASS_ACCUMULATION: 0.60,
+        SignalType.TEST_POLARITY_DEFICIT: 0.50,
+        SignalType.ARCHITECTURE_VIOLATION: 0.50,
+        SignalType.DOC_IMPL_DRIFT: 0.50,
+        SignalType.TEMPORAL_VOLATILITY: 0.50,
+        SignalType.COHESION_DEFICIT: 0.50,
+    }
+    for sig, min_prec in _PER_SIGNAL_PRECISION.items():
+        # Only enforce if the signal has any TP+FP observations
+        if report.tp[sig] + report.fp[sig] > 0:
+            actual = report.precision(sig)
+            assert actual >= min_prec, (
+                f"Per-signal precision gate failed for {sig.value}: "
+                f"{actual:.2f} < {min_prec:.2f}\n" + report.summary()
+            )

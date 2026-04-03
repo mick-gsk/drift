@@ -9,17 +9,18 @@ import pytest
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Add an explicit opt-in for slow tests.
-
-    By default, slow tests are deselected to keep the standard local and CI
-    feedback loop fast. Users can opt in to the full suite with --run-slow or
-    select markers explicitly with -m.
-    """
+    """Add custom CLI options for the test suite."""
     parser.addoption(
         "--run-slow",
         action="store_true",
         default=False,
         help="run tests marked as slow",
+    )
+    parser.addoption(
+        "--update-golden",
+        action="store_true",
+        default=False,
+        help="regenerate golden snapshot files instead of comparing",
     )
 
 

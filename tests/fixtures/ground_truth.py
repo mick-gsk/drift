@@ -2483,6 +2483,710 @@ BAT_TEST_FILE_TN = GroundTruthFixture(
 )
 
 
+# ── Boundary & Confounder fixtures ────────────────────────────────────────
+# Boundary: near detection threshold (±1 of config default).
+# Confounder: structurally similar to a real finding but benign.
+
+
+# -- MDS boundary (similarity_threshold = 0.80) --
+
+MDS_BOUNDARY_TP = GroundTruthFixture(
+    name="mds_boundary_tp",
+    description="Near-duplicate pair just above similarity threshold → should fire MDS",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "services/__init__.py": "",
+        "services/export_csv.py": """\
+            def export_records(records: list, output_path: str) -> int:
+                \"\"\"Export records to CSV file.\"\"\"
+                count = 0
+                with open(output_path, "w") as fh:
+                    for record in records:
+                        line_parts = []
+                        for key in sorted(record.keys()):
+                            value = str(record[key])
+                            line_parts.append(value)
+                        fh.write(",".join(line_parts) + "\\n")
+                        count += 1
+                return count
+        """,
+        "services/export_tsv.py": """\
+            def dump_records(records: list, target_path: str) -> int:
+                \"\"\"Dump records to TSV file.\"\"\"
+                total = 0
+                with open(target_path, "w") as fh:
+                    for record in records:
+                        line_parts = []
+                        for key in sorted(record.keys()):
+                            value = str(record[key])
+                            line_parts.append(value)
+                        fh.write("\\t".join(line_parts) + "\\n")
+                        total += 1
+                return total
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.MUTANT_DUPLICATE,
+            file_path="services/",
+            should_detect=True,
+            description="Structural clone differing only in separator and var names",
+        ),
+    ],
+)
+
+MDS_CONFOUNDER_TN = GroundTruthFixture(
+    name="mds_confounder_tn",
+    description="Async/sync pair with same logic — intentional variant, not a duplicate",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "transport/__init__.py": "",
+        "transport/sync_client.py": """\
+            def send_request(url: str, payload: dict) -> dict:
+                \"\"\"Send HTTP request synchronously.\"\"\"
+                import urllib.request
+                import json
+                data = json.dumps(payload).encode()
+                req = urllib.request.Request(url, data=data)
+                req.add_header("Content-Type", "application/json")
+                with urllib.request.urlopen(req) as resp:
+                    body = resp.read().decode()
+                return json.loads(body)
+        """,
+        "transport/async_client.py": """\
+            async def send_request(url: str, payload: dict) -> dict:
+                \"\"\"Send HTTP request asynchronously.\"\"\"
+                import aiohttp
+                import json
+                data = json.dumps(payload)
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, data=data) as resp:
+                        body = await resp.text()
+                return json.loads(body)
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.MUTANT_DUPLICATE,
+            file_path="transport/",
+            should_detect=False,
+            description="Async/sync variants are intentional — not copy-paste",
+        ),
+    ],
+)
+
+
+# -- EDS boundary (high_complexity = 10, min_function_loc = 10) --
+
+EDS_BOUNDARY_TP = GroundTruthFixture(
+    name="eds_boundary_tp",
+    description="Function at CC=10 (exactly at threshold) without docstring → should fire EDS",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "core/__init__.py": "",
+        "core/threshold.py": """\
+            def classify_event(event, rules, context, fallback):
+                result = fallback
+                for rule in rules:
+                    if rule["type"] == "match":
+                        if event.get("source") == rule["value"]:
+                            result = rule["action"]
+                    elif rule["type"] == "range":
+                        if rule["low"] <= event.get("score", 0) <= rule["high"]:
+                            result = rule["action"]
+                    elif rule["type"] == "context":
+                        if context.get(rule["key"]):
+                            result = rule["action"]
+                    else:
+                        if event.get("priority", 0) > 5:
+                            result = "escalate"
+                return result
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.EXPLAINABILITY_DEFICIT,
+            file_path="core/threshold.py",
+            should_detect=True,
+            description="CC at threshold (10), no docstring, meets min_function_loc",
+        ),
+    ],
+)
+
+EDS_BOUNDARY_TN = GroundTruthFixture(
+    name="eds_boundary_tn",
+    description="Function just below CC threshold with no docstring → should NOT fire EDS",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "core/__init__.py": "",
+        "core/below_threshold.py": """\
+            def route_event(event, handler_map):
+                kind = event.get("kind", "default")
+                handler = handler_map.get(kind)
+                if handler:
+                    return handler(event)
+                return None
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.EXPLAINABILITY_DEFICIT,
+            file_path="core/below_threshold.py",
+            should_detect=False,
+            description="CC below threshold — no EDS expected",
+        ),
+    ],
+)
+
+EDS_CONFOUNDER_TN = GroundTruthFixture(
+    name="eds_confounder_tn",
+    description="High-complexity function in test file → should NOT fire EDS",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "tests/__init__.py": "",
+        "tests/test_complex.py": """\
+            def test_all_branches():
+                for case in range(20):
+                    if case % 2 == 0:
+                        if case > 10:
+                            assert case < 20
+                        else:
+                            assert case >= 0
+                    elif case % 3 == 0:
+                        assert case > 0
+                    elif case % 5 == 0:
+                        assert case > 0
+                    else:
+                        assert True
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.EXPLAINABILITY_DEFICIT,
+            file_path="tests/test_complex.py",
+            should_detect=False,
+            description="High CC in test file — should be excluded",
+        ),
+    ],
+)
+
+
+# -- TVS boundary (volatility_z_threshold = 1.5) --
+
+TVS_BOUNDARY_TP = GroundTruthFixture(
+    name="tvs_boundary_tp",
+    description="File with churn just above z-score threshold among stable peers",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "app/__init__.py": "",
+        "app/module_a.py": """\
+            def func_a():
+                return 1
+        """,
+        "app/module_b.py": """\
+            def func_b():
+                return 2
+        """,
+        "app/module_c.py": """\
+            def func_c():
+                return 3
+        """,
+        "app/module_d.py": """\
+            def func_d():
+                return 4
+        """,
+        "app/borderline.py": """\
+            def borderline_func(x):
+                return x * 2
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TEMPORAL_VOLATILITY,
+            file_path="app/borderline.py",
+            should_detect=True,
+            description="Churn just above z-score threshold among stable peers",
+        ),
+    ],
+    file_history_overrides={
+        # Stable peers: ~1 commit, 0.5 change freq
+        "app/module_a.py": FileHistoryOverride(total_commits=2, change_frequency_30d=0.5),
+        "app/module_b.py": FileHistoryOverride(total_commits=2, change_frequency_30d=0.5),
+        "app/module_c.py": FileHistoryOverride(total_commits=2, change_frequency_30d=0.5),
+        "app/module_d.py": FileHistoryOverride(total_commits=2, change_frequency_30d=0.5),
+        # Borderline: enough churn to be >1.5σ above mean of ~0.5
+        "app/borderline.py": FileHistoryOverride(
+            total_commits=30,
+            unique_authors=4,
+            change_frequency_30d=12.0,
+            defect_correlated_commits=5,
+        ),
+    },
+)
+
+TVS_CONFOUNDER_TN = GroundTruthFixture(
+    name="tvs_confounder_tn",
+    description="All files have uniformly high churn — no outlier → should NOT fire TVS",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "app/__init__.py": "",
+        "app/hot_a.py": """\
+            def hot_a():
+                return "a"
+        """,
+        "app/hot_b.py": """\
+            def hot_b():
+                return "b"
+        """,
+        "app/hot_c.py": """\
+            def hot_c():
+                return "c"
+        """,
+        "app/hot_d.py": """\
+            def hot_d():
+                return "d"
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TEMPORAL_VOLATILITY,
+            file_path="app/",
+            should_detect=False,
+            description="Uniform high churn — no z-score outlier",
+        ),
+    ],
+    file_history_overrides={
+        "app/hot_a.py": FileHistoryOverride(
+            total_commits=40, unique_authors=5, change_frequency_30d=15.0,
+        ),
+        "app/hot_b.py": FileHistoryOverride(
+            total_commits=38, unique_authors=5, change_frequency_30d=14.0,
+        ),
+        "app/hot_c.py": FileHistoryOverride(
+            total_commits=42, unique_authors=6, change_frequency_30d=16.0,
+        ),
+        "app/hot_d.py": FileHistoryOverride(
+            total_commits=39, unique_authors=5, change_frequency_30d=15.0,
+        ),
+    },
+)
+
+
+# -- SMS boundary/confounder --
+
+SMS_BOUNDARY_TP = GroundTruthFixture(
+    name="sms_boundary_tp",
+    description="File introduces exactly one novel third-party import → should fire SMS",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "services/__init__.py": "",
+        "services/core.py": """\
+            import json
+            import logging
+
+            def process(data):
+                logging.info("Processing")
+                return json.dumps(data)
+        """,
+        "services/helper.py": """\
+            import json
+
+            def transform(data):
+                return json.loads(data)
+        """,
+        "services/new_feature.py": """\
+            import json
+            import celery
+
+            def enqueue(data):
+                return celery.current_app.send_task("run", args=[json.dumps(data)])
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.SYSTEM_MISALIGNMENT,
+            file_path="services/",
+            should_detect=True,
+            description="celery is novel third-party in services/ — misalignment",
+        ),
+    ],
+)
+
+SMS_CONFOUNDER_TN = GroundTruthFixture(
+    name="sms_confounder_tn",
+    description="stdlib import used by one file but common in Python → should NOT fire SMS",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "utils/__init__.py": "",
+        "utils/text.py": """\
+            import re
+            import string
+
+            def clean(text):
+                return re.sub(r"\\s+", " ", text).strip()
+        """,
+        "utils/numbers.py": """\
+            import math
+
+            def round_up(x):
+                return math.ceil(x)
+        """,
+        "utils/dates.py": """\
+            import datetime
+
+            def today():
+                return datetime.date.today()
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.SYSTEM_MISALIGNMENT,
+            file_path="utils/",
+            should_detect=False,
+            description="Each file uses different stdlib modules — all common, not misaligned",
+        ),
+    ],
+)
+
+
+# -- DIA boundary --
+
+DIA_BOUNDARY_TP = GroundTruthFixture(
+    name="dia_boundary_tp",
+    description="README references one existing and one non-existing directory",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "README.md": """\
+            # Project
+
+            Structure:
+            - `src/` — source code
+            - `migrations/` — database migrations
+        """,
+        "src/__init__.py": "",
+        "src/app.py": """\
+            def run():
+                pass
+        """,
+        # migrations/ does NOT exist
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.DOC_IMPL_DRIFT,
+            file_path="README.md",
+            should_detect=True,
+            description="migrations/ referenced but missing — single phantom dir",
+        ),
+    ],
+)
+
+
+# -- TPD boundary (tpd_min_test_functions = 5) --
+
+TPD_BOUNDARY_TP = GroundTruthFixture(
+    name="tpd_boundary_tp",
+    description="5 test functions, 10 positive asserts, 0 negative → should fire TPD",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "tests/__init__.py": "",
+        "tests/test_boundary.py": """\
+            def test_one():
+                assert 1 + 1 == 2
+                assert 2 + 2 == 4
+
+            def test_two():
+                assert "hello".upper() == "HELLO"
+                assert "world".lower() == "world"
+
+            def test_three():
+                assert [1, 2, 3] == [1, 2, 3]
+                assert len([1, 2]) == 2
+
+            def test_four():
+                assert len("abc") == 3
+                assert len("ab") == 2
+
+            def test_five():
+                assert True
+                assert not False
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TEST_POLARITY_DEFICIT,
+            file_path="tests/",
+            should_detect=True,
+            description="5 tests, 10 positive asserts, 0 negative → deficit",
+        ),
+    ],
+)
+
+TPD_CONFOUNDER_TN = GroundTruthFixture(
+    name="tpd_confounder_tn",
+    description="Large test suite with negative tests via manual exception checks",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "tests/__init__.py": "",
+        "tests/test_robust.py": """\
+            import pytest
+
+            def test_create():
+                assert True
+
+            def test_read():
+                assert True
+
+            def test_update():
+                assert True
+
+            def test_delete():
+                assert True
+
+            def test_invalid_create():
+                with pytest.raises(ValueError):
+                    raise ValueError("bad input")
+
+            def test_invalid_read():
+                with pytest.raises(KeyError):
+                    raise KeyError("not found")
+
+            def test_overflow():
+                with pytest.raises(OverflowError):
+                    raise OverflowError("too big")
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TEST_POLARITY_DEFICIT,
+            file_path="tests/",
+            should_detect=False,
+            description="3 negative tests out of 7 → ratio > 10%, balanced",
+        ),
+    ],
+)
+
+
+# -- GCD boundary (gcd_min_public_functions = 3) --
+
+GCD_BOUNDARY_TP = GroundTruthFixture(
+    name="gcd_boundary_tp",
+    description="Exactly 3 public functions (at threshold) with no guards → should fire GCD",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "core/__init__.py": "",
+        "core/unguarded.py": """\
+            def process(items, config, mode):
+                results = []
+                for item in items:
+                    if mode == "fast":
+                        results.append(item)
+                    elif mode == "slow":
+                        for sub in item:
+                            results.append(sub)
+                    else:
+                        results.append(str(item))
+                return results
+
+            def merge(left, right, strategy):
+                output = {}
+                for k in left:
+                    if strategy == "left":
+                        output[k] = left[k]
+                    elif strategy == "right":
+                        output[k] = right.get(k, left[k])
+                    else:
+                        output[k] = left[k]
+                for k in right:
+                    if k not in output:
+                        output[k] = right[k]
+                return output
+
+            def render(template, data, fmt):
+                lines = []
+                for key, value in data.items():
+                    if fmt == "json":
+                        lines.append(f'"{key}": "{value}"')
+                    elif fmt == "xml":
+                        lines.append(f"<{key}>{value}</{key}>")
+                    elif fmt == "yaml":
+                        lines.append(f"{key}: {value}")
+                    elif fmt == "toml":
+                        lines.append(f"{key} = {value}")
+                    else:
+                        lines.append(f"{key}={value}")
+                return "\\n".join(lines)
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.GUARD_CLAUSE_DEFICIT,
+            file_path="core/",
+            should_detect=True,
+            description="Exactly 3 public functions (min threshold), all unguarded",
+        ),
+    ],
+)
+
+
+# -- COD boundary/confounder --
+
+COD_BOUNDARY_TP = GroundTruthFixture(
+    name="cod_boundary_tp",
+    description="File with 6 semantically unrelated functions → low cohesion",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "app/__init__.py": "",
+        "app/mixed.py": """\
+            def send_email_notification(recipient, subject):
+                print(f"Sending email to {recipient}: {subject}")
+                return True
+
+            def parse_csv_upload(raw_data):
+                lines = raw_data.decode().strip().split("\\n")
+                return [line.split(",") for line in lines]
+
+            def generate_pdf_invoice(order_id, items):
+                header = f"Invoice #{order_id}\\n"
+                body = "\\n".join(str(i) for i in items)
+                return (header + body).encode()
+
+            def calculate_tax_rate(income, region):
+                return income * 0.19 if region == "DE" else income * 0.21
+
+            def compress_image_thumbnail(path, quality):
+                return f"compressed:{path}:{quality}"
+
+            def decrypt_auth_token(cipher, secret):
+                return cipher[::-1]
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.COHESION_DEFICIT,
+            file_path="app/mixed.py",
+            should_detect=True,
+            description="Six unrelated domains in one file → cohesion deficit",
+        ),
+    ],
+)
+
+COD_CONFOUNDER_TN = GroundTruthFixture(
+    name="cod_confounder_tn",
+    description="Functions sharing 'text' token → cohesive by naming, should NOT fire COD",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "utils/__init__.py": "",
+        "utils/helpers.py": """\
+            def format_text(raw):
+                return raw.strip()
+
+            def clean_text(raw):
+                import re
+                return re.sub(r"\\s+", " ", raw)
+
+            def validate_text(raw):
+                return len(raw) > 0
+
+            def normalize_text(raw):
+                return raw.lower()
+
+            def split_text(raw):
+                return raw.split()
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.COHESION_DEFICIT,
+            file_path="utils/helpers.py",
+            should_detect=False,
+            description="All share 'text' token → cohesive naming, no deficit",
+        ),
+    ],
+)
+
+
+# -- NBV boundary (nbv_min_function_loc = 3) --
+
+NBV_BOUNDARY_TP = GroundTruthFixture(
+    name="nbv_boundary_tp",
+    description="validate_ function with exactly 3 LOC (at threshold) without raise → should fire",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "core/__init__.py": "",
+        "core/check.py": """\
+            def validate_token(token: str) -> str:
+                parts = token.split(".")
+                cleaned = parts[0].strip()
+                return cleaned
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.NAMING_CONTRACT_VIOLATION,
+            file_path="core/check.py",
+            should_detect=True,
+            description="validate_token at exactly nbv_min_function_loc=3, no raise",
+        ),
+    ],
+)
+
+NBV_CONFOUNDER_TN = GroundTruthFixture(
+    name="nbv_confounder_tn",
+    description="validate_ function that delegates to a raising helper → should NOT fire NBV",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "core/__init__.py": "",
+        "core/validation.py": """\
+            def _check_format(value: str) -> None:
+                if not value:
+                    raise ValueError("empty value")
+
+            def validate_email(email: str) -> bool:
+                _check_format(email)
+                if "@" not in email:
+                    raise ValueError("missing @")
+                return True
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.NAMING_CONTRACT_VIOLATION,
+            file_path="core/validation.py",
+            should_detect=False,
+            description="validate_email raises ValueError — contract satisfied",
+        ),
+    ],
+)
+
+
+# -- BAT boundary (bat_density_threshold = 0.05, bat_min_loc = 50) --
+
+BAT_BOUNDARY_TP = GroundTruthFixture(
+    name="bat_boundary_tp",
+    description="File with exactly 50 LOC and ~5% bypass density → at threshold, should fire BAT",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "legacy/__init__.py": "",
+        "legacy/edge.py": (
+            "# Legacy edge-case module\n"
+            + "\n".join([f"val_{i} = {i}" for i in range(45)])
+            + "\n"
+            + "x = 1  # type: ignore\n"
+            + "y = 2  # noqa\n"
+            + "z = 3  # type: ignore\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.BYPASS_ACCUMULATION,
+            file_path="legacy/edge.py",
+            should_detect=True,
+            description="50 LOC with ~5% bypass density — at threshold",
+        ),
+    ],
+)
+
+
 # Append NBV + BAT fixtures to ALL_FIXTURES
 ALL_FIXTURES.extend([
     NBV_VALIDATE_TP,
@@ -2497,6 +3201,25 @@ ALL_FIXTURES.extend([
     BAT_TRUE_NEGATIVE,
     BAT_TINY_FILE_TN,
     BAT_TEST_FILE_TN,
+    # ── Boundary & Confounder fixtures ──
+    MDS_BOUNDARY_TP,
+    MDS_CONFOUNDER_TN,
+    EDS_BOUNDARY_TP,
+    EDS_BOUNDARY_TN,
+    EDS_CONFOUNDER_TN,
+    TVS_BOUNDARY_TP,
+    TVS_CONFOUNDER_TN,
+    SMS_BOUNDARY_TP,
+    SMS_CONFOUNDER_TN,
+    DIA_BOUNDARY_TP,
+    TPD_BOUNDARY_TP,
+    TPD_CONFOUNDER_TN,
+    GCD_BOUNDARY_TP,
+    COD_BOUNDARY_TP,
+    COD_CONFOUNDER_TN,
+    NBV_BOUNDARY_TP,
+    NBV_CONFOUNDER_TN,
+    BAT_BOUNDARY_TP,
 ])
 
 
