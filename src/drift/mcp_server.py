@@ -22,9 +22,10 @@ import io
 import json
 import os
 import re as _re
-import threading
 from pathlib import Path
 from typing import Annotated, Any
+
+import anyio
 
 MCPFastMCPImpl: Any
 
@@ -163,7 +164,7 @@ mcp = MCPFastMCPImpl(
 
 
 @mcp.tool()
-def drift_scan(
+async def drift_scan(
     path: Annotated[str, Field(description="Repository path to analyze.")] = ".",
     target_path: Annotated[
         str | None,
@@ -207,34 +208,38 @@ def drift_scan(
         response_detail: "concise" (token-sparing) or "detailed" (full fields).
         include_non_operational: Include non-operational contexts in fix_first ordering.
     """
-    from drift.api import scan
 
-    try:
-        signal_list = (
-            [s.strip() for s in signals.split(",") if s.strip()]
-            if signals
-            else None
-        )
-        result = scan(
-            path,
-            target_path=target_path,
-            since_days=since_days,
-            signals=signal_list,
-            max_findings=max_findings,
-            response_detail=response_detail,
-            include_non_operational=include_non_operational,
-        )
-        return json.dumps(result, default=str)
-    except Exception as exc:
-        from drift.api_helpers import _error_response
+    def _sync() -> str:
+        from drift.api import scan
 
-        error = _error_response("DRIFT-5001", str(exc), recoverable=True)
-        error["tool"] = "drift_scan"
-        return json.dumps(error, default=str)
+        try:
+            signal_list = (
+                [s.strip() for s in signals.split(",") if s.strip()]
+                if signals
+                else None
+            )
+            result = scan(
+                path,
+                target_path=target_path,
+                since_days=since_days,
+                signals=signal_list,
+                max_findings=max_findings,
+                response_detail=response_detail,
+                include_non_operational=include_non_operational,
+            )
+            return json.dumps(result, default=str)
+        except Exception as exc:
+            from drift.api_helpers import _error_response
+
+            error = _error_response("DRIFT-5001", str(exc), recoverable=True)
+            error["tool"] = "drift_scan"
+            return json.dumps(error, default=str)
+
+    return await anyio.to_thread.run_sync(_sync)
 
 
 @mcp.tool()
-def drift_diff(
+async def drift_diff(
     path: Annotated[str, Field(description="Repository path to analyze.")] = ".",
     diff_ref: Annotated[
         str, Field(description="Git ref to diff against, e.g. 'HEAD~1', 'main', or a commit SHA.")
@@ -271,22 +276,26 @@ def drift_diff(
         max_findings: Maximum findings to return (default: 10).
         response_detail: "concise" or "detailed".
     """
-    from drift.api import diff
 
-    result = diff(
-        path,
-        diff_ref=diff_ref,
-        uncommitted=uncommitted,
-        staged_only=staged_only,
-        baseline_file=baseline_file,
-        max_findings=max_findings,
-        response_detail=response_detail,
-    )
-    return json.dumps(result, default=str)
+    def _sync() -> str:
+        from drift.api import diff
+
+        result = diff(
+            path,
+            diff_ref=diff_ref,
+            uncommitted=uncommitted,
+            staged_only=staged_only,
+            baseline_file=baseline_file,
+            max_findings=max_findings,
+            response_detail=response_detail,
+        )
+        return json.dumps(result, default=str)
+
+    return await anyio.to_thread.run_sync(_sync)
 
 
 @mcp.tool()
-def drift_explain(
+async def drift_explain(
     topic: Annotated[
         str,
         Field(
@@ -306,13 +315,17 @@ def drift_explain(
         topic: Signal abbreviation ("PFS"), signal name
             ("pattern_fragmentation"), or error code ("DRIFT-1001").
     """
-    from drift.api import explain
 
-    return json.dumps(explain(topic), default=str)
+    def _sync() -> str:
+        from drift.api import explain
+
+        return json.dumps(explain(topic), default=str)
+
+    return await anyio.to_thread.run_sync(_sync)
 
 
 @mcp.tool()
-def drift_fix_plan(
+async def drift_fix_plan(
     path: Annotated[str, Field(description="Repository path to analyze.")] = ".",
     signal: Annotated[
         str | None,
@@ -353,21 +366,25 @@ def drift_fix_plan(
         target_path: Restrict tasks to findings inside this subpath.
         include_non_operational: Include non-operational contexts in prioritized tasks.
     """
-    from drift.api import fix_plan
 
-    result = fix_plan(
-        path,
-        signal=signal,
-        max_tasks=max_tasks,
-        automation_fit_min=automation_fit_min,
-        target_path=target_path,
-        include_non_operational=include_non_operational,
-    )
-    return json.dumps(result, default=str)
+    def _sync() -> str:
+        from drift.api import fix_plan
+
+        result = fix_plan(
+            path,
+            signal=signal,
+            max_tasks=max_tasks,
+            automation_fit_min=automation_fit_min,
+            target_path=target_path,
+            include_non_operational=include_non_operational,
+        )
+        return json.dumps(result, default=str)
+
+    return await anyio.to_thread.run_sync(_sync)
 
 
 @mcp.tool()
-def drift_validate(
+async def drift_validate(
     path: Annotated[str, Field(description="Repository path to validate.")] = ".",
     config_file: Annotated[
         str | None,
@@ -383,10 +400,14 @@ def drift_validate(
         path: Repository path (default: current directory).
         config_file: Explicit config file path (auto-discovered if omitted).
     """
-    from drift.api import validate
 
-    result = validate(path, config_file=config_file)
-    return json.dumps(result, default=str)
+    def _sync() -> str:
+        from drift.api import validate
+
+        result = validate(path, config_file=config_file)
+        return json.dumps(result, default=str)
+
+    return await anyio.to_thread.run_sync(_sync)
 
 
 @mcp.tool()
@@ -440,7 +461,7 @@ def drift_nudge(
 
 
 @mcp.tool()
-def drift_brief(
+async def drift_brief(
     path: Annotated[str, Field(description="Repository path to analyze.")] = ".",
     task: Annotated[
         str,
@@ -489,36 +510,40 @@ def drift_brief(
         max_guardrails: Maximum guardrails to return (default: 10).
         response_detail: "concise" (token-sparing) or "detailed" (full fields).
     """
-    from drift.api import brief
 
-    try:
-        result = brief(
-            path,
-            task=task,
-            scope_override=scope,
-            max_guardrails=max_guardrails,
-        )
+    def _sync() -> str:
+        from drift.api import brief
 
-        if response_detail == "concise":
-            # Strip verbose landscape fields for token efficiency
-            result.pop("landscape", None)
-            result.pop("meta", None)
+        try:
+            result = brief(
+                path,
+                task=task,
+                scope_override=scope,
+                max_guardrails=max_guardrails,
+            )
 
-        return json.dumps(result, default=str)
-    except Exception as exc:
-        from drift.api_helpers import _error_response
+            if response_detail == "concise":
+                # Strip verbose landscape fields for token efficiency
+                result.pop("landscape", None)
+                result.pop("meta", None)
 
-        error = _error_response("DRIFT-5010", str(exc), recoverable=True)
-        error["tool"] = "drift_brief"
-        error["agent_instruction"] = (
-            "Check that the repository path exists and the task string is not empty. "
-            "If the error persists, try passing an explicit --scope."
-        )
-        return json.dumps(error, default=str)
+            return json.dumps(result, default=str)
+        except Exception as exc:
+            from drift.api_helpers import _error_response
+
+            error = _error_response("DRIFT-5010", str(exc), recoverable=True)
+            error["tool"] = "drift_brief"
+            error["agent_instruction"] = (
+                "Check that the repository path exists and the task string is not empty. "
+                "If the error persists, try passing an explicit --scope."
+            )
+            return json.dumps(error, default=str)
+
+    return await anyio.to_thread.run_sync(_sync)
 
 
 @mcp.tool()
-def drift_negative_context(
+async def drift_negative_context(
     path: Annotated[str, Field(description="Repository path to analyze.")] = ".",
     scope: Annotated[
         str | None,
@@ -552,34 +577,38 @@ def drift_negative_context(
         target_file: Restrict to items affecting a specific file path.
         max_items: Maximum items to return (default: 10).
     """
-    from drift.api import negative_context
 
-    holder: dict[str, Any] = {}
-    errors: list[BaseException] = []
+    def _sync() -> str:
+        from drift.api import negative_context
 
-    def _worker() -> None:
-        try:
-            # Keep MCP stdio clean if dependencies emit accidental stdout lines.
-            with contextlib.redirect_stdout(io.StringIO()):
-                holder["result"] = negative_context(
-                    path,
-                    scope=scope,
-                    target_file=target_file,
-                    max_items=max_items,
-                    disable_embeddings=True,
-                )
-        except BaseException as exc:  # pragma: no cover - defensive safety net
-            errors.append(exc)
+        # Keep MCP stdio clean if dependencies emit accidental stdout lines.
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = negative_context(
+                path,
+                scope=scope,
+                target_file=target_file,
+                max_items=max_items,
+                disable_embeddings=True,
+            )
 
-    thread = threading.Thread(
-        target=_worker,
-        name="drift-mcp-negative-context",
-        daemon=True,
-    )
-    thread.start()
-    thread.join(_NEGATIVE_CONTEXT_TIMEOUT_SECONDS)
+        if not isinstance(result, dict):
+            fallback = {
+                "status": "error",
+                "error_code": "DRIFT-2032",
+                "message": "MCP tool returned no structured response.",
+                "recoverable": True,
+                "agent_instruction": (
+                    "Retry the call once; if it repeats, run drift_validate."
+                ),
+            }
+            return json.dumps(fallback, default=str)
 
-    if thread.is_alive():
+        return json.dumps(result, default=str)
+
+    try:
+        with anyio.fail_after(_NEGATIVE_CONTEXT_TIMEOUT_SECONDS):
+            return await anyio.to_thread.run_sync(_sync, abandon_on_cancel=True)
+    except TimeoutError:
         timeout_response = _negative_context_timeout_response(
             path=path,
             scope=scope,
@@ -588,22 +617,6 @@ def drift_negative_context(
             timeout_seconds=_NEGATIVE_CONTEXT_TIMEOUT_SECONDS,
         )
         return json.dumps(timeout_response, default=str)
-
-    if errors:
-        raise errors[0]
-
-    result = holder.get("result")
-    if not isinstance(result, dict):
-        fallback = {
-            "status": "error",
-            "error_code": "DRIFT-2032",
-            "message": "MCP tool returned no structured response.",
-            "recoverable": True,
-            "agent_instruction": "Retry the call once; if it repeats, run drift_validate.",
-        }
-        return json.dumps(fallback, default=str)
-
-    return json.dumps(result, default=str)
 
 
 def _load_negative_context_timeout_seconds() -> float:

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import datetime
+import inspect
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -273,6 +275,13 @@ class TestMergeIntoFile:
 # ---------------------------------------------------------------------------
 
 
+def _run_tool(result: object) -> object:
+    """Transparently await async MCP tool results in sync test context."""
+    if inspect.isawaitable(result):
+        return asyncio.run(result)
+    return result
+
+
 class TestMcpServerHelpers:
     """Test MCP server tool functions are importable and well-formed."""
 
@@ -299,7 +308,7 @@ class TestMcpServerHelpers:
 
         from drift.mcp_server import drift_explain
 
-        result = _json.loads(drift_explain("PFS"))
+        result = _json.loads(_run_tool(drift_explain("PFS")))
         assert "name" in result
         assert "description" in result
 
@@ -309,7 +318,7 @@ class TestMcpServerHelpers:
 
         from drift.mcp_server import drift_explain
 
-        result = _json.loads(drift_explain("NONEXISTENT_THING"))
+        result = _json.loads(_run_tool(drift_explain("NONEXISTENT_THING")))
         # Should still return valid JSON without crashing
         assert isinstance(result, dict)
 
@@ -319,7 +328,7 @@ class TestMcpServerHelpers:
 
         from drift.mcp_server import drift_explain
 
-        result = _json.loads(drift_explain("DRIFT-2010"))
+        result = _json.loads(_run_tool(drift_explain("DRIFT-2010")))
         assert result["error_code"] == "DRIFT-2010"
         assert result["summary"] == "Optional dependency missing: mcp"
         assert result["action"] == "Install with: pip install drift-analyzer[mcp]"
@@ -355,12 +364,12 @@ class TestMcpServerHelpers:
         monkeypatch.setattr("drift.api.negative_context", _fake_negative_context)
 
         result = _json.loads(
-            mcp_server.drift_negative_context(
+            _run_tool(mcp_server.drift_negative_context(
                 path=".",
                 scope="repo",
                 target_file="src/drift/commands/mcp.py",
                 max_items=7,
-            )
+            ))
         )
 
         assert result["status"] == "ok"
@@ -393,7 +402,9 @@ class TestMcpServerHelpers:
         monkeypatch.setattr("drift.api.negative_context", _slow_negative_context)
         monkeypatch.setattr(mcp_server, "_NEGATIVE_CONTEXT_TIMEOUT_SECONDS", 0.0)
 
-        result = _json.loads(mcp_server.drift_negative_context(path="."))
+        result = _json.loads(
+            _run_tool(mcp_server.drift_negative_context(path="."))
+        )
 
         assert result["status"] == "error"
         assert result["error_code"] == "DRIFT-2031"
@@ -432,7 +443,7 @@ class TestMcpServerHelpers:
         monkeypatch.setattr("drift.api.brief", lambda *a, **kw: fake_result)
 
         result = _json.loads(
-            mcp_server.drift_brief(path=".", task="add payment")
+            _run_tool(mcp_server.drift_brief(path=".", task="add payment"))
         )
         assert result["type"] == "brief"
         assert result["task"] == "add payment"
@@ -460,7 +471,7 @@ class TestMcpServerHelpers:
         monkeypatch.setattr("drift.api.brief", lambda *a, **kw: fake_result)
 
         result = _json.loads(
-            mcp_server.drift_brief(path=".", task="test", response_detail="concise")
+            _run_tool(mcp_server.drift_brief(path=".", task="test", response_detail="concise"))
         )
         assert "landscape" not in result
         assert "meta" not in result
@@ -488,7 +499,7 @@ class TestMcpServerHelpers:
         monkeypatch.setattr("drift.api.brief", lambda *a, **kw: fake_result)
 
         result = _json.loads(
-            mcp_server.drift_brief(path=".", task="test", response_detail="detailed")
+            _run_tool(mcp_server.drift_brief(path=".", task="test", response_detail="detailed"))
         )
         assert "landscape" in result
         assert "meta" in result
@@ -508,7 +519,7 @@ class TestMcpServerHelpers:
 
         monkeypatch.setattr("drift.api.brief", _raise)
 
-        result = _json.loads(mcp_server.drift_brief(path=".", task="test"))
+        result = _json.loads(_run_tool(mcp_server.drift_brief(path=".", task="test")))
         assert result["type"] == "error"
         assert result["error_code"] == "DRIFT-5010"
         assert result["tool"] == "drift_brief"

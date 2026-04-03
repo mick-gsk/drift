@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
+import inspect
 import json
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+
+def _run_tool(result: object) -> object:
+    """Transparently await async MCP tool results in sync test context."""
+    if inspect.isawaitable(result):
+        return asyncio.run(result)
+    return result
 
 
 class TestApiInputValidation:
@@ -38,7 +47,7 @@ class TestMcpErrorEnvelope:
 
         monkeypatch.setattr("drift.api.scan", _broken_scan)
 
-        result = json.loads(mcp_server.drift_scan(path="."))
+        result = json.loads(_run_tool(mcp_server.drift_scan(path=".")))
 
         assert result["type"] == "error"
         assert result["error_code"] == "DRIFT-5001"
