@@ -534,3 +534,74 @@ class TestMCPSchemaDescriptions:
                     f"Parameter '{param['name']}' in tool '{tool['name']}' "
                     f"has empty description"
                 )
+
+
+# ---------------------------------------------------------------------------
+# Issue #124: Score consistency across surfaces
+# ---------------------------------------------------------------------------
+
+
+class TestScoreConsistency:
+    """All surfaces must render drift_score at consistent precision."""
+
+    def test_raw_format_rounds_score_to_3_decimals(self) -> None:
+        items = [_make_nc()]
+        md = render_negative_context_markdown(
+            items, fmt="raw", drift_score=0.5383, severity=Severity.MEDIUM,
+        )
+        payload = json.loads(md)
+        assert payload["drift_score"] == 0.538
+
+    def test_instructions_format_shows_3_decimals(self) -> None:
+        items = [_make_nc()]
+        md = render_negative_context_markdown(
+            items, fmt="instructions", drift_score=0.5383, severity=Severity.MEDIUM,
+        )
+        assert "0.538" in md
+
+    def test_prompt_format_shows_3_decimals(self) -> None:
+        items = [_make_nc()]
+        md = render_negative_context_markdown(
+            items, fmt="prompt", drift_score=0.5383, severity=Severity.MEDIUM,
+        )
+        assert "0.538" in md
+
+    def test_empty_raw_rounds_score(self) -> None:
+        md = render_negative_context_markdown(
+            [], fmt="raw", drift_score=0.5149, severity=Severity.MEDIUM,
+        )
+        payload = json.loads(md)
+        assert payload["drift_score"] == 0.515
+
+
+# ---------------------------------------------------------------------------
+# Issue #126: MCP schema types must be JSON Schema types, not "Annotated"
+# ---------------------------------------------------------------------------
+
+
+class TestMCPSchemaTypes:
+    """Verify MCP tool catalog emits proper JSON Schema types."""
+
+    _VALID_JSON_TYPES = {"string", "integer", "number", "boolean", "Any"}
+
+    def test_no_annotated_type_leak(self) -> None:
+        from drift.mcp_server import get_tool_catalog
+
+        catalog = get_tool_catalog()
+        for tool in catalog:
+            for param in tool["parameters"]:
+                assert param["type"] != "Annotated", (
+                    f"Parameter '{param['name']}' in tool '{tool['name']}' "
+                    f"leaks type 'Annotated' instead of actual JSON type"
+                )
+
+    def test_all_types_are_valid_json_schema(self) -> None:
+        from drift.mcp_server import get_tool_catalog
+
+        catalog = get_tool_catalog()
+        for tool in catalog:
+            for param in tool["parameters"]:
+                assert param["type"] in self._VALID_JSON_TYPES, (
+                    f"Parameter '{param['name']}' in '{tool['name']}' "
+                    f"has unexpected type '{param['type']}'"
+                )

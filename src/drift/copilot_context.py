@@ -177,7 +177,7 @@ def generate_instructions(analysis: RepoAnalysis) -> str:
         return _wrap_markers(
             "## Architectural Constraints (drift-generated)\n\n"
             "No significant architectural issues detected. Drift score: "
-            f"{analysis.drift_score:.2f} ({analysis.severity.value}).\n"
+            f"{analysis.drift_score:.3f} ({analysis.severity.value}).\n"
         )
 
     sections: list[str] = []
@@ -192,7 +192,7 @@ def generate_instructions(analysis: RepoAnalysis) -> str:
     # Status footer
     sections.append("")
     sections.append("### Current Drift Status")
-    sections.append(f"- **Drift Score**: {analysis.drift_score:.2f} ({analysis.severity.value})")
+    sections.append(f"- **Drift Score**: {analysis.drift_score:.3f} ({analysis.severity.value})")
     if analysis.trend:
         direction = analysis.trend.direction
         delta = analysis.trend.delta
@@ -201,7 +201,7 @@ def generate_instructions(analysis: RepoAnalysis) -> str:
         worst = max(analysis.module_scores, key=lambda m: m.drift_score)
         sections.append(
             f"- **Most eroded module**: `{worst.path.as_posix()}` "
-            f"(score: {worst.drift_score:.2f})"
+            f"(score: {worst.drift_score:.3f})"
         )
 
     # Cross-reference: security/anti-pattern context

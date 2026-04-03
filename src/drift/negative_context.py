@@ -253,16 +253,17 @@ def _gen_maz(finding: Finding) -> list[NegativeContext]:
             f"Every new endpoint MUST include authorization."
         ),
         forbidden_pattern=(
-            "# ANTI-PATTERN: Endpoint without authorization (CWE-862)\n"
+            f"# ANTI-PATTERN: Endpoint without authorization (CWE-862)\n"
             f"# Framework: {framework}\n"
-            "def create_item(request):\n"
-            "    # <- No auth check! Any anonymous user can access this\n"
-            "    return create(request.data)"
+            f"def {endpoint}(request):\n"
+            f"    # <- No auth check! Any anonymous user can access this\n"
+            f"    return create(request.data)"
         ),
         canonical_alternative=(
-            "# REQUIRED: Apply this repo's established auth pattern\n"
-            "# Every new endpoint MUST be protected.\n"
-            "# Only health-check and public docs endpoints are exempt."
+            f"# REQUIRED: Apply this repo's established auth pattern\n"
+            f"# Protect '{endpoint}' with: {auth_example}\n"
+            f"# Every new endpoint MUST be protected.\n"
+            f"# Only health-check and public docs endpoints are exempt."
         ),
         affected_files=_affected(finding),
         confidence=0.95,
@@ -612,27 +613,34 @@ def _gen_hsc(finding: Finding) -> list[NegativeContext]:
     rule_id = meta.get("rule_id", "hardcoded_secret")
     cwe = meta.get("cwe", "CWE-798")
 
-    # Map rule_id to specific forbidden pattern -- use fixed variable names
-    # per rule category so identical signals deduplicate in export (#109).
+    # Map rule_id to specific forbidden pattern -- use actual variable name
+    # from finding when available, otherwise fixed per rule category (#127).
+    file_ref = ""
+    if finding.file_path:
+        loc = f"{finding.file_path.as_posix()}"
+        if finding.start_line:
+            loc += f":L{finding.start_line}"
+        file_ref = f"  # {loc}"
+
     if rule_id == "hardcoded_api_token":
         forbidden = (
             f"# ANTI-PATTERN: Hardcoded API token ({cwe})\n"
-            'API_KEY = "sk-A1B2C3..."  '
-            "# <- NEVER hardcode API tokens"
+            f'{var_name} = "sk-A1B2C3..."'
+            f"{file_ref}  # <- NEVER hardcode API tokens"
         )
         desc_detail = "API token"
     elif rule_id == "placeholder_secret":
         forbidden = (
             f"# ANTI-PATTERN: Placeholder secret left in code ({cwe})\n"
-            'SECRET = "changeme"  '
-            "# <- Placeholder secrets get deployed to production"
+            f'{var_name} = "changeme"'
+            f"{file_ref}  # <- Placeholder secrets get deployed to production"
         )
         desc_detail = "placeholder secret"
     else:
         forbidden = (
             f"# ANTI-PATTERN: Hardcoded credentials ({cwe})\n"
-            'SECRET = "secret_value"  '
-            "# <- NEVER embed secrets in source"
+            f'{var_name} = "..."'
+            f"{file_ref}  # <- NEVER embed secrets in source"
         )
         desc_detail = "hardcoded credential"
 
@@ -651,7 +659,7 @@ def _gen_hsc(finding: Finding) -> list[NegativeContext]:
         canonical_alternative=(
             "# REQUIRED: Use environment variables or a secrets manager\n"
             "import os\n"
-            'VAR = os.environ["SECRET_NAME"]\n'
+            f'{var_name} = os.environ["{var_name}"]\n'
             "# Alternative: use a .env file with python-dotenv or similar"
         ),
         affected_files=_affected(finding),

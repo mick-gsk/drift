@@ -338,7 +338,7 @@ def _format_scan_response(
         primary_signal = tied[0]["signal"]
 
     result = _base_response(
-        drift_score=round(analysis.drift_score, 4),
+        drift_score=round(analysis.drift_score, 3),
         severity=analysis.severity.value,
         total_files=analysis.total_files,
         total_functions=analysis.total_functions,
@@ -1317,7 +1317,7 @@ def fix_plan(
                 ]
 
         result = _base_response(
-            drift_score=round(analysis.drift_score, 4),
+            drift_score=round(analysis.drift_score, 3),
             tasks=[_task_to_api_dict(t) for t in limited],
             task_count=len(limited),
             total_available=len(tasks),
@@ -2083,7 +2083,7 @@ def negative_context(
 
         result: dict[str, Any] = {
             "status": "ok",
-            "drift_score": round(analysis.drift_score, 4),
+            "drift_score": round(analysis.drift_score, 3),
             "items_returned": len(items),
             "items_total": len(analysis.findings),
             "scope_filter": scope,

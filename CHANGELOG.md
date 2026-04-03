@@ -2,6 +2,7 @@
 
 ### Added
 
+- Add `--include-positive` flag to `drift export-context` that prepends positive architectural guidance (from copilot-context) to anti-pattern constraints, producing a single combined context document for agent consumption (#128).
 - Add mutation testing infrastructure with cross-platform runner (`scripts/signal_mutation_test.py`) and 20 threshold sensitivity tests; baseline kill rate **100%** (23/23) — all 5 core signals (PFS, AVS, MDS, EDS, GCD) at 100%.
 - Introduce configurable finding-context triage policy with precedence-based glob rules to keep non-operational findings out of default remediation queues unless explicitly requested.
 - Add `--progress json` option to `scan` and `analyze` commands for structured JSON-lines progress feedback on stderr, enabling agents to distinguish running from hung processes (#104).
@@ -17,6 +18,9 @@
 
 ### Fixed
 
+- Standardize drift score precision to 3 decimal places across all surfaces (copilot-context, export-context, API, raw JSON) to eliminate score inconsistency between commands (#124).
+- Fix MCP schema `--schema` output leaking `type: "Annotated"` for all parameters instead of actual JSON Schema types (`string`, `integer`, `boolean`) by properly unwrapping `typing.Annotated` wrappers (#126).
+- Negative context generators now use actual variable names, endpoint names, and file:line references from findings instead of generic template code in DO NOT / INSTEAD examples (#127).
 - Reduce DIA false positives by requiring structural context for plain markdown slash-tokens (e.g. `async/`, `scan/`, `connectors/`) before emitting missing-directory findings, while preserving explicit path references in code spans/backticks (#121).
 - Add trailing newlines in CSV formatter and CSV tests to satisfy lint gate requirements and keep pre-push checks green.
 - Surface file I/O errors in `analyze`, `check`, and `scan` commands as structured `DRIFT-2003` errors with exit code 2 instead of unhandled `OSError` tracebacks.

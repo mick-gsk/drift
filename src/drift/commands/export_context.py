@@ -61,6 +61,16 @@ from drift.commands import console
     default=None,
     help="Path to drift config file.",
 )
+@click.option(
+    "--include-positive",
+    is_flag=True,
+    default=False,
+    help=(
+        "Include positive architectural guidance (from copilot-context) "
+        "above the anti-pattern constraints.  Produces a single combined "
+        "context document."
+    ),
+)
 def export_context(
     repo: Path,
     output: Path | None,
@@ -70,6 +80,7 @@ def export_context(
     max_items: int,
     since: int,
     config: Path | None,
+    include_positive: bool,
 ) -> None:
     """Export anti-pattern context for coding agents and automation.
 
@@ -83,6 +94,7 @@ def export_context(
         drift export-context                    # preview to stdout
         drift export-context --write            # write .drift-negative-context.md
         drift export-context -w --format prompt # write as .prompt.md format
+        drift export-context --include-positive # combined positive + negative context
         drift export-context -w -o .github/instructions/anti-patterns.instructions.md
     """
     from drift.analyzer import analyze_repo
@@ -108,6 +120,22 @@ def export_context(
         drift_score=analysis.drift_score,
         severity=analysis.severity,
     )
+
+    # Optionally prepend positive architectural guidance
+    if include_positive and fmt != "raw":
+        from drift.copilot_context import generate_instructions
+
+        positive_section = generate_instructions(analysis)
+        markdown = positive_section + "\n---\n\n" + markdown
+    elif include_positive and fmt == "raw":
+        import json
+
+        from drift.copilot_context import generate_instructions
+
+        positive_section = generate_instructions(analysis)
+        raw_data = json.loads(markdown)
+        raw_data["positive_context"] = positive_section
+        markdown = json.dumps(raw_data, indent=2)
 
     if not write:
         click.echo(markdown)

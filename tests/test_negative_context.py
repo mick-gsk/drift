@@ -590,7 +590,7 @@ class TestHSCProjectSpecific:
         nc = result[0]
         assert "API token" in nc.description
         assert "OPENAI_KEY" in nc.description
-        assert "API_KEY" in nc.forbidden_pattern
+        assert "OPENAI_KEY" in nc.forbidden_pattern
         assert nc.metadata["rule_id"] == "hardcoded_api_token"
 
     def test_placeholder_secret_rule(self) -> None:
@@ -624,3 +624,50 @@ class TestHSCProjectSpecific:
         result = findings_to_negative_context([f])
         nc = result[0]
         assert "hardcoded_api_token" in nc.rationale
+
+
+# ---------------------------------------------------------------------------
+# Issue #127: Templates use actual code references
+# ---------------------------------------------------------------------------
+
+
+class TestActualCodeReferences:
+    """Generators must use actual finding data, not generic template code."""
+
+    def test_hsc_forbidden_uses_actual_variable_name(self) -> None:
+        f = _finding(
+            signal_type=SignalType.HARDCODED_SECRET,
+            metadata={"variable": "EPIC_CLIENT_SECRET"},
+        )
+        result = findings_to_negative_context([f])
+        nc = result[0]
+        assert "EPIC_CLIENT_SECRET" in nc.forbidden_pattern
+
+    def test_hsc_canonical_uses_actual_variable_name(self) -> None:
+        f = _finding(
+            signal_type=SignalType.HARDCODED_SECRET,
+            metadata={"variable": "STRIPE_KEY"},
+        )
+        result = findings_to_negative_context([f])
+        nc = result[0]
+        assert "STRIPE_KEY" in nc.canonical_alternative
+
+    def test_hsc_includes_file_reference(self) -> None:
+        f = _finding(
+            signal_type=SignalType.HARDCODED_SECRET,
+            file_path="tools/replay_downloader/constants.py",
+            metadata={"variable": "EPIC_CLIENT_SECRET"},
+        )
+        result = findings_to_negative_context([f])
+        nc = result[0]
+        assert "constants.py" in nc.forbidden_pattern
+
+    def test_maz_uses_actual_endpoint_name(self) -> None:
+        f = _finding(
+            signal_type=SignalType.MISSING_AUTHORIZATION,
+            metadata={"endpoint": "build_action_packet_legacy"},
+        )
+        result = findings_to_negative_context([f])
+        nc = result[0]
+        assert "build_action_packet_legacy" in nc.forbidden_pattern
+        assert "build_action_packet_legacy" in nc.canonical_alternative

@@ -23,7 +23,7 @@ import json
 import os
 import re as _re
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
 import anyio
 
@@ -235,7 +235,7 @@ async def drift_scan(
             error["tool"] = "drift_scan"
             return json.dumps(error, default=str)
 
-    return await anyio.to_thread.run_sync(_sync)
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -291,7 +291,7 @@ async def drift_diff(
         )
         return json.dumps(result, default=str)
 
-    return await anyio.to_thread.run_sync(_sync)
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -321,7 +321,7 @@ async def drift_explain(
 
         return json.dumps(explain(topic), default=str)
 
-    return await anyio.to_thread.run_sync(_sync)
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -380,7 +380,7 @@ async def drift_fix_plan(
         )
         return json.dumps(result, default=str)
 
-    return await anyio.to_thread.run_sync(_sync)
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -407,7 +407,7 @@ async def drift_validate(
         result = validate(path, config_file=config_file)
         return json.dumps(result, default=str)
 
-    return await anyio.to_thread.run_sync(_sync)
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -539,7 +539,7 @@ async def drift_brief(
             )
             return json.dumps(error, default=str)
 
-    return await anyio.to_thread.run_sync(_sync)
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -607,7 +607,10 @@ async def drift_negative_context(
 
     try:
         with anyio.fail_after(_NEGATIVE_CONTEXT_TIMEOUT_SECONDS):
-            return await anyio.to_thread.run_sync(_sync, abandon_on_cancel=True)
+            return cast(
+                str,
+                await anyio.to_thread.run_sync(_sync, abandon_on_cancel=True),
+            )
     except TimeoutError:
         timeout_response = _negative_context_timeout_response(
             path=path,
@@ -706,10 +709,43 @@ def _extract_param_descriptions(doc: str) -> dict[str, str]:
 
 
 def _annotation_to_string(annotation: Any) -> str:
+    """Resolve a Python type annotation to a JSON Schema type string.
+
+    Properly unwraps ``Annotated[T, ...]`` and maps Python primitives to
+    their JSON Schema equivalents.
+    """
+    import types as _bt
+    import typing
+
     if annotation is inspect.Signature.empty:
         return "Any"
     if isinstance(annotation, str):
         return annotation
+
+    # Unwrap Annotated[T, ...] → T
+    origin = typing.get_origin(annotation)
+    if origin is typing.Annotated:
+        args = typing.get_args(annotation)
+        if args:
+            return _annotation_to_string(args[0])
+
+    # Handle Union / Optional (T | None)
+    if origin is _bt.UnionType or origin is typing.Union:
+        args = typing.get_args(annotation)
+        non_none = [a for a in args if a is not type(None)]
+        if len(non_none) == 1:
+            return _annotation_to_string(non_none[0])
+
+    # Map Python primitives to JSON Schema types
+    json_type_map: dict[type, str] = {
+        str: "string",
+        int: "integer",
+        float: "number",
+        bool: "boolean",
+    }
+    if isinstance(annotation, type) and annotation in json_type_map:
+        return json_type_map[annotation]
+
     name = getattr(annotation, "__name__", None)
     if isinstance(name, str):
         return name
@@ -718,6 +754,8 @@ def _annotation_to_string(annotation: Any) -> str:
 
 def get_tool_catalog() -> list[dict[str, Any]]:
     """Return MCP tool metadata for local inspection via CLI."""
+    import typing
+
     catalog: list[dict[str, Any]] = []
 
     for tool in _EXPORTED_MCP_TOOLS:
@@ -725,6 +763,12 @@ def get_tool_catalog() -> list[dict[str, Any]]:
         doc = inspect.getdoc(tool) or ""
         summary = doc.splitlines()[0] if doc else ""
         param_descs = _extract_param_descriptions(doc)
+
+        # Resolve string annotations (from __future__ annotations) to real types
+        try:
+            resolved_hints = typing.get_type_hints(tool, include_extras=True)
+        except Exception:
+            resolved_hints = {}
 
         parameters: list[dict[str, Any]] = []
         for parameter in signature.parameters.values():
@@ -734,10 +778,11 @@ def get_tool_catalog() -> list[dict[str, Any]]:
             ):
                 continue
 
+            annotation = resolved_hints.get(parameter.name, parameter.annotation)
             required = parameter.default is inspect.Signature.empty
             parameter_info: dict[str, Any] = {
                 "name": parameter.name,
-                "type": _annotation_to_string(parameter.annotation),
+                "type": _annotation_to_string(annotation),
                 "required": required,
             }
             if not required:
