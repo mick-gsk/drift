@@ -27,11 +27,10 @@ import re as _re
 from pathlib import Path
 from typing import Annotated, Any, cast
 
-import anyio
-
 MCPFastMCPImpl: Any
 
 try:
+    import anyio
     from mcp.server.fastmcp import FastMCP as _ImportedFastMCP
     from pydantic import Field
 
@@ -39,6 +38,7 @@ try:
     MCPFastMCPImpl = _ImportedFastMCP
 except ImportError:
     _MCP_AVAILABLE = False
+    anyio = None  # type: ignore[assignment]
 
     def Field(**_kwargs: object) -> Any:  # type: ignore[misc,no-redef]  # noqa: N802
         """No-op fallback when pydantic is unavailable."""

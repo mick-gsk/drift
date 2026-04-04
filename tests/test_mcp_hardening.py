@@ -244,3 +244,26 @@ class TestMcpStdioTransportSafety:
             "_eager_imports() must be called BEFORE mcp.run() to avoid "
             "Windows DLL loader lock deadlock with IOCP"
         )
+
+    def test_anyio_import_guarded_for_optional_dependency(self) -> None:
+        """anyio must not be imported at module level outside the try/except guard.
+
+        ``import anyio`` must live inside the same try/except that guards
+        the ``mcp`` import.  Otherwise ``drift mcp --list`` and
+        ``drift mcp --schema`` crash with ``ModuleNotFoundError`` when the
+        ``mcp`` extra is not installed, instead of using the fallback.
+        """
+        import ast
+
+        src_file = Path(__file__).resolve().parent.parent / "src" / "drift" / "mcp_server.py"
+        tree = ast.parse(src_file.read_text(encoding="utf-8"), filename=str(src_file))
+
+        for node in ast.iter_child_nodes(tree):
+            # Bare `import anyio` at module level is forbidden
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    assert alias.name != "anyio", (
+                        f"mcp_server.py:{node.lineno} — bare `import anyio` at module level "
+                        "breaks --list/--schema without MCP extra; "
+                        "must be inside the try/except ImportError guard"
+                    )
