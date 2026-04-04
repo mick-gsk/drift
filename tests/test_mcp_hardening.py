@@ -105,13 +105,35 @@ class TestMcpToolAsyncInvariant:
                 f"block the MCP event loop and cause session hangs"
             )
 
+    def test_all_tools_use_anyio_not_asyncio_to_thread(self) -> None:
+        """MCP tools must use anyio.to_thread.run_sync, not asyncio.to_thread.
+
+        asyncio.to_thread is not compatible with trio and breaks the
+        transport-agnostic contract of the MCP server.
+        """
+        from drift.mcp_server import _EXPORTED_MCP_TOOLS
+
+        for tool in _EXPORTED_MCP_TOOLS:
+            source = inspect.getsource(tool)
+            assert "asyncio.to_thread" not in source, (
+                f"{tool.__name__} uses asyncio.to_thread — "
+                f"must use anyio.to_thread.run_sync for backend portability"
+            )
+
 
 class TestMcpToolErrorEnvelopes:
     """Every MCP tool must return a JSON error envelope on exception, never propagate."""
 
     @pytest.mark.parametrize(
         "tool_name",
-        ["drift_diff", "drift_explain", "drift_validate", "drift_nudge"],
+        [
+            "drift_diff",
+            "drift_explain",
+            "drift_validate",
+            "drift_nudge",
+            "drift_fix_plan",
+            "drift_negative_context",
+        ],
     )
     def test_tool_wraps_exception_in_error_envelope(
         self, monkeypatch: pytest.MonkeyPatch, tool_name: str
@@ -123,6 +145,8 @@ class TestMcpToolErrorEnvelopes:
             "drift_explain": "drift.api.explain",
             "drift_validate": "drift.api.validate",
             "drift_nudge": "drift.api.nudge",
+            "drift_fix_plan": "drift.api.fix_plan",
+            "drift_negative_context": "drift.api.negative_context",
         }
 
         def _boom(*_a: object, **_kw: object) -> None:
@@ -221,3 +245,26 @@ class TestMcpStdioTransportSafety:
             "_eager_imports() must be called BEFORE mcp.run() to avoid "
             "Windows DLL loader lock deadlock with IOCP"
         )
+
+    def test_anyio_import_guarded_for_optional_dependency(self) -> None:
+        """anyio must not be imported at module level outside the try/except guard.
+
+        ``import anyio`` must live inside the same try/except that guards
+        the ``mcp`` import.  Otherwise ``drift mcp --list`` and
+        ``drift mcp --schema`` crash with ``ModuleNotFoundError`` when the
+        ``mcp`` extra is not installed, instead of using the fallback.
+        """
+        import ast
+
+        src_file = Path(__file__).resolve().parent.parent / "src" / "drift" / "mcp_server.py"
+        tree = ast.parse(src_file.read_text(encoding="utf-8"), filename=str(src_file))
+
+        for node in ast.iter_child_nodes(tree):
+            # Bare `import anyio` at module level is forbidden
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    assert alias.name != "anyio", (
+                        f"mcp_server.py:{node.lineno} — bare `import anyio` at module level "
+                        "breaks --list/--schema without MCP extra; "
+                        "must be inside the try/except ImportError guard"
+                    )

@@ -6,17 +6,18 @@ The server uses stdio transport (no network listener) and is started via
 ``drift mcp --serve``.  VS Code discovers it through ``.vscode/mcp.json``.
 
 Tool surface (v2):
-    drift_scan       — Full repo analysis (concise/detailed)
-    drift_diff       — Diff-based change detection
-    drift_explain    — Signal/rule/error explanations
-    drift_fix_plan   — Prioritised repair tasks with constraints
-    drift_validate   — Preflight config & environment check
-    drift_brief      — Pre-task structural briefing with guardrails
+    drift_scan              — Full repo analysis (concise/detailed)
+    drift_diff              — Diff-based change detection
+    drift_explain           — Signal/rule/error explanations
+    drift_fix_plan          — Prioritised repair tasks with constraints
+    drift_validate          — Preflight config & environment check
+    drift_nudge             — Directional feedback after file changes
+    drift_brief             — Pre-task structural briefing with guardrails
+    drift_negative_context  — Anti-pattern warnings for code generation
 """
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import inspect
 import io
@@ -26,11 +27,10 @@ import re as _re
 from pathlib import Path
 from typing import Annotated, Any, cast
 
-import anyio
-
 MCPFastMCPImpl: Any
 
 try:
+    import anyio
     from mcp.server.fastmcp import FastMCP as _ImportedFastMCP
     from pydantic import Field
 
@@ -38,6 +38,7 @@ try:
     MCPFastMCPImpl = _ImportedFastMCP
 except ImportError:
     _MCP_AVAILABLE = False
+    anyio = None  # type: ignore[assignment]
 
     def Field(**_kwargs: object) -> Any:  # type: ignore[misc,no-redef]  # noqa: N802
         """No-op fallback when pydantic is unavailable."""
@@ -587,8 +588,7 @@ async def drift_brief(
             )
             return json.dumps(error, default=str)
 
-    payload: str = await asyncio.to_thread(_sync)
-    return payload
+    return cast(str, await anyio.to_thread.run_sync(_sync))
 
 
 @mcp.tool()
@@ -630,29 +630,36 @@ async def drift_negative_context(
     def _sync() -> str:
         from drift.api import negative_context
 
-        # Keep MCP stdio clean if dependencies emit accidental stdout lines.
-        with contextlib.redirect_stdout(io.StringIO()):
-            result = negative_context(
-                path,
-                scope=scope,
-                target_file=target_file,
-                max_items=max_items,
-                disable_embeddings=True,
-            )
+        try:
+            # Keep MCP stdio clean if dependencies emit accidental stdout lines.
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = negative_context(
+                    path,
+                    scope=scope,
+                    target_file=target_file,
+                    max_items=max_items,
+                    disable_embeddings=True,
+                )
 
-        if not isinstance(result, dict):
-            fallback = {
-                "status": "error",
-                "error_code": "DRIFT-2032",
-                "message": "MCP tool returned no structured response.",
-                "recoverable": True,
-                "agent_instruction": (
-                    "Retry the call once; if it repeats, run drift_validate."
-                ),
-            }
-            return json.dumps(fallback, default=str)
+            if not isinstance(result, dict):
+                fallback = {
+                    "status": "error",
+                    "error_code": "DRIFT-2032",
+                    "message": "MCP tool returned no structured response.",
+                    "recoverable": True,
+                    "agent_instruction": (
+                        "Retry the call once; if it repeats, run drift_validate."
+                    ),
+                }
+                return json.dumps(fallback, default=str)
 
-        return json.dumps(result, default=str)
+            return json.dumps(result, default=str)
+        except Exception as exc:
+            from drift.api_helpers import _error_response
+
+            error = _error_response("DRIFT-5001", str(exc), recoverable=True)
+            error["tool"] = "drift_negative_context"
+            return json.dumps(error, default=str)
 
     try:
         with anyio.fail_after(_NEGATIVE_CONTEXT_TIMEOUT_SECONDS):
