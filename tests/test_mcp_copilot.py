@@ -286,11 +286,14 @@ class TestMcpServerHelpers:
     """Test MCP server tool functions are importable and well-formed."""
 
     def test_mcp_tools_importable(self) -> None:
-        """All five v2 MCP tools can be imported."""
+        """All eight v2 MCP tools can be imported."""
         from drift.mcp_server import (
+            drift_brief,
             drift_diff,
             drift_explain,
             drift_fix_plan,
+            drift_negative_context,
+            drift_nudge,
             drift_scan,
             drift_validate,
         )
@@ -301,6 +304,9 @@ class TestMcpServerHelpers:
         assert callable(drift_explain)
         assert callable(drift_fix_plan)
         assert callable(drift_validate)
+        assert callable(drift_nudge)
+        assert callable(drift_brief)
+        assert callable(drift_negative_context)
 
     def test_drift_explain_returns_json(self) -> None:
         """drift_explain returns valid JSON for a known signal."""

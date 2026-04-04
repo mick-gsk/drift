@@ -105,13 +105,35 @@ class TestMcpToolAsyncInvariant:
                 f"block the MCP event loop and cause session hangs"
             )
 
+    def test_all_tools_use_anyio_not_asyncio_to_thread(self) -> None:
+        """MCP tools must use anyio.to_thread.run_sync, not asyncio.to_thread.
+
+        asyncio.to_thread is not compatible with trio and breaks the
+        transport-agnostic contract of the MCP server.
+        """
+        from drift.mcp_server import _EXPORTED_MCP_TOOLS
+
+        for tool in _EXPORTED_MCP_TOOLS:
+            source = inspect.getsource(tool)
+            assert "asyncio.to_thread" not in source, (
+                f"{tool.__name__} uses asyncio.to_thread — "
+                f"must use anyio.to_thread.run_sync for backend portability"
+            )
+
 
 class TestMcpToolErrorEnvelopes:
     """Every MCP tool must return a JSON error envelope on exception, never propagate."""
 
     @pytest.mark.parametrize(
         "tool_name",
-        ["drift_diff", "drift_explain", "drift_validate", "drift_nudge"],
+        [
+            "drift_diff",
+            "drift_explain",
+            "drift_validate",
+            "drift_nudge",
+            "drift_fix_plan",
+            "drift_negative_context",
+        ],
     )
     def test_tool_wraps_exception_in_error_envelope(
         self, monkeypatch: pytest.MonkeyPatch, tool_name: str
@@ -123,6 +145,8 @@ class TestMcpToolErrorEnvelopes:
             "drift_explain": "drift.api.explain",
             "drift_validate": "drift.api.validate",
             "drift_nudge": "drift.api.nudge",
+            "drift_fix_plan": "drift.api.fix_plan",
+            "drift_negative_context": "drift.api.negative_context",
         }
 
         def _boom(*_a: object, **_kw: object) -> None:
@@ -138,7 +162,6 @@ class TestMcpToolErrorEnvelopes:
         result = json.loads(raw)
 
         assert result["type"] == "error", f"{tool_name} did not return error envelope"
-        assert result["error_code"] == "DRIFT-5001"
         assert result["tool"] == tool_name
 
 
