@@ -210,9 +210,17 @@ async def drift_scan(
         str | None,
         Field(description="Comma-separated signal IDs to include, e.g. 'PFS,AVS'. Omit for all."),
     ] = None,
+    exclude_signals: Annotated[
+        str | None,
+        Field(description="Comma-separated signal IDs to exclude, e.g. 'MDS,DIA'."),
+    ] = None,
     max_findings: Annotated[
         int, Field(description="Maximum number of findings to return.")
     ] = 10,
+    max_per_signal: Annotated[
+        int | None,
+        Field(description="Optional cap of findings per signal in returned results."),
+    ] = None,
     response_detail: Annotated[
         str,
         Field(description="Detail level: 'concise' (token-efficient) or 'detailed' (all fields)."),
@@ -237,7 +245,9 @@ async def drift_scan(
         target_path: Restrict analysis to a subdirectory.
         since_days: Days of git history to consider (default: 90).
         signals: Comma-separated signal IDs to include (e.g. "PFS,AVS").
+        exclude_signals: Comma-separated signal IDs to exclude.
         max_findings: Maximum findings to return (default: 10).
+        max_per_signal: Optional cap of findings per signal in the returned list.
         response_detail: "concise" (token-sparing) or "detailed" (full fields).
         include_non_operational: Include non-operational contexts in fix_first ordering.
     """
@@ -251,13 +261,20 @@ async def drift_scan(
                 if signals
                 else None
             )
+            exclude_signal_list = (
+                [s.strip() for s in exclude_signals.split(",") if s.strip()]
+                if exclude_signals
+                else None
+            )
             with contextlib.redirect_stdout(io.StringIO()):
                 result = scan(
                     path,
                     target_path=target_path,
                     since_days=since_days,
                     signals=signal_list,
+                    exclude_signals=exclude_signal_list,
                     max_findings=max_findings,
+                    max_per_signal=max_per_signal,
                     response_detail=response_detail,
                     include_non_operational=include_non_operational,
                 )

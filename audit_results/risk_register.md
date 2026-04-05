@@ -1,5 +1,24 @@
 # Risk Register
 
+## 2026-04-05 - Scan/Analyze Cross-Validation Felder im Scan-Output (Issue #171)
+
+- Risk ID: RISK-OUT-2026-04-05-171
+- Component: src/drift/api.py, src/drift/api_helpers.py
+- Type: Output contract clarity / automation reliability
+- Description: Agenten mussten Scan- und Analyze-Resultate mit unterschiedlichen Feldnamen und ohne stabilen Finding-Fingerprint korrelieren. Das erhöhte das Risiko von fehlerhaften Deduplikationen und inkonsistenter Priorisierung.
+- Trigger examples:
+  - Vergleich `scan` vs `analyze` in CI/Agent-Workflows mit signalabhängiger Bündelung.
+  - Automatisierte Merges von Findings über mehrere Läufe ohne stabile ID.
+- Impact: Erhöhte Fehlzuordnung in Cross-Validation, geringere Reproduzierbarkeit bei agentischen Workflows.
+- Mitigation:
+  - Harmonisierte Scan-Felder: `signal_abbrev`, `signal_id`, `signal_type` in concise/detailed/fix_first.
+  - Stabile Finding-ID im Scan-Output ergänzt: `fingerprint` (deterministisch über bestehende Baseline-Fingerprint-Logik).
+  - Numerische Schweregradskalierung ergänzt: `severity_rank` je Finding.
+  - Top-Level-Metadaten ergänzt: `cross_validation` mit Signalfeld-Mapping, Severity-Ranking und numerischer Score-Skala.
+  - Regressionen ergänzt in `tests/test_scan_diversity.py`.
+- Verification: `python -m pytest tests/test_scan_diversity.py tests/test_agent_native_cli.py -q --maxfail=1`
+- Residual risk: Low; Änderung ist additiv und rückwärtskompatibel für bestehende Consumer, die unbekannte Felder ignorieren.
+
 ## 2026-04-05 - AVS/ECM/TPD Recall-Härtung auf Groß-Repositories (Issue #170)
 
 - Risk ID: RISK-SIG-2026-04-05-170

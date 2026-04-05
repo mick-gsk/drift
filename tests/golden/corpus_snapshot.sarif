@@ -1046,6 +1046,70 @@
           "ruleId": "explainability_deficit"
         },
         {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/models/enriched.py"
+                },
+                "region": {
+                  "startLine": 3
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Upward layer import: enriched.py → auth.py\nsrc/myapp/models/enriched.py:3 — data/infrastructure layer imports from presentation/API layer. Expected direction: presentation → service → data.\nFIX: Move auth.py logic behind a service layer or abstraction interface that enriched.py is allowed to import."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/handlers/auth.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "avs_upward_import"
+        },
+        {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/models/enriched.py"
+                },
+                "region": {
+                  "startLine": 4
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "Upward layer import: enriched.py → orders.py\nsrc/myapp/models/enriched.py:4 — data/infrastructure layer imports from presentation/API layer. Expected direction: presentation → service → data.\nFIX: Move orders.py logic behind a service layer or abstraction interface that enriched.py is allowed to import."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/handlers/orders.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "avs_upward_import"
+        },
+        {
           "level": "note",
           "locations": [
             {
@@ -1627,6 +1691,15 @@
               "id": "explainability_deficit",
               "shortDescription": {
                 "text": "explainability_deficit"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "id": "avs_upward_import",
+              "shortDescription": {
+                "text": "architecture_violation"
               }
             },
             {

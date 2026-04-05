@@ -2,6 +2,10 @@
 
 ### Added
 
+- Add `--exclude-signals` / `--exclude` option to `drift scan` CLI, `exclude_signals` parameter to the API, and MCP `drift_scan` tool to let callers explicitly exclude dominant or noisy signals (e.g. `MDS`) from returned findings (#173).
+- Add `--max-per-signal` option to `drift scan` CLI and matching `max_per_signal` API/MCP parameter to cap the number of returned findings per signal, preventing any one signal from flooding the result list; `selection_diagnostics` exposes the cap and uses `reason: max_per_signal_cap` for capped signals (#173).
+- Harmonize scan finding fields across `concise`, `detailed`, and `fix_first` formats: all findings now include `signal_abbrev`, `signal_id`, `signal_type`, `severity_rank` (numeric 1–5 scale), and a deterministic `fingerprint` for stable cross-command correlation without post-processing (#171).
+- Add top-level `cross_validation` block to `scan` responses mapping canonical field names, severity ranking scale (critical=5 … info=1), and numeric score range (0.0–1.0) for machines and agents consuming the API (#171).
 - Publish an authoritative `drift.schema.json` for `drift.yaml`, add `drift config schema` for regeneration, document editor/CI schema usage, and enforce schema-model alignment with regression tests (#41).
 - Add `--include-positive` flag to `drift export-context` that prepends positive architectural guidance (from copilot-context) to anti-pattern constraints, producing a single combined context document for agent consumption (#128).
 - Add mutation testing infrastructure with cross-platform runner (`scripts/signal_mutation_test.py`) and 20 threshold sensitivity tests; baseline kill rate **100%** (23/23) — all 5 core signals (PFS, AVS, MDS, EDS, GCD) at 100%.
@@ -19,6 +23,7 @@
 
 ### Fixed
 
+- Suppress DIA missing-README finding for bootstrap-sized repositories (≤1 parsed Python file or only `__init__.py` skeletons) to avoid false positives on newly scaffolded projects.
 - Reduce token-heavy duplication in `drift export-context` by grouping remediation-equivalent anti-pattern findings per signal/remediation across `instructions`, `prompt`, and `raw` output formats, while preserving forbidden-pattern variants for traceability (#174).
 - Stabilize CI regression tests by aligning the `tpd_boundary_tp` fixture with its zero-negative-assertion expectation and using neutral `services/worker_*` filenames in the PFS medium-threshold test to avoid framework-surface dampening side effects.
 - Prevent `mutant_duplicate` from flagging deliberate package-level lazy-loading `__getattr__` implementations in `__init__.py` as high-severity duplicates, while keeping non-package `__getattr__` duplicate detection active (#144).

@@ -335,6 +335,52 @@ class TestFixFirstDedup:
         assert len(pfs_same) == 1
 
 
+class TestScanCrossValidationFields:
+    def test_concise_finding_contains_harmonized_signal_and_fingerprint(self):
+        import drift.api as api_module
+
+        finding = _make_finding(PFS, 0.9, 0.9, file="src/service.py", line=12)
+        item = api_module._finding_concise(finding)
+
+        assert item["signal"] == "PFS"
+        assert item["signal_abbrev"] == "PFS"
+        assert item["signal_id"] == "PFS"
+        assert item["signal_type"] == PFS.value
+        assert item["severity"] == "high"
+        assert item["severity_rank"] == 4
+        assert isinstance(item["fingerprint"], str)
+        assert len(item["fingerprint"]) == 16
+
+    def test_detailed_scan_response_includes_cross_validation_metadata(self):
+        analysis = SimpleNamespace(
+            findings=[_make_finding(PFS, 0.9, 0.9, file="src/service.py", line=12)],
+            drift_score=0.6,
+            severity=Severity.HIGH,
+            total_files=10,
+            total_functions=20,
+            ai_attributed_ratio=0.0,
+            trend=None,
+            skipped_files=0,
+            skipped_languages={},
+        )
+
+        result = _format_scan_response(
+            analysis,
+            config=DriftConfig(),
+            detail="detailed",
+            max_findings=5,
+        )
+
+        assert "cross_validation" in result
+        cv = result["cross_validation"]
+        assert cv["signal_fields"]["canonical_signal_type_field"] == "signal_type"
+        assert cv["signal_fields"]["signal_id_field"] == "signal_id"
+        assert cv["severity_scale"]["ranking"]["critical"] == 5
+        assert cv["severity_scale"]["ranking"]["high"] == 4
+        assert cv["numeric_score_range"]["min"] == 0.0
+        assert cv["numeric_score_range"]["max"] == 1.0
+
+
 class TestNonOperationalContextFiltering:
     def test_scan_excludes_fixture_from_findings_by_default(self, monkeypatch):
         import drift.analyzer as analyzer_module
@@ -919,6 +965,97 @@ class TestTopSignalsFilter:
         assert signal_ids == {"PFS"}
         findings_signal_ids = {f["signal"] for f in result["findings"]}
         assert findings_signal_ids == {"PFS"}
+
+
+class TestScanSignalFiltering:
+    def test_max_per_signal_caps_returned_findings(self, monkeypatch):
+        import drift.api as api_module
+
+        findings = (
+            [_make_finding(PFS, 0.95, 0.95 - i * 0.01) for i in range(8)]
+            + [_make_finding(AVS, 0.85, 0.7 - i * 0.01) for i in range(6)]
+            + [_make_finding(MDS, 0.75, 0.5 - i * 0.01) for i in range(4)]
+        )
+        analysis = SimpleNamespace(
+            findings=findings,
+            drift_score=0.6,
+            severity=Severity.HIGH,
+            total_files=20,
+            total_functions=120,
+            ai_attributed_ratio=0.1,
+            trend=None,
+        )
+        monkeypatch.setattr(
+            api_module, "_finding_concise",
+            lambda f: {"signal": api_module.signal_abbrev(f.signal_type), "title": f.title},
+        )
+        monkeypatch.setattr(
+            api_module, "_fix_first_concise",
+            lambda analysis, max_items=5: [],
+        )
+
+        result = _format_scan_response(
+            analysis,
+            config=DriftConfig(),
+            max_findings=9,
+            max_per_signal=2,
+            strategy="top-severity",
+        )
+
+        per_signal: dict[str, int] = {}
+        for finding in result["findings"]:
+            signal = finding["signal"]
+            per_signal[signal] = per_signal.get(signal, 0) + 1
+
+        assert result["selection_diagnostics"]["max_per_signal"] == 2
+        assert max(per_signal.values()) <= 2
+
+    def test_scan_forwards_exclude_signals_to_config(self, monkeypatch):
+        import drift.analyzer as analyzer_module
+        import drift.api as api_module
+        from drift.config import DriftConfig
+
+        analysis = SimpleNamespace(
+            findings=[_make_finding(PFS, 0.9, 0.9)],
+            drift_score=0.5,
+            severity=Severity.HIGH,
+            total_files=5,
+            total_functions=10,
+            ai_attributed_ratio=0.0,
+            trend=None,
+        )
+        captured: dict[str, object] = {}
+
+        def _fake_apply_signal_filter(cfg, select, ignore):
+            captured["select"] = select
+            captured["ignore"] = ignore
+
+        monkeypatch.setattr(
+            DriftConfig, "load",
+            staticmethod(lambda *a, **kw: object()),
+        )
+        monkeypatch.setattr(
+            analyzer_module, "analyze_repo",
+            lambda *a, **kw: analysis,
+        )
+        monkeypatch.setattr(
+            api_module, "_emit_api_telemetry",
+            lambda **kw: None,
+        )
+        monkeypatch.setattr(
+            api_module, "_finding_concise",
+            lambda f: {"signal": api_module.signal_abbrev(f.signal_type), "title": f.title},
+        )
+        monkeypatch.setattr(
+            api_module, "_fix_first_concise",
+            lambda analysis, max_items=5: [],
+        )
+        monkeypatch.setattr("drift.config.apply_signal_filter", _fake_apply_signal_filter)
+
+        scan(Path("."), signals=["PFS"], exclude_signals=["MDS"])
+
+        assert captured["select"] == "PFS"
+        assert captured["ignore"] == "MDS"
 
 
 # --- Task 6: agent_instruction in API responses ---

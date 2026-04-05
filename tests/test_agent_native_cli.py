@@ -98,6 +98,44 @@ def test_scan_accepts_signals_alias(monkeypatch, tmp_path: Path) -> None:
     assert captured.get("signals") == ["PFS", "AVS"]
 
 
+def test_scan_passes_exclude_and_max_per_signal(monkeypatch, tmp_path: Path) -> None:
+    import drift.commands.scan as scan_command
+
+    captured: dict[str, object] = {}
+
+    def _fake_scan(*args, **kwargs):
+        captured.update(kwargs)
+        return {
+            "schema_version": "2.0",
+            "accept_change": True,
+            "blocking_reasons": [],
+        }
+
+    monkeypatch.setattr(scan_command, "api_scan", _fake_scan)
+
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        [
+            "scan",
+            "--repo",
+            str(tmp_path),
+            "--signals",
+            "PFS,AVS",
+            "--exclude-signals",
+            "MDS",
+            "--max-findings",
+            "10",
+            "--max-per-signal",
+            "2",
+        ],
+    )
+    assert result.exit_code == 0
+    assert captured.get("signals") == ["PFS", "AVS"]
+    assert captured.get("exclude_signals") == ["MDS"]
+    assert captured.get("max_per_signal") == 2
+
+
 @pytest.mark.parametrize("invalid_value", ["-1", "0", "201"])
 def test_scan_rejects_out_of_range_max_findings(invalid_value: str, tmp_path: Path) -> None:
     runner = CliRunner()

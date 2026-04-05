@@ -29,6 +29,7 @@ from drift.api_helpers import (
     _trend_dict,
     build_drift_score_scope,
     resolve_signal,
+    severity_rank,
     signal_abbrev,
     signal_scope_label,
 )
@@ -118,7 +119,9 @@ def scan(
     target_path: str | None = None,
     since_days: int = 90,
     signals: list[str] | None = None,
+    exclude_signals: list[str] | None = None,
     max_findings: int = 10,
+    max_per_signal: int | None = None,
     response_detail: str = "concise",
     strategy: str = "diverse",
     include_non_operational: bool = False,
@@ -136,8 +139,12 @@ def scan(
         Days of git history to consider.
     signals:
         Optional list of signal abbreviations to include (e.g. ``["PFS", "AVS"]``).
+    exclude_signals:
+        Optional list of signal abbreviations to exclude.
     max_findings:
         Maximum number of findings in the response.
+    max_per_signal:
+        Optional cap for findings per signal in the returned list.
     response_detail:
         ``"concise"`` (token-sparing) or ``"detailed"`` (full fields).
     strategy:
@@ -159,7 +166,9 @@ def scan(
         "target_path": target_path,
         "since_days": since_days,
         "signals": signals,
+        "exclude_signals": exclude_signals,
         "max_findings": max_findings,
+        "max_per_signal": max_per_signal,
         "response_detail": response_detail,
         "strategy": strategy,
         "include_non_operational": include_non_operational,
@@ -169,6 +178,9 @@ def scan(
         cfg = DriftConfig.load(repo_path)
         cfg_warnings = _warn_config_issues(cfg)
 
+        if max_per_signal is not None and max_per_signal < 1:
+            raise ValueError("max_per_signal must be >= 1 when provided")
+
         # Validate target_path existence
         warnings: list[str] = cfg_warnings
         if target_path and not (repo_path / target_path).exists():
@@ -177,10 +189,12 @@ def scan(
             )
 
         active_signals: set[str] | None = None
-        if signals:
-            select_csv = ",".join(signals)
-            apply_signal_filter(cfg, select_csv, None)
-            active_signals = set(resolve_signal_names(select_csv))
+        select_csv = ",".join(signals) if signals else None
+        ignore_csv = ",".join(exclude_signals) if exclude_signals else None
+        if select_csv or ignore_csv:
+            apply_signal_filter(cfg, select_csv, ignore_csv)
+            if select_csv:
+                active_signals = set(resolve_signal_names(select_csv))
 
         analysis = analyze_repo(
             repo_path,
@@ -194,6 +208,7 @@ def scan(
             analysis,
             config=cfg,
             max_findings=max_findings,
+            max_per_signal=max_per_signal,
             detail=response_detail,
             strategy=strategy,
             signal_filter=set(s.upper() for s in signals) if signals else None,
@@ -285,11 +300,51 @@ def _diverse_findings(findings: list, max_findings: int) -> list:
     return result
 
 
+def _apply_max_per_signal(
+    initial: list,
+    *,
+    ranked_fallback: list,
+    max_findings: int,
+    max_per_signal: int,
+) -> list:
+    """Apply per-signal cap while preserving ordering and filling remaining slots."""
+    counts: Counter[str] = Counter()
+    selected: list = []
+    selected_ids: set[int] = set()
+
+    def _try_append(finding: Any) -> bool:
+        signal = signal_abbrev(finding.signal_type)
+        if counts[signal] >= max_per_signal:
+            return False
+        selected.append(finding)
+        selected_ids.add(id(finding))
+        counts[signal] += 1
+        return True
+
+    for finding in initial:
+        if len(selected) >= max_findings:
+            break
+        _try_append(finding)
+
+    if len(selected) >= max_findings:
+        return selected
+
+    for finding in ranked_fallback:
+        if len(selected) >= max_findings:
+            break
+        if id(finding) in selected_ids:
+            continue
+        _try_append(finding)
+
+    return selected
+
+
 def _format_scan_response(
     analysis: RepoAnalysis,
     *,
     config: Any,
     max_findings: int = 10,
+    max_per_signal: int | None = None,
     detail: str = "concise",
     strategy: str = "diverse",
     signal_filter: set[str] | None = None,
@@ -331,6 +386,14 @@ def _format_scan_response(
     else:
         limited = ranked_selected[:max_findings]
 
+    if max_per_signal is not None:
+        limited = _apply_max_per_signal(
+            limited,
+            ranked_fallback=ranked_selected,
+            max_findings=max_findings,
+            max_per_signal=max_per_signal,
+        )
+
     selected_signal_counts: Counter[str] = Counter(
         signal_abbrev(f.signal_type) for f in findings_for_prioritization
     )
@@ -343,12 +406,15 @@ def _format_scan_response(
         included = included_signal_counts.get(signal, 0)
         omitted = max(total - included, 0)
         if omitted:
+            reason = "deprioritized_by_strategy"
+            if max_per_signal is not None and included == max_per_signal:
+                reason = "max_per_signal_cap"
             omitted_signals.append({
                 "signal": signal,
                 "total": total,
                 "included": included,
                 "omitted": omitted,
-                "reason": "deprioritized_by_strategy",
+                "reason": reason,
             })
 
     omitted_signals.sort(key=lambda item: (-int(item["omitted"]), item["signal"]))
@@ -408,10 +474,33 @@ def _format_scan_response(
             "excluded_from_prioritization": len(excluded_for_fix_first),
             "excluded_from_fix_first": len(excluded_for_fix_first),
         },
+        cross_validation={
+            "signal_fields": {
+                "canonical_signal_type_field": "signal_type",
+                "signal_id_field": "signal_id",
+                "signal_abbrev_field": "signal_abbrev",
+            },
+            "severity_scale": {
+                "ranking": {
+                    level: severity_rank(level)
+                    for level in ("critical", "high", "medium", "low", "info")
+                },
+                "higher_rank_means_higher_priority": True,
+            },
+            "numeric_score_range": {
+                "min": 0.0,
+                "max": 1.0,
+                "fields": ["score", "impact", "score_contribution", "drift_score"],
+            },
+        },
     )
 
     selection_diagnostics: dict[str, Any] | None = None
-    if len(findings_for_prioritization) > max_findings:
+    max_per_signal_limited = bool(
+        max_per_signal is not None
+        and len(findings_for_prioritization) > len(limited)
+    )
+    if len(findings_for_prioritization) > max_findings or max_per_signal_limited:
         selection_diagnostics = {
             "strategy": strategy,
             "max_findings": max_findings,
@@ -420,6 +509,8 @@ def _format_scan_response(
                 "and selection strategy."
             ),
         }
+        if max_per_signal is not None:
+            selection_diagnostics["max_per_signal"] = max_per_signal
 
         if omitted_signals:
             selection_diagnostics["signals_with_omitted_findings"] = omitted_signals

@@ -1,5 +1,19 @@
 # STRIDE Threat Model
 
+## 2026-04-05 - Scan Cross-Validation Output Metadata (Issue #171)
+
+- Scope: Additive Felder im `scan`-Output für stabile Cross-Validation (`signal_id`, `signal_abbrev`, `signal_type`, `severity_rank`, `fingerprint`) sowie Top-Level-Block `cross_validation`.
+- Input path changes: None.
+- Output path changes: Yes (bestehende Scan-JSON-Payloads erhalten additive Felder).
+- External interface changes: Additiv; bestehende Felder bleiben unverändert.
+- STRIDE review:
+	- S (Spoofing): Keine Identitätsgrenze geändert.
+	- T (Tampering): Risiko sinkt durch deterministischen `fingerprint` und explizites Feld-Mapping für maschinelle Korrelation.
+	- R (Repudiation): Verbesserte Nachvollziehbarkeit durch stabile Finding-Identifikation und Severity-Ranking.
+	- I (Information Disclosure): Keine neuen sensitiven Daten; nur abgeleitete Metadaten aus bestehenden Findings.
+	- D (Denial of Service): Kein relevanter Einfluss; nur konstante Zusatzfelder pro Finding.
+	- E (Elevation of Privilege): Keine Privileggrenze geändert.
+
 ## 2026-04-05 - drift_score_scope output metadata (Issue #159)
 
 - Scope: Additive machine-output field `drift_score_scope` next to `drift_score` across scan/analyze/check/baseline and related API payloads.

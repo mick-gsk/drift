@@ -48,10 +48,23 @@ def _json_progress_callback(phase: str, current: int, total: int) -> None:
     help="Comma-separated signal IDs to include (e.g. PFS,AVS).",
 )
 @click.option(
+    "--exclude-signals",
+    "--exclude",
+    "exclude",
+    default=None,
+    help="Comma-separated signal IDs to exclude (e.g. MDS,DIA).",
+)
+@click.option(
     "--max-findings",
     type=click.IntRange(min=1, max=200),
     default=10,
     help="Maximum findings to return (1-200).",
+)
+@click.option(
+    "--max-per-signal",
+    type=click.IntRange(min=1, max=200),
+    default=None,
+    help="Maximum findings per signal in the returned list.",
 )
 @click.option(
     "--strategy",
@@ -89,7 +102,9 @@ def scan(
     target_path: str | None,
     since_days: int,
     select: str | None,
+    exclude: str | None,
     max_findings: int,
+    max_per_signal: int | None,
     strategy: str,
     response_detail: str,
     include_non_operational: bool,
@@ -109,12 +124,19 @@ def scan(
         progress_cb = _json_progress_callback
 
     signals = [item.strip() for item in select.split(",") if item.strip()] if select else None
+    exclude_signals = (
+        [item.strip() for item in exclude.split(",") if item.strip()]
+        if exclude
+        else None
+    )
     result = api_scan(
         path,
         target_path=target_path,
         since_days=since_days,
         signals=signals,
+        exclude_signals=exclude_signals,
         max_findings=max_findings,
+        max_per_signal=max_per_signal,
         response_detail=response_detail,
         strategy=strategy,
         include_non_operational=include_non_operational,

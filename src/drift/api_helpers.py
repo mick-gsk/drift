@@ -20,6 +20,15 @@ if TYPE_CHECKING:
 SCHEMA_VERSION = "2.0"
 
 
+_SEVERITY_RANK: dict[str, int] = {
+    "critical": 5,
+    "high": 4,
+    "medium": 3,
+    "low": 2,
+    "info": 1,
+}
+
+
 _ABBREV_TO_SIGNAL: dict[str, SignalType] = {
     "PFS": SignalType.PATTERN_FRAGMENTATION,
     "AVS": SignalType.ARCHITECTURE_VIOLATION,
@@ -108,19 +117,38 @@ def _base_response(**extra: Any) -> dict[str, Any]:
     return {"schema_version": SCHEMA_VERSION, **extra}
 
 
+def _finding_fingerprint_value(f: Any) -> str:
+    """Return deterministic fingerprint for finding-like objects used by API responses."""
+    from drift.baseline import finding_fingerprint
+
+    return finding_fingerprint(f)
+
+
+def severity_rank(value: str) -> int:
+    """Return numeric severity rank for cross-command comparisons."""
+    return _SEVERITY_RANK.get(value, 0)
+
+
 def _finding_concise(f: Any) -> dict[str, Any]:
     """Minimal finding dict for concise responses."""
     from drift.output.json_output import _next_step_for_finding
 
+    signal = signal_abbrev(f.signal_type)
+    severity = f.severity.value
+
     return {
-        "signal": signal_abbrev(f.signal_type),
+        "signal": signal,
+        "signal_abbrev": signal,
+        "signal_id": signal,
         "signal_type": f.signal_type.value,
         "rule_id": f.rule_id,
-        "severity": f.severity.value,
+        "severity": severity,
+        "severity_rank": severity_rank(severity),
         "title": f.title,
         "file": f.file_path.as_posix() if f.file_path else None,
         "line": f.start_line,
         "finding_context": classify_finding_context(f, DriftConfig()),
+        "fingerprint": _finding_fingerprint_value(f),
         "next_step": _next_step_for_finding(f),
     }
 
@@ -135,11 +163,16 @@ def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
     from drift.recommendations import generate_recommendation
 
     rec = generate_recommendation(f)
+    signal = signal_abbrev(f.signal_type)
+    severity = f.severity.value
     return {
-        "signal": signal_abbrev(f.signal_type),
+        "signal": signal,
+        "signal_abbrev": signal,
+        "signal_id": signal,
         "signal_type": f.signal_type.value,
         "rule_id": f.rule_id,
-        "severity": f.severity.value,
+        "severity": severity,
+        "severity_rank": severity_rank(severity),
         "score": f.score,
         "impact": f.impact,
         "score_contribution": f.score_contribution,
@@ -153,6 +186,7 @@ def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
         "finding_context": classify_finding_context(f, DriftConfig()),
         "symbol": f.symbol,
         "related_files": [rf.as_posix() for rf in f.related_files],
+        "fingerprint": _finding_fingerprint_value(f),
         "next_step": _next_step_for_finding(f),
         "expected_benefit": _expected_benefit_for_finding(f),
         "remediation": {
@@ -252,15 +286,22 @@ def _fix_first_concise(analysis: RepoAnalysis, max_items: int = 5) -> list[dict[
 
     items: list[dict[str, Any]] = []
     for idx, f in enumerate(unique[:max_items], start=1):
+        signal = signal_abbrev(f.signal_type)
+        severity = f.severity.value
         items.append(
             {
                 "rank": idx,
-                "signal": signal_abbrev(f.signal_type),
-                "severity": f.severity.value,
+                "signal": signal,
+                "signal_abbrev": signal,
+                "signal_id": signal,
+                "signal_type": f.signal_type.value,
+                "severity": severity,
+                "severity_rank": severity_rank(severity),
                 "title": f.title,
                 "file": f.file_path.as_posix() if f.file_path else None,
                 "line": f.start_line,
                 "finding_context": classify_finding_context(f, DriftConfig()),
+                "fingerprint": _finding_fingerprint_value(f),
                 "next_step": _next_step_for_finding(f),
                 "expected_benefit": _expected_benefit_for_finding(f),
             }
