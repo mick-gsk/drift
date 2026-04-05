@@ -98,6 +98,7 @@ class TestSelfAnalysis:
                 "**/node_modules/**",
                 "**/.venv*/**",
                 "**/.tmp_*venv*/**",
+                "**/.python-toolcache/**",
             ],
             embeddings_enabled=False,
         )
