@@ -1,5 +1,20 @@
 # Fault Tree Analysis
 
+## 2026-04-05 - MAZ decorator fallback recall calibration (Issue #169)
+
+### FT-1: False negatives when endpoint ingestion misses decorator-defined routes
+- Top event: MAZ emits zero findings although an unauthenticated route handler exists.
+- Branch A: File contains route decorators (for example `@router.get`, `@app.post`).
+- Branch B: Pattern ingestion contributes no `API_ENDPOINT` instance for that file.
+- Branch C: Prior MAZ logic required `API_ENDPOINT` pattern presence for all findings.
+- Mitigation implemented: add conservative decorator-based endpoint fallback that activates only when no `API_ENDPOINT` pattern is present.
+
+### FT-2: Precision regression risk from decorator fallback
+- Top event: MAZ emits finding for non-endpoint decorator usage in edge contexts.
+- Branch A: Decorator token overlaps with HTTP marker names.
+- Branch B: File has no `API_ENDPOINT` pattern, so fallback path is active.
+- Mitigation implemented: conservative decorator marker set, explicit auth-decorator suppression, and unchanged allowlist/dev-path/CLI-local suppression guards.
+
 ## 2026-04-05 - BEM fallback-assignment recall + AVS src-root import resolution (Issue #168)
 
 ### FT-1: BEM false negatives on fallback assignment handlers

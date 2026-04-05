@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-05 - MAZ decorator fallback recall calibration (Issue #169)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| MAZ | FN: route handlers are missed when API endpoint ingestion emits no API_ENDPOINT patterns | MAZ relied exclusively on ingestion patterns and had no conservative fallback for decorator-defined route handlers | Missing-authorization gaps stay unreported in framework files where pattern extraction under-detects endpoints | Field report on transformers + targeted MAZ regression for patternless decorated routes | Add conservative decorator fallback (`route`/HTTP method decorators) only when no API_ENDPOINT pattern exists in file | 7 | 5 | 4 | 140 |
+| MAZ | FP: non-endpoint decorated functions could be misclassified as API routes by fallback | Decorator names like `get`/`post` might appear in non-web utility contexts | Additional triage noise and reduced precision in edge repositories | New regression verifies auth-decorated routes are suppressed in fallback path | Keep fallback gated (only when no API patterns), use conservative decorator marker set, skip auth-decorated functions, keep allowlist and dev-path suppressions active | 5 | 3 | 5 | 75 |
+
 ## 2026-04-05 - BEM fallback-assignment recall + AVS src-root import resolution (Issue #168)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |

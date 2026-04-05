@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-05 - MAZ decorator fallback recall calibration (Issue #169)
+
+- Risk ID: RISK-SIG-2026-04-05-169
+- Component: src/drift/signals/missing_authorization.py
+- Type: Signal quality (false negatives / recall)
+- Description: MAZ depended fully on `API_ENDPOINT` patterns. In files where ingestion did not emit endpoint patterns despite route decorators, MAZ returned no findings.
+- Trigger examples:
+  - Framework files with decorated handlers (`@router.get`, `@app.post`) and missing auth where pattern extraction under-detects endpoints.
+  - Large repositories with mixed routing idioms where ingestion coverage is incomplete per file.
+- Impact: Missing-authorization gaps can be silently under-reported, reducing trust in MAZ recall.
+- Mitigation:
+  - Added conservative decorator fallback endpoint inference in MAZ, activated only when a file has no `API_ENDPOINT` patterns.
+  - Added auth-decorator suppression in fallback path.
+  - Added regressions in tests/test_missing_authorization.py for fallback detection and auth-decorator suppression.
+- Verification: `python -m pytest tests/test_missing_authorization.py -q --maxfail=1`
+- Residual risk: Medium-low; fallback may still need marker tuning for rare decorator naming collisions, but scope is constrained and existing suppressions remain active.
+
 ## 2026-04-05 - BEM fallback-assignment and AVS src-root import false-negative mitigation (Issue #168)
 
 - Risk ID: RISK-SIG-2026-04-05-168

@@ -49,6 +49,31 @@ _PUBLIC_SAFE_NAME_MARKERS: frozenset[str] = frozenset({
 # and should not be treated as production-facing APIs for MAZ.
 _CLI_LOCAL_SERVER_PATH_MARKERS: frozenset[str] = frozenset({"serving", "serve"})
 
+# Conservative route-decorator markers used only as fallback when ingestion
+# produced no API_ENDPOINT patterns for a file.
+_ROUTE_DECORATOR_MARKERS: frozenset[str] = frozenset({
+    "route",
+    "api_view",
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "options",
+    "head",
+})
+
+_AUTH_DECORATOR_MARKERS: frozenset[str] = frozenset({
+    "auth",
+    "authorize",
+    "authenticated",
+    "permission",
+    "login_required",
+    "requires",
+    "jwt_required",
+    "token_required",
+})
+
 
 def _is_public_allowlisted(fn_name: str, allowlist: list[str]) -> bool:
     """Return True if the function name matches a known public endpoint."""
@@ -79,6 +104,35 @@ def _is_documented_public_safe_endpoint(
         return False
     normalized = fn_name.split(".")[-1].lower().replace("_", "")
     return any(marker in normalized for marker in _PUBLIC_SAFE_NAME_MARKERS)
+
+
+def _decorator_name(decorator: str) -> str:
+    """Normalize decorator name while preserving dotted suffix semantics."""
+    base = decorator.strip().split("(", 1)[0]
+    return base.split(".")[-1].lower()
+
+
+def _looks_like_route_decorator(decorator: str) -> bool:
+    """Return True for common route decorator names."""
+    name = _decorator_name(decorator)
+    return name in _ROUTE_DECORATOR_MARKERS
+
+
+def _looks_like_auth_decorator(decorator: str) -> bool:
+    """Return True for common auth-related decorators."""
+    normalized = _decorator_name(decorator).replace("_", "")
+    return any(marker.replace("_", "") in normalized for marker in _AUTH_DECORATOR_MARKERS)
+
+
+def _fallback_endpoint_functions(pr: ParseResult) -> list[FunctionInfo]:
+    """Infer API endpoints from decorators when pattern ingestion misses them."""
+    endpoints: list[FunctionInfo] = []
+    for fn in pr.functions:
+        if not fn.decorators:
+            continue
+        if any(_looks_like_route_decorator(deco) for deco in fn.decorators):
+            endpoints.append(fn)
+    return endpoints
 
 
 def _detect_framework(parse_result: ParseResult) -> str:
@@ -162,9 +216,11 @@ class MissingAuthorizationSignal(BaseSignal):
                         break
 
             # Check endpoint patterns from ingestion.
+            saw_api_pattern = False
             for pat in pr.patterns:
                 if pat.category != PatternCategory.API_ENDPOINT:
                     continue
+                saw_api_pattern = True
                 fp = pat.fingerprint
                 if fp.get("has_auth", False):
                     continue
@@ -225,6 +281,74 @@ class MissingAuthorizationSignal(BaseSignal):
                             "endpoint_name": fn_name,
                             "auth_mechanism": "none",
                             "public_safe_documented": is_documented_public_safe,
+                        },
+                        rule_id="missing_authz_route",
+                    )
+                )
+
+            # Conservative fallback: if ingestion found no endpoint patterns,
+            # infer obvious route handlers from decorators to recover recall.
+            if saw_api_pattern:
+                continue
+
+            for fn_info in _fallback_endpoint_functions(pr):
+                fn_name = fn_info.name
+                if any(_looks_like_auth_decorator(deco) for deco in fn_info.decorators):
+                    continue
+                if _is_public_allowlisted(fn_name, allowlist):
+                    continue
+
+                if "." in fn_name:
+                    class_name = fn_name.split(".")[0]
+                    if class_name in authed_classes:
+                        continue
+
+                is_documented_public_safe = _is_documented_public_safe_endpoint(
+                    fn_name,
+                    fn_info,
+                )
+
+                score = 0.35 if is_documented_public_safe else 0.7
+                severity = Severity.LOW if is_documented_public_safe else Severity.HIGH
+
+                description = (
+                    f"The route handler '{fn_name}' in {pr.file_path} "
+                    f"is missing an authorization check. Without auth, "
+                    f"any caller can access this endpoint. "
+                    f"Detected framework: {framework}."
+                )
+                fix = _fix_suggestion(framework)
+                if is_documented_public_safe:
+                    description += (
+                        " This endpoint appears intentionally public-safe "
+                        "(documented publishable/public key semantics), "
+                        "so severity was downgraded for triage."
+                    )
+                    fix = (
+                        "If this endpoint is intentionally public, keep explicit "
+                        "documentation and ensure only non-sensitive publishable "
+                        "key material is returned; otherwise add authorization."
+                    )
+
+                findings.append(
+                    Finding(
+                        signal_type=self.signal_type,
+                        severity=severity,
+                        score=score,
+                        title=f"Endpoint '{fn_name}' has no authorization check",
+                        description=description,
+                        file_path=pr.file_path,
+                        start_line=fn_info.start_line,
+                        end_line=fn_info.end_line,
+                        symbol=fn_name,
+                        fix=fix,
+                        metadata={
+                            "framework": framework,
+                            "cwe": "CWE-862",
+                            "endpoint_name": fn_name,
+                            "auth_mechanism": "none",
+                            "public_safe_documented": is_documented_public_safe,
+                            "detection_source": "decorator_fallback",
                         },
                         rule_id="missing_authz_route",
                     )

@@ -494,3 +494,47 @@ class TestMAZEdgeCases:
         signal = MissingAuthorizationSignal()
         findings = signal.analyze([pr], {}, DriftConfig())
         assert len(findings) == 1
+
+    def test_decorator_fallback_detects_endpoint_without_pattern(self) -> None:
+        """Decorator fallback should recover endpoints when ingestion misses patterns."""
+        pr = ParseResult(
+            file_path=Path("api/routes.py"),
+            language="python",
+            functions=[
+                _func(
+                    "get_orders",
+                    "api/routes.py",
+                    12,
+                    decorators=["router.get('/orders')"],
+                )
+            ],
+            imports=[_imp("api/routes.py", "fastapi")],
+            patterns=[],
+        )
+        signal = MissingAuthorizationSignal()
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].metadata["detection_source"] == "decorator_fallback"
+
+    def test_decorator_fallback_skips_auth_decorator(self) -> None:
+        """Decorator fallback should not flag routes with explicit auth decorators."""
+        pr = ParseResult(
+            file_path=Path("api/routes.py"),
+            language="python",
+            functions=[
+                _func(
+                    "get_orders",
+                    "api/routes.py",
+                    12,
+                    decorators=[
+                        "router.get('/orders')",
+                        "login_required",
+                    ],
+                )
+            ],
+            imports=[_imp("api/routes.py", "fastapi")],
+            patterns=[],
+        )
+        signal = MissingAuthorizationSignal()
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert len(findings) == 0
