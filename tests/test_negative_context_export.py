@@ -297,6 +297,92 @@ class TestDuplicateRuleDeduplication:
             "backend/api/routers/billing.py",
         ]
 
+    def test_instructions_groups_same_remediation_with_forbidden_variants(self) -> None:
+        items = [
+            _make_nc(
+                signal=SignalType.HARDCODED_SECRET,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                description="Hardcoded secret-like literal in source",
+                forbidden='api_key = "sk-live-abc"',
+                canonical='Use os.environ["API_KEY"]',
+                files=["src/a.py"],
+            ),
+            _make_nc(
+                signal=SignalType.HARDCODED_SECRET,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                description="Hardcoded secret-like literal in source",
+                forbidden='token = "ghp_123"',
+                canonical='Use os.environ["API_KEY"]',
+                files=["src/b.py"],
+            ),
+        ]
+
+        md = render_negative_context_markdown(items, fmt="instructions")
+
+        assert md.count("hardcoded_secret, high") == 1
+        assert "(2 occurrences)" in md
+        assert "Pattern variants:" in md
+        assert "`token = \"ghp_123\"`" in md
+        assert "`src/a.py`" in md
+        assert "`src/b.py`" in md
+
+    def test_prompt_groups_same_remediation_with_variant_count(self) -> None:
+        items = [
+            _make_nc(
+                signal=SignalType.HARDCODED_SECRET,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden='api_key = "sk-live-abc"',
+                canonical='Use os.environ["API_KEY"]',
+                files=["src/a.py"],
+            ),
+            _make_nc(
+                signal=SignalType.HARDCODED_SECRET,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden='token = "ghp_123"',
+                canonical='Use os.environ["API_KEY"]',
+                files=["src/b.py"],
+            ),
+        ]
+
+        md = render_negative_context_markdown(items, fmt="prompt")
+
+        assert md.count("[HIGH|hardcoded_secret]") == 1
+        assert "(x2)" in md
+
+    def test_raw_groups_same_remediation_and_keeps_forbidden_variants(self) -> None:
+        items = [
+            _make_nc(
+                signal=SignalType.HARDCODED_SECRET,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden='api_key = "sk-live-abc"',
+                canonical='Use os.environ["API_KEY"]',
+                files=["src/a.py"],
+            ),
+            _make_nc(
+                signal=SignalType.HARDCODED_SECRET,
+                category=NegativeContextCategory.SECURITY,
+                severity=Severity.HIGH,
+                forbidden='token = "ghp_123"',
+                canonical='Use os.environ["API_KEY"]',
+                files=["src/b.py"],
+            ),
+        ]
+
+        raw = render_negative_context_markdown(items, fmt="raw")
+        data = json.loads(raw)
+
+        assert data["total_items"] == 1
+        assert data["items"][0]["occurrences"] == 2
+        assert data["items"][0]["forbidden_pattern_variants"] == [
+            'api_key = "sk-live-abc"',
+            'token = "ghp_123"',
+        ]
+
 
 # ---------------------------------------------------------------------------
 # MCP instructions enrichment

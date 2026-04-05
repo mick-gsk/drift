@@ -19,6 +19,7 @@
 
 ### Fixed
 
+- Reduce token-heavy duplication in `drift export-context` by grouping remediation-equivalent anti-pattern findings per signal/remediation across `instructions`, `prompt`, and `raw` output formats, while preserving forbidden-pattern variants for traceability (#174).
 - Stabilize CI regression tests by aligning the `tpd_boundary_tp` fixture with its zero-negative-assertion expectation and using neutral `services/worker_*` filenames in the PFS medium-threshold test to avoid framework-surface dampening side effects.
 - Prevent `mutant_duplicate` from flagging deliberate package-level lazy-loading `__getattr__` implementations in `__init__.py` as high-severity duplicates, while keeping non-package `__getattr__` duplicate detection active (#144).
 - Improve `test_polarity_deficit` negative assertion counting for expressive Python test styles (`assert not`, `assert ... is False/None`) and functional `pytest.raises`/`pytest.fail` usage to reduce happy-path-only false positives (#143).
