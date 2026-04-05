@@ -51,6 +51,27 @@ def test_build_import_graph_basic():
     assert len(imports) == 1
 
 
+def test_build_import_graph_resolves_relative_imports_to_internal_edges():
+    results = [
+        _pr(
+            "src/pkg/api/routes.py",
+            [
+                ImportInfo(
+                    source_file=Path("src/pkg/api/routes.py"),
+                    imported_module="service",
+                    imported_names=[],
+                    line_number=3,
+                    is_relative=True,
+                )
+            ],
+        ),
+        _pr("src/pkg/api/service.py", []),
+    ]
+    graph, _ = build_import_graph(results)
+
+    assert graph.has_edge("src/pkg/api/routes.py", "src/pkg/api/service.py")
+
+
 def test_external_imports_marked():
     results = [
         _pr("app/main.py", [_imp("app/main.py", "flask")]),

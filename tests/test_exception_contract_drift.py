@@ -53,6 +53,11 @@ def _run(
 
 
 class TestExceptionContractDrift:
+    def test_effective_candidate_limit_scales_for_large_repositories(self) -> None:
+        assert ecm_mod._effective_candidate_limit(40, 50) == 40
+        assert ecm_mod._effective_candidate_limit(500, 50) == 50
+        assert ecm_mod._effective_candidate_limit(10_000, 50) == 300
+
     def test_true_positive_on_exception_profile_change(
         self,
         tmp_path: Path,

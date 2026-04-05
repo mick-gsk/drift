@@ -348,6 +348,20 @@ def _git_show_files_batch(
     return results
 
 
+def _effective_candidate_limit(candidate_count: int, configured_max: int) -> int:
+    """Return an adaptive ECM candidate cap for large repositories.
+
+    ``configured_max`` remains the floor for small/medium repositories. For very
+    large candidate sets we widen the sample window to avoid overfitting on a
+    tiny hot-file subset.
+    """
+    if candidate_count <= configured_max:
+        return candidate_count
+
+    adaptive = max(configured_max, min(300, candidate_count // 20))
+    return min(candidate_count, adaptive)
+
+
 @register_signal
 class ExceptionContractDriftSignal(BaseSignal):
     """Detect public functions with changed exception profiles."""
@@ -390,15 +404,16 @@ class ExceptionContractDriftSignal(BaseSignal):
         if not candidates:
             return findings
 
-        # Respect performance guardrail
-        if len(candidates) > max_files:
+        # Respect performance guardrail with adaptive widening on very large repos.
+        candidate_limit = _effective_candidate_limit(len(candidates), max_files)
+        if len(candidates) > candidate_limit:
             candidates = sorted(
                 candidates,
                 key=lambda pr: file_histories.get(
                     pr.file_path.as_posix(), FileHistory(path=pr.file_path)
                 ).total_commits,
                 reverse=True,
-            )[:max_files]
+            )[:candidate_limit]
 
         # Determine comparison ref — use first available lookback commit
         ref = f"HEAD~{min(lookback, 5)}"

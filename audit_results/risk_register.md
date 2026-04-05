@@ -1,5 +1,24 @@
 # Risk Register
 
+## 2026-04-05 - AVS/ECM/TPD Recall-Härtung auf Groß-Repositories (Issue #170)
+
+- Risk ID: RISK-SIG-2026-04-05-170
+- Component: src/drift/signals/architecture_violation.py, src/drift/signals/exception_contract_drift.py, src/drift/signals/test_polarity_deficit.py
+- Type: Signal quality (false negatives / recall)
+- Description: Drei unabhängige Recall-Lücken konnten auf großen Repositories zu systematischen 0-Finding-Ergebnissen führen: (1) AVS verlor interne Kanten bei relativen Imports, (2) ECM analysierte bei großen Kandidatmengen ein zu kleines Hot-File-Subset, (3) TPD erhielt bei globalem `**/tests/**`-Exclude keine Test-ParseResults.
+- Trigger examples:
+  - Relative Imports (`from .service import ...`) in Paketstrukturen mit starker interner Modulkopplung.
+  - Repositories mit tausenden ECM-Kandidaten und hoher Commit-Konzentration auf wenigen Dateien.
+  - Standard-Setups mit globalem Test-Exclude, bei denen TPD trotz aktivem Signal keine Testdateien sieht.
+- Impact: Unterberichtete Architektur- und Testsignal-Befunde, reduzierte Signal-Glaubwürdigkeit bei Real-World-Scans.
+- Mitigation:
+  - AVS: relative Import-Kandidatenauflösung für interne Graph-Kanten ergänzt.
+  - ECM: adaptive Kandidatenobergrenze (konfigurierter Floor, skalierender Cap bis 300) ergänzt.
+  - TPD: Fallback-Testdatei-Discovery aus Repo-Dateisystem ergänzt, wenn ParseResults keine Tests enthalten.
+  - Regressionen ergänzt in `tests/test_architecture_violation.py`, `tests/test_exception_contract_drift.py`, `tests/test_test_polarity_deficit.py`.
+- Verification: `python -m pytest tests/test_architecture_violation.py tests/test_exception_contract_drift.py tests/test_test_polarity_deficit.py -q --maxfail=1`
+- Residual risk: Medium-low; relative Importauflösung bleibt best-effort ohne expliziten AST-Level, und TPD-Fallback kann in exotischen Repo-Layouts zusätzliche Laufzeit verursachen.
+
 ## 2026-04-05 - MAZ decorator fallback recall calibration (Issue #169)
 
 - Risk ID: RISK-SIG-2026-04-05-169

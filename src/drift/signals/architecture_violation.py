@@ -80,6 +80,50 @@ def _matches_module_pattern(module: str, pattern: str) -> bool:
     return module == pattern or module.startswith(f"{pattern}.")
 
 
+def _relative_import_candidates(source_file: Path, imp: ImportInfo) -> list[str]:
+    """Build candidate module paths for unresolved relative imports.
+
+    The Python parser currently records ``is_relative`` but stores
+    ``imported_module`` without leading dots. For large codebases that use
+    package-relative imports heavily, this can collapse internal edges into
+    unresolved externals. This helper reconstructs best-effort candidates from
+    the source file package path.
+    """
+    if not imp.is_relative:
+        return []
+
+    source_parts = list(source_file.with_suffix("").parts)
+    if len(source_parts) < 2:
+        return []
+
+    base_parts = source_parts[:-1]
+    module = (imp.imported_module or "").strip(".").strip()
+
+    candidates: list[str] = []
+    if module:
+        candidates.append(".".join(base_parts + module.split(".")))
+    else:
+        for name in imp.imported_names:
+            token = (name or "").strip()
+            if token and token != "*":
+                candidates.append(".".join(base_parts + [token]))
+
+    if module:
+        module_parts = module.split(".")
+        for name in imp.imported_names:
+            token = (name or "").strip()
+            if token and token != "*":
+                candidates.append(".".join(base_parts + module_parts + [token]))
+
+    unique: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        if candidate and candidate not in seen:
+            seen.add(candidate)
+            unique.append(candidate)
+    return unique
+
+
 def build_import_graph(
     parse_results: list[ParseResult],
 ) -> tuple[nx.DiGraph, list[ImportInfo]]:
@@ -110,12 +154,24 @@ def build_import_graph(
             # Try to resolve the import to a known file
             target_module = imp.imported_module
             target_file = module_to_file.get(target_module)
+            if target_file is None and imp.is_relative:
+                for candidate in _relative_import_candidates(pr.file_path, imp):
+                    resolved = module_to_file.get(candidate)
+                    if resolved is not None:
+                        target_module = candidate
+                        target_file = resolved
+                        break
             if target_file is not None:
                 graph.add_edge(src, target_file, import_info=imp)
             else:
                 # External or unresolved — still record it
-                graph.add_node(target_module, external=True)
-                graph.add_edge(src, target_module, import_info=imp)
+                unresolved_target = target_module.strip()
+                if not unresolved_target:
+                    unresolved_target = ".".join(
+                        n for n in imp.imported_names if n and n != "*"
+                    ) or "<relative>"
+                graph.add_node(unresolved_target, external=True)
+                graph.add_edge(src, unresolved_target, import_info=imp)
 
     return graph, all_imports
 

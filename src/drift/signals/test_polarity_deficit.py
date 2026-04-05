@@ -12,6 +12,7 @@ the test suite provides a false sense of correctness.
 from __future__ import annotations
 
 import ast
+import fnmatch
 import re
 from pathlib import Path, PurePosixPath
 
@@ -87,6 +88,19 @@ _NEGATIVE_CALLS: frozenset[str] = frozenset({
     "fail",
     "pytest.xfail",
     "xfail",
+})
+
+_TPD_FALLBACK_DIR_EXCLUDES: frozenset[str] = frozenset({
+    ".git",
+    "node_modules",
+    "venv",
+    ".venv",
+    ".tox",
+    ".nox",
+    "dist",
+    "build",
+    "site-packages",
+    ".pixi",
 })
 
 
@@ -348,39 +362,45 @@ class TestPolarityDeficitSignal(BaseSignal):
         # Group test files by module directory
         module_counters: dict[str, _AssertionCounter] = {}
 
-        for pr in parse_results:
+        def _consume_parse_result(pr: ParseResult) -> None:
             if pr.language not in _SUPPORTED_LANGUAGES:
-                continue
+                return
             if not is_test_file(pr.file_path):
-                continue
+                return
 
             source = _read_source(pr.file_path, self._repo_path)
             if source is None:
-                continue
+                return
 
             module_key = PurePosixPath(pr.file_path.parent).as_posix()
 
             if pr.language in _TS_LANGUAGES:
                 ts_result = _ts_count_assertions(source, pr.language)
                 if ts_result is None:
-                    continue
+                    return
                 pos, neg, tfuncs, bfuncs = ts_result
-                counter = module_counters.setdefault(
-                    module_key, _AssertionCounter(),
-                )
+                counter = module_counters.setdefault(module_key, _AssertionCounter())
                 counter.positive += pos
                 counter.negative += neg
                 counter.test_functions += tfuncs
                 counter.boundary_functions += bfuncs
-            else:
-                try:
-                    tree = ast.parse(source)
-                except SyntaxError:
-                    continue
-                counter = module_counters.setdefault(
-                    module_key, _AssertionCounter(source),
-                )
-                counter.visit(tree)
+                return
+
+            try:
+                tree = ast.parse(source)
+            except SyntaxError:
+                return
+            counter = module_counters.setdefault(module_key, _AssertionCounter(source))
+            counter.visit(tree)
+
+        for pr in parse_results:
+            _consume_parse_result(pr)
+
+        # Fallback: if global excludes removed test files from parse_results,
+        # recover test coverage directly from repository files.
+        if not module_counters and self._repo_path is not None:
+            for fallback_pr in _discover_tpd_test_files(self._repo_path, config):
+                _consume_parse_result(fallback_pr)
 
         findings: list[Finding] = []
 
@@ -492,3 +512,34 @@ def _read_source(file_path: Path, repo_path: Path | None = None) -> str | None:
         return target.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
+
+
+def _discover_tpd_test_files(repo_path: Path, config: DriftConfig) -> list[ParseResult]:
+    """Discover Python test files for TPD when upstream discovery excluded tests."""
+    exclude_patterns = [
+        p for p in config.exclude
+        if "tests" not in p.replace("\\", "/").lower()
+    ]
+
+    results: list[ParseResult] = []
+    seen: set[str] = set()
+
+    for path in sorted(repo_path.rglob("*.py")):
+        rel_path = path.relative_to(repo_path)
+        rel_posix = rel_path.as_posix()
+        parts_lower = {part.lower() for part in rel_path.parts}
+        if parts_lower & _TPD_FALLBACK_DIR_EXCLUDES:
+            continue
+        if any(
+            fnmatch.fnmatch(rel_posix, pattern.replace("\\", "/"))
+            for pattern in exclude_patterns
+        ):
+            continue
+        if not is_test_file(rel_path):
+            continue
+        if rel_posix in seen:
+            continue
+        seen.add(rel_posix)
+        results.append(ParseResult(file_path=rel_path, language="python"))
+
+    return results

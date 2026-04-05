@@ -115,3 +115,41 @@ def test_tpd_counts_pytest_fail_and_raises_calls() -> None:
 
     assert counter.negative == 2
     assert counter.positive == 1
+
+
+def test_tpd_fallback_discovers_tests_when_parse_results_are_empty(tmp_path: Path) -> None:
+    source = textwrap.dedent("""\
+        def test_a():
+            assert True
+            assert 1 == 1
+
+        def test_b():
+            assert True
+            assert 2 == 2
+
+        def test_c():
+            assert True
+            assert 3 == 3
+
+        def test_d():
+            assert True
+            assert 4 == 4
+
+        def test_e():
+            assert True
+            assert 5 == 5
+    """)
+    f = tmp_path / "tests" / "test_only_positive.py"
+    f.parent.mkdir(parents=True)
+    f.write_text(source, encoding="utf-8")
+
+    signal = TestPolarityDeficitSignal()
+    signal._repo_path = tmp_path
+
+    findings = signal.analyze([], {}, DriftConfig())
+
+    assert any(
+        f.signal_type == SignalType.TEST_POLARITY_DEFICIT
+        and "Happy-path-only" in f.title
+        for f in findings
+    )

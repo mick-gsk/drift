@@ -1,5 +1,28 @@
 # Fault Tree Analysis
 
+## 2026-04-05 - AVS/ECM/TPD Recall-Härtung auf Groß-Repositories (Issue #170)
+
+### FT-1: AVS interne Kanten gehen bei relativen Imports verloren
+- Top event: AVS bleibt ohne Befunde trotz realer interner Architekturkopplung.
+- Branch A: Codebasis nutzt relative Imports (`from .x import y`) intensiv.
+- Branch B: Importgraph kann relative Imports nicht auf interne Dateien mappen.
+- Branch C: Kanten werden als extern/unresolved geführt, Folgeprüfungen verlieren Signal.
+- Mitigation implemented: Relative Kandidatenauflösung aus Quellpaketpfad + Importmodul/-namen ergänzt.
+
+### FT-2: ECM sampling bias auf zu kleines Hot-File-Subset
+- Top event: ECM liefert 0 Findings in sehr großen Repositories.
+- Branch A: Kandidatenmenge ist sehr groß.
+- Branch B: Starres Limit analysiert nur kleine Top-Commit-Teilmenge.
+- Branch C: Contract-Drift liegt außerhalb des betrachteten Subsets.
+- Mitigation implemented: Adaptive Kandidatenobergrenze (konfigurierter Floor, skaliertes Limit bis 300) ergänzt.
+
+### FT-3: TPD ohne Beobachtungsbasis bei globalem Test-Exclude
+- Top event: TPD liefert 0 Findings trotz vorhandener Tests.
+- Branch A: Globales Discovery-Exclude enthält `**/tests/**`.
+- Branch B: ParseResults enthalten keine Testdateien.
+- Branch C: TPD-Analysepfad lief bisher ausschließlich über ParseResults.
+- Mitigation implemented: Fallback-Testdatei-Discovery aus Repo-Dateisystem, aktiv nur wenn kein Test-Counter vorhanden ist.
+
 ## 2026-04-05 - MAZ decorator fallback recall calibration (Issue #169)
 
 ### FT-1: False negatives when endpoint ingestion misses decorator-defined routes

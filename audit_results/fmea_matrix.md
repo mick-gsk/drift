@@ -1,5 +1,13 @@
 # FMEA Matrix
 
+## 2026-04-05 - AVS/ECM/TPD Recall-Härtung auf Groß-Repositories (Issue #170)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| AVS | FN: interne Abhängigkeitskanten aus relativen Imports fehlen | Relative `ImportFrom`-Information war für Graph-Auflösung unterbestimmt; unverknüpfte Kanten wurden als extern behandelt | Upward/Cycle/Blast-Radius-Befunde bleiben aus trotz realer Kopplung | Neuer Regressionstest für relative Import-Kantenauflösung in AVS-Graph | Best-effort relative Kandidatenauflösung aus Quellpfad + Importmodul/Namen ergänzt | 7 | 5 | 4 | 140 |
+| ECM | FN: Exception-Drift bleibt unentdeckt in sehr großen Repos | Starre Kandidatenbegrenzung (`ecm_max_files`) fokussiert zu stark auf kleines Hot-File-Subset | Module mit realer Contract-Drift werden nicht verglichen | Neuer Regressionstest für adaptive Limit-Berechnung | Adaptive Kandidatenobergrenze mit konfiguriertem Floor und skaliertem Cap (max 300) ergänzt | 6 | 5 | 4 | 120 |
+| TPD | FN: 0 Findings trotz testlastigem Repo | Globale Exclude-Regeln können Testdateien vor Signalphase entfernen | TPD verliert seine gesamte Beobachtungsbasis | Neuer Regressionstest mit leerem ParseResult-Input und Repo-Fallback | Fallback-Testdatei-Discovery direkt aus Repo-Dateisystem ergänzt (nur wenn keine Test-Counter vorhanden) | 6 | 6 | 3 | 108 |
+
 ## 2026-04-05 - MAZ decorator fallback recall calibration (Issue #169)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
