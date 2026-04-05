@@ -322,6 +322,22 @@ class TestHSCTrueNegatives:
         findings = signal.analyze([_make_pr("constants.py")], {}, DriftConfig())
         assert len(findings) == 0
 
+    def test_error_message_constant_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "openai_tools.py",
+            '''\
+            _MAX_TOKENS_ERROR = (
+                "Output parser received a `max_tokens` stop reason. "
+                "The output is likely incomplete please increase `max_tokens` "
+                "or shorten your prompt."
+            )
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("openai_tools.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
 
 # ---------------------------------------------------------------------------
 # Edge cases

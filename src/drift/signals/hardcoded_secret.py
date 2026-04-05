@@ -75,6 +75,8 @@ _PLACEHOLDER_RE = re.compile(
     re.IGNORECASE,
 )
 
+_MESSAGE_SUFFIX_RE = re.compile(r"(?:_|^)(?:error|warning|message)$", re.IGNORECASE)
+
 _SYMBOL_DECLARATION_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_:-]{2,}$")
 
 _ENUM_BASE_NAMES: frozenset[str] = frozenset({
@@ -212,6 +214,15 @@ def _is_symbol_declaration_literal(
     if in_enum_member_context:
         return True
     return _normalize_symbol_name(var_name) == _normalize_symbol_name(string_val)
+
+
+def _looks_like_natural_language_message(value: str) -> bool:
+    """Return True when a literal resembles a human-readable error/message text."""
+    if len(value) < 20 or "\n" in value:
+        return False
+
+    words = re.findall(r"[A-Za-z]{2,}", value)
+    return len(words) >= 5 and (" " in value)
 
 
 @register_signal
@@ -368,6 +379,13 @@ class HardcodedSecretSignal(BaseSignal):
             var_name,
             string_val,
             in_enum_member_context=in_enum_member_context,
+        ):
+            return None
+
+        # Human-readable error/warning/message constants are commonly named with
+        # secret-like tokens (for example MAX_TOKENS_ERROR) but are not credentials.
+        if _MESSAGE_SUFFIX_RE.search(var_name) and _looks_like_natural_language_message(
+            string_val
         ):
             return None
 

@@ -1,5 +1,21 @@
 # Risk Register
 
+## 2026-04-05 - DIA bootstrap-repo README false-positive mitigation
+
+- Risk ID: RISK-SIG-2026-04-05-DIA-BOOTSTRAP
+- Component: src/drift/signals/doc_impl_drift.py
+- Type: Signal quality (false positives / actionability threshold)
+- Description: `doc_impl_drift` reported `No README found` on bootstrap-sized repositories with zero or one parsed Python file, and on pure `__init__.py` package skeletons, even though the result was not actionable architectural drift for empty, single-file, or init-only repos.
+- Trigger examples:
+  - Temporary one-file scripts scanned via `drift.api.scan()`.
+  - Minimal package skeletons containing only `__init__.py`.
+- Impact: Medium-severity noise in baseline scans, lower trust in DIA, and misleading next-step guidance for repositories that are not yet architecturally shaped.
+- Mitigation:
+  - Suppress README-missing findings when `len(parse_results) <= 1` or all parsed files are named `__init__.py`.
+  - Extend `tests/test_analysis_edge_cases.py` to assert zero findings for empty, single-file, and init-only repositories.
+- Verification: `python -m pytest tests/test_analysis_edge_cases.py -q --maxfail=1`
+- Residual risk: Low; very small repositories and pure package skeletons will no longer receive README nudges until they exceed bootstrap size, which is an acceptable tradeoff for signal credibility.
+
 ## 2026-04-05 - AVS lazy-import policy violation detection (Issue #146)
 
 - Risk ID: RISK-SIG-2026-04-05-146
@@ -118,6 +134,23 @@
   - Add targeted regression tests for OAuth endpoint constants and credential-bearing URL literals.
 - Verification: tests/test_hardcoded_secret.py (new Issue #161 regressions, suite green).
 - Residual risk: Low; unusual credential encodings outside URL userinfo remain heuristic-driven.
+
+## 2026-04-05 - HSC error-message constant false-positive mitigation (Issue #163)
+
+- Risk ID: RISK-SIG-2026-04-05-163
+- Component: src/drift/signals/hardcoded_secret.py
+- Type: Signal quality (false positives / precision calibration)
+- Description: HSC flagged natural-language error message constants (for example `_MAX_TOKENS_ERROR`) as hardcoded secrets because variable names matched secret-like tokens while the literal itself was plain-text guidance.
+- Trigger examples:
+  - langchain-ai/langchain: `_MAX_TOKENS_ERROR` in output parser module.
+  - Similar repositories using UPPER_CASE `*_ERROR`/`*_WARNING`/`*_MESSAGE` constants.
+- Impact: High-severity false positives, triage noise, reduced trust in HSC output.
+- Mitigation:
+  - Added message-constant suppression for variable suffixes `_ERROR`, `_WARNING`, `_MESSAGE` when the literal matches natural-language message characteristics.
+  - Preserved higher-confidence detection order (known token prefixes and credential-bearing URLs are evaluated before suppression).
+  - Added regression test in `tests/test_hardcoded_secret.py` for `_MAX_TOKENS_ERROR` style constants.
+- Verification: `python -m pytest tests/test_hardcoded_secret.py -q --maxfail=1`
+- Residual risk: Low; intentional misnaming of real credentials as message constants is rare, and high-confidence token-prefix checks still trigger before suppression.
 
 ## 2026-04-05 - MAZ documented public-safe publishable-key severity downgrade (Issue #162)
 

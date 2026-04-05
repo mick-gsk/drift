@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-05 - DIA bootstrap-repo README false positives
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| DIA | FP: Tiny bootstrap repositories are flagged with `No README found` | DIA treated missing README as actionable architectural drift even when the repository contains zero or one parsed Python file, or only `__init__.py` skeleton modules | Noise on empty, single-file, and init-only repos; lower trust in baseline scan output | Reproduced on minimal repos + strengthened edge-case regression tests | Suppress missing-README finding for repositories with `len(parse_results) <= 1` or all parsed files named `__init__.py`; keep normal README requirement for larger repos | 4 | 6 | 3 | 72 |
+| DIA | FN: Minimal but intentionally documented bootstrap repos receive no README reminder | New bootstrap guard suppresses README guidance for tiny repos and pure package skeletons that may still benefit from documentation | Slightly lower README enforcement on very small repositories | Existing README presence still prevents finding; guard only applies to bootstrap-sized or init-only footprints | Keep threshold narrow (`<= 1` parsed file or all `__init__.py`), emit normal README finding as soon as repository shape exceeds bootstrap size | 2 | 3 | 6 | 36 |
+
 ## 2026-04-05 - AVS lazy-import policy violation detection (Issue #146)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
@@ -45,6 +52,13 @@
 |---|---|---|---|---|---|---:|---:|---:|---:|
 | HSC | FP: OAuth endpoint constants are flagged as hardcoded secrets | Variable-name heuristic matches `TOKEN_URL`/`AUTH_URL`; endpoint URLs are treated like credential literals | High-severity triage noise and reduced trust in HSC findings | Field test on onyx-dot-app/onyx + targeted HSC regressions | Suppress plain HTTP(S) endpoint URLs without embedded credentials (userinfo) | 6 | 5 | 4 | 120 |
 | HSC | FN: Credential-bearing URL literal could be under-reported after suppression | Over-broad URL suppression in secret-sensitive variables | Real secret material in URL userinfo may be missed | Regression test with `https://user:secret@...` | Keep detection active when URL contains username/password and retain known-prefix checks | 7 | 2 | 5 | 70 |
+
+## 2026-04-05 - HSC error-message constant false positives (Issue #163)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| HSC | FP: Natural-language error/warning/message constants are flagged as hardcoded secrets | Secret-shaped variable names (`token`, `secret`) matched without checking if literal is a human-readable message constant (for example `_MAX_TOKENS_ERROR`) | High-severity triage noise and lower trust in HSC findings | Field test on langchain + new regression test for `_MAX_TOKENS_ERROR`-style constant | Suppress literals when variable name suffix indicates message constant (`_ERROR`, `_WARNING`, `_MESSAGE`) and content looks like natural-language message text | 6 | 6 | 4 | 144 |
+| HSC | FN: Real credential assigned to `*_ERROR`/`*_WARNING`/`*_MESSAGE` may be under-reported | New suppression heuristic can treat malformed or unusual credential strings as messages | Rare real secret leaks in misnamed constants may be delayed | Existing token-prefix and URL-userinfo detections still fire before suppression | Keep suppression narrow: suffix + natural-language heuristic (minimum length, word count, whitespace) and preserve high-confidence prefix checks | 5 | 2 | 6 | 60 |
 
 ## 2026-04-05 - MAZ documented public-safe endpoint severity calibration (Issue #162)
 

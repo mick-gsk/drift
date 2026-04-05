@@ -1,5 +1,20 @@
 # Fault Tree Analysis
 
+## 2026-04-05 - DIA bootstrap-repo README false positives
+
+### FT-1: False positive README drift on tiny bootstrap repositories
+- Top event: DIA emits `No README found` for a repository that is too small for the finding to be actionable architectural drift.
+- Branch A: Repository has zero or one parsed Python file, or all parsed files are `__init__.py` skeleton modules.
+- Branch B: README lookup fails.
+- Branch C: Previous DIA logic emitted the same medium-severity finding regardless of repository footprint.
+- Mitigation implemented: Return no DIA finding when the repo is bootstrap-sized (`len(parse_results) <= 1`) or a pure `__init__.py` skeleton and README is absent.
+
+### FT-2: Under-reporting risk after bootstrap suppression
+- Top event: A tiny repository that should still be nudged to add documentation does not receive a README finding.
+- Branch A: Repository remains at bootstrap size (`<= 1` parsed file) or contains only `__init__.py` package skeleton files.
+- Branch B: Missing README is intentionally tolerated to avoid noise.
+- Mitigation implemented: Keep suppression narrowly scoped to bootstrap-sized or init-only repos and preserve normal README finding behavior for larger repositories.
+
 ## 2026-04-05 - AVS lazy-import policy violation detection (Issue #146)
 
 ### FT-1: False negative chain for heavy module-level imports
@@ -89,6 +104,21 @@
 - Branch A: Endpoint name includes marker token used by dampening heuristic.
 - Branch B: Endpoint includes a docstring but still returns sensitive material.
 - Mitigation implemented: Finding is still emitted (not suppressed), dampening is limited to a conservative marker set + documentation requirement, and metadata explicitly flags the downgrade path for reviewer audit.
+
+## 2026-04-05 - HSC error-message constant false positives (Issue #163)
+
+### FT-1: False positive on natural-language message constants
+- Top event: HSC emits a hardcoded-secret finding for a plain-text error/warning/message constant.
+- Branch A: Variable-name heuristic matches secret-like tokens (for example `token`, `secret`).
+- Branch B: Variable name ends with message suffix (`_ERROR`, `_WARNING`, `_MESSAGE`).
+- Branch C: Literal value is human-readable sentence text, not credential material.
+- Mitigation implemented: Suppress findings when suffix indicates message constant and literal matches natural-language message heuristic.
+
+### FT-2: Under-reporting risk after message-constant suppression
+- Top event: A real credential assigned to a `*_ERROR`/`*_WARNING`/`*_MESSAGE` symbol is not reported.
+- Branch A: New suffix-based suppression path is active.
+- Branch B: Credential string could be mistaken for message-like text.
+- Mitigation implemented: Execute high-confidence checks (known token prefixes, URL userinfo credentials) before suppression and constrain suppression with minimum length and word-count heuristic.
 
 ## 2026-04-05 - AVS tiny foundational module severity recalibration (Issue #153)
 
