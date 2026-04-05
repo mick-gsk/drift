@@ -1,5 +1,23 @@
 # Risk Register
 
+## 2026-04-05 - TPD negative assertion undercount calibration (Issue #143)
+
+- Risk ID: RISK-SIG-2026-04-05-143
+- Component: src/drift/signals/test_polarity_deficit.py
+- Type: Signal quality (false positives / polarity misclassification)
+- Description: `test_polarity_deficit` undercounted negative assertions in Python tests, especially for expressive assert styles (`assert not ...`, `assert ... is False/None`) and functional negative helpers (`pytest.raises(...)`, `pytest.fail(...)`).
+- Trigger examples:
+  - mickg/Real-Time Fortnite Coach: `tests/biometric` reported as nearly all-positive despite many negative-path checks.
+  - Similar repositories using assert-style failure checks instead of only context-manager `pytest.raises` patterns.
+- Impact: False-positive happy-path-only findings, severity miscalibration, and reduced trust in test polarity diagnostics.
+- Mitigation:
+  - Added AST-aware assert polarity classification for negative assert forms.
+  - Added conservative regex fallback for assert text variants not cleanly captured by AST heuristics.
+  - Added explicit negative call detection for functional `raises`/`fail` patterns.
+  - Added targeted regressions for mixed-polarity suites and functional raises/fail calls.
+- Verification: `pytest tests/test_test_polarity_deficit.py -q --maxfail=1` (3 passed).
+- Residual risk: Medium-low; heuristic classification may still need tuning for rare domain-specific assert semantics.
+
 ## 2026-04-05 - PFS framework-surface error-handling severity calibration (Issue #142)
 
 - Risk ID: RISK-SIG-2026-04-05-142

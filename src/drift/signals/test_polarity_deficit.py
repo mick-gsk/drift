@@ -12,6 +12,7 @@ the test suite provides a false sense of correctness.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path, PurePosixPath
 
 from drift.config import DriftConfig
@@ -73,11 +74,26 @@ _BOUNDARY_KEYWORDS: frozenset[str] = frozenset({
     "fail", "overflow", "underflow", "corrupt",
 })
 
+_NEGATIVE_ASSERT_PATTERN = re.compile(
+    r"^\s*assert\s+(?:not\b|.+\bis\s+False\b|.+==\s*False\b|.+\bis\s+None\b|.+==\s*None\b)",
+)
+
+_NEGATIVE_CALLS: frozenset[str] = frozenset({
+    "pytest.raises",
+    "raises",
+    "pytest.warns",
+    "warns",
+    "pytest.fail",
+    "fail",
+    "pytest.xfail",
+    "xfail",
+})
+
 
 class _AssertionCounter(ast.NodeVisitor):
     """Walk a test-file AST and count positive vs negative assertions."""
 
-    def __init__(self) -> None:
+    def __init__(self, source: str | None = None) -> None:
         self.positive = 0
         self.negative = 0
         self.test_functions = 0
@@ -85,6 +101,7 @@ class _AssertionCounter(ast.NodeVisitor):
         self.zero_assertion_tests: list[str] = []
         self._current_function: str | None = None
         self._current_assertions: int = 0
+        self._source = source
 
     # --- function-level ---------------------------------------------------
 
@@ -115,29 +132,68 @@ class _AssertionCounter(ast.NodeVisitor):
     # --- assertion counting -----------------------------------------------
 
     def visit_Assert(self, node: ast.Assert) -> None:  # noqa: N802
-        self.positive += 1
+        is_negative = _is_negative_assert_expr(node.test)
+
+        # Fallback for unusual assert expressions where AST-only classification
+        # may miss intent (for example generated assertion text variants).
+        if not is_negative and self._source:
+            segment = ast.get_source_segment(self._source, node)
+            if segment and _NEGATIVE_ASSERT_PATTERN.search(segment):
+                is_negative = True
+
+        if is_negative:
+            self.negative += 1
+        else:
+            self.positive += 1
         self._current_assertions += 1
         self.generic_visit(node)
 
     def visit_With(self, node: ast.With) -> None:  # noqa: N802
-        for item in node.items:
-            if isinstance(item.context_expr, ast.Call):
-                call = item.context_expr
-                func_name = _call_name(call)
-                if func_name in ("pytest.raises", "raises", "assertRaises"):
-                    self.negative += 1
-                    self._current_assertions += 1
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:  # noqa: N802
         name = _call_name(node)
-        if name in _NEGATIVE_METHODS or name.split(".")[-1] in _NEGATIVE_METHODS:
+        tail = name.split(".")[-1]
+        if (
+            name in _NEGATIVE_METHODS
+            or tail in _NEGATIVE_METHODS
+            or name in _NEGATIVE_CALLS
+            or tail in _NEGATIVE_CALLS
+        ):
             self.negative += 1
             self._current_assertions += 1
-        elif name in _POSITIVE_METHODS or name.split(".")[-1] in _POSITIVE_METHODS:
+        elif name in _POSITIVE_METHODS or tail in _POSITIVE_METHODS:
             self.positive += 1
             self._current_assertions += 1
         self.generic_visit(node)
+
+
+def _is_none_literal(node: ast.expr) -> bool:
+    return isinstance(node, ast.Constant) and node.value is None
+
+
+def _is_false_literal(node: ast.expr) -> bool:
+    return isinstance(node, ast.Constant) and node.value is False
+
+
+def _is_negative_assert_expr(expr: ast.expr) -> bool:
+    """Classify assert expression polarity with lightweight AST heuristics."""
+    if isinstance(expr, ast.UnaryOp) and isinstance(expr.op, ast.Not):
+        return True
+
+    if isinstance(expr, ast.Compare):
+        left = expr.left
+        for op, right in zip(expr.ops, expr.comparators, strict=False):
+            left_is_negative_literal = _is_none_literal(left) or _is_false_literal(left)
+            right_is_negative_literal = _is_none_literal(right) or _is_false_literal(right)
+
+            if isinstance(op, (ast.Is, ast.Eq)) and (
+                left_is_negative_literal or right_is_negative_literal
+            ):
+                return True
+            left = right
+
+    return False
 
 
 def _call_name(node: ast.Call) -> str:
@@ -322,7 +378,7 @@ class TestPolarityDeficitSignal(BaseSignal):
                 except SyntaxError:
                     continue
                 counter = module_counters.setdefault(
-                    module_key, _AssertionCounter(),
+                    module_key, _AssertionCounter(source),
                 )
                 counter.visit(tree)
 

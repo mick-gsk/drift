@@ -1,5 +1,20 @@
 # Fault Tree Analysis
 
+## 2026-04-05 - TPD negative assertion undercount (Issue #143)
+
+### FT-1: False happy-path-only finding despite negative coverage
+- Top event: `test_polarity_deficit` reports a module as happy-path-only although tests include negative-path checks.
+- Branch A: Bare `assert` expressions were counted as positive without polarity interpretation.
+- Branch B: Negative assert idioms (`assert not`, `assert ... is False`, `assert ... is None`) were not recognized.
+- Branch C: Functional negative calls (`pytest.raises(...)`, `pytest.fail(...)`) were not consistently counted.
+- Mitigation implemented: Add AST-based negative assert classification, regex fallback for assert text variants, and explicit negative call handling for raises/fail patterns.
+
+### FT-2: Over-classification of ambiguous asserts as negative
+- Top event: TPD under-reports true happy-path-only modules by over-counting negative assertions.
+- Branch A: Heuristic polarity logic can misclassify unusual assert constructs.
+- Branch B: Regex fallback may classify non-failure semantics in edge wording.
+- Mitigation implemented: Limit negative heuristics to conservative patterns (`not`, `False`, `None`, explicit fail/raises calls) and keep ratio + test-count gates unchanged.
+
 ## 2026-04-05 - PFS framework-surface error-handling calibration (Issue #142)
 
 ### FT-1: False HIGH severity on framework-facing error-handling diversity

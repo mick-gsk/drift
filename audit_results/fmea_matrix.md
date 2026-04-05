@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-05 - TPD negative assertion undercount calibration (Issue #143)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| TPD | FP: happy-path-only finding emitted despite meaningful negative tests | Python `assert` statements were treated as positive by default; negative forms like `assert not ...`, `assert ... is False/None`, and functional `pytest.raises`/`pytest.fail` were undercounted | Inflated TPD score, noisy findings, and reduced trust in polarity diagnostics | Field report on Real-Time Fortnite Coach + new focused regressions | AST-aware assert polarity classification, regex fallback for assert text variants, and explicit negative call handling for raises/fail patterns | 6 | 6 | 4 | 144 |
+| TPD | FN risk: weak assertions could be over-counted as negative | Heuristic classification may treat some non-failure semantics as negative in ambiguous assert expressions | True happy-path-only suites may be under-reported in edge cases | Regression coverage for mixed positive/negative suites and explicit call-pattern checks | Keep heuristics conservative (`not`, `False`, `None`, explicit fail/raises calls), preserve ratio threshold gate, and monitor future field reports | 5 | 2 | 6 | 60 |
+
 ## 2026-04-05 - PFS framework-surface error-handling calibration (Issue #142)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
