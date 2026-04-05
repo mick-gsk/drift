@@ -109,6 +109,28 @@ class TestDCATruePositive:
         assert len(findings) == 1
         assert findings[0].metadata.get("library_context_candidate") is True
 
+    def test_internal_module_in_package_layout_is_still_reported(self) -> None:
+        pr_pkg_init = ParseResult(
+            file_path=Path("fastapi/__init__.py"),
+            language="python",
+            imports=[],
+        )
+        pr_internal = ParseResult(
+            file_path=Path("fastapi/internal/lifecycle.py"),
+            language="python",
+            functions=[
+                _func("build_state", "fastapi/internal/lifecycle.py", 10),
+                _func("flush_state", "fastapi/internal/lifecycle.py", 20),
+            ],
+            imports=[],
+        )
+
+        signal = DeadCodeAccumulationSignal()
+        findings = signal.analyze([pr_pkg_init, pr_internal], {}, DriftConfig())
+
+        assert len(findings) == 1
+        assert findings[0].metadata.get("dead_count") == 2
+
 
 class TestDCATrueNegative:
     """Used exports should not trigger DCA."""
@@ -200,5 +222,26 @@ class TestDCATrueNegative:
 
         signal = DeadCodeAccumulationSignal()
         findings = signal.analyze([pr_router], {}, DriftConfig())
+
+        assert len(findings) == 0
+
+    def test_public_api_exports_in_package_layout_are_not_reported(self) -> None:
+        pr_pkg_init = ParseResult(
+            file_path=Path("fastapi/__init__.py"),
+            language="python",
+            imports=[],
+        )
+        pr_public = ParseResult(
+            file_path=Path("fastapi/applications.py"),
+            language="python",
+            functions=[
+                _func("build_openapi", "fastapi/applications.py", 12),
+                _func("build_swagger_ui", "fastapi/applications.py", 26),
+            ],
+            imports=[],
+        )
+
+        signal = DeadCodeAccumulationSignal()
+        findings = signal.analyze([pr_pkg_init, pr_public], {}, DriftConfig())
 
         assert len(findings) == 0

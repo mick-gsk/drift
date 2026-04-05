@@ -86,6 +86,87 @@ _SCHEMA_CLASS_SUFFIXES: tuple[str, ...] = (
     "Response",
 )
 
+_APPLICATION_LAYOUT_TOKENS: frozenset[str] = frozenset({
+    "app",
+    "apps",
+    "backend",
+    "frontend",
+    "service",
+    "services",
+    "server",
+    "web",
+})
+
+_INTERNAL_LIBRARY_PATH_TOKENS: frozenset[str] = frozenset({
+    "internal",
+    "_internal",
+    "private",
+    "_private",
+    "impl",
+    "generated",
+})
+
+
+def _path_tokens(file_path: Path) -> list[str]:
+    """Return lowercase path tokens for deterministic path heuristics."""
+    return [token for token in file_path.as_posix().lower().split("/") if token]
+
+
+def _has_application_layout(parse_results: list[ParseResult]) -> bool:
+    """Return True when parse results indicate a classic application layout."""
+    tokens: set[str] = set()
+    for pr in parse_results:
+        if pr.language not in _SUPPORTED_LANGUAGES:
+            continue
+        if is_test_file(pr.file_path):
+            continue
+        tokens.update(_path_tokens(pr.file_path))
+    return any(token in _APPLICATION_LAYOUT_TOKENS for token in tokens)
+
+
+def _discover_package_roots(parse_results: list[ParseResult]) -> set[str]:
+    """Discover top-level package roots from __init__.py files.
+
+    This targets library/framework repositories that expose symbols via
+    package modules (e.g. fastapi/applications.py) without requiring
+    internal imports for external API usage.
+    """
+    package_roots: set[str] = set()
+    for pr in parse_results:
+        if pr.language not in _SUPPORTED_LANGUAGES:
+            continue
+        if is_test_file(pr.file_path):
+            continue
+        if pr.file_path.name != "__init__.py":
+            continue
+
+        tokens = _path_tokens(pr.file_path)
+        if len(tokens) < 2:
+            continue
+
+        root = tokens[0]
+        if root in {"src", "lib", "packages", "tests", "test", "docs"}:
+            continue
+        package_roots.add(root)
+
+    return package_roots
+
+
+def _is_public_api_package_path(file_path: Path, package_roots: set[str]) -> bool:
+    """Return True for package-layout modules that likely expose public API."""
+    if not package_roots:
+        return False
+
+    tokens = _path_tokens(file_path)
+    if not tokens:
+        return False
+    if tokens[0] not in package_roots:
+        return False
+    if any(token in _INTERNAL_LIBRARY_PATH_TOKENS for token in tokens):
+        return False
+
+    return True
+
 
 def _is_route_entrypoint_function(decorators: list[str]) -> bool:
     """Return True when decorators indicate a framework route entry-point."""
@@ -132,7 +213,11 @@ class DeadCodeAccumulationSignal(BaseSignal):
         config: DriftConfig,
     ) -> list[Finding]:
         ignore_re_exports = config.thresholds.dca_ignore_re_exports
-        library_repo = is_likely_library_repo(parse_results)
+        has_application_layout = _has_application_layout(parse_results)
+        package_roots = (
+            set() if has_application_layout else _discover_package_roots(parse_results)
+        )
+        library_repo = is_likely_library_repo(parse_results) or bool(package_roots)
 
         # Phase 1: collect all exported (public) symbols per file
         # symbol_name → list of (file_path, kind, start_line)
@@ -192,11 +277,19 @@ class DeadCodeAccumulationSignal(BaseSignal):
         findings: list[Finding] = []
         # Group dead symbols by file for aggregate findings
         dead_by_file: dict[Path, list[tuple[str, str, int]]] = defaultdict(list)
+        suppressed_public_api_by_file: dict[Path, list[tuple[str, str, int]]] = (
+            defaultdict(list)
+        )
 
         for symbol_name, locations in exported.items():
             if symbol_name in imported_names:
                 continue
             for file_path, kind, start_line in locations:
+                if library_repo and _is_public_api_package_path(file_path, package_roots):
+                    suppressed_public_api_by_file[file_path].append(
+                        (symbol_name, kind, start_line)
+                    )
+                    continue
                 dead_by_file[file_path].append((symbol_name, kind, start_line))
 
         for file_path, dead_symbols in dead_by_file.items():
@@ -260,7 +353,10 @@ class DeadCodeAccumulationSignal(BaseSignal):
                         "total_exports": total_exports,
                         "dead_ratio": round(dead_ratio, 3),
                         "library_context_candidate": library_repo
-                        and is_library_finding_path(file_path),
+                        and (
+                            is_library_finding_path(file_path)
+                            or _is_public_api_package_path(file_path, package_roots)
+                        ),
                     },
                     rule_id="dead_code_accumulation",
                 )
