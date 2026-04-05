@@ -728,7 +728,7 @@ class TestPFSThresholds:
         # Only 2 error handling styles, minimal instances (no spread boost)
         files = {
             "services/__init__.py": "",
-            "services/handler_a.py": textwrap.dedent("""\
+            "services/worker_a.py": textwrap.dedent("""\
                 import logging
                 logger = logging.getLogger(__name__)
 
@@ -739,7 +739,7 @@ class TestPFSThresholds:
                         logger.error("fail: %s", e)
                         raise
             """),
-            "services/handler_b.py": textwrap.dedent("""\
+            "services/worker_b.py": textwrap.dedent("""\
                 def process_b():
                     try:
                         do_work()

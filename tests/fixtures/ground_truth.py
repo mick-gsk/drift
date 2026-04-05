@@ -2908,7 +2908,7 @@ TPD_BOUNDARY_TP = GroundTruthFixture(
 
             def test_five():
                 assert True
-                assert not False
+                assert 3 > 1
         """,
     },
     expected=[
