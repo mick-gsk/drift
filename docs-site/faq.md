@@ -66,6 +66,8 @@ Yes. The AVS signal detects circular dependencies (A→B→C→A) and upward imp
 
 Yes. Drift analyzes any Python repository structure. For monorepos, you can use `--path` to restrict analysis to a subdirectory or configure `include`/`exclude` patterns in `drift.yaml`.
 
+See [Monorepo Configuration Examples](getting-started/configuration.md#monorepo-configuration-examples) for copy-paste-ready setups covering single-package scans, multi-package shared config, and per-package policy overrides.
+
 ## How does drift compare to SonarQube, pylint, or Semgrep?
 
 Drift complements those tools. Linters catch style violations, type checkers catch type errors, security scanners catch vulnerabilities. Drift catches cross-file architectural coherence problems that none of those tools model.
