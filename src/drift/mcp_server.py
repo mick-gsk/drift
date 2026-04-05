@@ -669,6 +669,12 @@ async def drift_negative_context(
             timeout_seconds=_NEGATIVE_CONTEXT_TIMEOUT_SECONDS,
         )
         return json.dumps(timeout_response, default=str)
+    except Exception as exc:
+        from drift.api_helpers import _error_response
+
+        error = _error_response("DRIFT-5001", str(exc), recoverable=True)
+        error["tool"] = "drift_negative_context"
+        return json.dumps(error, default=str)
 
 
 def _load_negative_context_timeout_seconds() -> float:

@@ -18,6 +18,9 @@
 
 ### Fixed
 
+- Wrap `drift_negative_context` MCP tool exceptions in structured error envelope (`DRIFT-5001`) instead of propagating raw Python exceptions to MCP clients (#138).
+- GitHub Action outputs `drift-score`, `finding-count`, `severity` are now populated unconditionally, not only when `comment: "true"` is set (#139).
+- Add `--path` / `--target-path` option to `drift check` for path-scoped CI analysis, consistent with all other analysis commands (#140).
 - Complete repository transfer cleanup by replacing remaining `sauremilk` owner/docs references in operational metadata, docs, and `drift self` guidance with `mick-gsk` (#132).
 - Prevent MCP stdio hangs on Windows by enforcing `stdin=subprocess.DEVNULL` on all relevant `subprocess.run` calls, making `drift_nudge` async like the other MCP tools, adding uniform MCP error envelopes, and eager-importing heavy modules before the MCP event loop starts.
 - Standardize drift score precision to 3 decimal places across all surfaces (copilot-context, export-context, API, raw JSON) to eliminate score inconsistency between commands (#124).

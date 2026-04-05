@@ -21,6 +21,12 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     type=click.Path(exists=True, file_okay=False, path_type=Path),
     default=".",
 )
+@click.option(
+    "--path", "--target-path", "-p",
+    "target_path",
+    default=None,
+    help="Restrict analysis to a subdirectory.",
+)
 @click.option("--diff", "diff_ref", default="HEAD~1", help="Git ref to diff against.")
 @click.option(
     "--fail-on",
@@ -139,6 +145,7 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 )
 def check(
     repo: Path,
+    target_path: str | None,
     diff_ref: str,
     fail_on: str | None,
     output_format: str,
@@ -217,6 +224,7 @@ def check(
             diff_ref=diff_ref,
             workers=effective_workers,
             since_days=effective_since,
+            target_path=target_path,
         )
 
     # Signal filtering: remove findings from disabled signals (#87)

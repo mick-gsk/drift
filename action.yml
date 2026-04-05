@@ -123,31 +123,25 @@ runs:
           DRIFT_EXIT=0
           drift check ${ARGS} --format sarif > "${SARIF_FILE}" || DRIFT_EXIT=$?
           echo "sarif-file=${SARIF_FILE}" >> "${GITHUB_OUTPUT}"
-          # If comment is also requested, still produce JSON for the summary
-          if [ "${DRIFT_COMMENT}" = "true" ]; then
-            drift check ${ARGS} --format json --fail-on none > "${RUNNER_TEMP}/drift-results.json" 2>/dev/null || true
-          fi
+          # Always produce JSON for metrics outputs
+          drift check ${ARGS} --format json --fail-on none > "${RUNNER_TEMP}/drift-results.json" 2>/dev/null || true
           exit ${DRIFT_EXIT}
         else
-          if [ "${DRIFT_COMMENT}" = "true" ]; then
-            # Always produce JSON for PR comment; show user-chosen format too
-            JSON_FILE="${RUNNER_TEMP}/drift-results.json"
-            DRIFT_EXIT=0
-            drift check ${ARGS} --format json > "${JSON_FILE}" || DRIFT_EXIT=$?
-            # Also show the user-chosen format on stdout
-            if [ "${DRIFT_FORMAT}" != "json" ]; then
-              drift check ${ARGS} --format "${DRIFT_FORMAT}" --fail-on none 2>/dev/null || true
-            fi
-            exit ${DRIFT_EXIT}
-          else
-            drift check ${ARGS} --format "${DRIFT_FORMAT}"
+          # Always produce JSON for metrics outputs
+          JSON_FILE="${RUNNER_TEMP}/drift-results.json"
+          DRIFT_EXIT=0
+          drift check ${ARGS} --format json > "${JSON_FILE}" || DRIFT_EXIT=$?
+          # Also show the user-chosen format on stdout if not already json
+          if [ "${DRIFT_FORMAT}" != "json" ]; then
+            drift check ${ARGS} --format "${DRIFT_FORMAT}" --fail-on none 2>/dev/null || true
           fi
+          exit ${DRIFT_EXIT}
         fi
 
     # Extract key metrics from JSON for outputs and PR comment.
     - name: Extract drift metrics
       id: drift-json
-      if: always() && inputs.comment == 'true'
+      if: always()
       shell: bash
       run: |
         JSON_FILE="${RUNNER_TEMP}/drift-results.json"

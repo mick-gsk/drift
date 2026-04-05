@@ -262,6 +262,7 @@ def analyze_diff(
     workers: int = _DEFAULT_WORKERS,
     on_progress: ProgressCallback | None = None,
     since_days: int = 90,
+    target_path: str | None = None,
 ) -> RepoAnalysis:
     """Analyze only files changed since a given git ref."""
     logger = logging.getLogger("drift")
@@ -301,6 +302,7 @@ def analyze_diff(
             repo_path,
             config,
             since_days=since_days,
+            target_path=target_path,
             workers=workers,
         )
         degradation_cause = "diff_ref_invalid" if diff_mode == "ref" else "git_diff_query_failed"
@@ -340,6 +342,18 @@ def analyze_diff(
     )
     changed_set = set(changed_files)
     files = [f for f in all_files if f.path.as_posix() in changed_set]
+
+    if target_path:
+        target = Path(target_path).as_posix().strip("/")
+        if target:
+            files = [
+                f
+                for f in files
+                if (
+                    f.path.as_posix().strip("/") == target
+                    or f.path.as_posix().strip("/").startswith(target + "/")
+                )
+            ]
 
     if not files:
         return RepoAnalysis(
