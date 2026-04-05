@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-05 - HSC OAuth endpoint URL false positives (Issue #161)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| HSC | FP: OAuth endpoint constants are flagged as hardcoded secrets | Variable-name heuristic matches `TOKEN_URL`/`AUTH_URL`; endpoint URLs are treated like credential literals | High-severity triage noise and reduced trust in HSC findings | Field test on onyx-dot-app/onyx + targeted HSC regressions | Suppress plain HTTP(S) endpoint URLs without embedded credentials (userinfo) | 6 | 5 | 4 | 120 |
+| HSC | FN: Credential-bearing URL literal could be under-reported after suppression | Over-broad URL suppression in secret-sensitive variables | Real secret material in URL userinfo may be missed | Regression test with `https://user:secret@...` | Keep detection active when URL contains username/password and retain known-prefix checks | 7 | 2 | 5 | 70 |
+
 ## 2026-04-05 - MAZ documented public-safe endpoint severity calibration (Issue #162)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |

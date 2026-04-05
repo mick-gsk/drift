@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-05 - HSC OAuth endpoint URL false-positive mitigation (Issue #161)
+
+- Risk ID: RISK-SIG-2026-04-05-161
+- Component: src/drift/signals/hardcoded_secret.py
+- Type: Signal quality (false positives / precision calibration)
+- Description: HSC flagged OAuth endpoint constants (for example `TOKEN_URL = "https://oauth2.googleapis.com/token"`) as hardcoded secrets when variable names matched secret-like tokens.
+- Trigger examples:
+  - onyx-dot-app/onyx: `backend/ee/onyx/server/oauth/google_drive.py` with `TOKEN_URL` endpoint constant.
+  - Similar integration code with `AUTH_URL`/`TOKEN_URL` endpoint literals.
+- Impact: High-severity false positives, lower trust in HSC results, and avoidable remediation work.
+- Mitigation:
+  - Add URL-aware suppression for plain HTTP(S) endpoint literals without embedded credentials.
+  - Keep detection active for URLs with userinfo credentials (`username`/`password`) to avoid masking true secrets.
+  - Add targeted regression tests for OAuth endpoint constants and credential-bearing URL literals.
+- Verification: tests/test_hardcoded_secret.py (new Issue #161 regressions, suite green).
+- Residual risk: Low; unusual credential encodings outside URL userinfo remain heuristic-driven.
+
 ## 2026-04-05 - MAZ documented public-safe publishable-key severity downgrade (Issue #162)
 
 - Risk ID: RISK-SIG-2026-04-05-162

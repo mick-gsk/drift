@@ -118,6 +118,18 @@ class TestHSCTruePositives:
         assert len(findings) >= 1
         assert "db_password" in findings[0].title
 
+    def test_token_url_with_embedded_credentials_still_detected(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path, "config.py",
+            '''\
+            TOKEN_URL = "https://user:supersecret@example.com/oauth/token"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr()], {}, DriftConfig())
+        assert len(findings) >= 1
+        assert "TOKEN_URL" in findings[0].title
+
     def test_placeholder_secret(self, tmp_path: Path) -> None:
         _write_source(
             tmp_path, "config.py",
@@ -275,6 +287,39 @@ class TestHSCTrueNegatives:
         )
         signal = HardcodedSecretSignal(repo_path=tmp_path)
         findings = signal.analyze([_make_pr()], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_token_url_oauth_endpoint_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path, "oauth.py",
+            '''\
+            TOKEN_URL = "https://oauth2.googleapis.com/token"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("oauth.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_auth_url_oauth_endpoint_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path, "oauth.py",
+            '''\
+            AUTH_URL = "https://accounts.google.com/o/oauth2/auth"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("oauth.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_token_cache_file_constant_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path, "constants.py",
+            '''\
+            TOKEN_CACHE_FILE = ".epic_token_cache.json"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("constants.py")], {}, DriftConfig())
         assert len(findings) == 0
 
 

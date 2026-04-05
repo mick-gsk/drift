@@ -1,5 +1,20 @@
 # Fault Tree Analysis
 
+## 2026-04-05 - HSC OAuth endpoint URL false positives (Issue #161)
+
+### FT-1: False positive on OAuth endpoint constants
+- Top event: Hardcoded-Secret finding is emitted for a provider endpoint URL constant (for example `TOKEN_URL`).
+- Branch A: Variable-name heuristic matches secret-like tokens (`token`, `auth`).
+- Branch B: Literal value is a static HTTP(S) endpoint URL.
+- Branch C: Existing logic classifies non-short string literals as potential credentials.
+- Mitigation implemented: Add endpoint-URL suppression for plain HTTP(S) URLs without userinfo credentials.
+
+### FT-2: False negative risk after URL suppression
+- Top event: Credential-bearing URL literal is not surfaced as HSC finding.
+- Branch A: URL suppression applies to all HTTP(S) literals without credential checks.
+- Branch B: Literal contains embedded username/password (`user:pass@host`).
+- Mitigation implemented: Suppression excludes URL literals with username/password so these remain detectable.
+
 ## 2026-04-05 - MAZ documented public-safe endpoint severity calibration (Issue #162)
 
 ### FT-1: False HIGH severity on intentionally public publishable-key endpoint

@@ -21,6 +21,7 @@ import math
 import re
 from collections import Counter
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from drift.config import DriftConfig
 from drift.models import (
@@ -132,6 +133,39 @@ def _extract_string_value(node: ast.expr) -> str | None:
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value
     return None
+
+
+def _is_endpoint_url_literal(value: str) -> bool:
+    """Return True for plain HTTP(S) endpoint URL literals without credentials."""
+    if not re.match(r"^https?://", value, flags=re.IGNORECASE):
+        return False
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return False
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False
+    # Keep detecting URLs that embed credentials (userinfo) as potential secrets.
+    return parsed.username is None and parsed.password is None
+
+
+def _is_file_like_literal(value: str) -> bool:
+    """Return True when the literal looks like a file path/name, not a secret."""
+    if not value or "\n" in value or "\r" in value:
+        return False
+
+    # Common explicit path markers.
+    if value.startswith(("./", "../", "/", "~/")):
+        return True
+    if re.match(r"^[a-zA-Z]:\\", value):
+        return True
+
+    # A path-like segment with separators and a file extension.
+    if ("/" in value or "\\" in value) and re.search(r"\.[a-zA-Z0-9]{1,8}$", value):
+        return True
+
+    # Bare file names such as ".epic_token_cache.json" or "secret.key".
+    return bool(re.match(r"^\.?[A-Za-z0-9_-][A-Za-z0-9._-]*\.[A-Za-z0-9]{1,8}$", value))
 
 
 def _normalize_symbol_name(name: str) -> str:
@@ -318,6 +352,16 @@ class HardcodedSecretSignal(BaseSignal):
                     score=0.9,
                     detail=f"Value starts with known API token prefix '{prefix}'.",
                 )
+
+        # OAuth/auth endpoint constants (for example TOKEN_URL/AUTH_URL) are
+        # common and are not credentials by themselves.
+        if _is_endpoint_url_literal(string_val):
+            return None
+
+        # Filename/path constants can contain "token"/"secret" in their symbol
+        # names but the literal itself is usually operational metadata.
+        if _is_file_like_literal(string_val):
+            return None
 
         # Enum/schema declaration symbols are often secret-shaped names, not secrets.
         if _is_symbol_declaration_literal(
