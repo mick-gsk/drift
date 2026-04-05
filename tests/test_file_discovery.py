@@ -10,8 +10,6 @@ These tests matter because file discovery bugs cause silent omissions —
 files that should be analysed are skipped without warning.
 """
 
-import os
-
 import pytest
 
 from drift.ingestion.file_discovery import (
@@ -205,13 +203,18 @@ class TestDiscoverFiles:
         assert fi.size_bytes > 0
         assert fi.line_count >= 0  # heuristic estimate
 
-    @pytest.mark.skipif(os.name == "nt", reason="Symlinks require elevated privileges on Windows")
     def test_symlinks_skipped(self, tmp_path):
         """Symlinked files should be excluded to prevent loops."""
         real = tmp_path / "real.py"
         real.write_text("x = 1")
         link = tmp_path / "link.py"
-        link.symlink_to(real)
+        try:
+            link.symlink_to(real)
+        except (OSError, NotImplementedError):
+            pytest.skip(
+                "Symlink creation not available in this environment"
+                " (requires elevated privileges on Windows)"
+            )
         files = discover_files(tmp_path)
         names = {f.path.name for f in files}
         assert "real.py" in names
