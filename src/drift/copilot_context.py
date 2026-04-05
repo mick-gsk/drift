@@ -12,7 +12,7 @@ import hashlib
 from collections import Counter
 from pathlib import Path
 
-from drift.api_helpers import signal_abbrev
+from drift.api_helpers import build_drift_score_scope, signal_abbrev
 from drift.models import Finding, RepoAnalysis, SignalType
 
 # ---------------------------------------------------------------------------
@@ -219,6 +219,7 @@ def generate_constraints_payload(analysis: RepoAnalysis) -> dict[str, object]:
         "constraints": constraints,
         "summary": {
             "drift_score": round(analysis.drift_score, 3),
+            "drift_score_scope": build_drift_score_scope(context="repo"),
             "severity": analysis.severity.value,
             "constraint_count": len(constraints),
         },

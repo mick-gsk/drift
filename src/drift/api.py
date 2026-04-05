@@ -27,12 +27,15 @@ from drift.api_helpers import (
     _task_to_api_dict,
     _top_signals,
     _trend_dict,
+    build_drift_score_scope,
     resolve_signal,
     signal_abbrev,
+    signal_scope_label,
 )
 from drift.finding_context import is_non_operational_context, split_findings_by_context
 
 if TYPE_CHECKING:
+    from drift.analyzer import ProgressCallback
     from drift.incremental import BaselineSnapshot
     from drift.models import Finding, ParseResult, RepoAnalysis
 
@@ -195,6 +198,11 @@ def scan(
             strategy=strategy,
             signal_filter=set(s.upper() for s in signals) if signals else None,
             include_non_operational=include_non_operational,
+            drift_score_scope=build_drift_score_scope(
+                context="repo",
+                path=target_path,
+                signal_scope=signal_scope_label(selected=signals),
+            ),
         )
         if warnings:
             result["warnings"] = warnings
@@ -286,6 +294,7 @@ def _format_scan_response(
     strategy: str = "diverse",
     signal_filter: set[str] | None = None,
     include_non_operational: bool = False,
+    drift_score_scope: str | None = None,
 ) -> dict[str, Any]:
     """Format a RepoAnalysis into the scan response schema."""
     if not hasattr(config, "finding_context"):
@@ -371,6 +380,7 @@ def _format_scan_response(
 
     result = _base_response(
         drift_score=round(analysis.drift_score, 3),
+        drift_score_scope=drift_score_scope or build_drift_score_scope(context="repo"),
         severity=analysis.severity.value,
         total_files=analysis.total_files,
         total_functions=analysis.total_functions,
@@ -1135,6 +1145,7 @@ def fix_plan(
     exclude_paths: list[str] | None = None,
     include_deferred: bool = False,
     include_non_operational: bool = False,
+    on_progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
     """Generate a prioritized fix plan with constraints and success criteria.
 
@@ -1249,7 +1260,7 @@ def fix_plan(
                     f"exclude path '{excluded_path}' does not exist in repository"
                 )
 
-        analysis = analyze_repo(repo_path, config=cfg)
+        analysis = analyze_repo(repo_path, config=cfg, on_progress=on_progress)
         tasks = analysis_to_agent_tasks(analysis)
 
         # Filter by target_path
@@ -1445,6 +1456,11 @@ def fix_plan(
 
         result = _base_response(
             drift_score=round(analysis.drift_score, 3),
+            drift_score_scope=build_drift_score_scope(
+                context="fix-plan",
+                path=target_path,
+                signal_scope=signal_scope_label(selected=[signal] if signal else None),
+            ),
             tasks=[_task_to_api_dict(t) for t in limited],
             task_count=len(limited),
             total_available=len(tasks),
@@ -2213,6 +2229,10 @@ def negative_context(
         result: dict[str, Any] = {
             "status": "ok",
             "drift_score": round(analysis.drift_score, 3),
+            "drift_score_scope": build_drift_score_scope(
+                context=f"negative-context:{scope or 'repo'}",
+                path=target_file,
+            ),
             "items_returned": len(items),
             "items_total": len(analysis.findings),
             "scope_filter": scope,
@@ -2355,6 +2375,7 @@ def brief(
     signals: list[str] | None = None,
     max_guardrails: int = 10,
     include_non_operational: bool = False,
+    on_progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
     """Generate a pre-task structural briefing for agent delegation.
 
@@ -2418,9 +2439,6 @@ def brief(
             scope_aliases=scope_aliases,
         )
 
-        # Determine target_path for analyzer (first resolved path or None)
-        target_path: str | None = scope.paths[0] if scope.paths else None
-
         # 1-hop import expansion — include direct dependencies
         expanded_paths = expand_scope_imports(scope, repo_path)
 
@@ -2436,26 +2454,28 @@ def brief(
             apply_signal_filter(cfg, pre_csv, None)
             active_signals = _PRE_TASK_SIGNALS
 
-        # --- Run analysis (scoped) -------------------------------------------
+        # --- Run analysis (full repo for signal context) --------------------
+        # Run analysis on the full repository to ensure signals like PFS get
+        # complete context, then filter findings to the resolved scope (#157).
         analysis = analyze_repo(
             repo_path,
             config=cfg,
             since_days=90,
-            target_path=target_path,
+            on_progress=on_progress,
             active_signals=active_signals,
         )
 
-        # Multi-path scope filtering: if multiple paths resolved, filter findings
-        # Include expanded dependency paths in filter scope
+        # Scope filtering: always filter findings to the resolved paths
+        # (including 1-hop dependency paths).
         all_scope_paths = scope.paths + expanded_paths
         scoped_findings = analysis.findings
-        if len(all_scope_paths) > 1:
+        if all_scope_paths:
             def _in_scope(f: Finding) -> bool:
                 if not f.file_path:
                     return True
                 fp = f.file_path.as_posix().strip("/")
                 return any(
-                    fp == p or fp.startswith(p + "/")
+                    fp == p or fp.startswith(p + "/") or p.startswith(fp + "/")
                     for p in all_scope_paths
                 )
             scoped_findings = [f for f in analysis.findings if _in_scope(f)]
@@ -2518,6 +2538,15 @@ def brief(
             },
             landscape={
                 "drift_score": round(analysis.drift_score, 3),
+                "drift_score_scope": build_drift_score_scope(
+                    context="brief",
+                    path=scope.paths[0] if scope.paths else None,
+                    signal_scope=(
+                        signal_scope_label(selected=signals)
+                        if signals
+                        else "pre-task-default"
+                    ),
+                ),
                 "severity": analysis.severity.value,
                 "top_signals": top_sigs,
                 "finding_count": len(scoped_findings),

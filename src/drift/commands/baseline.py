@@ -6,6 +6,7 @@ from pathlib import Path
 
 import click
 
+from drift.api_helpers import build_drift_score_scope
 from drift.commands import console
 
 DEFAULT_BASELINE_PATH = Path(".drift-baseline.json")
@@ -145,6 +146,11 @@ def diff(
             "total_findings": len(analysis.findings),
             "baseline_findings_count": len(fingerprints),
             "drift_score": analysis.drift_score,
+            "drift_score_scope": build_drift_score_scope(
+                context="repo",
+                signal_scope="all",
+                baseline_filtered=True,
+            ),
         }
         text = json_mod.dumps(data, indent=2)
         if output is not None:

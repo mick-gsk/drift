@@ -17,6 +17,7 @@
   },
   "context_tagged_count": 0,
   "drift_score": 0.515,
+  "drift_score_scope": "context:repo,signals:all,path:all",
   "finding_context_policy": {
     "counts": {
       "library": 13,

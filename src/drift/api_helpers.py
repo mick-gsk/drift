@@ -67,6 +67,42 @@ def signal_abbrev(signal_type: SignalType) -> str:
     return _SIGNAL_TO_ABBREV.get(signal_type.value, signal_type.value[:3].upper())
 
 
+def signal_scope_label(
+    *,
+    selected: list[str] | None = None,
+    ignored: list[str] | None = None,
+) -> str:
+    """Build a compact label describing which signals contributed to a score."""
+    if selected:
+        normalized = sorted({item.strip().upper() for item in selected if item.strip()})
+        if normalized:
+            return "+".join(normalized)
+    if ignored:
+        normalized = sorted({item.strip().upper() for item in ignored if item.strip()})
+        if normalized:
+            return f"all-minus:{'+'.join(normalized)}"
+    return "all"
+
+
+def build_drift_score_scope(
+    *,
+    context: str,
+    path: str | None = None,
+    signal_scope: str = "all",
+    baseline_filtered: bool = False,
+) -> str:
+    """Return a stable scope descriptor for drift_score values."""
+    normalized_path = (path or "all").strip("/") or "all"
+    parts = [
+        f"context:{context}",
+        f"signals:{signal_scope}",
+        f"path:{normalized_path}",
+    ]
+    if baseline_filtered:
+        parts.append("baseline:filtered")
+    return ",".join(parts)
+
+
 def _base_response(**extra: Any) -> dict[str, Any]:
     """Build the common response envelope."""
     return {"schema_version": SCHEMA_VERSION, **extra}

@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 from drift import __version__
-from drift.api_helpers import signal_abbrev
+from drift.api_helpers import build_drift_score_scope, signal_abbrev
 from drift.config import DriftConfig
 from drift.finding_context import classify_finding_context, split_findings_by_context
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity, SignalType
@@ -236,7 +236,12 @@ def _analysis_status_to_dict(analysis: RepoAnalysis) -> dict[str, Any]:
     }
 
 
-def analysis_to_json(analysis: RepoAnalysis, indent: int = 2, compact: bool = False) -> str:
+def analysis_to_json(
+    analysis: RepoAnalysis,
+    indent: int = 2,
+    compact: bool = False,
+    drift_score_scope: str | None = None,
+) -> str:
     """Serialize a RepoAnalysis to JSON string."""
     # Rank findings by impact (descending) for consumer convenience
     ranked = sorted(analysis.findings, key=_finding_sort_key)
@@ -266,6 +271,7 @@ def analysis_to_json(analysis: RepoAnalysis, indent: int = 2, compact: bool = Fa
         "repo": analysis.repo_path.as_posix(),
         "analyzed_at": analysis.analyzed_at.isoformat(),
         "drift_score": round(analysis.drift_score, 3),
+        "drift_score_scope": drift_score_scope or build_drift_score_scope(context="repo"),
         "severity": analysis.severity.value,
         "analysis_status": _analysis_status_to_dict(analysis),
         "trend": {
@@ -303,6 +309,11 @@ def analysis_to_json(analysis: RepoAnalysis, indent: int = 2, compact: bool = Fa
         },
         "suppressed_count": analysis.suppressed_count,
         "context_tagged_count": analysis.context_tagged_count,
+        "baseline": {
+            "applied": analysis.baseline_new_count is not None,
+            "new_findings_count": analysis.baseline_new_count,
+            "baseline_matched_count": analysis.baseline_matched_count,
+        } if analysis.baseline_new_count is not None else None,
         "negative_context": [
             negative_context_to_dict(nc)
             for nc in findings_to_negative_context(analysis.findings, max_items=20)

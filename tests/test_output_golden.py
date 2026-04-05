@@ -69,6 +69,7 @@ class TestJsonOutputGolden:
             "repo",
             "analyzed_at",
             "drift_score",
+            "drift_score_scope",
             "severity",
             "analysis_status",
             "trend",

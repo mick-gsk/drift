@@ -12,6 +12,7 @@ import json
 from dataclasses import replace
 from datetime import UTC, datetime
 
+from drift.api_helpers import build_drift_score_scope
 from drift.models import (
     NegativeContext,
     NegativeContextCategory,
@@ -258,6 +259,7 @@ def _render_raw(
         "format": "drift-negative-context-v1",
         "generated_on": now,
         "drift_score": round(drift_score, 3),
+        "drift_score_scope": build_drift_score_scope(context="negative-context:raw"),
         "severity": severity.value,
         "total_items": len(deduped),
         "items": [
@@ -354,6 +356,7 @@ def _render_empty(
             "format": "drift-negative-context-v1",
             "generated_on": now,
             "drift_score": round(drift_score, 3),
+            "drift_score_scope": build_drift_score_scope(context="negative-context:raw"),
             "severity": severity.value,
             "total_items": 0,
             "items": [],

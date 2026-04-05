@@ -173,6 +173,7 @@ def check(
     For detailed investigation, use ``analyze``.
     """
     from drift.analyzer import _DEFAULT_WORKERS, analyze_diff
+    from drift.api_helpers import build_drift_score_scope, signal_scope_label
     from drift.config import DriftConfig
     from drift.scoring.engine import severity_gate_pass
 
@@ -186,6 +187,12 @@ def check(
         signal_scores = compute_signal_scores(analysis.findings)
         analysis.drift_score = composite_score(signal_scores, cfg.weights)
         analysis.module_scores = compute_module_scores(analysis.findings, cfg.weights)
+
+    def _parse_signal_ids(raw: str | None) -> list[str] | None:
+        if not raw:
+            return None
+        values = [part.strip().upper() for part in raw.split(",") if part.strip()]
+        return values or None
 
     if json_shortcut:
         output_format = "json"
@@ -209,6 +216,16 @@ def check(
         from drift.config import apply_signal_filter
 
         apply_signal_filter(cfg, select_signals, ignore_signals)
+
+    drift_score_scope = build_drift_score_scope(
+        context="diff",
+        path=target_path,
+        signal_scope=signal_scope_label(
+            selected=_parse_signal_ids(select_signals),
+            ignored=_parse_signal_ids(ignore_signals),
+        ),
+        baseline_filtered=baseline_file is not None,
+    )
     threshold = fail_on or cfg.severity_gate()
 
     effective_workers = workers if workers is not None else _DEFAULT_WORKERS
@@ -248,6 +265,8 @@ def check(
         new, _known = baseline_diff(analysis.findings, fingerprints)
         analysis.findings = new
         analysis.suppressed_count += len(_known)
+        analysis.baseline_new_count = len(new)
+        analysis.baseline_matched_count = len(_known)
         _recompute_summary()
 
     if quiet:
@@ -257,7 +276,11 @@ def check(
     elif output_format == "json":
         from drift.output.json_output import analysis_to_json
 
-        json_text = analysis_to_json(analysis, compact=compact_json)
+        json_text = analysis_to_json(
+            analysis,
+            compact=compact_json,
+            drift_score_scope=drift_score_scope,
+        )
         if output_file:
             _write_output_file(json_text, output_file)
             click.echo(f"Output written to {output_file}", err=True)

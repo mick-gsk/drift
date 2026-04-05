@@ -57,6 +57,7 @@ def test_analysis_to_json_contains_expected_structure() -> None:
 
     assert payload["repo"] == "."
     assert payload["drift_score"] == 0.73
+    assert payload["drift_score_scope"] == "context:repo,signals:all,path:all"
     assert payload["severity"] == "high"
     assert payload["analysis_status"]["status"] == "complete"
     assert payload["analysis_status"]["is_fully_reliable"] is True

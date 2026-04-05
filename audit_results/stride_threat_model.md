@@ -1,5 +1,19 @@
 # STRIDE Threat Model
 
+## 2026-04-05 - drift_score_scope output metadata (Issue #159)
+
+- Scope: Additive machine-output field `drift_score_scope` next to `drift_score` across scan/analyze/check/baseline and related API payloads.
+- Input path changes: None.
+- Output path changes: Yes (existing JSON payloads include one additional descriptive field).
+- External interface changes: Output schema is additive; existing `drift_score` field remains unchanged.
+- STRIDE review:
+	- S (Spoofing): No identity boundary change.
+	- T (Tampering): Mitigated by explicit scope descriptor; reduces semantic misuse of unchanged numeric values across contexts.
+	- R (Repudiation): Improved auditability because score provenance is explicit in payloads.
+	- I (Information Disclosure): No new sensitive data; field contains only scope metadata.
+	- D (Denial of Service): No meaningful runtime impact (constant-size string generation).
+	- E (Elevation of Privilege): No privilege boundary change.
+
 ## 2026-07-18 - Security audit: path traversal + input validation
 
 - Scope: API parameter validation for baseline_file and config_file in diff() and validate().

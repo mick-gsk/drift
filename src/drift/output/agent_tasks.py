@@ -7,6 +7,7 @@ import json
 from typing import Any
 
 from drift import __version__
+from drift.api_helpers import build_drift_score_scope
 from drift.models import AgentTask, Finding, RepoAnalysis, Severity, SignalType
 from drift.negative_context import findings_to_negative_context, negative_context_to_dict
 from drift.recommendations import Recommendation, generate_recommendations
@@ -835,6 +836,7 @@ def analysis_to_agent_tasks_json(analysis: RepoAnalysis, indent: int = 2) -> str
         "repo": analysis.repo_path.as_posix(),
         "analyzed_at": analysis.analyzed_at.isoformat(),
         "drift_score": analysis.drift_score,
+        "drift_score_scope": build_drift_score_scope(context="repo"),
         "severity": analysis.severity.value,
         "task_count": len(tasks),
         "tasks": [_task_to_dict(t) for t in tasks],

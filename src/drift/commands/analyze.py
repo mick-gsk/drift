@@ -188,6 +188,7 @@ def analyze(
     from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn
 
     from drift.analyzer import _DEFAULT_WORKERS, analyze_repo
+    from drift.api_helpers import build_drift_score_scope, signal_scope_label
     from drift.config import DriftConfig
 
     def _recompute_summary() -> None:
@@ -200,6 +201,12 @@ def analyze(
         signal_scores = compute_signal_scores(analysis.findings)
         analysis.drift_score = composite_score(signal_scores, cfg.weights)
         analysis.module_scores = compute_module_scores(analysis.findings, cfg.weights)
+
+    def _parse_signal_ids(raw: str | None) -> list[str] | None:
+        if not raw:
+            return None
+        values = [part.strip().upper() for part in raw.split(",") if part.strip()]
+        return values or None
 
     if json_shortcut:
         output_format = "json"
@@ -227,8 +234,22 @@ def analyze(
         if select_signals:
             active_signals = set(resolve_signal_names(select_signals))
 
+    drift_score_scope = build_drift_score_scope(
+        context="repo",
+        path=path,
+        signal_scope=signal_scope_label(
+            selected=_parse_signal_ids(select_signals),
+            ignored=_parse_signal_ids(ignore_signals),
+        ),
+        baseline_filtered=baseline_file is not None,
+    )
+
     # For machine-readable formats, send progress to stderr so stdout stays clean
     progress_console = Console(stderr=True) if output_format != "rich" else effective_console
+
+    # Auto-detect: for non-TTY consumers, emit JSON progress on stderr (#155)
+    if progress_format == "auto" and not sys.stdout.isatty():
+        progress_format = "json"
 
     use_json_progress = progress_format == "json"
     # Auto-suppress Rich progress for machine-readable formats to avoid
@@ -314,7 +335,11 @@ def analyze(
     elif output_format == "json":
         from drift.output.json_output import analysis_to_json
 
-        json_text = analysis_to_json(analysis, compact=compact_json)
+        json_text = analysis_to_json(
+            analysis,
+            compact=compact_json,
+            drift_score_scope=drift_score_scope,
+        )
         if output_file:
             _write_output_file(json_text, output_file)
             click.echo(f"Output written to {output_file}", err=True)

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from drift import __version__
+from drift.api_helpers import build_drift_score_scope
 from drift.models import Finding, RepoAnalysis
 
 # ---------------------------------------------------------------------------
@@ -63,6 +64,7 @@ def save_baseline(analysis: RepoAnalysis, path: Path) -> None:
         "drift_version": __version__,
         "created_at": datetime.now(UTC).isoformat(),
         "drift_score": analysis.drift_score,
+        "drift_score_scope": build_drift_score_scope(context="repo"),
         "finding_count": len(entries),
         "findings": entries,
     }
