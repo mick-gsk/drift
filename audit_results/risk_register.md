@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-05 - BEM fallback-assignment and AVS src-root import false-negative mitigation (Issue #168)
+
+- Risk ID: RISK-SIG-2026-04-05-168
+- Component: src/drift/ingestion/ast_parser.py, src/drift/signals/broad_exception_monoculture.py, src/drift/signals/architecture_violation.py
+- Type: Signal quality (false negatives / recall)
+- Description: Two recall gaps reduced signal quality on large real-world repositories: (1) BEM did not treat broad-exception fallback assignments as swallowing handlers, and (2) AVS failed to resolve internal imports in source-root layouts (`src/`, `lib/`, `python/`) when imports omitted the source-root prefix.
+- Trigger examples:
+  - huggingface/transformers: repeated `except Exception: _available = False` style handlers in import utility modules.
+  - src-root package imports such as `transformers.api.routes` resolving to `src/transformers/api/routes.py`.
+- Impact: Under-reported high-signal architectural drift and exception monoculture findings, reducing trust in Drift recall.
+- Mitigation:
+  - Added `fallback_assign` handler action in AST fingerprinting and included it in BEM swallowing-action criteria.
+  - Added AVS module alias resolution for common source-root prefixes when building the import graph.
+  - Added targeted regressions in `tests/test_ast_parser.py`, `tests/test_consistency_proxies.py`, and `tests/test_architecture_violation.py`.
+- Verification: `python -m pytest tests/test_ast_parser.py tests/test_consistency_proxies.py tests/test_architecture_violation.py -q --maxfail=1`
+- Residual risk: Medium-low; alias resolution currently targets common source roots and may require extension for unusual repository layouts.
+
 ## 2026-04-05 - MAZ localhost CLI serving false-positive mitigation (Issue #167)
 
 - Risk ID: RISK-SIG-2026-04-05-167

@@ -31,7 +31,9 @@ _BROAD_TYPES: frozenset[str] = frozenset({
     "any", "unknown", "Error",
 })
 
-_SWALLOWING_ACTIONS: frozenset[str] = frozenset({"pass", "log", "print"})
+_SWALLOWING_ACTIONS: frozenset[str] = frozenset({
+    "pass", "log", "print", "fallback_assign",
+})
 
 # Module-name stems that legitimately use broad exception handling
 # (error boundaries, middleware).  Findings here are excluded.

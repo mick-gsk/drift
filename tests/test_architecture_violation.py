@@ -129,6 +129,24 @@ def test_upward_import_detected():
     assert "Verschiebe" not in upward[0].fix
 
 
+def test_upward_import_detected_with_src_root_package_alias():
+    # Repositories with src/ roots often import internal modules without the
+    # src prefix (e.g. transformers.api.routes).
+    results = [
+        _pr(
+            "src/transformers/db/queries.py",
+            [_imp("src/transformers/db/queries.py", "transformers.api.routes")],
+        ),
+        _pr("src/transformers/api/routes.py", []),
+    ]
+    signal = ArchitectureViolationSignal()
+    findings = signal.analyze(results, {}, None)
+
+    upward = [f for f in findings if "Upward" in f.title]
+    assert len(upward) >= 1
+    assert upward[0].signal_type == SignalType.ARCHITECTURE_VIOLATION
+
+
 def test_lazy_import_policy_violation_detected_for_module_level_heavy_import():
     results = [
         _pr("src/perception/detector.py", [_imp("src/perception/detector.py", "onnxruntime", 7)]),

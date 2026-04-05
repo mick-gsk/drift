@@ -41,11 +41,30 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("drift.avs")
 
+_SOURCE_ROOT_PREFIXES: frozenset[str] = frozenset({"src", "lib", "python"})
+
 
 def _module_for_path(path: Path) -> str:
     """Convert file path to a dotted module path."""
     parts = list(path.with_suffix("").parts)
     return ".".join(parts)
+
+
+def _module_aliases_for_path(path: Path) -> list[str]:
+    """Return dotted module aliases for a file path.
+
+    Repositories often keep importable packages under source roots like
+    ``src/``. This helper maps both forms so imports such as
+    ``transformers.utils`` can resolve to ``src/transformers/utils.py``.
+    """
+    module = _module_for_path(path)
+    aliases = [module]
+
+    parts = path.with_suffix("").parts
+    if len(parts) >= 2 and parts[0].lower() in _SOURCE_ROOT_PREFIXES:
+        aliases.append(".".join(parts[1:]))
+
+    return aliases
 
 
 def _matches_pattern(path_str: str, pattern: str) -> bool:
@@ -78,7 +97,8 @@ def build_import_graph(
     # over all known files for every import in large repositories.
     module_to_file: dict[str, str] = {}
     for pr in parse_results:
-        module_to_file.setdefault(_module_for_path(pr.file_path), pr.file_path.as_posix())
+        for module_alias in _module_aliases_for_path(pr.file_path):
+            module_to_file.setdefault(module_alias, pr.file_path.as_posix())
 
     for pr in parse_results:
         src = pr.file_path.as_posix()

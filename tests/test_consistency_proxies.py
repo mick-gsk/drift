@@ -139,6 +139,13 @@ class TestBEM:
         findings = self._run([pr])
         assert len(findings) == 1
 
+    def test_fallback_assignment_counts_as_swallowing(self):
+        fp = Path("src/mod/a.py")
+        handlers = [_handler("Exception", ["fallback_assign"])] * 4
+        pr = _parse_result(fp, patterns=[_pattern(fp, handlers)])
+        findings = self._run([pr])
+        assert len(findings) == 1
+
     def test_score_calculation(self):
         fp = Path("src/mod/a.py")
         # 4/5 broad (0.8), 4/5 swallowing (0.8) → score = 0.64

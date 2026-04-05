@@ -81,6 +81,26 @@ def test_parse_error_handling_patterns(tmp_path: Path, sample_python_source: str
     assert len(actions_set) >= 2  # At least raise + log
 
 
+def test_parse_error_handling_fallback_assignment_action(tmp_path: Path):
+    source = """\
+def optional_import():
+    try:
+        import missing_runtime
+    except Exception:
+        available = False
+"""
+    (tmp_path / "fallback_assign.py").write_text(source)
+    result = parse_python_file(Path("fallback_assign.py"), tmp_path)
+
+    error_patterns = [
+        p for p in result.patterns if p.category == PatternCategory.ERROR_HANDLING
+    ]
+    assert len(error_patterns) == 1
+    handlers = error_patterns[0].fingerprint.get("handlers", [])
+    assert handlers
+    assert "fallback_assign" in handlers[0].get("actions", [])
+
+
 def test_complexity(tmp_path: Path):
     source = """\
 def complex_function(x, y, z):

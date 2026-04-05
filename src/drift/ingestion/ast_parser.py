@@ -92,6 +92,8 @@ def _fingerprint_try_block(node: ast.Try) -> dict[str, Any]:
                 body_actions.append("return")
             elif isinstance(stmt, ast.Pass):
                 body_actions.append("pass")
+            elif isinstance(stmt, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                body_actions.append("fallback_assign")
             elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
                 func = stmt.value.func
                 if isinstance(func, ast.Attribute):

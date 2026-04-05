@@ -1,5 +1,21 @@
 # Fault Tree Analysis
 
+## 2026-04-05 - BEM fallback-assignment recall + AVS src-root import resolution (Issue #168)
+
+### FT-1: BEM false negatives on fallback assignment handlers
+- Top event: BEM emits zero findings although a module repeatedly uses `except Exception: <flag> = False`.
+- Branch A: AST error-handling fingerprint emits generic `other` action for assignment handlers.
+- Branch B: BEM swallowing gate accepts only pass/log/print.
+- Branch C: Broadness threshold is met but swallowing ratio remains below threshold.
+- Mitigation implemented: classify handler assignments as `fallback_assign` and include this action in BEM swallowing criteria.
+
+### FT-2: AVS false negatives on src-root package imports
+- Top event: AVS misses internal edges and produces no upward-import findings in repositories with `src/` layout.
+- Branch A: File module key is stored as `src.<package>.<module>`.
+- Branch B: Source imports use canonical package path without source-root prefix (`<package>.<module>`).
+- Branch C: Exact module lookup fails, edge is marked external/unresolved.
+- Mitigation implemented: add source-root alias resolution (`src`/`lib`/`python`) in import-graph module mapping.
+
 ## 2026-04-05 - MAZ localhost CLI serving false positives (Issue #167)
 
 ### FT-1: False positives on local CLI serving modules

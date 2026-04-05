@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-05 - BEM fallback-assignment recall + AVS src-root import resolution (Issue #168)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| BEM | FN: broad `except Exception` fallback assignments are missed | Error-handler fingerprint classified `except ...: flag = False` as generic `other`, while BEM swallowing ratio accepted only pass/log/print | Clear monoculture cases (for example optional dependency probes) are under-reported | Field report on `huggingface/transformers` + targeted parser/BEM regressions | Classify assignment handlers as `fallback_assign` and include in BEM swallowing actions | 7 | 6 | 4 | 168 |
+| AVS | FN: internal imports in src-root repos are treated as external/unresolved | Import graph module lookup only matched exact file module path (`src.pkg.mod`) and missed import aliases without source-root prefix (`pkg.mod`) | Upward import and related AVS checks silently miss valid internal edges | Field report on `huggingface/transformers` + targeted AVS regression | Add module alias resolution for common source roots (`src`, `lib`, `python`) when building module-to-file mapping | 7 | 5 | 4 | 140 |
+
 ## 2026-04-05 - MAZ localhost CLI serving false positives (Issue #167)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
