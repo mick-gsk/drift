@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import click
@@ -37,6 +38,20 @@ from drift.commands import console
     default=False,
     help="Overwrite the entire file instead of merging into existing content.",
 )
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["markdown", "json"], case_sensitive=False),
+    default="markdown",
+    help="Output format (default: markdown).",
+)
+@click.option(
+    "--json",
+    "json_shortcut",
+    is_flag=True,
+    default=False,
+    help="Shortcut for --format json (agent-friendly).",
+)
 @click.option("--since", "-s", default=90, type=int, help="Days of git history to analyze.")
 @click.option(
     "--config",
@@ -50,6 +65,8 @@ def copilot_context(
     output: Path | None,
     write: bool,
     no_merge: bool,
+    output_format: str,
+    json_shortcut: bool,
     since: int,
     config: Path | None,
 ) -> None:
@@ -62,12 +79,21 @@ def copilot_context(
     Examples::
 
         drift copilot-context                 # preview to stdout
+        drift copilot-context --json          # machine-readable JSON to stdout
         drift copilot-context --write         # merge into .github/copilot-instructions.md
         drift copilot-context -w -o docs/ai.md  # write to custom path
     """
     from drift.analyzer import analyze_repo
     from drift.config import DriftConfig
-    from drift.copilot_context import generate_instructions, merge_into_file
+    from drift.copilot_context import (
+        generate_constraints_payload,
+        generate_instructions,
+        merge_into_file,
+    )
+
+    if json_shortcut:
+        output_format = "json"
+    output_format = output_format.lower()
 
     repo_path = repo.resolve()
     cfg = DriftConfig.load(config or repo_path)
@@ -75,14 +101,27 @@ def copilot_context(
     click.echo("Running drift analysis...", err=True)
     analysis = analyze_repo(repo_path, config=cfg, since_days=since)
 
-    section = generate_instructions(analysis)
+    if output_format == "json":
+        rendered = json.dumps(generate_constraints_payload(analysis), indent=2)
+    else:
+        rendered = generate_instructions(analysis)
 
     if not write:
-        click.echo(section)
+        click.echo(rendered)
+        return
+
+    if output_format == "json":
+        target = output or (repo_path / ".drift-copilot-context.json")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(rendered + "\n", encoding="utf-8")
+        console.print(
+            f"[green]✓[/] Written to [bold]{target}[/]",
+            highlight=False,
+        )
         return
 
     target = output or (repo_path / ".github" / "copilot-instructions.md")
-    changed = merge_into_file(target, section, no_merge=no_merge)
+    changed = merge_into_file(target, rendered, no_merge=no_merge)
 
     if changed:
         console.print(

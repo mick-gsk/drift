@@ -159,19 +159,85 @@ def _format_rule(signal: SignalType, findings: list[Finding]) -> str | None:
     return "\n".join(lines) if lines else None
 
 
+def _collect_actionable_findings(analysis: RepoAnalysis) -> dict[SignalType, list[Finding]]:
+    """Collect actionable findings that qualify for Copilot guidance."""
+    actionable: dict[SignalType, list[Finding]] = {}
+    for finding in analysis.findings:
+        if finding.signal_type in _ACTIONABLE_SIGNALS and finding.score >= _MIN_SCORE:
+            actionable.setdefault(finding.signal_type, []).append(finding)
+
+    return {
+        signal: findings
+        for signal, findings in actionable.items()
+        if len(findings) >= _MIN_FINDING_COUNT
+    }
+
+
+def _scope_for_finding(finding: Finding) -> str:
+    """Return a stable scope value for machine-readable constraints."""
+    if finding.file_path is None:
+        return "repo"
+
+    file_path = finding.file_path.as_posix()
+    parent = finding.file_path.parent.as_posix()
+    if parent in {"", "."}:
+        return file_path
+    return parent
+
+
+def generate_constraints_payload(analysis: RepoAnalysis) -> dict[str, object]:
+    """Generate a machine-readable constraints payload for agent workflows."""
+    actionable = _collect_actionable_findings(analysis)
+    constraints: list[dict[str, object]] = []
+
+    for signal in sorted(actionable, key=lambda s: len(actionable[s]), reverse=True):
+        ordered_findings = sorted(
+            actionable[signal],
+            key=lambda finding: (
+                -finding.score,
+                finding.file_path.as_posix() if finding.file_path else "",
+                finding.start_line or 0,
+                finding.title,
+            ),
+        )
+        for finding in ordered_findings:
+            constraint_text = finding.fix or finding.description or finding.title
+            constraints.append(
+                {
+                    "signal": signal_abbrev(signal),
+                    "signal_type": signal.value,
+                    "severity": finding.severity.value,
+                    "scope": _scope_for_finding(finding),
+                    "constraint": constraint_text,
+                    "rule_id": finding.rule_id,
+                    "file": finding.file_path.as_posix() if finding.file_path else None,
+                    "start_line": finding.start_line,
+                }
+            )
+
+    payload: dict[str, object] = {
+        "constraints": constraints,
+        "summary": {
+            "drift_score": round(analysis.drift_score, 3),
+            "severity": analysis.severity.value,
+            "constraint_count": len(constraints),
+        },
+    }
+    if analysis.trend is not None:
+        payload["trend"] = {
+            "direction": analysis.trend.direction,
+            "delta": analysis.trend.delta,
+            "history_depth": analysis.trend.history_depth,
+        }
+    return payload
+
+
 def generate_instructions(analysis: RepoAnalysis) -> str:
     """Generate a Markdown section with Copilot instructions from analysis results.
 
     Only actionable signals with sufficient severity/frequency are included.
     """
-    # Filter findings to actionable signals above threshold
-    actionable: dict[SignalType, list[Finding]] = {}
-    for f in analysis.findings:
-        if f.signal_type in _ACTIONABLE_SIGNALS and f.score >= _MIN_SCORE:
-            actionable.setdefault(f.signal_type, []).append(f)
-
-    # Only keep signals with enough findings
-    actionable = {s: fs for s, fs in actionable.items() if len(fs) >= _MIN_FINDING_COUNT}
+    actionable = _collect_actionable_findings(analysis)
 
     if not actionable:
         return _wrap_markers(

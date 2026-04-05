@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import inspect
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,6 +14,7 @@ import pytest
 from drift.copilot_context import (
     MARKER_BEGIN,
     MARKER_END,
+    generate_constraints_payload,
     generate_instructions,
     merge_into_file,
 )
@@ -205,6 +207,32 @@ class TestGenerateInstructions:
         result = generate_instructions(_analysis)
         assert "drift export-context" in result
         assert "Security" in result or "security" in result
+
+
+class TestGenerateConstraintsPayload:
+    def test_payload_contains_expected_shape(self, _analysis: RepoAnalysis) -> None:
+        payload = generate_constraints_payload(_analysis)
+
+        assert "constraints" in payload
+        assert "summary" in payload
+        constraints = payload["constraints"]
+        assert isinstance(constraints, list)
+        assert len(constraints) >= 1
+
+        first = constraints[0]
+        assert first["signal"] in {"AVS", "PFS", "BEM"}
+        assert "severity" in first
+        assert "scope" in first
+        assert "constraint" in first
+
+    def test_payload_excludes_temporal_and_low_score_findings(
+        self,
+        _analysis: RepoAnalysis,
+    ) -> None:
+        payload = generate_constraints_payload(_analysis)
+        constraints = payload["constraints"]
+        assert all(c["signal_type"] != "temporal_volatility" for c in constraints)
+        assert all(c["signal_type"] != "guard_clause_deficit" for c in constraints)
 
 
 # ---------------------------------------------------------------------------
@@ -654,3 +682,76 @@ class TestCLICommands:
         assert result.stdout.startswith("# copilot-section")
         assert "Running drift analysis" not in result.stdout
         assert "Running drift analysis" in result.stderr
+
+    def test_copilot_context_json_shortcut_outputs_json(
+        self,
+        monkeypatch,
+        tmp_path: Path,
+    ) -> None:
+        from click.testing import CliRunner
+
+        from drift.cli import main
+
+        monkeypatch.setattr(
+            "drift.analyzer.analyze_repo",
+            lambda *_args, **_kwargs: SimpleNamespace(),
+        )
+        monkeypatch.setattr(
+            "drift.copilot_context.generate_constraints_payload",
+            lambda *_args, **_kwargs: {
+                "constraints": [
+                    {
+                        "signal": "PFS",
+                        "severity": "high",
+                        "scope": "backend/api/routers",
+                        "constraint": "Use one endpoint naming scheme.",
+                    }
+                ]
+            },
+        )
+
+        runner_kwargs: dict[str, object] = {}
+        if "mix_stderr" in CliRunner.__init__.__code__.co_varnames:
+            runner_kwargs["mix_stderr"] = False
+        runner = CliRunner(**runner_kwargs)
+        result = runner.invoke(
+            main,
+            ["copilot-context", "--repo", str(tmp_path), "--json"],
+        )
+
+        assert result.exit_code == 0
+        payload = json.loads(result.stdout)
+        assert payload["constraints"][0]["signal"] == "PFS"
+        assert "Running drift analysis" not in result.stdout
+        assert "Running drift analysis" in result.stderr
+
+    def test_copilot_context_format_json_matches_shortcut(
+        self,
+        monkeypatch,
+        tmp_path: Path,
+    ) -> None:
+        from click.testing import CliRunner
+
+        from drift.cli import main
+
+        monkeypatch.setattr(
+            "drift.analyzer.analyze_repo",
+            lambda *_args, **_kwargs: SimpleNamespace(),
+        )
+        monkeypatch.setattr(
+            "drift.copilot_context.generate_constraints_payload",
+            lambda *_args, **_kwargs: {"constraints": []},
+        )
+
+        runner_kwargs: dict[str, object] = {}
+        if "mix_stderr" in CliRunner.__init__.__code__.co_varnames:
+            runner_kwargs["mix_stderr"] = False
+        runner = CliRunner(**runner_kwargs)
+        result = runner.invoke(
+            main,
+            ["copilot-context", "--repo", str(tmp_path), "--format", "json"],
+        )
+
+        assert result.exit_code == 0
+        payload = json.loads(result.stdout)
+        assert payload["constraints"] == []
