@@ -26,9 +26,41 @@ import re as _re
 from pathlib import Path
 from typing import Annotated, Any, cast
 
-import anyio
+try:
+    import anyio
+
+    _ANYIO_AVAILABLE = True
+except ImportError:
+    anyio = None  # type: ignore[assignment]
+    _ANYIO_AVAILABLE = False
 
 MCPFastMCPImpl: Any
+
+
+async def _run_sync_in_thread(
+    fn: Any,
+    *args: object,
+    abandon_on_cancel: bool = False,
+) -> Any:
+    """Run sync callables in a worker thread with optional anyio support."""
+    if _ANYIO_AVAILABLE and anyio is not None:
+        return await anyio.to_thread.run_sync(fn, *args, abandon_on_cancel=abandon_on_cancel)
+    return await asyncio.to_thread(fn, *args)
+
+
+async def _run_sync_with_timeout(
+    fn: Any,
+    timeout_seconds: float,
+    *args: object,
+) -> Any:
+    """Run a sync callable with timeout, even when anyio is unavailable."""
+    if _ANYIO_AVAILABLE and anyio is not None:
+        with anyio.fail_after(timeout_seconds):
+            return await anyio.to_thread.run_sync(fn, *args, abandon_on_cancel=True)
+    return await asyncio.wait_for(
+        asyncio.to_thread(fn, *args),
+        timeout=timeout_seconds,
+    )
 
 try:
     from mcp.server.fastmcp import FastMCP as _ImportedFastMCP
@@ -237,7 +269,7 @@ async def drift_scan(
             error["tool"] = "drift_scan"
             return json.dumps(error, default=str)
 
-    return cast(str, await anyio.to_thread.run_sync(_sync))
+    return cast(str, await _run_sync_in_thread(_sync))
 
 
 @mcp.tool()
@@ -301,7 +333,7 @@ async def drift_diff(
             error["tool"] = "drift_diff"
             return json.dumps(error, default=str)
 
-    return cast(str, await anyio.to_thread.run_sync(_sync))
+    return cast(str, await _run_sync_in_thread(_sync))
 
 
 @mcp.tool()
@@ -340,7 +372,7 @@ async def drift_explain(
             error["tool"] = "drift_explain"
             return json.dumps(error, default=str)
 
-    return cast(str, await anyio.to_thread.run_sync(_sync))
+    return cast(str, await _run_sync_in_thread(_sync))
 
 
 @mcp.tool()
@@ -429,7 +461,7 @@ async def drift_fix_plan(
             error["tool"] = "drift_fix_plan"
             return json.dumps(error, default=str)
 
-    return cast(str, await anyio.to_thread.run_sync(_sync))
+    return cast(str, await _run_sync_in_thread(_sync))
 
 
 @mcp.tool()
@@ -464,7 +496,7 @@ async def drift_validate(
             error["tool"] = "drift_validate"
             return json.dumps(error, default=str)
 
-    return cast(str, await anyio.to_thread.run_sync(_sync))
+    return cast(str, await _run_sync_in_thread(_sync))
 
 
 @mcp.tool()
@@ -526,7 +558,7 @@ async def drift_nudge(
             error["tool"] = "drift_nudge"
             return json.dumps(error, default=str)
 
-    return cast(str, await anyio.to_thread.run_sync(_sync))
+    return cast(str, await _run_sync_in_thread(_sync))
 
 
 @mcp.tool()
@@ -677,11 +709,10 @@ async def drift_negative_context(
         return json.dumps(result, default=str)
 
     try:
-        with anyio.fail_after(_NEGATIVE_CONTEXT_TIMEOUT_SECONDS):
-            return cast(
-                str,
-                await anyio.to_thread.run_sync(_sync, abandon_on_cancel=True),
-            )
+        return cast(
+            str,
+            await _run_sync_with_timeout(_sync, _NEGATIVE_CONTEXT_TIMEOUT_SECONDS),
+        )
     except TimeoutError:
         timeout_response = _negative_context_timeout_response(
             path=path,
