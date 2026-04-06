@@ -108,6 +108,18 @@ def _build_error_payload(
     }
 
 
+def _classify_click_error(exc: click.ClickException) -> tuple[str, str]:
+    """Map Click usage errors to structured Drift error codes."""
+    message = exc.format_message()
+    lowered = message.lower()
+
+    if "no such option" in lowered or "no such command" in lowered:
+        return "DRIFT-1010", message
+    if "missing argument" in lowered or "missing option" in lowered:
+        return "DRIFT-1011", message
+    return "DRIFT-1012", message
+
+
 def _configure_logging(verbose: bool = False) -> None:
     """Set up structured logging for the drift tool."""
     level = logging.DEBUG if verbose else logging.WARNING
@@ -188,12 +200,31 @@ def safe_main() -> None:
     """Entry point with user-friendly error handling."""
     machine_errors = _machine_error_enabled(sys.argv[1:])
     try:
-        main(standalone_mode=True)
+        main(standalone_mode=not machine_errors)
     except click.exceptions.Exit:
         raise
     except click.ClickException as exc:
         # Enhance "no such option" with did-you-mean suggestions
         _handle_click_error(exc)
+        if machine_errors:
+            error_code, message = _classify_click_error(exc)
+            exit_code = int(getattr(exc, "exit_code", 2) or 2)
+            if exit_code <= 0:
+                exit_code = 2
+            _emit_error_payload(
+                _build_error_payload(
+                    error_code,
+                    "user",
+                    message,
+                    exit_code,
+                    detail=message,
+                    hint="Run 'drift --help' or 'drift <command> --help' for usage.",
+                    suggested_action_override=(
+                        "Run 'drift --help' or 'drift <command> --help' for usage."
+                    ),
+                ),
+            )
+            sys.exit(exit_code)
         raise
     except KeyboardInterrupt:
         if machine_errors:

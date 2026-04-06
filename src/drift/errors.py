@@ -93,6 +93,13 @@ ERROR_REGISTRY: dict[str, ErrorInfo] = {
         action="Run 'drift {command} --help' for usage",
         category="user",
     ),
+    "DRIFT-1012": ErrorInfo(
+        code="DRIFT-1012",
+        summary="Invalid CLI usage",
+        why="{reason}",
+        action="Run 'drift --help' or 'drift <command> --help' for usage",
+        category="user",
+    ),
     "DRIFT-1020": ErrorInfo(
         code="DRIFT-1020",
         summary="Baseline file not found at {path}",

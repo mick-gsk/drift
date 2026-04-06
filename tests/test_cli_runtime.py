@@ -20,6 +20,12 @@ def _raise(exc: BaseException):
     return _inner
 
 
+@pytest.fixture(autouse=True)
+def _clear_error_format_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure tests control DRIFT_ERROR_FORMAT explicitly."""
+    monkeypatch.delenv("DRIFT_ERROR_FORMAT", raising=False)
+
+
 def test_safe_main_keyboard_interrupt(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -218,6 +224,25 @@ def test_safe_main_enables_json_errors_for_json_shortcut_flag(
     payload = json.loads(capsys.readouterr().err.strip())
     assert payload["error"] is True
     assert payload["error_code"] == "DRIFT-3002"
+
+
+def test_safe_main_machine_mode_unknown_subcommand_emits_json_only(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("DRIFT_ERROR_FORMAT", "json")
+    monkeypatch.setattr(sys, "argv", ["drift", "anlyze"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.safe_main()
+
+    assert exc_info.value.code == 2
+    stderr = capsys.readouterr().err.strip()
+    payload = json.loads(stderr)
+    assert payload["error"] is True
+    assert payload["error_code"] == "DRIFT-1010"
+    assert payload["exit_code"] == 2
+    assert "No such command" in payload["message"]
+    assert "Usage:" not in stderr
 
 
 def test_workers_zero_is_rejected_by_cli() -> None:
