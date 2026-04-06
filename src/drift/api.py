@@ -928,6 +928,9 @@ def diff(
             has_out_of_scope_noise=bool(out_of_scope_new),
         )
 
+        staged_file_count = diff_analysis.total_files if diff_mode == "staged" else None
+        no_staged_files = bool(diff_mode == "staged" and diff_analysis.total_files == 0)
+
         if not accept_change:
             if decision_reason_code == "rejected_out_of_scope_noise_only":
                 _agent_hint = (
@@ -940,6 +943,11 @@ def diff(
                     "Change rejected due to in-scope drift blockers. Call "
                     "drift_fix_plan and address blockers before proceeding."
                 )
+        elif no_staged_files:
+            _agent_hint = (
+                "No staged files were analyzed (staged_file_count=0). "
+                "Stage changes before relying on accept_change."
+            )
         elif status == "improved":
             _agent_hint = "Score is improving. Safe to continue with next task."
         else:
@@ -956,6 +964,8 @@ def diff(
             confidence=confidence,
             diff_ref=diff_ref,
             diff_mode=diff_mode,
+            staged_file_count=staged_file_count,
+            no_staged_files=no_staged_files,
             target_path=normalized_target,
             new_findings=new_list,
             resolved_findings=resolved_list,

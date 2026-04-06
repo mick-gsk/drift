@@ -288,6 +288,33 @@ def test_api_diff_rejects_conflicting_mode_flags(monkeypatch) -> None:
         assert "mutually exclusive" in str(exc)
 
 
+def test_api_diff_staged_only_reports_zero_staged_files(monkeypatch) -> None:
+    import drift.analyzer as analyzer_module
+    import drift.api as api_module
+    from drift.config import DriftConfig
+
+    analysis = SimpleNamespace(
+        findings=[],
+        drift_score=0.0,
+        severity=Severity.LOW,
+        trend=SimpleNamespace(previous_score=0.0),
+        is_degraded=False,
+        total_files=0,
+    )
+
+    monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *args, **kwargs: object()))
+    monkeypatch.setattr(analyzer_module, "analyze_diff", lambda *args, **kwargs: analysis)
+    monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kwargs: None)
+
+    result = diff(Path("."), staged_only=True)
+
+    assert result["diff_mode"] == "staged"
+    assert result["staged_file_count"] == 0
+    assert result["no_staged_files"] is True
+    assert "No staged files were analyzed" in result["agent_instruction"]
+    assert "Safe to proceed" not in result["agent_instruction"]
+
+
 def test_api_scan_returns_acceptance_fields(monkeypatch) -> None:
     import drift.analyzer as analyzer_module
     import drift.api as api_module
