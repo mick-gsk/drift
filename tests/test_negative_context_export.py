@@ -304,7 +304,7 @@ class TestDuplicateRuleDeduplication:
                 category=NegativeContextCategory.SECURITY,
                 severity=Severity.HIGH,
                 description="Hardcoded secret-like literal in source",
-                forbidden='api_key = "sk-live-abc"',
+                forbidden='api_key = "sk-live-abc"',  # pragma: allowlist secret
                 canonical='Use os.environ["API_KEY"]',
                 files=["src/a.py"],
             ),
@@ -313,7 +313,7 @@ class TestDuplicateRuleDeduplication:
                 category=NegativeContextCategory.SECURITY,
                 severity=Severity.HIGH,
                 description="Hardcoded secret-like literal in source",
-                forbidden='token = "ghp_123"',
+                forbidden='token = "ghp_123"',  # pragma: allowlist secret
                 canonical='Use os.environ["API_KEY"]',
                 files=["src/b.py"],
             ),
@@ -334,7 +334,7 @@ class TestDuplicateRuleDeduplication:
                 signal=SignalType.HARDCODED_SECRET,
                 category=NegativeContextCategory.SECURITY,
                 severity=Severity.HIGH,
-                forbidden='api_key = "sk-live-abc"',
+                forbidden='api_key = "sk-live-abc"',  # pragma: allowlist secret
                 canonical='Use os.environ["API_KEY"]',
                 files=["src/a.py"],
             ),
@@ -342,7 +342,7 @@ class TestDuplicateRuleDeduplication:
                 signal=SignalType.HARDCODED_SECRET,
                 category=NegativeContextCategory.SECURITY,
                 severity=Severity.HIGH,
-                forbidden='token = "ghp_123"',
+                forbidden='token = "ghp_123"',  # pragma: allowlist secret
                 canonical='Use os.environ["API_KEY"]',
                 files=["src/b.py"],
             ),
@@ -359,7 +359,7 @@ class TestDuplicateRuleDeduplication:
                 signal=SignalType.HARDCODED_SECRET,
                 category=NegativeContextCategory.SECURITY,
                 severity=Severity.HIGH,
-                forbidden='api_key = "sk-live-abc"',
+                forbidden='api_key = "sk-live-abc"',  # pragma: allowlist secret
                 canonical='Use os.environ["API_KEY"]',
                 files=["src/a.py"],
             ),
@@ -367,7 +367,7 @@ class TestDuplicateRuleDeduplication:
                 signal=SignalType.HARDCODED_SECRET,
                 category=NegativeContextCategory.SECURITY,
                 severity=Severity.HIGH,
-                forbidden='token = "ghp_123"',
+                forbidden='token = "ghp_123"',  # pragma: allowlist secret
                 canonical='Use os.environ["API_KEY"]',
                 files=["src/b.py"],
             ),
@@ -379,8 +379,8 @@ class TestDuplicateRuleDeduplication:
         assert data["total_items"] == 1
         assert data["items"][0]["occurrences"] == 2
         assert data["items"][0]["forbidden_pattern_variants"] == [
-            'api_key = "sk-live-abc"',
-            'token = "ghp_123"',
+            'api_key = "sk-live-abc"',  # pragma: allowlist secret
+            'token = "ghp_123"',  # pragma: allowlist secret
         ]
 
 
