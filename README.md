@@ -64,6 +64,10 @@ drift explain PFS               # learn what a signal means
 drift fix-plan --repo .         # get actionable repair tasks
 ```
 
+<div align="center">
+  <img src="demos/onboarding.gif" alt="drift onboarding: explain, patterns, init" width="720">
+</div>
+
 ### Add to CI (start report-only)
 
 ```yaml
@@ -88,11 +92,19 @@ drift mcp --serve                      # MCP server for IDE integration
 drift fix-plan --repo .                # agent-friendly repair tasks
 ```
 
+<div align="center">
+  <img src="demos/agent-workflow.gif" alt="drift agent workflow: scan → fix-plan → diff" width="720">
+</div>
+
 Full setup: [Integrations](docs-site/integrations.md) · [MCP](docs-site/integrations.md) · [Vibe-Coding Guide](examples/vibe-coding/README.md)
 
 ### Vibe-Coding Remediation Walkthrough
 
 Use this loop after your first scan to go from findings to verified improvement.
+
+<div align="center">
+  <img src="demos/trend.gif" alt="drift trend: score history and module timeline" width="720">
+</div>
 
 1. Run an initial scan and save the baseline snapshot.
 2. Triage only the top findings by impact and actionability.
@@ -178,6 +190,10 @@ drift analyze --repo . --format json | jq '.findings[] | select(.signal=="MDS")'
 ## Setup and rollout options
 
 ### Full GitHub Action (recommended: start report-only)
+
+<div align="center">
+  <img src="demos/ci-gate.gif" alt="drift CI gate: check --fail-on + SARIF export" width="720">
+</div>
 
 ```yaml
 name: Drift

@@ -4,11 +4,14 @@ This folder contains the reproducible terminal demo setup for Drift.
 
 ## Files
 
-- `demo.tape`: Vhs script that records core CLI commands.
-- `demo.gif`: Rendered artifact used in `README.md`.
-- `agent-fix-plan.tape`: Agent baseline plus prioritized remediation tasks on the demo project.
-- `agent-diff.tape`: Staged-change guardrail flow using `drift diff --staged-only` in a temporary git repo.
-- `agent-copilot-context.tape`: Repo-specific Copilot instruction generation from drift findings.
+- `demo.tape`: Vhs script that records core CLI commands (`analyze` + `check`). → `demo.gif` (README hero)
+- `agent-workflow.tape`: Full agent loop — session baseline (`scan`), repair tasks (`fix-plan`), staged diff guardrail (`diff --staged-only`). → `agent-workflow.gif`
+- `trend.tape`: Temporal analysis — score history (`trend`) + per-module root-cause timeline (`timeline`). → `trend.gif`
+- `ci-gate.tape`: CI integration — analysis, `check --fail-on` gate, SARIF export. → `ci-gate.gif`
+- `onboarding.tape`: First use — `explain PFS`, pattern findings, `init --dry-run`. → `onboarding.gif`
+- `agent-fix-plan.tape`: (original) Agent baseline + prioritized repair tasks on the demo project. → `agent-fix-plan.gif`
+- `agent-diff.tape`: (original) Staged-change guardrail flow. → `agent-diff.gif`
+- `agent-copilot-context.tape`: (original) Copilot instruction generation from drift findings. → `agent-copilot-context.gif`
 
 ## Prerequisites
 
@@ -36,16 +39,18 @@ pip install Pillow   # already included in the dev venv
 Run from repository root:
 
 ```powershell
+# Render all demos at once (recommended):
+./scripts/render_demo.ps1
+
+# Or render individual tapes:
 vhs demos/demo.tape
+vhs demos/agent-workflow.tape
+vhs demos/trend.tape
+vhs demos/ci-gate.tape
+vhs demos/onboarding.tape
 vhs demos/agent-fix-plan.tape
 vhs demos/agent-diff.tape
 vhs demos/agent-copilot-context.tape
-```
-
-Or use the helper script (also falls back to Python on Windows when VHS is unavailable):
-
-```powershell
-./scripts/render_demo.ps1
 ```
 
 ### Option B — Python (Windows / CI fallback)
@@ -59,11 +64,15 @@ terminal window decoration, and a typing-effect animation — no browser or VHS 
 
 The command updates `demos/demo.gif`.
 
-The agent tapes render to:
+The other tapes render to:
 
-- `demos/agent-fix-plan.gif`
-- `demos/agent-diff.gif`
-- `demos/agent-copilot-context.gif`
+- `demos/agent-workflow.gif` — agent loop (scan → fix-plan → diff)
+- `demos/trend.gif` — temporal score history + module timeline
+- `demos/ci-gate.gif` — CI check gate + SARIF export
+- `demos/onboarding.gif` — explain PFS, patterns, init
+- `demos/agent-fix-plan.gif` — (original) agent repair flow
+- `demos/agent-diff.gif` — (original) staged diff guardrail
+- `demos/agent-copilot-context.gif` — (original) Copilot context generation
 
 ## Keep it deterministic
 
