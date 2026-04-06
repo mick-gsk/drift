@@ -1,5 +1,35 @@
 # Fault Tree Analysis
 
+## 2026-04-06 - TPD ast.get_source_segment crash guard (Issue #180)
+
+### FT-1: TPD runtime abort on malformed AST source-position metadata
+- Top event: TPD stops analysis due to uncaught exception while classifying assert polarity.
+- Branch A: A parsed `ast.Assert` node carries out-of-range line metadata.
+- Branch B: `ast.get_source_segment(source, node)` raises `IndexError` or `ValueError`.
+- Branch C: Exception propagates out of `_AssertionCounter.visit_Assert` and aborts TPD scan path.
+- Mitigation implemented: Guard source-segment extraction with exception handling and continue with AST-only polarity fallback.
+
+### FT-2: Under-classification risk after crash hardening
+- Top event: Some malformed-node asserts are classified without regex-text fallback.
+- Branch A: Source-segment extraction fails and returns no segment.
+- Branch B: Negative regex fallback cannot be evaluated for that node.
+- Mitigation implemented: Keep conservative AST-based negative polarity detection active and limit fallback skip to malformed metadata cases only.
+
+## 2026-04-06 - MDS numbered sample-step duplicate calibration (Issue #179)
+
+### FT-1: False positives on numbered tutorial/sample progression directories
+- Top event: MDS emits exact-duplicate findings for intentionally repeated helpers in numbered sample directories.
+- Branch A: Repository uses pedagogical sample progression paths (for example `samples/.../01_single_agent`, `02_multi_agent`).
+- Branch B: Path contains tutorial/sample marker but no `step*` token, so previous suppression does not trigger.
+- Branch C: Exact body-hash grouping escalates duplicates to high severity.
+- Mitigation implemented: Extend tutorial-step suppression to include conservative numbered sample-step directory pattern.
+
+### FT-2: Under-reporting risk after numbered-step suppression
+- Top event: True architectural duplication in numbered sample step paths is not emitted by MDS.
+- Branch A: Suppression triggers for tutorial/sample/example context combined with numbered-step folder shape.
+- Branch B: Project uses numbered directories in production path conventions.
+- Mitigation implemented: Keep suppression strictly context-gated (tutorial/sample/example marker required) and preserve detection in non-step sample paths.
+
 ## 2026-04-06 - MDS tutorial-step sample duplicate calibration (Issue #177)
 
 ### FT-1: False positives on intentional tutorial step duplicates

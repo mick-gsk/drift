@@ -1,5 +1,38 @@
 # Risk Register
 
+## 2026-04-06 - TPD ast.get_source_segment crash mitigation (Issue #180)
+
+- Risk ID: RISK-SIG-2026-04-06-180
+- Component: src/drift/signals/test_polarity_deficit.py
+- Type: Signal quality (runtime robustness / false negatives)
+- Description: `test_polarity_deficit` could crash with `IndexError: list index out of range` (or `ValueError`) when `ast.get_source_segment` processes assert nodes with malformed source-position metadata.
+- Trigger examples:
+  - microsoft/agent-framework scan reported deterministic TPD crash during assert polarity classification.
+  - Similar repositories containing edge-case AST metadata combinations in assert nodes.
+- Impact: Full TPD signal dropout on affected scans (0 findings), causing systematic under-reporting and drift-score distortion for TPD weight.
+- Mitigation:
+  - Added exception-safe guard around `ast.get_source_segment` in `_AssertionCounter.visit_Assert`.
+  - Added targeted regression `test_tpd_ignores_out_of_range_assert_position_metadata` in `tests/test_test_polarity_deficit.py`.
+- Verification: `python -m pytest tests/test_test_polarity_deficit.py -q --maxfail=1`
+- Residual risk: Low-medium; malformed-node asserts may skip regex-based fallback classification, but scan stability is preserved and AST-based polarity heuristics remain active.
+
+## 2026-04-06 - MDS numbered sample-step duplicate false-positive mitigation (Issue #179)
+
+- Risk ID: RISK-SIG-2026-04-06-179
+- Component: src/drift/signals/mutant_duplicates.py
+- Type: Signal quality (false positives / precision calibration)
+- Description: `mutant_duplicate` over-penalized intentional duplication across numbered sample progression directories (for example `01_single_agent` and `02_multi_agent`) because suppression only matched `step*` directory names.
+- Trigger examples:
+  - microsoft/agent-framework: `python/samples/04-hosting/durabletask/01_single_agent/worker.py` and `02_multi_agent/worker.py` duplicate `get_worker` helper patterns.
+  - Similar repositories that structure tutorial/sample progression via numeric prefixes instead of `step_*` naming.
+- Impact: High-severity false-positive noise in MDS and reduced confidence in duplicate findings.
+- Mitigation:
+  - Extended tutorial-step suppression to include conservative numbered sample-step directory names (`^\d{1,3}[-_].+`) in addition to `step*`.
+  - Kept suppression context-gated to tutorial/sample/example path markers.
+  - Added regressions in `tests/test_mutant_duplicates_edge_cases.py` for helper detection and exact-duplicate suppression in numbered sample directories.
+- Verification: `python -m pytest tests/test_mutant_duplicates_edge_cases.py -q --maxfail=1`
+- Residual risk: Medium-low; true duplicates in pedagogical numbered sample trees may be under-reported, while non-step sample duplicates remain detectable.
+
 ## 2026-04-06 - MDS tutorial-step sample duplicate false-positive mitigation (Issue #177)
 
 - Risk ID: RISK-SIG-2026-04-06-177

@@ -151,7 +151,11 @@ class _AssertionCounter(ast.NodeVisitor):
         # Fallback for unusual assert expressions where AST-only classification
         # may miss intent (for example generated assertion text variants).
         if not is_negative and self._source:
-            segment = ast.get_source_segment(self._source, node)
+            try:
+                segment = ast.get_source_segment(self._source, node)
+            except (IndexError, ValueError):
+                # Guard against malformed position metadata in AST nodes.
+                segment = None
             if segment and _NEGATIVE_ASSERT_PATTERN.search(segment):
                 is_negative = True
 

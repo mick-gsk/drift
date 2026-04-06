@@ -117,6 +117,24 @@ def test_tpd_counts_pytest_fail_and_raises_calls() -> None:
     assert counter.positive == 1
 
 
+def test_tpd_ignores_out_of_range_assert_position_metadata() -> None:
+    """Issue #180: malformed AST line metadata must not crash TPD counting."""
+    source = textwrap.dedent("""\
+        def test_position_guard():
+            assert value == False
+    """)
+    tree = ast.parse(source)
+    assert_node = next(node for node in ast.walk(tree) if isinstance(node, ast.Assert))
+    assert_node.lineno = 10_000
+    assert_node.end_lineno = 10_000
+
+    counter = _AssertionCounter(source)
+    counter.visit_Assert(assert_node)
+
+    assert counter.negative == 1
+    assert counter.positive == 0
+
+
 def test_tpd_fallback_discovers_tests_when_parse_results_are_empty(tmp_path: Path) -> None:
     source = textwrap.dedent("""\
         def test_a():

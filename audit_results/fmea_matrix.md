@@ -1,5 +1,19 @@
 # FMEA Matrix
 
+## 2026-04-06 - TPD ast.get_source_segment crash guard (Issue #180)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| TPD | FN: signal execution aborts with uncaught exception | `ast.get_source_segment` raises `IndexError`/`ValueError` when AST node position metadata references out-of-range lines | TPD findings are entirely absent for affected repositories | Deterministic field crash report + targeted regression on malformed assert node metadata | Wrap source-segment extraction in exception-safe fallback (`segment=None`) and continue counting | 8 | 4 | 4 | 128 |
+| TPD | FN/precision drift risk on malformed nodes | Regex-based negative-assert fallback cannot run when source segment extraction fails | Individual assert polarity may rely only on AST heuristic in edge metadata cases | New regression validates graceful continuation without crash | Keep conservative AST polarity rules active and bypass only regex fallback for malformed nodes | 4 | 3 | 5 | 60 |
+
+## 2026-04-06 - MDS numbered sample-step duplicate calibration (Issue #179)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| MDS | FP: numbered sample step directories are flagged as high-severity exact duplicates | Tutorial-step suppression required `step*` token and missed numbered step dirs such as `01_single_agent`/`02_multi_agent` | High-severity noise on pedagogical repos using numbered sample progression and reduced trust in MDS precision | Field test on microsoft/agent-framework + targeted MDS regressions for numbered sample dirs | Extend tutorial-step suppression to also match conservative numbered sample-step directory pattern (`^\d{1,3}[-_].+`) under tutorial/sample/example context | 6 | 5 | 4 | 120 |
+| MDS | FN: harmful duplicates in numbered tutorial steps can be under-reported | Numbered-step suppression now excludes more educational sample directories from duplicate analysis | Rare actionable refactoring opportunities in tutorial samples may be missed | Regression keeps non-step sample duplicates detectable | Keep suppression gated by tutorial/sample/example path marker plus conservative numbered-step folder shape | 4 | 3 | 6 | 72 |
+
 ## 2026-04-06 - MDS tutorial-step sample duplicate calibration (Issue #177)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
