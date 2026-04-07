@@ -878,6 +878,38 @@ PFS_DECORATOR_TN = GroundTruthFixture(
     ],
 )
 
+PFS_RETURN_PATTERN_TP = GroundTruthFixture(
+    name="pfs_return_pattern_tp",
+    description="Divergent return strategies in one module → should fire PFS",
+    files={
+        "models/__init__.py": "",
+        "models/user.py": """\
+def get_user(user_id: int):
+    if user_id <= 0:
+        return None
+    return {"id": user_id, "name": "Alice"}
+
+def get_user_or_raise(user_id: int) -> dict:
+    if user_id <= 0:
+        raise ValueError("Invalid user_id")
+    return {"id": user_id, "name": "Alice"}
+
+def get_user_result(user_id: int) -> tuple:
+    if user_id <= 0:
+        return None, "Invalid user_id"
+    return {"id": user_id, "name": "Alice"}, None
+""",
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            file_path="models/",
+            should_detect=True,
+            description="3 divergent return strategies in models/ module",
+        ),
+    ],
+)
+
 
 # ── Additional MDS fixtures ──────────────────────────────────────────────
 
@@ -2135,6 +2167,7 @@ ALL_FIXTURES: list[GroundTruthFixture] = [
     PFS_BOUNDARY_TP,
     PFS_CONFOUNDER_TN,
     PFS_DECORATOR_TN,
+    PFS_RETURN_PATTERN_TP,
     AVS_TRUE_POSITIVE,
     AVS_TRUE_NEGATIVE,
     AVS_CIRCULAR_TP,

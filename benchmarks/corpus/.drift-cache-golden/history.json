@@ -1,8 +1,9 @@
 [
   {
-    "timestamp": "2026-04-07T11:30:43.535143+00:00",
-    "drift_score": 0.372,
+    "timestamp": "2026-04-07T12:52:34.949854+00:00",
+    "drift_score": 0.373,
     "signal_scores": {
+      "pattern_fragmentation": 0.1445,
       "architecture_violation": 0.1145,
       "mutant_duplicate": 0.8532,
       "explainability_deficit": 0.4673,
@@ -14,7 +15,7 @@
       "dead_code_accumulation": 0.8146
     },
     "total_files": 26,
-    "total_findings": 63,
+    "total_findings": 64,
     "scope": "repo"
   }
 ]

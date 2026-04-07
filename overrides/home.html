@@ -5,130 +5,472 @@
 
 <style>
   .md-main__inner { margin: 0; }
+
+  /* ───── Hero (home-specific) ───── */
   .drift-hero {
-    padding: 4rem 1rem 3rem;
-    text-align: center;
-    background: var(--md-primary-fg-color);
-    color: var(--md-primary-bg-color);
+    padding: 5rem 2rem 3rem;
+    max-width: 940px;
+    margin: 0 auto;
   }
   .drift-hero h1 {
-    font-size: 2.4rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    color: var(--md-default-fg-color);
+    margin-bottom: 1.5rem;
+    max-width: 720px;
   }
-  .drift-hero .tagline {
-    font-size: 1.1rem;
-    opacity: 0.9;
-    max-width: 640px;
-    margin: 0 auto 1.5rem;
-    line-height: 1.5;
+  .drift-hero h1 .drift-h1-accent {
+    color: var(--drift-accent);
   }
-  .drift-hero .stats {
-    font-family: var(--md-code-font-family);
-    font-size: 0.85rem;
-    opacity: 0.75;
-    margin-bottom: 2rem;
-  }
-  .drift-hero .cta {
-    display: inline-block;
-    padding: 0.6rem 1.8rem;
-    border: 2px solid var(--md-primary-bg-color);
-    border-radius: 4px;
-    color: var(--md-primary-bg-color);
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: background 0.2s, color 0.2s;
-    margin: 0 0.5rem;
-  }
-  .drift-hero .cta:hover {
-    background: var(--md-primary-bg-color);
-    color: var(--md-primary-fg-color);
-  }
-  .drift-hero .cta.secondary {
-    border-color: rgba(255,255,255,0.5);
-    opacity: 0.85;
-  }
-  .drift-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 1.5rem;
-    max-width: 900px;
-    margin: -2rem auto 3rem;
-    padding: 0 1rem;
-  }
-  .drift-card {
-    background: var(--md-default-bg-color);
-    border: 1px solid var(--md-default-fg-color--lightest);
-    border-radius: 6px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  }
-  .drift-card h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--md-primary-fg-color);
-  }
-  .drift-card p {
-    font-size: 0.88rem;
-    line-height: 1.5;
+  .drift-hero-desc {
+    font-size: 1.08rem;
+    line-height: 1.75;
     color: var(--md-default-fg-color--light);
+    max-width: 600px;
+    margin-bottom: 2.25rem;
+  }
+  .drift-hero-desc strong {
+    color: var(--md-default-fg-color);
+    font-weight: 600;
+  }
+  .drift-hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 2.25rem;
+  }
+
+  /* Trust metrics — inline, understated */
+  .drift-trust-line {
+    display: flex;
+    gap: 1.75rem;
+    flex-wrap: wrap;
+    font-family: var(--drift-mono);
+    font-size: 0.73rem;
+    color: var(--md-default-fg-color--light);
+  }
+  .drift-trust-line strong {
+    color: var(--md-default-fg-color);
+    font-weight: 700;
+  }
+
+  /* ───── Terminal output ───── */
+  .drift-output {
+    background: var(--drift-dark);
+    padding: 2.5rem 0;
+  }
+  [data-md-color-scheme="default"] .drift-output {
+    background: #0d1117;
+  }
+  .drift-output-inner {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+  .drift-output-head {
+    font-family: var(--drift-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #454d5e;
     margin-bottom: 0.75rem;
   }
-  .drift-card a {
-    font-size: 0.85rem;
+  .drift-output pre {
+    font-family: var(--drift-mono);
+    font-size: 0.82rem;
+    line-height: 1.8;
+    color: #a9b7c6;
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .drift-output .p  { color: #27c93f; }
+  .drift-output .c  { color: #e0e0e0; font-weight: 600; }
+  .drift-output .sc { color: #ffbd2e; font-weight: 700; font-size: 1rem; }
+  .drift-output .ok { color: #27c93f; }
+  .drift-output .w  { color: #ffbd2e; }
+  .drift-output .hi { color: #ff5f56; }
+  .drift-output .d  { color: #333a4a; }
+  .drift-output .lb { color: #82aaff; }
+
+  /* ───── Thesis ───── */
+  .drift-thesis {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 4rem 2rem 2.5rem;
+    display: grid;
+    grid-template-columns: 3px 1fr;
+    gap: 0 1.75rem;
+    align-items: start;
+  }
+  .drift-thesis-accent {
+    background: var(--drift-accent);
+    border-radius: 2px;
+    align-self: stretch;
+  }
+  .drift-thesis h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.75rem;
+  }
+  .drift-thesis p {
+    font-size: 0.98rem;
+    line-height: 1.75;
+    color: var(--md-default-fg-color--light);
+    max-width: 600px;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ───── Signals ───── */
+  .drift-signals {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 2rem 2rem 3.5rem;
+  }
+  .drift-signals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 3rem;
+  }
+  .drift-signal-row {
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--md-default-fg-color--lightest);
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 0 0.75rem;
+    align-items: baseline;
+  }
+  .drift-signal-id {
+    font-family: var(--drift-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--drift-accent);
+    padding-top: 0.1rem;
+  }
+  .drift-signal-name {
+    font-size: 0.92rem;
     font-weight: 600;
-    color: var(--md-primary-fg-color);
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.15rem;
+  }
+  .drift-signal-detail {
+    grid-column: 2;
+    font-size: 0.8rem;
+    line-height: 1.55;
+    color: var(--md-default-fg-color--light);
+  }
+  .drift-signal-detail a {
+    color: var(--drift-accent);
     text-decoration: none;
   }
-  .drift-card a:hover { text-decoration: underline; }
-  .drift-install {
-    max-width: 520px;
-    margin: 0 auto 3rem;
-    text-align: center;
-  }
-  .drift-install code {
-    display: inline-block;
+  .drift-signal-detail a:hover { text-decoration: underline; }
+
+  /* ───── How it works ───── */
+  .drift-how {
     background: var(--md-code-bg-color);
-    padding: 0.5rem 1.2rem;
-    border-radius: 4px;
+    padding: 3.5rem 2rem;
+  }
+  .drift-how-inner {
+    max-width: 940px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+  }
+  .drift-step-num {
+    font-family: var(--drift-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--drift-accent);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.6rem;
+  }
+  .drift-step h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.4rem;
+  }
+  .drift-step p {
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--md-default-fg-color--light);
+    margin: 0;
+  }
+  .drift-step code {
+    font-family: var(--drift-mono);
+    font-size: 0.8rem;
+    background: var(--md-default-bg-color);
+    padding: 0.12rem 0.35rem;
+    border-radius: 3px;
+    border: 1px solid var(--md-default-fg-color--lightest);
+  }
+
+  /* ───── Differentiators ───── */
+  .drift-diff {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 3.5rem 2rem;
+  }
+  .drift-diff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.75rem 3rem;
+  }
+  .drift-diff-item {
+    padding-left: 1rem;
+    border-left: 2px solid var(--md-default-fg-color--lightest);
+  }
+  .drift-diff-item h3 {
     font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.3rem;
+  }
+  .drift-diff-item p {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--md-default-fg-color--light);
+    margin: 0;
+  }
+
+  /* ───── Bottom CTA ───── */
+  .drift-cta {
+    padding: 4rem 2rem 5rem;
+    max-width: 940px;
+    margin: 0 auto;
+    border-top: 1px solid var(--md-default-fg-color--lightest);
+  }
+  .drift-cta h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.5rem;
+  }
+  .drift-cta p {
+    font-size: 0.95rem;
+    color: var(--md-default-fg-color--light);
+    margin-bottom: 1.5rem;
+    max-width: 460px;
+  }
+  .drift-cta-cmd {
+    display: inline-block;
+    font-family: var(--drift-mono);
+    font-size: 0.86rem;
+    background: var(--md-code-bg-color);
+    border: 1px solid var(--md-default-fg-color--lightest);
+    border-radius: 4px;
+    padding: 0.6rem 1.2rem;
+    color: var(--md-default-fg-color);
+    margin-bottom: 1.5rem;
+  }
+  .drift-cta-links {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .drift-cta-link {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .drift-cta-link:hover { text-decoration: underline; }
+  .drift-cta-link.primary { color: var(--drift-accent); }
+  .drift-cta-link.muted { color: var(--md-default-fg-color--light); }
+
+  /* ───── Responsive ───── */
+  @media (max-width: 720px) {
+    .drift-hero { padding: 3.5rem 1.5rem 2rem; }
+    .drift-hero h1 { font-size: 2rem; }
+    .drift-signals-grid { grid-template-columns: 1fr; }
+    .drift-how-inner { grid-template-columns: 1fr; gap: 2rem; }
+    .drift-diff-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .drift-hero { padding: 2.5rem 1.25rem 1.5rem; }
+    .drift-thesis { gap: 0 1rem; }
+    .drift-trust-line { gap: 1rem; }
   }
 </style>
 
+<div class="drift-home">
+
+<!-- ══════ HERO ══════ -->
 <section class="drift-hero">
-  <h1>Drift</h1>
-  <p class="tagline">
-    Deterministic architecture erosion detection for AI-accelerated codebases.
-    Pattern fragmentation, boundary violations, near-duplicates — surfaced, scored, actionable.
+  <div class="drift-section-label">Static architecture analysis for Python</div>
+  <h1>Cross-file coherence problems<br><span class="drift-h1-accent">your tests don't catch.</span></h1>
+  <p class="drift-hero-desc">
+    Drift detects when <strong>error handling fragments across four styles</strong>,
+    database imports leak into your API layer, or three near-identical parsers
+    accumulate across modules. Deterministic, no LLM — AST analysis and git history.
   </p>
-  <p class="stats">97.3% precision (v0.5, 15 repos) · 23 signals · Python 3.11+ · no LLM in pipeline</p>
-  <a href="getting-started/quickstart/" class="cta">Quick Start</a>
-  <a href="start-here/" class="cta secondary">Evaluate First</a>
-</section>
-
-<section class="drift-cards">
-  <div class="drift-card">
-    <h3>Quick Start</h3>
-    <p>Install, analyze your repo, and read the first findings in under two minutes.</p>
-    <a href="getting-started/quickstart/">Get started →</a>
+  <div class="drift-hero-actions">
+    <div class="drift-install-box"><span class="drift-dollar">$</span> pip install drift-analyzer</div>
+    <a href="getting-started/quickstart/" class="drift-text-link">Quick Start →</a>
+    <a href="start-here/" class="drift-text-link">Evidence &amp; Benchmarks →</a>
   </div>
-  <div class="drift-card">
-    <h3>Understand Findings</h3>
-    <p>See real-world examples of pattern fragmentation, boundary violations, and near-duplicates.</p>
-    <a href="product/example-findings/">Example findings →</a>
-  </div>
-  <div class="drift-card">
-    <h3>Configure & Roll Out</h3>
-    <p>Tune signals, set severity gates, add CI integration — start report-only, tighten later.</p>
-    <a href="getting-started/configuration/">Configure →</a>
+  <div class="drift-trust-line">
+    <span><strong>97.3%</strong> precision</span>
+    <span><strong>23</strong> signals</span>
+    <span><strong>15</strong> repos benchmarked</span>
+    <span><strong>3,200+</strong> installs/mo</span>
   </div>
 </section>
 
-<section class="drift-install">
-  <code>pip install drift-analyzer && drift analyze --repo .</code>
+<!-- ══════ TERMINAL OUTPUT ══════ -->
+<section class="drift-output">
+  <div class="drift-output-inner">
+    <div class="drift-output-head">// example output</div>
+    <pre>
+<span class="p">$</span> <span class="c">drift analyze --repo .</span>
+
+<span class="d">───────────────────────────────────────────────────</span>
+<span class="lb"> DRIFT SCORE</span>  <span class="sc">0.52</span>  <span class="ok">▼ -0.031 improving</span>
+<span class="d">───────────────────────────────────────────────────</span>
+
+<span class="lb"> Top Signals</span>
+<span class="hi">  ■ PFS  0.85</span>  Pattern Fragmentation — error handling split across 4 styles
+<span class="w">  ■ AVS  0.72</span>  Architecture Violation — DB imports in API layer
+<span class="w">  ■ MDS  0.61</span>  Mutant Duplicates — 3 near-identical parsers
+
+<span class="lb"> Modules</span>
+<span class="hi">  src/api/routes</span>      0.71  <span class="d">│</span> 12 findings
+<span class="w">  src/services/auth</span>   0.54  <span class="d">│</span>  6 findings
+<span class="ok">  src/db/models</span>       0.23  <span class="d">│</span>  2 findings</pre>
+  </div>
 </section>
+
+<!-- ══════ THESIS ══════ -->
+<section class="drift-thesis">
+  <div class="drift-thesis-accent"></div>
+  <div>
+    <h2>Your tests pass. Your architecture erodes anyway.</h2>
+    <p>
+      AI tools generate code fast. But every week, patterns silently fragment,
+      layers leak through imports, and helpers get copied across modules.
+      Linters check style. Type checkers check types. Nothing checks
+      whether the codebase still makes structural sense across files.
+    </p>
+    <p>Drift fills that gap — deterministically, on every commit.</p>
+  </div>
+</section>
+
+<!-- ══════ SIGNALS ══════ -->
+<section class="drift-signals">
+  <div class="drift-section-label">What it detects</div>
+  <div class="drift-signals-grid">
+    <div class="drift-signal-row">
+      <div class="drift-signal-id">PFS</div>
+      <div>
+        <div class="drift-signal-name">Pattern Fragmentation</div>
+        <div class="drift-signal-detail">Same concern solved 4 different ways across modules.</div>
+      </div>
+    </div>
+    <div class="drift-signal-row">
+      <div class="drift-signal-id">AVS</div>
+      <div>
+        <div class="drift-signal-name">Architecture Violations</div>
+        <div class="drift-signal-detail">Layer boundaries eroded through forbidden imports.</div>
+      </div>
+    </div>
+    <div class="drift-signal-row">
+      <div class="drift-signal-id">MDS</div>
+      <div>
+        <div class="drift-signal-name">Mutant Duplicates</div>
+        <div class="drift-signal-detail">AST-level near-clones that diverged across files.</div>
+      </div>
+    </div>
+    <div class="drift-signal-row">
+      <div class="drift-signal-id">EDS</div>
+      <div>
+        <div class="drift-signal-name">Explainability Deficit</div>
+        <div class="drift-signal-detail">Complex logic without adequate documentation.</div>
+      </div>
+    </div>
+    <div class="drift-signal-row">
+      <div class="drift-signal-id">TVS</div>
+      <div>
+        <div class="drift-signal-name">Temporal Volatility</div>
+        <div class="drift-signal-detail">Files that change together too often — coupling signal.</div>
+      </div>
+    </div>
+    <div class="drift-signal-row">
+      <div class="drift-signal-id">+18</div>
+      <div>
+        <div class="drift-signal-name">more signals</div>
+        <div class="drift-signal-detail">God classes, naming drift, circular imports, boundary erosion, and more. <a href="algorithms/signals/">Full signal reference →</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ HOW IT WORKS ══════ -->
+<section class="drift-how">
+  <div class="drift-how-inner">
+    <div class="drift-step">
+      <div class="drift-step-num">01</div>
+      <h3>Install</h3>
+      <p><code>pip install drift-analyzer</code><br>Python 3.11+. No config needed to start.</p>
+    </div>
+    <div class="drift-step">
+      <div class="drift-step-num">02</div>
+      <h3>Analyze</h3>
+      <p><code>drift analyze --repo .</code><br>Scans AST structure + git history. Findings in seconds.</p>
+    </div>
+    <div class="drift-step">
+      <div class="drift-step-num">03</div>
+      <h3>Act</h3>
+      <p>Each finding has a location, cause, severity, and a concrete next step. Add to CI, track over time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ DIFFERENTIATORS ══════ -->
+<section class="drift-diff">
+  <div class="drift-section-label">Why not just a linter</div>
+  <div class="drift-diff-grid">
+    <div class="drift-diff-item">
+      <h3>Cross-file, not single-file</h3>
+      <p>Linters check files in isolation. Drift detects patterns that only emerge across module boundaries.</p>
+    </div>
+    <div class="drift-diff-item">
+      <h3>Deterministic, not probabilistic</h3>
+      <p>No LLM, no cloud, no randomness. Same repo, same commit — same results. Every time.</p>
+    </div>
+    <div class="drift-diff-item">
+      <h3>Structural, not syntactic</h3>
+      <p>AST-level analysis finds semantic near-duplicates that text-based clone detectors miss.</p>
+    </div>
+    <div class="drift-diff-item">
+      <h3>Scored, not binary</h3>
+      <p>Every finding has a severity score and trend. Track architecture health across commits, not just pass/fail.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ BOTTOM CTA ══════ -->
+<section class="drift-cta">
+  <h2>Run it. Judge for yourself.</h2>
+  <p>One command, your repo, instant findings. No signup, no cloud, no config.</p>
+  <div class="drift-cta-cmd"><span class="drift-dollar">$ </span>pip install drift-analyzer &amp;&amp; drift analyze --repo .</div>
+  <br>
+  <div class="drift-cta-links">
+    <a href="getting-started/quickstart/" class="drift-cta-link primary">Quick Start →</a>
+    <a href="product/example-findings/" class="drift-cta-link muted">Example Findings →</a>
+    <a href="start-here/" class="drift-cta-link muted">Benchmark Evidence →</a>
+    <a href="case-studies/" class="drift-cta-link muted">Case Studies →</a>
+  </div>
+</section>
+
+</div>
 
 {% endblock %}
 

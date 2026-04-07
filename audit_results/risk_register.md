@@ -1,5 +1,27 @@
 # Risk Register
 
+## 2026-04-07 - PFS FTA v1: RETURN_PATTERN extraction (MCS-1 recall fix)
+
+- Risk ID: RISK-SIG-2026-04-07-193
+- Component: `src/drift/ingestion/ast_parser.py` (`_process_function`, `_fingerprint_return_strategy`)
+- Type: Signal quality (FTA v1 — 1 SPOF, mitigated)
+- Description: FTA on pfs_002 mutation identifies a single SPOF: no `PatternCategory.RETURN_PATTERN` enum value and no return-strategy extraction path in `_process_function()`. This causes PFS recall = 0.5 (pfs_002 undetected in mutation benchmark).
+  - MCS-1 (SPOF, RPN 112→20): `PatternCategory.RETURN_PATTERN` added to enum; `_fingerprint_return_strategy()` classifies per-function return exits into strategy labels (`return_none`, `raise`, `return_tuple`, `return_dict`, `return_value`); emits `PatternInstance` when ≥2 distinct strategies found. **Mitigated.**
+- Trigger: `drift analyze` on repo with module containing functions using divergent return conventions (None vs raise vs tuple).
+- Impact: PFS recall drops to 0.5; return-strategy fragmentation invisible to users.
+- Mitigation (implemented, 2026-04-07):
+  - `PatternCategory.RETURN_PATTERN` enum value in `src/drift/models.py`
+  - `_fingerprint_return_strategy()` in `src/drift/ingestion/ast_parser.py`
+  - Extraction call in `_process_function()` after API endpoint block
+  - Queue-based walk excludes nested function/class defs
+- Verification:
+  - `test_return_strategy_mutation_benchmark_scenario` — exact pfs_002 scenario
+  - `test_return_strategy_multiple_strategies_detected` — basic extraction
+  - `test_return_strategy_ignores_nested_functions` — nested-def isolation
+  - `test_return_pattern_two_variants_detected` — PFS integration
+  - `PFS_RETURN_PATTERN_TP` ground-truth fixture
+- Residual risk: Low. FP risk for intentional return-overloading modules (get/get_or_raise patterns) — accepted as correct detection of diversity. Dynamic returns via callbacks remain FN (static analysis limitation).
+
 ## 2026-04-07 - SMS FTA v1: sms_001 Recall=0 (Benchmark-Fixture, 2 SPOFs, behoben)
 
 - Risk ID: RISK-BENCH-2026-04-07-192

@@ -146,3 +146,144 @@ def test_syntax_error_handling(tmp_path: Path):
     (tmp_path / "bad.py").write_text("def foo(:\n  pass")
     result = parse_python_file(Path("bad.py"), tmp_path)
     assert len(result.parse_errors) > 0
+
+
+# ---------------------------------------------------------------------------
+# Return-strategy pattern extraction
+# ---------------------------------------------------------------------------
+
+
+def test_return_strategy_multiple_strategies_detected(tmp_path: Path):
+    """Function with return-None + raise → two distinct strategies → pattern emitted."""
+    source = """\
+def get_user(user_id: int):
+    if user_id <= 0:
+        return None
+    if user_id > 9999:
+        raise ValueError("invalid id")
+    return {"id": user_id}
+"""
+    (tmp_path / "models.py").write_text(source)
+    result = parse_python_file(Path("models.py"), tmp_path)
+
+    ret_patterns = [
+        p for p in result.patterns if p.category == PatternCategory.RETURN_PATTERN
+    ]
+    assert len(ret_patterns) == 1
+    strategies = ret_patterns[0].fingerprint["strategies"]
+    assert "return_none" in strategies
+    assert "raise" in strategies
+
+
+def test_return_strategy_single_strategy_not_emitted(tmp_path: Path):
+    """Function with only one return strategy → no pattern emitted."""
+    source = """\
+def add(a: int, b: int) -> int:
+    return a + b
+
+def multiply(a: int, b: int) -> int:
+    return a * b
+"""
+    (tmp_path / "math_utils.py").write_text(source)
+    result = parse_python_file(Path("math_utils.py"), tmp_path)
+
+    ret_patterns = [
+        p for p in result.patterns if p.category == PatternCategory.RETURN_PATTERN
+    ]
+    assert len(ret_patterns) == 0
+
+
+def test_return_strategy_tuple_and_dict_and_raise(tmp_path: Path):
+    """Function with return_none + raise + return_dict → three distinct strategies."""
+    source = """\
+def get_data(key: str):
+    if not key:
+        return None
+    if key == "missing":
+        raise KeyError(key)
+    return {"key": key, "value": 42}
+"""
+    (tmp_path / "models.py").write_text(source)
+    result = parse_python_file(Path("models.py"), tmp_path)
+
+    ret_patterns = [
+        p for p in result.patterns if p.category == PatternCategory.RETURN_PATTERN
+    ]
+    assert len(ret_patterns) == 1
+    strategies = ret_patterns[0].fingerprint["strategies"]
+    assert "raise" in strategies
+    assert "return_none" in strategies
+    assert "return_dict" in strategies
+
+
+def test_return_strategy_ignores_nested_functions(tmp_path: Path):
+    """Nested function returns should not affect the outer function's strategies."""
+    source = """\
+def outer():
+    def inner():
+        raise ValueError("boom")
+    return inner()
+"""
+    (tmp_path / "nested.py").write_text(source)
+    result = parse_python_file(Path("nested.py"), tmp_path)
+
+    ret_patterns = [
+        p for p in result.patterns if p.category == PatternCategory.RETURN_PATTERN
+    ]
+    # outer has only return_value, inner has only raise → neither has ≥2 strategies
+    outer_patterns = [p for p in ret_patterns if p.function_name == "outer"]
+    assert len(outer_patterns) == 0
+
+
+def test_return_strategy_bare_raise_detected(tmp_path: Path):
+    """Bare raise (re-raise) counts as a raise strategy."""
+    source = """\
+def handle(data):
+    try:
+        return process(data)
+    except ValueError:
+        raise
+"""
+    (tmp_path / "handler.py").write_text(source)
+    result = parse_python_file(Path("handler.py"), tmp_path)
+
+    ret_patterns = [
+        p for p in result.patterns if p.category == PatternCategory.RETURN_PATTERN
+    ]
+    assert len(ret_patterns) == 1
+    strategies = ret_patterns[0].fingerprint["strategies"]
+    assert "raise" in strategies
+    assert "return_value" in strategies
+
+
+def test_return_strategy_mutation_benchmark_scenario(tmp_path: Path):
+    """The exact pfs_002 mutation scenario: 3 functions with diverging return strategies."""
+    source = '''\
+def get_user(user_id: int):
+    """Returns user dict or None."""
+    if user_id <= 0:
+        return None
+    return {"id": user_id, "name": "Alice"}
+
+def get_user_or_raise(user_id: int) -> dict:
+    """Returns user dict or raises."""
+    if user_id <= 0:
+        raise ValueError("Invalid user_id")
+    return {"id": user_id, "name": "Alice"}
+
+def get_user_result(user_id: int) -> tuple:
+    """Returns (user, error) tuple."""
+    if user_id <= 0:
+        return None, "Invalid user_id"
+    return {"id": user_id, "name": "Alice"}, None
+'''
+    (tmp_path / "user.py").write_text(source)
+    result = parse_python_file(Path("user.py"), tmp_path)
+
+    ret_patterns = [
+        p for p in result.patterns if p.category == PatternCategory.RETURN_PATTERN
+    ]
+    # get_user: [return_none, return_value] → pattern emitted
+    # get_user_or_raise: [raise, return_value] → pattern emitted
+    # get_user_result: [return_tuple] (only 1 strategy) → no pattern
+    assert len(ret_patterns) >= 2

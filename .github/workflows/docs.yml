@@ -19,10 +19,11 @@ concurrency:
 
 jobs:
   build:
-    # NOTE: Uses GitHub-hosted Windows runner.
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history required for git-revision-date plugin
 
       - uses: actions/setup-python@v5
         with:
@@ -31,9 +32,11 @@ jobs:
           cache-dependency-path: pyproject.toml
 
       - name: Install MkDocs
-        run: pip install mkdocs-material
+        run: pip install "mkdocs-material[imaging]" mkdocs-git-revision-date-localized-plugin
 
       - name: Build documentation
+        env:
+          CI: "true"
         run: mkdocs build --strict
 
       - uses: actions/upload-pages-artifact@v3
@@ -42,8 +45,7 @@ jobs:
 
   deploy:
     needs: build
-    # NOTE: Uses GitHub-hosted Windows runner.
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -6,6 +6,7 @@
 
 ### Fixed
 
+- Add return-strategy extraction to AST parsing and emit `RETURN_PATTERN` instances for PFS so mixed conventions (for example `return None`, `raise`, tuple/dict/value returns) are detected as fragmentation instead of being missed in mutation scenario `pfs_002`.
 - Harden AVS `avs_co_change` precision via FTA-driven three-MCS fix (ADR-018): (1) same-directory guard suppresses sister-file co-evolution in package directories while preserving flat-root-repo detection, (2) `known_files` built from `filtered_prs` instead of unfiltered `parse_results` to eliminate test-source false positives, (3) commit-size discount (`1/(n-1)`) in `build_co_change_pairs` reduces inflated confidence from bulk/sweep commits. Expected precision_strict improvement from 0.3 to ≥0.7.
 - Fix SMS sms_001 benchmark recall from 0% to 100% via FTA root-cause analysis: two independent SPOFs patched in `scripts/_mutation_benchmark.py` — (1) fixture now uses third-party imports (`numpy`/`cffi`/`msgpack`) instead of stdlib-only; (2) initial commits back-dated to February 2026 so the 10%-established-history guard passes on synthetic repos. Mutation benchmark total recall 88% → 94%.
 - Reduce DIA false positives via FTA-driven precision hardening: (1) codespan tokens now require sibling-text structure-keyword context instead of unconditional extraction, (2) directory existence checks resolve paths under common container prefixes (`src/`, `lib/`, `app/`), (3) ADR files with `status: superseded`/`deprecated`/`rejected` are skipped during scanning.

@@ -1,5 +1,14 @@
 # FMEA Matrix
 
+## 2026-04-07 - PFS FTA v1: RETURN_PATTERN extraction (MCS-1 recall fix)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| PFS | FN: return-strategy diversity not detected | No `RETURN_PATTERN` enum value; no extraction path in `_process_function()` | pfs_002 recall = 0; overall PFS recall = 0.5 | `test_return_strategy_mutation_benchmark_scenario`, `test_return_pattern_two_variants_detected` | `PatternCategory.RETURN_PATTERN` + `_fingerprint_return_strategy()` in ast_parser.py | 7 | 8 | 2 | 112 | **Mitigated** |
+| PFS | FP: intentional return-strategy overloading flagged | Module deliberately offers get/get_or_raise/get_result patterns | Low-value finding on API-convenience modules | `test_return_pattern_single_variant_no_finding`; ≥2 strategies threshold | Per-function ≥2-strategy gate; PFS aggregates per-module (canonical dominance dampens) | 3 | 3 | 7 | 63 | Accepted |
+| PFS | FN: dynamic/callback returns not classifiable | Return strategy determined at runtime via callback or config | Under-reporting for indirection-heavy code | N/A — static analysis limitation | Accept: AST-level analysis cannot resolve runtime dispatch | 2 | 4 | 8 | 64 | Accepted |
+| PFS | FP: nested function returns leak into outer fingerprint | `_fingerprint_return_strategy` walks into nested defs | Inflated strategy set for outer function | `test_return_strategy_ignores_nested_functions` | Queue-based walk skips `FunctionDef`/`AsyncFunctionDef`/`ClassDef` children | 5 | 2 | 2 | 20 | **Mitigated** |
+
 ## 2026-04-07 - AVS FTA v1: co-change precision failure (3 primary MCS) — MITIGATED 2026-04-07
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

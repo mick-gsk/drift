@@ -1,115 +1,54 @@
 ---
 template: home.html
-title: Drift — Architecture Erosion Detection
+title: Drift — Architecture Erosion Detection for Python
+description: Deterministic static analyzer that detects cross-file coherence problems in Python codebases — pattern fragmentation, architecture violations, and near-duplicate code. 23 signals, 97% precision, no LLM.
 ---
 
-Drift is a deterministic analyzer for structural erosion in Python repositories.
+<!-- Primary content is rendered by overrides/home.html template. -->
+<!-- Below: supplementary text for search engines and MkDocs site search. -->
 
-It surfaces the cross-file problems that usually pass tests but still make a codebase harder to change: fragmented patterns, layer leaks, near-duplicate helpers, and inconsistent architecture decisions.
+Drift is a deterministic static analyzer for **architectural erosion** in Python codebases. It detects cross-file coherence problems that pass tests but make code progressively harder to change: error handling fragmented across four styles, database imports leaking into API layers, and near-identical helper functions duplicated across modules.
 
-## See Drift First
+Unlike linters (Ruff, pylint) which check single files, or security scanners (Semgrep, CodeQL) which trace data flows, Drift operates **across module boundaries** — analyzing AST structure and git history to surface structural degradation. No LLM, no cloud calls: same repo, same commit, same results.
+
+## What Drift Detects
+
+- **Pattern Fragmentation (PFS)** — the same concern handled inconsistently across modules
+- **Architecture Violations (AVS)** — layer boundaries eroded through forbidden imports
+- **Mutant Duplicates (MDS)** — AST-level near-clones that diverged across files
+- **Temporal Volatility (TVS)** — files that change together but aren't co-located
+- **Explainability Deficit (EDS)** — complex code without proportional documentation
+
+23 signals total — 15 scoring-active, 8 report-only. Each finding includes file location, cause, severity score, and a concrete next step.
+
+## Get Started
 
 ```bash
-pip install -q drift-analyzer
+pip install drift-analyzer
 drift analyze --repo .
 ```
 
-<div align="center">
-	<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze terminal demo" width="900">
-</div>
+- [Quick Start](getting-started/quickstart.md) — install to first findings in 2 minutes
+- [Example Findings](product/example-findings.md) — 5 concrete findings with code and fix paths
+- [Evaluate Drift](start-here.md) — evidence, comparisons, and rollout guidance
 
-## What Drift Adds
+## How It Works
 
-- Ruff, formatting, and typing keep local code clean.
-- Semgrep, CodeQL, and security tooling catch risky flows.
-- Drift adds a deterministic view of architecture erosion analysis and cross-file coherence detection: pattern fragmentation, boundary erosion, and drift hotspots.
+Drift parses Python via AST, analyzes git history, runs 23 detection signals, and produces scored, actionable findings — deterministically, with zero external dependencies at runtime.
 
-## Evaluate Drift
+- [Algorithm Deep Dive](algorithms/deep-dive.md) — signal mechanics under the hood
+- [Signal Reference](algorithms/signals.md) — all 23 signals explained
+- [Scoring Model](algorithms/scoring.md) — composite scoring methodology
 
-**[Start here](start-here.md)** — choose your path: try it, check the evidence, or plan a rollout.
+## Trust and Evidence
 
-Or jump directly: [Example Findings](product/example-findings.md) · [Trust and Evidence](trust-evidence.md) · [Stability](stability.md) · [Comparisons](comparisons/index.md)
+- [Trust and Evidence](trust-evidence.md) — precision claims, methodology, limitations
+- [Benchmarking](benchmarking.md) — 15 real-world repos, reproducible results
+- [Comparisons](comparisons/index.md) — how Drift complements Ruff, Semgrep, SonarQube
 
-## Use Drift
+## Integrate
 
-- [Quick Start](getting-started/quickstart.md)
-- [Team Rollout](getting-started/team-rollout.md)
-- [Integrations](integrations.md)
-- [API and Outputs](reference/api-outputs.md)
-
-## Public Evidence and Release Posture
-
-Current public benchmark claim: 77% strict precision / 95% lenient on the historical v0.5 six-signal baseline (286 findings, 5 repositories, score-weighted sample, single-rater classification with 51 disputed cases).
-
-The drift score reported per repository is a composite coherence metric (higher = more erosion). Individual finding scores measure detection confidence. The precision claim describes historical accuracy across the benchmark corpus — it is not a per-repo guarantee.
-
-The current study corpus covers 15 real-world repositories and the current composite model uses 15 scoring signals, with TVS at weight 0.0 pending re-validation. The broader corpus supports case studies and ongoing validation, but it is not a revalidated headline precision claim for the current model.
-
-Package metadata currently uses the Beta classifier. Rollout guidance is still conservative because the core Python path is stronger than optional or experimental surfaces such as TypeScript support and embeddings-based features.
-
-## Example Findings
-
-If you are evaluating drift, concrete findings are usually more persuasive than methodology alone.
-
-- [Example Findings](product/example-findings.md) shows 5 short, reproducible findings with code, the likely drift result, why it matters, and the fix path.
-- The examples cover pattern fragmentation, mutant duplicates, architecture violations, doc-implementation drift, and temporal volatility.
-
-## What Drift Is Good At
-
-- surfacing architecture and coherence issues that linters do not model
-- complementing fast-moving development, including AI-assisted workflows, with deterministic checks
-- helping teams review hotspots, modules, and trends instead of isolated style violations
-
-## What Drift Is Not
-
-- not a bug finder
-- not a security scanner
-- not a type checker
-- not a zero-false-positive oracle
-
-## Trust Model
-
-Drift earns trust through reproducible analysis, explicit methodology, and signal-by-signal interpretation.
-
-- deterministic pipeline with no LLM in the core analysis path
-- benchmark material and study artifacts kept in the repository
-- guidance for gradual rollout instead of immediate hard gating
-- clear limitations and interpretation notes in the docs
-
-See [Benchmarking and Trust](benchmarking.md) for methodology, known limitations, and how to read findings conservatively.
-
-If you need a compact evidence summary first, read [Trust and Evidence](trust-evidence.md).
-
-If you need the release-maturity breakdown first, read [Stability and Release Status](stability.md).
-
-## Contribute or Go Deeper
-
-- [Contributing](contributing.md)
-- [Algorithm Deep Dive](algorithms/deep-dive.md)
-- [Signal Reference](algorithms/signals.md)
-- [Benchmark Study](study.md)
-
-## Compare Drift to Adjacent Tools
-
-- [Drift vs Ruff](comparisons/drift-vs-ruff.md)
-- [Drift vs Semgrep and CodeQL](comparisons/drift-vs-semgrep-codeql.md)
-- [Drift vs Architecture Conformance Tools](comparisons/drift-vs-architecture-conformance.md)
-
-These pages are intentionally narrow: they explain where drift fits, where it does not, and how teams combine it with existing checks.
-
-## Reusable Project Summary
-
-- [Press and Brand](product/press-brand.md)
-
-## Quick Reference
-
-- [FAQ](faq.md)
-- [Glossary](glossary.md)
-
-## Documentation Map
-
-- [Getting Started](getting-started/quickstart.md)
-- [How It Works](algorithms/deep-dive.md)
-- [Benchmarking and Trust](benchmarking.md)
-- [Product Strategy](product-strategy.md)
-- [Case Studies](case-studies/index.md)
+- [Integrations](integrations.md) — GitHub Action, pre-commit, MCP for Copilot, SARIF
+- [Team Rollout](getting-started/team-rollout.md) — start report-only, tighten over time
+- [Case Studies](case-studies/index.md) — FastAPI, Pydantic, Django, Paramiko
+- [Contributing](contributing.md) — the fastest way to help is reporting a false positive

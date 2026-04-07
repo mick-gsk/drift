@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <!-- Terminal background -->
+  <rect x="60" y="80" width="700" height="420" rx="8" fill="#161b22"/>
+  <!-- Terminal header bar -->
+  <rect x="60" y="80" width="700" height="36" rx="8" fill="#1c2128"/>
+  <rect x="60" y="108" width="700" height="8" fill="#1c2128"/>
+  <!-- Prompt -->
+  <text x="84" y="148" font-family="monospace" font-size="15" fill="#27c93f">$</text>
+  <text x="100" y="148" font-family="monospace" font-size="15" fill="#e0e0e0" font-weight="600">drift analyze --repo .</text>
+  <!-- Score line -->
+  <text x="84" y="188" font-family="monospace" font-size="14" fill="#82aaff">DRIFT SCORE</text>
+  <text x="220" y="188" font-family="monospace" font-size="18" fill="#ffbd2e" font-weight="700">0.52</text>
+  <text x="270" y="188" font-family="monospace" font-size="14" fill="#27c93f">▼ improving</text>
+  <!-- Signals -->
+  <text x="84" y="228" font-family="monospace" font-size="13" fill="#ff5f56">■ PFS  0.85</text>
+  <text x="230" y="228" font-family="monospace" font-size="13" fill="#a9b7c6">Pattern Fragmentation</text>
+  <text x="84" y="256" font-family="monospace" font-size="13" fill="#ffbd2e">■ AVS  0.72</text>
+  <text x="230" y="256" font-family="monospace" font-size="13" fill="#a9b7c6">Architecture Violation</text>
+  <text x="84" y="284" font-family="monospace" font-size="13" fill="#ffbd2e">■ MDS  0.61</text>
+  <text x="230" y="284" font-family="monospace" font-size="13" fill="#a9b7c6">Mutant Duplicates</text>
+  <!-- Modules -->
+  <text x="84" y="330" font-family="monospace" font-size="13" fill="#82aaff">Modules</text>
+  <text x="84" y="358" font-family="monospace" font-size="13" fill="#ff5f56">src/api/routes</text>
+  <text x="280" y="358" font-family="monospace" font-size="13" fill="#a9b7c6">0.71 │ 12 findings</text>
+  <text x="84" y="386" font-family="monospace" font-size="13" fill="#ffbd2e">src/services/auth</text>
+  <text x="280" y="386" font-family="monospace" font-size="13" fill="#a9b7c6">0.54 │  6 findings</text>
+  <text x="84" y="414" font-family="monospace" font-size="13" fill="#27c93f">src/db/models</text>
+  <text x="280" y="414" font-family="monospace" font-size="13" fill="#a9b7c6">0.23 │  2 findings</text>
+  <!-- Right side: branding -->
+  <text x="840" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="48" fill="#e0e0e0" font-weight="800" letter-spacing="-2">drift</text>
+  <text x="840" y="300" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a9b7c6">Cross-file coherence analysis</text>
+  <text x="840" y="326" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#a9b7c6">for Python codebases</text>
+  <!-- Accent line -->
+  <rect x="840" y="350" width="40" height="3" rx="1" fill="#009688"/>
+  <text x="840" y="384" font-family="monospace" font-size="13" fill="#555b6e">Deterministic · No LLM · Open Source</text>
+  <text x="840" y="412" font-family="monospace" font-size="13" fill="#009688">pip install drift-analyzer</text>
+</svg>

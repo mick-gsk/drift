@@ -213,3 +213,52 @@ def test_score_aggregation():
     ]
     avg_score = sum(f.score for f in findings) / len(findings)
     assert avg_score == 0.6
+
+
+# ---------------------------------------------------------------------------
+# RETURN_PATTERN detection through PFS
+# ---------------------------------------------------------------------------
+
+
+def test_return_pattern_two_variants_detected():
+    """Two different return-strategy fingerprints in one module → PFS finding."""
+    fp_none_raise = {"strategies": ["raise", "return_none"]}
+    fp_tuple_value = {"strategies": ["return_tuple", "return_value"]}
+    patterns = [
+        _make_pattern(PatternCategory.RETURN_PATTERN, "models", "get_user", fp_none_raise),
+        _make_pattern(
+            PatternCategory.RETURN_PATTERN, "models", "get_user_or_raise", fp_tuple_value,
+        ),
+    ]
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert len(findings) == 1
+    assert findings[0].signal_type == SignalType.PATTERN_FRAGMENTATION
+    assert "return_pattern" in findings[0].title
+    assert findings[0].metadata["num_variants"] == 2
+
+
+def test_return_pattern_single_variant_no_finding():
+    """All functions share the same return-strategy fingerprint → no finding."""
+    fp = {"strategies": ["raise", "return_value"]}
+    patterns = [
+        _make_pattern(PatternCategory.RETURN_PATTERN, "models", "func_a", fp),
+        _make_pattern(PatternCategory.RETURN_PATTERN, "models", "func_b", fp),
+    ]
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert findings == []
+
+
+def test_return_pattern_three_variants():
+    """Three distinct return-strategy fingerprints → higher fragmentation score."""
+    fp_a = {"strategies": ["raise", "return_value"]}
+    fp_b = {"strategies": ["return_none", "return_value"]}
+    fp_c = {"strategies": ["return_tuple"]}
+    patterns = [
+        _make_pattern(PatternCategory.RETURN_PATTERN, "models", "get_user", fp_a),
+        _make_pattern(PatternCategory.RETURN_PATTERN, "models", "get_or_raise", fp_b),
+        _make_pattern(PatternCategory.RETURN_PATTERN, "models", "get_result", fp_c),
+    ]
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert len(findings) == 1
+    assert findings[0].metadata["num_variants"] == 3
+    assert findings[0].score >= 0.5

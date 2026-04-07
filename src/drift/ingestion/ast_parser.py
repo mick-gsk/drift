@@ -265,6 +265,56 @@ def _fingerprint_endpoint(
 
 
 # ---------------------------------------------------------------------------
+# Return-strategy fingerprinting (for PFS return-pattern detection)
+# ---------------------------------------------------------------------------
+
+
+def _classify_return_strategy(node: ast.Return) -> str:
+    """Classify a single return statement into a strategy label."""
+    if node.value is None:
+        return "return_none"
+    val = node.value
+    # return None literal
+    if isinstance(val, ast.Constant) and val.value is None:
+        return "return_none"
+    # return (value, error) — tuple return
+    if isinstance(val, ast.Tuple):
+        return "return_tuple"
+    # return {"key": ...} — dict literal
+    if isinstance(val, ast.Dict):
+        return "return_dict"
+    return "return_value"
+
+
+def _fingerprint_return_strategy(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> dict[str, Any] | None:
+    """Extract a return-strategy fingerprint from a function.
+
+    Returns ``None`` when the function has fewer than two distinct return
+    strategies, meaning there is no fragmentation to report.
+    """
+    strategies: set[str] = set()
+
+    # Walk children but stop at nested function/class defs (they get their own visit)
+    queue = list(ast.iter_child_nodes(node))
+    while queue:
+        child = queue.pop()
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if isinstance(child, ast.Return):
+            strategies.add(_classify_return_strategy(child))
+        elif isinstance(child, ast.Raise):
+            strategies.add("raise")
+        queue.extend(ast.iter_child_nodes(child))
+
+    if len(strategies) < 2:
+        return None
+
+    return {"strategies": sorted(strategies)}
+
+
+# ---------------------------------------------------------------------------
 # AST n-gram computation (for Mutant Duplicate detection)
 # ---------------------------------------------------------------------------
 
@@ -452,6 +502,20 @@ class PythonFileParser(ast.NodeVisitor):
                     start_line=node.lineno,
                     end_line=node.end_lineno or node.lineno,
                     fingerprint=ep_fp,
+                )
+            )
+
+        # Extract return-strategy patterns
+        ret_fp = _fingerprint_return_strategy(node)
+        if ret_fp is not None:
+            self.patterns.append(
+                PatternInstance(
+                    category=PatternCategory.RETURN_PATTERN,
+                    file_path=self.file_path,
+                    function_name=func_name,
+                    start_line=node.lineno,
+                    end_line=node.end_lineno or node.lineno,
+                    fingerprint=ret_fp,
                 )
             )
 

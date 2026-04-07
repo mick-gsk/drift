@@ -58,6 +58,7 @@ class PatternCategory(StrEnum):
     TESTING = "testing"
     AUTHENTICATION = "authentication"
     VALIDATION = "validation"
+    RETURN_PATTERN = "return_pattern"
 
 
 # ---------------------------------------------------------------------------

@@ -1,5 +1,40 @@
 # Fault Tree Analysis
 
+## 2026-04-07 - PFS FTA v1: pfs_002 recall = 0 (RETURN_PATTERN SPOF)
+
+### Top Event (TE-0)
+`PatternFragmentationSignal.analyze()` liefert kein Finding für pfs_002 ("return_pattern: 3 Varianten in models/user.py"), obwohl `must_detect=true` gilt — beobachtbar als `detected=0`, Gesamt-PFS-Recall = 0.5.
+
+### FT-1: TE-0 ← AND-Gate (beide Bedingungen gleichzeitig wahr)
+
+```
+                    TE-0: pfs_002 — kein Finding
+                             │
+                          AND-Gate
+                    ┌────────┴────────┐
+               IE-1: pr.patterns = []      IE-2: all_patterns kein
+               für models/user.py          RETURN_PATTERN-Key
+                    │                      (Konsequenz aus IE-1)
+                 AND-Gate
+        ┌──────────┴────────────┐
+  BE-A1-T: kein             BE-B1-P: kein
+  Extraktions-              RETURN_PATTERN
+  Pfad in _process_function im PatternCategory-Enum
+```
+
+### Minimal Cut Set
+| MCS | Basis-Ereignis | SPOF | Recall-Impact | Status |
+|-----|---------------|------|---------------|--------|
+| MCS-1 | BE-A1-T: kein Return-Extraktionspfad in `_process_function()` | Ja | 0.5 → 1.0 | **Mitigated** — `_fingerprint_return_strategy()` + `PatternCategory.RETURN_PATTERN` |
+
+### Verification
+- `test_return_strategy_mutation_benchmark_scenario` — exact pfs_002 scenario
+- `test_return_pattern_two_variants_detected` — PFS integration
+- `PFS_RETURN_PATTERN_TP` ground-truth fixture
+- Mutation benchmark: pfs detected=2/2, recall=1.0
+
+---
+
 ## 2026-04-07 - SMS FTA v1: sms_001 recall = 0 (2 independent SPOFs)
 
 ### Top Event (TE-0)
@@ -547,6 +582,98 @@ SPOF-Diagnose: MCS-1 und MCS-2 werden jeweils durch eine einzige fehlende Code-B
 - Branch A: Heuristic hints classify module as framework-facing.
 - Branch B: Context dampening reduces score and suppresses default HIGH severity.
 - Mitigation implemented: Keep findings emitted (no suppression), limit dampening to hint-matched context only, and expose framework hint metadata for explicit reviewer escalation.
+
+## 2026-04-07 - PFS FTA v1: recall deficit (Mutation Benchmark Recall = 0.5, 2 strukturell unabhängige Failure Paths)
+
+### Top Event (TE-0)
+`PatternFragmentationSignal.analyze()` liefert kein Finding für Mutation `pfs_002` ("return_pattern: 3 Varianten in `models/user.py`"), obwohl `must_detect=true` gilt und drei strukturell verschiedene Rückgabestrategien (`return None`, `raise ValueError`, `return (value, None)`) in derselben Datei injiziert sind — Systemgrenze: `PatternFragmentationSignal.analyze()` von Eingabe `parse_results`/`file_histories` bis Rückgabewert `findings`; Auslöser: `scripts/_mutation_benchmark.py`; beobachtbar als `detected=0, recall=0.0` für `pfs_002`, Gesamt-PFS-Recall = 0.5.
+Evidenz: `"pattern_fragmentation": {"injected": 2, "detected": 1, "recall": 0.5}` in `benchmark_results/mutation_benchmark.json`.
+
+---
+
+### FT-1: TE-0 ← kausale Kette (alle Teilbedingungen gleichzeitig wahr)
+
+Das Top Event tritt ein, weil `all_patterns` im Signal für die Kategorie `return_pattern` leer ist. Es gibt eine einzige kausale Kette, die das vollständig erklärt.
+
+#### IE-1: `parse_result.patterns` enthält keine PatternInstances für `models/user.py` [SPOF]
+
+`_ASTVisitor._process_function()` (ast_parser.py:425–455) erzeugt `PatternInstance`-Objekte ausschließlich für `ast.Try`-Blöcke (`ERROR_HANDLING`) und API-Endpoint-Dekoratoren (`API_ENDPOINT`). `models/user.py` enthält weder `Try`-Blöcke noch Endpoint-Dekoratoren — daher gilt `pr.patterns = []` nach dem Parse-Durchlauf.
+
+**IE-1 tritt ein durch AND-Gate (beide Teilbedingungen müssen gleichzeitig fehlen):**
+
+**Ast A: Fehlender Code-Pfad für Return-Strategie-Extraktion [Technical — direkte Ursache]**
+- BE-A1-T: `_process_function()` prüft in der Schleife `for child in self._walk_excluding_nested(node)` ausschließlich `isinstance(child, ast.Try)`. Kein Ast für `ast.Return`-Varianten, Early-Return-Guards (`ast.If` mit `return`-Body) oder Result-Type-Signaling. `models/user.py`-Funktionen verwenden ausschließlich verschiedene `ast.Return`-Formen ohne Try-Block.
+- BE-A1-P: Benchmark-Mutation `pfs_002` beschreibt `"return_pattern"` als Kategoriename ohne vorherige Prüfung, ob der Parser diese Kategorie jemals extrahiert — kein Alignment-Gate zwischen Mutations-Rationale und `PatternCategory`-Enum in der Benchmark-Erstellung.
+- BE-A1-H: Signal-Spec beschreibt PFS als "multiple incompatible variants of any coding pattern"; der Parser-Scope wurde bei der Implementierung implizit auf try/except + API-Endpoints begrenzt; kein negativer Akzeptanztest existiert, der prüft "emittiert PFS ein Finding für Return-Strategie-Variationen?" — die Scope-Diskrepanz blieb unerkannt.
+
+**Ast B: `PatternCategory` Enum enthält keinen `RETURN_PATTERN`-Wert [Technical — strukturelle Vorbedingung]**
+- BE-B1-T: `models.py:52–61` definiert exakt 8 Kategorien (`ERROR_HANDLING`, `DATA_ACCESS`, `API_ENDPOINT`, `CACHING`, `LOGGING`, `TESTING`, `AUTHENTICATION`, `VALIDATION`). `RETURN_PATTERN` fehlt vollständig; ein Extraktionsversuch ohne diesen Enum-Wert würde `ValueError` auslösen.
+- BE-B1-P: Die Benchmark-Fixture-Entwicklung enthält keine Überprüfung gegen `PatternCategory`-Member; `pfs_002` wurde geschrieben ohne Enum-Membership zu validieren.
+- BE-B1-H: Enum-Wert und Parser-Code wurden parallel mit dem Signal entwickelt; ein Scope-Review des Parsers bei neuen PFS-Testfall-Erstellungen war kein definierter Prozessschritt.
+
+**Common Cause CC-1 (Ast A + Ast B):** Beide Basis-Ereignisse teilen dieselbe Upstream-Design-Entscheidung: Return-Strategie-Variationen wurden beim Entwurf des Extraktions-Subsystems nicht als erkennbare Pattern-Klasse vorgesehen. Ast A (fehlender Code-Pfad) und Ast B (fehlender Enum-Wert) sind zwei Manifestationen derselben konzeptionellen Lücke — weder in `models.py` noch in `ast_parser.py` ist die Abstraktion verankert.
+
+#### IE-2: PFS iteriert über `all_patterns.items()` — RETURN_PATTERN-Key existiert nie [Konsequenz aus IE-1]
+
+Weil kein `PatternInstance` mit `category=PatternCategory.RETURN_PATTERN` erzeugt wird, enthält `all_patterns` diesen Key nie. Der Signal-Code iteriert ausschließlich über vorhandene Keys (`category, patterns in all_patterns.items()`) und erreicht die Fragmentation-Logik für Varianten aus `models/user.py` strukturell nie. Dies ist eine direkte Konsequenz aus IE-1, kein unabhängiger Fehlerast.
+
+---
+
+### FT-2: Variant-Undercount in pfs_001 — Partielle Charakterisierungslücke (nicht TE-0, aber latentes Qualitätsrisiko)
+
+**Top Event FT-2:** `PatternFragmentationSignal.analyze()` berichtet "2 Varianten" für `handlers/` statt der 4 injizierten Fehlerbehandlungsansätze (`try/except`, Custom Exception, result-dict, assert). Ursache: `_process_function()` extrahiert ausschließlich `ast.Try`-basierte Patterns.
+
+**Evidenz:** Finding-Titel `"error_handling: 2 variants in src/myapp/handlers/"` — `auth.py` (try/except ValueError/Exception) und `orders.py` (try/except KeyError|TypeError) sind die einzigen Try-Block-Träger und erzeugen zwei distinguierbare Fingerprints. `payments.py` (result-dict) und `notifications.py` (assert) erzeugen keine PatternInstances.
+
+**FT-2 Gate: OR (jede Extraktionslücke allein reicht, den jeweiligen Varianten-Ast zu unterdrücken)**
+
+#### IE-2a: `payments.py` (result-dict error handling) → kein PatternInstance [Technical]
+- BE-2a-T: Guard-Condition-basierte Fehlerbehandlung verwendet `ast.If` + `ast.Return` mit `result["error"] = "..."` — kein `ast.Try`-Node vorhanden → kein `PatternInstance(ERROR_HANDLING, ...)` erzeugt. Die Fehlerbehandlungssemantik (error-return via result-object) ist strukturell nicht von normaler Kontrollfluss-Logik unterscheidbar ohne domänenspezifische Heuristik.
+- BE-2a-P: Benchmark definiert result-dict als "error_handling"-Variante; der Parser definiert `ERROR_HANDLING` operativ als "enthält einen `ast.Try`-Block" — Definitionskonflikt ist in keiner Dokumentation explizit ausgewiesen.
+- BE-2a-H: Kein Alignment-Test existiert, der `payments.py`-Stil gegen PFS laufen lässt und explizit prüft "wird diese Variante als PatternInstance extrahiert?"
+
+#### IE-2b: `notifications.py` (assert-based error handling) → kein PatternInstance [Technical]
+- BE-2b-T: `ast.Assert`-Statements werden in `_process_function()` nicht betrachtet; assert als Fehlerbehandlungsstrategie (precondition enforcement) ist für den Parser vollständig unsichtbar.
+- BE-2b-P: Gleicher Definitionskonflikt wie IE-2a.
+- BE-2b-H: Kein negativer Akzeptanztest für "assert-only handler erzeugt PatternInstance" — Annahme war implizit falsch.
+
+**FT-2 Mitigation-Risiko (FN nach möglichem Fix):**
+- Guard-Return (`ast.If` + early `return`) als ERROR_HANDLING-Variante: Utility-Funktionen mit mehreren Rückgabepfaden würden als fragmentiert gelten können. Risiko: mittel — erfordert Threshold-Kalibrierung und semantischen Guard (nur wenn Rückgabewert Error-Indikator trägt).
+- `ast.Assert` als ERROR_HANDLING-Variante: Test-Bodies (`is_test_file()` filtert bereits) sind kein Risiko; nicht-defensive Asserts in Produktionscode könnten fälschlich klassifiziert werden. Risiko: gering mit konservativem Scope.
+
+---
+
+### Common Causes
+
+| ID | Ursache | Betroffene Ereignisse |
+|----|---------|----------------------|
+| CC-1 | Return-Strategie-Variationen wurden nie als Parser-Zielklasse definiert — gleiche Design-Entscheidung löst Ast A (fehlender Code-Pfad) und Ast B (fehlender Enum-Wert) aus | IE-1 Ast A, IE-1 Ast B |
+| CC-2 | Pattern-Extraktion ist auf `ast.Try` beschränkt — alle nicht-try Fehlerbehandlungsparadigmen (Guard-Return, Assert, Result-Type) sind für `PatternCategory.ERROR_HANDLING` unsichtbar | IE-2a, IE-2b, IE-1 Ast A (mittelbar) |
+| CC-3 | Kein Alignment-Gate zwischen Mutation-Fixture-Design und `PatternCategory`-Enum während Benchmark-Erstellung | BE-B1-P (IE-1 Ast B), BE-2a-P (IE-2a), BE-2b-P (IE-2b) |
+
+---
+
+### Minimal Cut Sets
+
+| MCS | Basis-Ereignisse | SPOF | Evidenz | Recall-Impact |
+|-----|-----------------|------|---------|---------------|
+| MCS-1 | BE-A1-T: `_process_function()` enthält keinen Return-Strategie-Extraktionspfad | **Ja** | `pfs_002` detected=0; `models/user.py` → pr.patterns=[] | −1 Finding (Recall 0.5 → 1.0) |
+| MCS-2 | BE-2a-T: Guard-Return (`ast.If`/result-dict) nicht als ERROR_HANDLING registriert | Ja (Variantencount pfs_001) | Finding "2 variants" statt "4 variants" in handlers/ | −1 Variante (Severity-Unterabschätzung) |
+| MCS-3 | BE-2b-T: `ast.Assert` nicht als ERROR_HANDLING registriert | Ja (Variantencount pfs_001) | Gleiche Evidenz wie MCS-2 | −1 Variante (kombiniert mit MCS-2) |
+| MCS-4 (Prozess/latent) | BE-B1-P (CC-3): Kein Enum-Alignment-Gate in Fixture-Entwicklung | Nein (prozessual) | Keine technische Blockade, aber zukünftige blinde Mutationen wahrscheinlich | Präventiv |
+
+**SPOF-Diagnose:** MCS-1 ist ein Single-Point-of-Failure für TE-0 (pfs_002 vollständig verpasst) — eine einzige fehlende Feature-Implementierung im Parser ist hinreichend. MCS-2 und MCS-3 gemeinsam reduzieren die Charakterisierungsqualität von pfs_001 (nur 2 statt 4 Varianten), verhindern aber die Detektion nicht.
+
+---
+
+### Operationelle Tests (pro MCS)
+
+- **MCS-1:** `models/user.py` mit drei Funktionen und verschiedenen Return-Strategien (None, raise, tuple) → nach Implementierung eines Return-Strategy-Extractors: `pr.patterns` muss ≥ 3 PatternInstances unter einer Return-Kategorie enthalten; PFS muss Finding emittieren. Negativtest (aktueller Stand): `pr.patterns == []` ist dokumentiertes Verhalten, nicht Silent Failure des Signals selbst.
+- **MCS-2:** `handlers/payments.py` mit Guard-Return/result-dict → nach Implementierung: `PatternInstance(ERROR_HANDLING, ...)` muss vorhanden sein. Testbarkeitsnachweis: Fixture mit `if cond: return {"error": ...}` als einzige Fehlerbehandlung.
+- **MCS-3:** `handlers/notifications.py` mit assert-Statements → nach Implementierung: `PatternInstance(ERROR_HANDLING, ...)` unter assert-Fingerprint. Testbarkeitsnachweis: Fixture mit `assert cond, "msg"` als Fehler-Guard.
+- **MCS-4 (Prozess):** Neues Skript oder assert in `_mutation_benchmark.py`, das beim Erstellen einer Mutation prüft: `"signal_category" in [m.value for m in PatternCategory]` — verhindert blinde Fixturing für nicht-extrahierbare Kategorien.
+
+---
 
 ## 2026-04-05 - HSC OAuth endpoint URL false positives (Issue #161)
 

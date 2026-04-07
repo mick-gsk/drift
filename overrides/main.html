@@ -1,8 +1,22 @@
 {% extends "base.html" %}
 
+{% block announce %}
+  <a href="https://github.com/mick-gsk/drift/releases">
+    <strong>Drift v{{ config.extra.version }}</strong> is out — see what's new!
+  </a>
+{% endblock %}
+
 {% block extrahead %}
   {{ super() }}
+  <link rel="me" href="https://github.com/mick-gsk">
+  <link rel="me" href="https://pypi.org/project/drift-analyzer/">
   {% if page.url == '' or page.url == 'index/' %}
+  <meta property="og:image" content="{{ config.site_url }}assets/og-image.svg">
+  <meta property="og:image:type" content="image/svg+xml">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="{{ config.site_url }}assets/og-image.svg">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -10,7 +24,7 @@
       "name": "Drift",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "Linux, macOS, Windows",
-      "softwareVersion": "0.5.0",
+      "softwareVersion": "{{ config.extra.version }}",
       "description": "Deterministic architectural drift detection and architectural linter for AI-assisted Python teams.",
       "url": "https://mick-gsk.github.io/drift/",
       "downloadUrl": "https://pypi.org/project/drift-analyzer/",

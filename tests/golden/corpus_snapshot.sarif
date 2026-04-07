@@ -1006,6 +1006,38 @@
           "ruleId": "mutant_duplicate"
         },
         {
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/models"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "message": {
+            "text": "return_pattern: 2 variants in src/myapp/models/\n2 return_pattern variants in src/myapp/models/ (1/2 use canonical pattern).\n  - src/myapp/models/core.py:25 (Product.find_by_sku)\nFIX: Consolidate to the dominant pattern (1x, exemplar: src/myapp/models/core.py:11). Deviations: src/myapp/models/core.py:25 (Product.find_by_sku)."
+          },
+          "relatedLocations": [
+            {
+              "id": 0,
+              "message": {
+                "text": "Related file"
+              },
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/myapp/models/core.py"
+                }
+              }
+            }
+          ],
+          "ruleId": "pattern_fragmentation"
+        },
+        {
           "level": "error",
           "locations": [
             {
@@ -1663,6 +1695,15 @@
               "id": "mutant_duplicate",
               "shortDescription": {
                 "text": "mutant_duplicate"
+              }
+            },
+            {
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "id": "pattern_fragmentation",
+              "shortDescription": {
+                "text": "pattern_fragmentation"
               }
             },
             {

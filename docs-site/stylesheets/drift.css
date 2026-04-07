@@ -1,0 +1,73 @@
+/* ─── Drift Design Tokens ───
+   Shared across home.html, 404.html, and future custom pages.
+   Loaded via mkdocs.yml extra_css.
+*/
+
+:root {
+  --drift-accent: #009688;
+  --drift-accent-muted: rgba(0, 150, 136, 0.12);
+  --drift-dark: #0d1117;
+  --drift-mono: var(--md-code-font-family);
+}
+
+[data-md-color-scheme="slate"] {
+  --drift-accent-muted: rgba(0, 150, 136, 0.18);
+}
+
+/* ─── Section Label (reusable across pages) ─── */
+.drift-section-label {
+  font-family: var(--drift-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--drift-accent);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.drift-section-label::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 2px;
+  background: var(--drift-accent);
+  flex-shrink: 0;
+}
+
+/* ─── Text Links (shared CTA style) ─── */
+.drift-text-link {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--drift-accent);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.drift-text-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── Install Box (shared monospace command box) ─── */
+.drift-install-box {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--drift-mono);
+  font-size: 0.86rem;
+  background: var(--md-code-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 4px;
+  padding: 0.55rem 1.15rem;
+  color: var(--md-default-fg-color);
+}
+
+.drift-dollar {
+  color: var(--drift-accent);
+  margin-right: 0.5rem;
+  -webkit-user-select: none;
+  user-select: none;
+}

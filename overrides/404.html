@@ -1,0 +1,60 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+{{ super() }}
+
+<style>
+  .drift-404 {
+    max-width: 540px;
+    margin: 0 auto;
+    padding: 6rem 2rem 4rem;
+  }
+  .drift-404-code {
+    font-family: var(--md-code-font-family);
+    font-size: 4rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--md-default-fg-color--lightest);
+    margin-bottom: 1rem;
+    line-height: 1;
+  }
+  .drift-404 h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.5rem;
+  }
+  .drift-404 p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--md-default-fg-color--light);
+    margin-bottom: 1.5rem;
+  }
+  .drift-404-links {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .drift-404-links a {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #009688;
+    text-decoration: none;
+  }
+  .drift-404-links a:hover { text-decoration: underline; }
+</style>
+
+<section class="drift-404">
+  <div class="drift-404-code">404</div>
+  <h1>Page not found.</h1>
+  <p>The page you're looking for doesn't exist — it may have been moved or removed.</p>
+  <div class="drift-404-links">
+    <a href="{{ config.site_url }}">← Home</a>
+    <a href="{{ config.site_url }}getting-started/quickstart/">Quick Start</a>
+    <a href="{{ config.site_url }}faq/">FAQ</a>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block content %}{% endblock %}
