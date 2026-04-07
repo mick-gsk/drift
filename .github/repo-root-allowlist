@@ -19,6 +19,8 @@ CITATION.cff
 CLAUDE.md
 CODE_OF_CONDUCT.md
 conda.recipe
+.dockerignore
+Dockerfile
 CONTRIBUTING.md
 DEVELOPER.md
 LICENSE
@@ -39,6 +41,7 @@ docs-site
 drift.example.yaml
 drift.schema.json
 examples
+Formula
 llms.txt
 master-backlog
 mkdocs.yml

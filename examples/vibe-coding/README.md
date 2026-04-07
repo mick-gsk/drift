@@ -101,7 +101,8 @@ Related docs: [Getting Started](../../docs-site/getting-started/quickstart.md) Â
 |-----|--------|---------|-------------|
 | 1 | Install + initial analysis | `drift analyze -f json -o baseline.json` | Baseline score documented |
 | 2 | Apply vibe-coding config | Copy `drift.yaml` to project root | `drift validate` â†’ green |
-| 3 | IDE integration (MCP) | Copy `mcp.json` to `.vscode/mcp.json` | `drift_scan` works in IDE |
+| 3 | IDE integration (VS Code MCP) | Run `drift init --mcp` or copy `mcp.json` to `.vscode/mcp.json` | `drift_scan` works in IDE |
+| 3b | Claude Desktop integration | Run `drift init --claude` or merge `claude_desktop_config.json` into `%APPDATA%\Claude\claude_desktop_config.json` or `~/Library/Application Support/Claude/claude_desktop_config.json` | drift tools appear in Claude Desktop |
 | 4 | Pre-push hook | Copy `pre-push` to `.git/hooks/` | Push with HIGH finding â†’ blocked |
 | 5â€“7 | Fix top-5 MDS/PFS findings | `drift fix-plan --max-tasks 5` | Score decreases |
 
@@ -140,6 +141,7 @@ Related docs: [Getting Started](../../docs-site/getting-started/quickstart.md) Â
 | [`drift-gate.yml`](drift-gate.yml) | M001 | GitHub Actions workflow for pre-merge gate |
 | [`pre-push`](pre-push) | M002 | Git pre-push hook with drift check |
 | [`mcp.json`](mcp.json) | M003 | VS Code MCP server config for IDE integration |
+| [`claude_desktop_config.json`](claude_desktop_config.json) | M003b | Claude Desktop MCP config snippet to merge into the app config |
 | [`setup-baseline.sh`](setup-baseline.sh) | M004 | Baseline setup script with delta gate |
 | [`weekly-check.sh`](weekly-check.sh) | M006/M007 | Weekly trend monitoring + fix-plan script |
 

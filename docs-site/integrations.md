@@ -139,6 +139,30 @@ Register in VS Code using `.vscode/mcp.json`:
 }
 ```
 
+If you want drift to scaffold the file for you, run `drift init --mcp`. Drift prefers the `drift` console script when available and otherwise falls back to the current Python interpreter with `-m drift`, so the generated config usually works without manual edits.
+
+This auto-fallback currently applies only to the generated MCP configs. The generated pre-push hook still expects `drift` on PATH.
+
+Register in Claude Desktop using `claude_desktop_config.json`:
+
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+If you want drift to scaffold a merge-ready snippet in your repository first, run `drift init --claude`. It uses the same launcher auto-detection as `--mcp` to avoid PATH-related setup friction.
+
+Claude Desktop currently supports this path on Windows and macOS. If you already have other MCP servers configured, merge the `drift` entry into the existing `mcpServers` object instead of replacing the full file.
+
+```json
+{
+  "mcpServers": {
+    "drift": {
+      "command": "drift",
+      "args": ["mcp", "--serve"]
+    }
+  }
+}
+```
+
 Typical commands called through MCP-backed agent flows:
 
 - `scan` for full repository architectural checks

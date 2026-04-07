@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
 
 from drift.cli import main
+from drift.commands import init_cmd as init_cmd_module
 from drift.profiles import PROFILES, get_profile, list_profiles
 
 # ---------------------------------------------------------------------------
@@ -151,10 +153,111 @@ class TestInitCommand:
         assert result.exit_code == 0
         mcp_path = tmp_path / ".vscode" / "mcp.json"
         assert mcp_path.exists()
-        import json
-
         data = json.loads(mcp_path.read_text())
         assert "drift" in data["servers"]
+
+    def test_init_claude_creates_config_snippet(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--claude", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        claude_path = tmp_path / "claude_desktop_config.json"
+        assert claude_path.exists()
+        data = json.loads(claude_path.read_text())
+        assert "drift" in data["mcpServers"]
+        assert data["mcpServers"]["drift"]["args"] == ["mcp", "--serve"]
+
+    def test_init_claude_dry_run_lists_snippet(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["init", "--claude", "--dry-run", "--repo", str(tmp_path)]
+        )
+        assert result.exit_code == 0
+        assert "claude_desktop_config.json" in result.output
+        assert not (tmp_path / "claude_desktop_config.json").exists()
+
+    def test_init_full_json_includes_claude_snippet(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["init", "--full", "--json", "--repo", str(tmp_path)]
+        )
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        paths = {item["path"] for item in payload["would_create"]}
+        assert "claude_desktop_config.json" in paths
+
+    def test_init_dry_run_marks_existing_files_as_skip(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        runner.invoke(main, ["init", "--claude", "--repo", str(tmp_path)])
+
+        result = runner.invoke(
+            main, ["init", "--claude", "--dry-run", "--repo", str(tmp_path)]
+        )
+        assert result.exit_code == 0
+        assert "skip" in result.output.lower()
+        assert "would skip" in result.output.lower()
+
+    def test_init_full_json_marks_existing_files_as_skip(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        runner.invoke(main, ["init", "--full", "--repo", str(tmp_path)])
+
+        result = runner.invoke(
+            main, ["init", "--full", "--json", "--repo", str(tmp_path)]
+        )
+        assert result.exit_code == 0
+
+        payload = json.loads(result.output)
+        drift_yaml = next(
+            item for item in payload["would_create"] if item["path"] == "drift.yaml"
+        )
+        assert drift_yaml["action"] == "skip"
+        assert drift_yaml["would_skip"] is True
+        assert drift_yaml["would_overwrite"] is False
+
+    def test_init_claude_falls_back_to_current_python(self, monkeypatch, tmp_path: Path) -> None:
+        runner = CliRunner()
+        monkeypatch.setattr(init_cmd_module.shutil, "which", lambda _name: None)
+        monkeypatch.setattr(init_cmd_module.sys, "executable", "C:/Python311/python.exe")
+
+        result = runner.invoke(main, ["init", "--claude", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+
+        data = json.loads((tmp_path / "claude_desktop_config.json").read_text())
+        assert data["mcpServers"]["drift"]["command"] == "C:/Python311/python.exe"
+        assert data["mcpServers"]["drift"]["args"] == ["-m", "drift", "mcp", "--serve"]
+        assert "current Python" in result.output
+        assert "interpreter" in result.output
+
+    def test_init_mcp_prefers_console_script_when_available(
+        self, monkeypatch, tmp_path: Path
+    ) -> None:
+        runner = CliRunner()
+
+        def _fake_which(name: str) -> str | None:
+            return "C:/Tools/drift.exe" if name == "drift" else None
+
+        monkeypatch.setattr(init_cmd_module.shutil, "which", _fake_which)
+        result = runner.invoke(main, ["init", "--mcp", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+
+        data = json.loads((tmp_path / ".vscode" / "mcp.json").read_text())
+        assert data["servers"]["drift"]["command"] == "drift"
+        assert data["servers"]["drift"]["args"] == ["mcp", "--serve"]
+
+    def test_init_mcp_and_claude_share_launcher(self, monkeypatch, tmp_path: Path) -> None:
+        runner = CliRunner()
+        monkeypatch.setattr(init_cmd_module.shutil, "which", lambda _name: None)
+        monkeypatch.setattr(init_cmd_module.sys, "executable", "C:/Python311/python.exe")
+
+        result = runner.invoke(main, ["init", "--mcp", "--claude", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+
+        vscode_data = json.loads((tmp_path / ".vscode" / "mcp.json").read_text())
+        claude_data = json.loads((tmp_path / "claude_desktop_config.json").read_text())
+        assert (
+            vscode_data["servers"]["drift"]["command"]
+            == claude_data["mcpServers"]["drift"]["command"]
+        )
+        assert vscode_data["servers"]["drift"]["args"] == claude_data["mcpServers"]["drift"]["args"]
 
     def test_init_full_creates_all(self, tmp_path: Path) -> None:
         runner = CliRunner()
@@ -166,6 +269,7 @@ class TestInitCommand:
         assert (tmp_path / ".github" / "workflows" / "drift.yml").exists()
         assert (tmp_path / ".githooks" / "drift-pre-push").exists()
         assert (tmp_path / ".vscode" / "mcp.json").exists()
+        assert (tmp_path / "claude_desktop_config.json").exists()
 
     def test_init_skips_existing_files(self, tmp_path: Path) -> None:
         """Running init twice should not overwrite existing files."""
@@ -211,6 +315,12 @@ class TestInitCommand:
         runner = CliRunner()
         result = runner.invoke(main, ["init", "--repo", str(tmp_path)])
         assert "drift analyze" in result.output
+
+    def test_init_claude_output_mentions_merge_target(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--claude", "--repo", str(tmp_path)])
+        assert "claude_desktop_config.json" in result.output
+        assert "%APPDATA%\\Claude\\claude_desktop_config.json" in result.output
 
     def test_init_vibe_coding_mentions_escalation(self, tmp_path: Path) -> None:
         runner = CliRunner()

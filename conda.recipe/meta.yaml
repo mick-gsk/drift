@@ -1,20 +1,30 @@
-{% set version = "2.5.0" %}
+{% set name = "drift-analyzer" %}
+{% set version = "2.5.1" %}
 
 package:
-  name: drift-analyzer
+  name: {{ name }}
   version: {{ version }}
 
-# Build from local source tree.
-# For a conda-forge feedstock, replace with:
-#   url: https://pypi.io/packages/source/d/drift-analyzer/drift_analyzer-{{ version }}.tar.gz
-#   sha256: <sha256-of-sdist>
+# --- conda-forge feedstock ---
+# To submit to conda-forge, create a feedstock repo with this recipe and
+# replace the source section below with the PyPI sdist URL:
+#
+#   source:
+#     url: https://pypi.io/packages/source/d/{{ name }}/{{ name.replace('-', '_') }}-{{ version }}.tar.gz
+#     sha256: <sha256-of-sdist>
+#
+# Then open a PR at https://github.com/conda-forge/staged-recipes
+
+# --- local build ---
 source:
   path: ..
 
 build:
+  noarch: python
   number: 0
   entry_points:
     - drift = drift.cli:safe_main
+    - drift-analyzer = drift.cli:safe_main
   script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
 
 requirements:
@@ -36,9 +46,16 @@ test:
     - drift
     - drift.cli
     - drift.signals
+    - drift.scoring
+    - drift.output
   commands:
     - drift --help
     - drift --version
+    - drift-analyzer --help
+  requires:
+    - pip
+  commands_also:
+    - pip check
 
 about:
   home: https://github.com/mick-gsk/drift
@@ -49,9 +66,11 @@ about:
     through cross-file coherence analysis.
   description: |
     Drift is a static analyzer that detects and scores architectural erosion in
-    Python codebases. It produces Rich terminal output, machine-readable JSON,
-    and SARIF for CI integration. All 15 signals are configurable via a YAML
-    config file.
+    Python codebases. It finds pattern fragmentation, architecture violations,
+    near-duplicate code, and temporal volatility across modules. Output formats
+    include Rich terminal, machine-readable JSON, and SARIF for CI integration.
+    23 signal families (15 scoring-active, 8 report-only) are configurable via
+    a YAML config file.
   doc_url: https://mick-gsk.github.io/drift/
   dev_url: https://github.com/mick-gsk/drift
 

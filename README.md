@@ -93,11 +93,25 @@ More: [Quick Start](docs-site/getting-started/quickstart.md) · [Example Finding
 
 ### Discovery Surfaces
 
-If you are evaluating drift for team rollout, the three highest-signal entry points are already available in this repo:
+**Quick install** (macOS / Linux / WSL — auto-detects pipx, uv, or pip):
 
-- PyPI package: `pip install drift-analyzer`
-- GitHub Action: `uses: mick-gsk/drift@v1`
-- pre-commit hook: `repo: https://github.com/mick-gsk/drift`
+```bash
+curl -fsSL https://raw.githubusercontent.com/mick-gsk/drift/main/scripts/install.sh | sh
+```
+
+All integration paths:
+
+| Path | Command / Config | Best for |
+|---|---|---|
+| **Install script** | `curl -fsSL .../install.sh \| sh` | One-liner, no Python setup |
+| **PyPI** | `pip install drift-analyzer` | Local use, scripts, CI |
+| **pipx / uvx** | `pipx install drift-analyzer` | Isolated CLI (no venv) |
+| **Homebrew** | `brew tap mick-gsk/drift && brew install drift-analyzer` | macOS / Linux devs |
+| **Docker** | `docker run -v .:/src ghcr.io/mick-gsk/drift analyze --repo /src` | Container-based CI |
+| **GitHub Action** | `uses: mick-gsk/drift@v1` | GitHub CI/CD pipelines |
+| **pre-commit** | `repo: https://github.com/mick-gsk/drift` | Git hooks |
+
+Full installation guide: [Installation](docs-site/getting-started/installation.md)
 
 For questions, rollout feedback, and real-world findings, use [GitHub Discussions](https://github.com/mick-gsk/drift/discussions).
 
@@ -106,11 +120,14 @@ For questions, rollout feedback, and real-world findings, use [GitHub Discussion
 Drift integrates with AI coding sessions (Copilot, Cursor, Claude) and MCP-capable editors:
 
 ```bash
+pip install drift-analyzer[mcp]
 drift scan --repo . --max-findings 5   # session baseline for agents
 drift diff --staged-only               # pre-commit check
 drift fix-plan --repo .                # agent-friendly repair tasks
 drift mcp --serve                      # MCP server for IDE integration
 ```
+
+To minimise setup work, run `drift init --mcp --claude`. Drift will scaffold both MCP configs and automatically use the current Python interpreter when no `drift` executable is on your PATH. The generated pre-push hook still expects `drift` on PATH.
 
 <div align="center">
   <img src="demos/agent-workflow.gif" alt="drift agent workflow: scan → diff --staged-only → fix-plan" width="720">
@@ -215,12 +232,16 @@ drift analyze --repo . --format json | jq '.findings[] | select(.signal=="MDS")'
 
 ## Setup and rollout options
 
-Three integration paths — pick the one that fits your team:
+Seven integration paths — pick the one that fits your team:
 
 | Path | Command / Config | Best for |
 |---|---|---|
-| **PyPI** | `pip install drift-analyzer` | Local use, scripts |
-| **GitHub Action** | `uses: mick-gsk/drift@v1` | CI/CD pipelines |
+| **Install script** | `curl -fsSL .../install.sh \| sh` | One-liner, no Python setup |
+| **PyPI** | `pip install drift-analyzer` | Local use, scripts, CI |
+| **pipx / uvx** | `pipx install drift-analyzer` | Isolated CLI (no venv needed) |
+| **Homebrew** | `brew tap mick-gsk/drift && brew install drift-analyzer` | macOS / Linux devs |
+| **Docker** | `docker run -v .:/src ghcr.io/mick-gsk/drift analyze --repo /src` | Container-based CI, reproducible runs |
+| **GitHub Action** | `uses: mick-gsk/drift@v1` | GitHub CI/CD pipelines |
 | **pre-commit** | `repo: https://github.com/mick-gsk/drift` | Pre-commit hooks |
 
 <details>

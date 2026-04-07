@@ -1,11 +1,14 @@
 """``drift init`` — scaffold drift configuration and CI integration.
 
 Generates drift.yaml (with optional profile), GitHub Actions workflow,
-git hooks, and VS Code MCP configuration in one command.
+git hooks, VS Code MCP configuration, and a Claude Desktop MCP snippet.
 """
 
 from __future__ import annotations
 
+import json
+import shutil
+import sys
 import textwrap
 from pathlib import Path
 
@@ -88,22 +91,42 @@ _PRE_PUSH_HOOK = textwrap.dedent("""\
 """)
 
 
-_MCP_JSON = textwrap.dedent("""\
-    {
-      "servers": {
-        "drift": {
-          "type": "stdio",
-          "command": "drift",
-          "args": ["mcp", "--serve"]
-        }
-      }
-    }
-""")
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _resolve_mcp_launcher() -> tuple[str, list[str], str]:
+    """Resolve the lowest-friction launcher for generated MCP configs."""
+    if shutil.which("drift"):
+        return "drift", ["mcp", "--serve"], "console-script"
+    if shutil.which("drift-analyzer"):
+        return "drift-analyzer", ["mcp", "--serve"], "console-script"
+    return sys.executable, ["-m", "drift", "mcp", "--serve"], "python-module"
+
+
+def _render_mcp_json(*, claude: bool, command: str, args: list[str]) -> str:
+    """Render MCP JSON for the target client using the resolved launcher."""
+    if claude:
+        payload = {
+            "mcpServers": {
+                "drift": {
+                    "command": command,
+                    "args": args,
+                }
+            }
+        }
+    else:
+        payload = {
+            "servers": {
+                "drift": {
+                    "type": "stdio",
+                    "command": command,
+                    "args": args,
+                }
+            }
+        }
+    return json.dumps(payload, indent=2) + "\n"
 
 
 def _build_config_dict(profile_name: str) -> dict:
@@ -223,10 +246,19 @@ def _plan_file(
     help="Generate VS Code MCP server config (.vscode/mcp.json).",
 )
 @click.option(
+    "--claude",
+    is_flag=True,
+    default=False,
+    help=(
+        "Generate Claude Desktop MCP config snippet "
+        "(claude_desktop_config.json)."
+    ),
+)
+@click.option(
     "--full",
     is_flag=True,
     default=False,
-    help="Generate all files: config + CI + hooks + MCP.",
+    help="Generate all files: config + CI + hooks + MCP + Claude snippet.",
 )
 @click.option(
     "--dry-run",
@@ -253,6 +285,7 @@ def init(
     ci: bool,
     hooks: bool,
     mcp: bool,
+    claude: bool,
     full: bool,
     dry_run: bool,
     json_output: bool,
@@ -261,28 +294,28 @@ def init(
     """Scaffold drift configuration and CI integration.
 
     Generates a drift.yaml with the chosen profile, plus optional
-    GitHub Actions workflow, git hooks, and IDE integration.
+    GitHub Actions workflow, git hooks, and editor/agent integration.
 
     \b
     Examples:
       drift init                          # default profile, config only
       drift init --profile vibe-coding    # AI-optimised weights
-      drift init --full                   # config + CI + hooks + MCP
+            drift init --full                   # config + CI + hooks + MCP + Claude
       drift init -p vibe-coding --ci      # vibe-coding config + CI workflow
+            drift init --mcp --claude           # scaffold VS Code + Claude MCP configs
       drift init --full --dry-run         # preview without writing
       drift init --full --json            # JSON preview for agents
     """
-    import json as json_mod
-
     repo = repo.resolve()
 
     if json_output:
         dry_run = True
 
     if full:
-        ci = hooks = mcp = True
+        ci = hooks = mcp = claude = True
 
     prof = get_profile(profile)
+    launcher_command, launcher_args, launcher_source = _resolve_mcp_launcher()
 
     # Collect file plan
     plan: list[dict[str, object]] = []
@@ -311,24 +344,50 @@ def init(
     # 4. VS Code MCP config
     if mcp:
         mcp_path = repo / ".vscode" / "mcp.json"
-        _plan_file(plan, mcp_path, _MCP_JSON, repo)
+        _plan_file(
+            plan,
+            mcp_path,
+            _render_mcp_json(
+                claude=False,
+                command=launcher_command,
+                args=launcher_args,
+            ),
+            repo,
+        )
+
+    # 5. Claude Desktop MCP snippet
+    if claude:
+        claude_path = repo / "claude_desktop_config.json"
+        _plan_file(
+            plan,
+            claude_path,
+            _render_mcp_json(
+                claude=True,
+                command=launcher_command,
+                args=launcher_args,
+            ),
+            repo,
+        )
 
     # --dry-run / --json: preview only, no file writes
     if dry_run:
-        overwrite_count = sum(1 for p in plan if p["exists"])
+        skip_count = sum(1 for p in plan if p["exists"])
         new_count = sum(1 for p in plan if not p["exists"])
         if json_output:
-            click.echo(json_mod.dumps({
+            click.echo(json.dumps({
                 "would_create": [
                     {
                         "path": p["path"],
                         "size_bytes": p["size_bytes"],
                         "exists": p["exists"],
-                        "would_overwrite": p["exists"],
+                        "action": "skip" if p["exists"] else "create",
+                        "would_skip": p["exists"],
+                        "would_overwrite": False,
                     }
                     for p in plan
                 ],
-                "overwrite_count": overwrite_count,
+                "overwrite_count": 0,
+                "skip_count": skip_count,
                 "new_count": new_count,
             }, indent=2))
         else:
@@ -337,10 +396,10 @@ def init(
                 f"[cyan]{prof.name}[/cyan]: {prof.description}\n"
             )
             for p in plan:
-                status = "[yellow]overwrite[/yellow]" if p["exists"] else "[green]create[/green]"
+                status = "[yellow]skip[/yellow]" if p["exists"] else "[green]create[/green]"
                 console.print(f"  {status}  {p['path']}  ({p['size_bytes']} bytes)")
             console.print(
-                f"\n[dim]{new_count} new, {overwrite_count} would overwrite[/dim]"
+                f"\n[dim]{new_count} new, {skip_count} would skip[/dim]"
             )
         return
 
@@ -351,6 +410,7 @@ def init(
     )
 
     created = 0
+    printed_mcp_note = False
     for p in plan:
         target = repo / str(p["path"])
         if _write_if_absent(target, str(p["content"]), str(p["path"]), root=repo):
@@ -359,6 +419,38 @@ def init(
                 console.print(
                     "  [dim]Activate with: "
                     "git config core.hooksPath .githooks[/dim]"
+                )
+            if not printed_mcp_note and str(p["path"]) in {
+                ".vscode/mcp.json",
+                "claude_desktop_config.json",
+            }:
+                console.print(
+                    "  [dim]Requires MCP extra: "
+                    "pip install drift-analyzer[mcp][/dim]"
+                )
+                if launcher_source == "python-module":
+                    console.print(
+                        "  [dim]No drift executable found on PATH; generated config "
+                        "uses the current Python interpreter.[/dim]"
+                    )
+                    if hooks:
+                        console.print(
+                            "  [dim]The generated pre-push hook still expects "
+                            "`drift` on PATH.[/dim]"
+                        )
+                printed_mcp_note = True
+            if str(p["path"]) == "claude_desktop_config.json":
+                console.print(
+                    "  [dim]Windows merge target: "
+                    "%APPDATA%\\Claude\\claude_desktop_config.json[/dim]"
+                )
+                console.print(
+                    "  [dim]macOS merge target: "
+                    "~/Library/Application Support/Claude/claude_desktop_config.json[/dim]"
+                )
+                console.print(
+                    "  [dim]macOS merge target: "
+                    "~/Library/Application Support/Claude/claude_desktop_config.json[/dim]"
                 )
 
     # Summary
