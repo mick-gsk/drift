@@ -69,3 +69,7 @@ Drift is built for AI-assisted development workflows. Agent-native commands prov
 - **Pre-Commit Gate** — `drift diff --staged-only` — structural regression check for staged changes
 
 Deterministic — no LLM in the pipeline. Agents can trust the output because the same repo and commit always produce the same results.
+
+## Built by a Developer, for Developers
+
+Drift is built and maintained by [Mick Gottschalk](https://github.com/mick-gsk). Open source, no cloud, no vendor lock-in. If drift flags something that isn't real — [open an issue](https://github.com/mick-gsk/drift/issues). Every false positive report makes the next release better.

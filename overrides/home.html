@@ -67,6 +67,45 @@
     font-size: 0.82rem;
   }
 
+  /* ───── Personal note ───── */
+  .drift-personal {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 2rem 2.5rem;
+  }
+  .drift-personal-inner {
+    display: grid;
+    grid-template-columns: 3px 1fr;
+    gap: 0 1.25rem;
+    align-items: start;
+  }
+  .drift-personal-accent {
+    background: var(--drift-accent);
+    border-radius: 2px;
+    align-self: stretch;
+    opacity: 0.5;
+  }
+  .drift-personal p {
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--md-default-fg-color--light);
+    margin: 0 0 0.35rem;
+  }
+  .drift-personal a {
+    color: var(--drift-accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .drift-personal a:hover { text-decoration: underline; }
+
+  @media (max-width: 720px) {
+    .drift-personal { padding: 0 1.5rem 2rem; }
+  }
+  @media (max-width: 480px) {
+    .drift-personal { padding: 0 1.25rem 1.5rem; }
+    .drift-personal p { font-size: 0.82rem; }
+  }
+
   /* ───── Terminal output ───── */
   .drift-output {
     background: var(--drift-dark);
@@ -685,6 +724,18 @@
   </div>
 </section>
 
+<!-- ══════ PERSONAL NOTE ══════ -->
+<section class="drift-personal">
+  <div class="drift-personal-inner">
+    <div class="drift-personal-accent"></div>
+    <div>
+      <p>
+        I'm <a href="https://github.com/mick-gsk">Mick</a>. I built drift because I watched my own AI-assisted projects accumulate structural debt faster than I could review it. This isn't an enterprise product — it's an open-source tool I use on my own code every day. If it finds something that isn't real, <a href="https://github.com/mick-gsk/drift/issues">tell me</a> — every false positive report makes the next release better.
+      </p>
+    </div>
+  </div>
+</section>
+
 <!-- ══════ TERMINAL OUTPUT ══════ -->
 <section class="drift-output">
   <div class="drift-output-inner">
@@ -762,21 +813,31 @@
 
 <!-- ══════ WHY DRIFT IN AN AI WORKFLOW ══════ -->
 <section class="drift-scenarios">
-  <div class="drift-section-label">Why drift in an AI workflow?</div>
+  <div class="drift-section-label">Problems every vibe-coder recognizes</div>
   <div class="drift-scenario-grid">
     <div class="drift-scenario-card">
       <div class="label">MDS detects</div>
-      <h3>Your agent generates 6 identical <code>_run_async()</code> helpers in 6 files</h3>
-      <p>Mutant Duplicates finds AST-level near-clones instantly. Fix-plan prioritizes consolidation into one shared utility.</p>
+      <h3>You tab-complete <code>get_current_user()</code> — and it already exists in two other files</h3>
+      <p>Three copies, three names, three slightly different JWT decodings. One returns <code>None</code> on failure, one raises, one returns the raw dict. Drift finds the clones across your codebase.</p>
+    </div>
+    <div class="drift-scenario-card">
+      <div class="label">PFS detects</div>
+      <h3>Four endpoints, four chat sessions, four incompatible error contracts</h3>
+      <p>One raises HTTP 409. One returns 200 with <code>{"error": ...}</code>. One silently passes. One has no handling at all. Drift flags the inconsistency across the module.</p>
     </div>
     <div class="drift-scenario-card">
       <div class="label">AVS blocks</div>
-      <h3>Your agent bypasses layer boundaries with a direct DB import in the API</h3>
-      <p>Architecture Violation Signal catches forbidden imports. <code>drift diff --staged-only</code> blocks the commit before it lands.</p>
+      <h3>You prompt "just make it work" — the AI imports the DB model directly in the API route</h3>
+      <p>Tests pass, the feature ships. But after 30 AI-prompted features, the layer boundary is gone. <code>drift diff --staged-only</code> blocks it before the commit lands.</p>
+    </div>
+    <div class="drift-scenario-card">
+      <div class="label">BAT tracks</div>
+      <h3>Mypy complains, you prompt "fix this" — the AI adds <code># type: ignore</code></h3>
+      <p>Fine once. After 50 times, the type checker protects nothing. Drift tracks bypass density so you can see it growing before it's too late.</p>
     </div>
   </div>
   <div class="drift-scenario-full">
-    <p><strong>Duplicate utility code from AI-generated scaffolding</strong> — the #1 pattern in AI-assisted codebases. Agents generate per-file solutions instead of refactoring. Drift surfaces them across module boundaries, with location, cause, and a concrete fix path.</p>
+    <p><strong>If you recognized even one of these — drift will find more in your codebase.</strong> Every scenario is a real pattern drift detects deterministically, with file locations, severity scores, and a concrete fix path. <a href="getting-started/vibe-coding-problems/" class="drift-text-link">See the full code examples →</a></p>
   </div>
 </section>
 
@@ -879,8 +940,8 @@
 
 <!-- ══════ BOTTOM CTA ══════ -->
 <section class="drift-cta">
-  <h2>Run it. Judge for yourself.</h2>
-  <p>One command, your repo, instant findings. No signup, no cloud, no config.</p>
+  <h2>Try it on your codebase.</h2>
+  <p>One command, your repo, instant findings. No signup, no cloud, no config. If something feels off, <a href="https://github.com/mick-gsk/drift/issues" class="drift-text-link">open an issue</a> — I read every one.</p>
   <div class="drift-cta-cmds">
     <div class="drift-cta-cmd-col">
       <div class="drift-cta-cmd-label">Human dev</div>
@@ -894,6 +955,7 @@
   <div class="drift-cta-links">
     <a href="getting-started/quickstart/" class="drift-cta-link primary">Quick Start →</a>
     <a href="integrations/#mcp-server" class="drift-cta-link primary">Agent Integration →</a>
+    <a href="getting-started/prompts/" class="drift-cta-link primary">Prompts to Try →</a>
     <a href="product/example-findings/" class="drift-cta-link muted">Example Findings →</a>
     <a href="start-here/" class="drift-cta-link muted">Benchmark Evidence →</a>
     <a href="case-studies/" class="drift-cta-link muted">Case Studies →</a>

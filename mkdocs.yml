@@ -90,6 +90,8 @@ nav:
   - Get Started:
       - Quick Start: getting-started/quickstart.md
       - Installation: getting-started/installation.md
+      - Prompts to Try: getting-started/prompts.md
+      - Real-World Problems: getting-started/vibe-coding-problems.md
       - Configuration: getting-started/configuration.md
       - Team Rollout: getting-started/team-rollout.md
       - Finding Triage: getting-started/finding-triage.md

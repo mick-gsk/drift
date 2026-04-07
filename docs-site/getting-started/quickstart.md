@@ -2,13 +2,17 @@
 
 > Repo: `mick-gsk/drift` · Package: `drift-analyzer` · Command: `drift`
 
-## 0. Before you try it
+You want to try drift? Good — you'll have your first findings in two minutes.
+
+If you want to see what drift catches before you install it, check out [Problems Every Vibe-Coder Recognizes](vibe-coding-problems.md) — real code examples from AI-assisted projects.
+
+## 0. Before you start
 
 ```bash
 python --version
 ```
 
-Drift currently requires Python 3.11+. If your shell or CI runner is still on 3.10, fix that first so the first run is a signal test, not an environment failure.
+Drift requires Python 3.11+. If your shell or CI runner is still on 3.10, fix that first — you want the first run to be a signal test, not an environment fight.
 
 ## 1. Install
 
@@ -24,6 +28,8 @@ drift analyze --repo .
 ```
 
 ## 3. What you'll see
+
+Here's what a typical first run looks like:
 
 ```text
 ╭─ drift analyze  myproject/ ──────────────────────────────────────────────────╮
@@ -47,6 +53,8 @@ drift analyze --repo .
     **Precision claim (site-wide):** Historical accuracy of drift findings across the benchmark corpus. Currently 77% strict / 95% lenient on the v0.5 baseline. This describes methodology accuracy, not a per-repo promise.
 
 ## 4. How to read your first findings
+
+My recommendation: start with the highest-scored findings and check if they match what already felt expensive to maintain.
 
 - **Score ≥ 0.7** → strong signal, likely a real structural issue worth investigating
 - **Score 0.4–0.7** → moderate signal, review when you touch that module
@@ -89,9 +97,9 @@ The recommended first step is report-only CI (no build failures):
 drift check --fail-on none    # report findings, never exit 1
 ```
 
-The GitHub Action now follows the same safe default. Tighten to `high` only after the team has reviewed a few real runs.
+The GitHub Action now follows the same safe default. Tighten to `high` only after your team has reviewed a few real runs.
 
-See [Team Rollout](team-rollout.md) for the full progressive adoption path and [Integrations](../integrations.md) for pre-commit, GitHub Actions, and GitLab CI details.
+See [Team Rollout](team-rollout.md) for the full progressive adoption path, [Integrations](../integrations.md) for CI details, and [Prompts to Try](prompts.md) for copy-paste prompts you can hand to your AI assistant.
 
 ## `analyze` vs `check` — when to use which
 

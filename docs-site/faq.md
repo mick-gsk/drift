@@ -1,5 +1,21 @@
 # FAQ
 
+## Who built this?
+
+I'm [Mick Gottschalk](https://github.com/mick-gsk). I built drift as a solo open-source project because I couldn't find a tool that detects the structural problems AI coding tools leave behind. I use it on my own codebases every day.
+
+## Is this a startup or a side project?
+
+Neither — it's a focused open-source tool. No VC funding, no enterprise upsell, no cloud backend. I maintain it because I need it and because the problem is real.
+
+## How can I reach the maintainer?
+
+Open a [GitHub issue](https://github.com/mick-gsk/drift/issues) or start a [discussion](https://github.com/mick-gsk/drift/discussions). I read and respond to everything. False positive reports are especially welcome — they directly improve signal quality.
+
+## Why should I trust a tool that's still in Beta?
+
+Because I run it on this repository every day, the precision numbers are public and reproducible, and every false positive you report gets fixed. The Beta label reflects that some optional surfaces (TypeScript, embeddings) are still experimental — the core Python analysis is stable and tested against 15+ real-world repos.
+
 ## Is drift a bug finder or security scanner?
 
 No. Drift is not positioned as a bug finder, a security scanner, or a type checker.
