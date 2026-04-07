@@ -36,13 +36,14 @@
       "note": "117 is EDS-specific count from case study; 221 is total finding count in benchmark corpus"
     },
     "paramiko": {
-      "drift_score": null,
-      "total_findings": null,
-      "benchmark_source": null,
-      "draft_claim": "a large transport module and circular dependency hotspots",
-      "case_study_source": null,
-      "case_study_verified": false,
-      "note": "NO BENCHMARK DATA. No case study exists. No stored run. Draft claim is unsupported by any artifact. Either run paramiko locally or replace with a repo that has existing evidence."
+      "drift_score": 0.468,
+      "total_findings": 168,
+      "benchmark_source": "benchmark_results/paramiko_evidence.json",
+      "draft_claim": "5 god-module candidates and 18 circular import chains (AVS + CIR)",
+      "case_study_source": "docs-site/case-studies/paramiko.md",
+      "case_study_verified": true,
+      "case_study_heading": "5 God Module Candidates (AVS), 18 Circular Import Chains (CIR), 54 Unexplained High-Complexity Functions (EDS)",
+      "note": "Shallow clone, drift v2.5.3, 55 files, 962 functions, 5.8s analysis time"
     },
     "drift_self": {
       "drift_score": 0.514,
@@ -55,9 +56,8 @@
     }
   },
   "evidence_gaps": [
-    "paramiko: no benchmark data, no case study, no stored run — draft claim unsupported",
     "drift_self: trend claim not backed by a stored trend comparison artifact",
-    "all repos: benchmark data was generated at unknown date; drift version of the runs is not recorded in all_results.json"
+    "all repos (except paramiko): benchmark data was generated at unknown date; drift version of the runs is not recorded in all_results.json"
   ],
-  "recommendation": "Replace paramiko with a repo from the existing 15-repo corpus that has a case study (e.g., Flask, Starlette, Celery, Rich). Alternatively, clone paramiko and run drift analyze to generate missing evidence."
+  "recommendation": "All 5 repos now have evidence. drift_self trend claim should be reframed or backed by a stored trend artifact."
 }

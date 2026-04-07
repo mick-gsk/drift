@@ -47,14 +47,9 @@ This is not a bug scanner. It is a coherence scanner.
 
 ### Repo 4: paramiko/paramiko
 
-<!-- EVIDENCE GAP: No benchmark data or case study exists for paramiko.
-     Before publication, either:
-     1. Run drift analyze on paramiko and store evidence, or
-     2. Replace with a repo from the 15-repo corpus (e.g., Celery, Rich, Sanic) -->
-
-- Finding highlight: a large transport module and circular dependency hotspots
-- Interpretation: long-lived protocol libraries accumulate architecture stress in stable core files
-- Actionable next step: split refactor candidates by blast radius and start with low-risk duplicate extraction
+- Finding highlight: [5 god-module candidates and 18 circular import chains](https://mick-gsk.github.io/drift/case-studies/paramiko/) (AVS + CIR signals)
+- Interpretation: long-lived protocol libraries accumulate architecture stress in stable core files — `transport.py` alone has 38 coupling connections
+- Actionable next step: extract protocol state management from `transport.py` and break the longest import cycles with a shared types module
 
 ### Disclosure: drift self-analysis
 

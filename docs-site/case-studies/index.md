@@ -12,5 +12,6 @@ Drift has been benchmarked on real-world open-source repositories to validate it
 | [FastAPI](fastapi.md) | 1,118 | 4,554 | 0.690 HIGH | 2.3s |
 | [Pydantic](pydantic.md) | 403 | 8,384 | 0.577 MEDIUM | 57.9s |
 | [Django](django.md) | — | — | 0.535–0.563 | — |
+| [Paramiko](paramiko.md) | 55 | 962 | 0.468 MEDIUM | 5.8s |
 | httpx | 60 | 1,134 | 0.472 MEDIUM | 3.3s |
 | drift (self) | 45 | 263 | 0.442 MEDIUM | 0.3s |

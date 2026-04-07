@@ -482,7 +482,10 @@ def _check_python_version_docs() -> tuple[list[str], list[dict[str, Any]]]:
 
 def main() -> int:
     config_weights = _extract_config_weights()
-    scoring_count = sum(1 for w in config_weights.values() if w > 0)
+    # TVS is temporarily zero-weighted but still part of the scoring model.
+    scoring_count = sum(
+        1 for key, weight in config_weights.items() if weight > 0 or key == "temporal_volatility"
+    )
     version = _extract_pyproject_version()
 
     all_errors: list[str] = []
