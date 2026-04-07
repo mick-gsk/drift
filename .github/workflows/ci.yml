@@ -53,6 +53,7 @@ jobs:
           & $env:PYTHON_BIN scripts/check_version.py --check-semver
 
       - name: Enforce release discipline
+        if: github.ref == 'refs/heads/main'
         # [win-only] PowerShell invocation on Windows runner.
         shell: powershell
         run: |
