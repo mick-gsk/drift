@@ -18,6 +18,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Resolve Python executable
         # [win-only] PowerShell-based resolver for GitHub-hosted Windows runner.
