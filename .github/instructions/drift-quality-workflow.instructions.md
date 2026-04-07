@@ -121,6 +121,13 @@ Ein Mensch trifft die letzte Entscheidung.
 5. **Unsicherheit, Trade-offs, fehlende Validierung, hohes Risiko** werden sichtbar an den Menschen eskaliert
 6. **Freigabestatus vor Abschluss** immer explizit ausgeben
 
+### Batch-Repair-Ausnahme (ADR-020)
+
+Beim **Batch-Fix-Modus** (mehrere gleichartige Findings in einem Zug) darf der Review-Loop vereinfacht werden:
+- Wenn `batch_eligible=true` in der fix_plan-Antwort gesetzt ist, können alle `affected_files_for_pattern` mit dem gleichen Fix-Template bearbeitet werden, bevor ein `drift_diff` zur Verifikation läuft.
+- Der adversariale Review reduziert sich auf Stichproben (≥ 1 Datei pro Batch), nicht auf jede Einzeldatei.
+- Die übrigen Qualitätsregeln (Stufen 5–7) gelten unverändert.
+
 ---
 
 ## Gesamtfluss (Referenz)

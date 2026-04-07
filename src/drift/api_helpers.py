@@ -343,6 +343,10 @@ def _task_to_api_dict(t: Any) -> dict[str, Any]:
         "expected_effect": t.expected_effect,
         "depends_on": t.depends_on,
         "repair_maturity": t.repair_maturity,
+        "batch_eligible": t.metadata.get("batch_eligible", False),
+        "pattern_instance_count": t.metadata.get("pattern_instance_count", 1),
+        "affected_files_for_pattern": t.metadata.get("affected_files_for_pattern", []),
+        "fix_template_class": t.metadata.get("fix_template_class", ""),
     }
 
 

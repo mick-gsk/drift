@@ -169,6 +169,65 @@ Show me the findings sorted by impact.
 
 ---
 
+## Copy-Ready Workflow Files
+
+Complete files you can drop into your project. Copy the content, save at the indicated path, done.
+
+### `.github/workflows/drift.yml`
+
+```yaml title=".github/workflows/drift.yml"
+name: Drift
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write   # only needed if upload-sarif: true
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - uses: mick-gsk/drift@v1
+        with:
+          fail-on: none          # report-only — change to 'high' when ready
+          upload-sarif: true     # findings appear as PR annotations
+```
+
+### `.pre-commit-config.yaml` (add drift hook)
+
+```yaml title=".pre-commit-config.yaml"
+repos:
+  - repo: https://github.com/mick-gsk/drift
+    rev: DRIFT_LATEST_TAG
+    hooks:
+      - id: drift-report        # report-only — switch to drift-check later
+```
+
+### `.vscode/mcp.json` (MCP for Copilot / Cursor / Windsurf)
+
+```json title=".vscode/mcp.json"
+{
+  "servers": {
+    "drift": {
+      "type": "stdio",
+      "command": "drift",
+      "args": ["mcp", "--serve"]
+    }
+  }
+}
+```
+
+> **Shortcut:** `drift init --mcp` generates this file for you.
+
+---
+
 !!! tip "Pro tip: Use MCP instead of prompts"
     If your editor supports [MCP](../integrations.md#mcp-server) (VS Code Copilot, Cursor, Claude Desktop, Windsurf), run `drift init --mcp` once. After that, your AI assistant can call drift tools directly — no prompt copying needed. The prompts above are most useful for quick one-off checks or editors without MCP support.
 

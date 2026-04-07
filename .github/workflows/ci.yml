@@ -113,6 +113,17 @@ jobs:
             pip-${{ runner.os }}-${{ matrix.python-version }}-
             pip-${{ runner.os }}-
 
+      - name: Restore static analysis caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            .mypy_cache
+            .ruff_cache
+          key: static-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            static-${{ runner.os }}-${{ matrix.python-version }}-
+            static-${{ runner.os }}-
+
       - name: Resolve Python executable with fallback
         # [win-only] PowerShell fallback path for when setup-python cannot provision requested version.
         shell: powershell
@@ -187,13 +198,22 @@ jobs:
         run: |
           & $env:PYTHON_BIN -m vulture src/drift --min-confidence 80
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage (reference Python)
+        if: matrix.python-version == '3.12'
         # [win-only] PowerShell invocation on Windows runner.
         shell: powershell
         run: |
           & $env:PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=term-missing --cov-report=xml --cov-fail-under=80 -m "not slow"
 
+      - name: Run tests (no coverage)
+        if: matrix.python-version != '3.12'
+        # [win-only] PowerShell invocation on Windows runner.
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m pytest -v --tb=short --cov-fail-under=80 -m "not slow"
+
       - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
@@ -203,12 +223,14 @@ jobs:
           verbose: true
 
       - name: Self-analysis
+        if: matrix.python-version == '3.12'
         # [win-only] PowerShell invocation on Windows runner.
         shell: powershell
         run: |
           & $env:PYTHON_BIN -m drift analyze --repo . --format json --fail-on none | Out-Null
 
       - name: Drift self-check (score gate)
+        if: matrix.python-version == '3.12'
         # [win-only] PowerShell invocation on Windows runner.
         shell: powershell
         run: |
@@ -224,6 +246,7 @@ jobs:
           '@
 
       - name: Risk audit compliance (POLICY §18)
+        if: matrix.python-version == '3.12'
         # [win-only] PowerShell invocation on Windows runner.
         shell: powershell
         run: |

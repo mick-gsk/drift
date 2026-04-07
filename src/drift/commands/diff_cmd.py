@@ -59,6 +59,16 @@ from drift.api import to_json
     default=None,
     help="Write JSON output to a file instead of stdout.",
 )
+@click.option(
+    "--signals",
+    default=None,
+    help="Comma-separated signal abbreviations to include (e.g. 'PFS,BEM').",
+)
+@click.option(
+    "--exclude-signals",
+    default=None,
+    help="Comma-separated signal abbreviations to exclude (e.g. 'MDS,DIA').",
+)
 def diff(
     path: Path,
     diff_ref: str,
@@ -69,10 +79,23 @@ def diff(
     max_findings: int,
     response_detail: str,
     output: Path | None,
+    signals: str | None,
+    exclude_signals: str | None,
 ) -> None:
     """Run agent-native diff analysis and emit structured JSON."""
     if uncommitted and staged_only:
         raise click.UsageError("Use either --uncommitted or --staged-only, not both.")
+
+    signal_list = (
+        [s.strip() for s in signals.split(",") if s.strip()]
+        if signals
+        else None
+    )
+    exclude_list = (
+        [s.strip() for s in exclude_signals.split(",") if s.strip()]
+        if exclude_signals
+        else None
+    )
 
     result = api_diff(
         path,
@@ -83,6 +106,8 @@ def diff(
         target_path=target_path,
         max_findings=max_findings,
         response_detail=response_detail,
+        signals=signal_list,
+        exclude_signals=exclude_list,
     )
     text = to_json(result)
     if output is not None:

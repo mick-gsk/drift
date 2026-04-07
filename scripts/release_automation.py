@@ -400,8 +400,33 @@ def run_pre_push_preflight() -> bool:
     return True
 
 
+def _extract_changelog_section(version_no_v: str) -> str | None:
+    """Extract the CHANGELOG.md section for a specific version.
+
+    Returns the full section text (without the heading) or None if not found.
+    """
+    if not CHANGELOG.exists():
+        return None
+    content = CHANGELOG.read_text("utf-8")
+    heading_re = re.compile(r"^## \[(\d+\.\d+\.\d+)\]", re.MULTILINE)
+    matches = list(heading_re.finditer(content))
+    for idx, match in enumerate(matches):
+        if match.group(1) != version_no_v:
+            continue
+        # Skip the rest of the heading line (e.g. " - 2026-04-07")
+            start = (
+                content.index("\n", match.end()) + 1
+                if "\n" in content[match.end():]
+                else match.end()
+            )
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(content)
+        section = content[start:end].strip()
+        return section
+    return None
+
+
 def create_github_release(tag_name: str, version_no_v: str) -> bool:
-    """Try to create a GitHub release.
+    """Try to create a GitHub release using CHANGELOG content.
 
     Returns True when release was created, False when skipped/failed.
     This is best-effort because the publish workflow can also be triggered by
@@ -414,7 +439,13 @@ def create_github_release(tag_name: str, version_no_v: str) -> bool:
         return False
 
     title = f"v{version_no_v}"
-    notes = f"Automated release {title} via scripts/release_automation.py"
+    notes = _extract_changelog_section(version_no_v)
+    if not notes:
+            notes = (
+                f"Release {title}. See [CHANGELOG.md]"
+                "(https://github.com/mick-gsk/drift/blob/main/CHANGELOG.md) "
+                "for details."
+            )
 
     print("\n▶ Creating GitHub release...")
     result = subprocess.run(

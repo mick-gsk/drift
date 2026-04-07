@@ -67,45 +67,6 @@
     font-size: 0.82rem;
   }
 
-  /* ───── Personal note ───── */
-  .drift-personal {
-    max-width: 940px;
-    margin: 0 auto;
-    padding: 0 2rem 2.5rem;
-  }
-  .drift-personal-inner {
-    display: grid;
-    grid-template-columns: 3px 1fr;
-    gap: 0 1.25rem;
-    align-items: start;
-  }
-  .drift-personal-accent {
-    background: var(--drift-accent);
-    border-radius: 2px;
-    align-self: stretch;
-    opacity: 0.5;
-  }
-  .drift-personal p {
-    font-size: 0.88rem;
-    line-height: 1.7;
-    color: var(--md-default-fg-color--light);
-    margin: 0 0 0.35rem;
-  }
-  .drift-personal a {
-    color: var(--drift-accent);
-    text-decoration: none;
-    font-weight: 600;
-  }
-  .drift-personal a:hover { text-decoration: underline; }
-
-  @media (max-width: 720px) {
-    .drift-personal { padding: 0 1.5rem 2rem; }
-  }
-  @media (max-width: 480px) {
-    .drift-personal { padding: 0 1.25rem 1.5rem; }
-    .drift-personal p { font-size: 0.82rem; }
-  }
-
   /* ───── Terminal output ───── */
   .drift-output {
     background: var(--drift-dark);
@@ -575,6 +536,99 @@
     margin-bottom: 0.3rem;
   }
 
+  /* ───── Prompt block ───── */
+  .drift-prompt-block {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 3rem 2rem 2.5rem;
+  }
+  .drift-prompt-card {
+    background: var(--md-code-bg-color);
+    border: 1px solid var(--md-default-fg-color--lightest);
+    border-radius: 8px;
+    padding: 1.5rem 1.75rem;
+    position: relative;
+  }
+  .drift-prompt-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .drift-prompt-card-label {
+    font-family: var(--drift-mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--drift-accent);
+  }
+  .drift-prompt-card-hint {
+    font-size: 0.72rem;
+    color: var(--md-default-fg-color--light);
+  }
+  .drift-prompt-card pre {
+    font-family: var(--drift-mono);
+    font-size: 0.86rem;
+    line-height: 1.65;
+    color: var(--md-default-fg-color);
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    cursor: text;
+    -webkit-user-select: all;
+    user-select: all;
+  }
+  .drift-prompt-card-footer {
+    margin-top: 1rem;
+    font-size: 0.78rem;
+    color: var(--md-default-fg-color--light);
+  }
+  .drift-prompt-card-footer a {
+    color: var(--drift-accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .drift-prompt-card-footer a:hover { text-decoration: underline; }
+
+  /* ───── Editor quick-start grid ───── */
+  .drift-editors {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 2rem 2rem 3rem;
+  }
+  .drift-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .drift-editor-card {
+    background: var(--md-code-bg-color);
+    border-top: 2px solid var(--drift-accent);
+    border-radius: 0 0 6px 6px;
+    padding: 1rem 1rem 0.85rem;
+  }
+  .drift-editor-card h3 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.4rem;
+  }
+  .drift-editor-card p {
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--md-default-fg-color--light);
+    margin: 0;
+  }
+  .drift-editor-card code {
+    font-family: var(--drift-mono);
+    font-size: 0.72rem;
+    background: var(--md-default-bg-color);
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    border: 1px solid var(--md-default-fg-color--lightest);
+  }
+
   /* ───── Responsive ───── */
   @media (max-width: 720px) {
     .drift-hero { padding: 3.5rem 1.5rem 2rem; }
@@ -592,6 +646,8 @@
     .drift-agent-grid { grid-template-columns: 1fr; }
     .drift-scenario-grid { grid-template-columns: 1fr; }
     .drift-scenarios { padding: 2rem 1.5rem 2.5rem; }
+    .drift-editor-grid { grid-template-columns: 1fr 1fr; }
+    .drift-prompt-block { padding: 2rem 1.5rem; }
   }
 
   @media (max-width: 480px) {
@@ -663,6 +719,10 @@
     .drift-scenario-full { padding: 0.85rem 1rem; }
     .drift-install-group { flex-direction: column; align-items: flex-start; }
     .drift-cta-cmds { flex-direction: column; }
+    .drift-editor-grid { grid-template-columns: 1fr; }
+    .drift-prompt-block { padding: 1.5rem 1.25rem; }
+    .drift-prompt-card { padding: 1rem 1.15rem; }
+    .drift-prompt-card pre { font-size: 0.78rem; }
   }
 
   @media (max-width: 360px) {
@@ -684,6 +744,93 @@
       display: inline-flex;
       align-items: center;
     }
+  }
+
+  /* ───── Prove It Yourself (home-specific) ───── */
+  .drift-prove {
+    padding: 3.5rem 2rem;
+    max-width: 940px;
+    margin: 0 auto;
+  }
+  .drift-prove h2 {
+    font-size: clamp(1.4rem, 3.5vw, 2rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.5rem;
+  }
+  .drift-prove-desc {
+    font-size: 1rem;
+    color: var(--md-default-fg-color--light);
+    margin-bottom: 1.75rem;
+  }
+  .drift-prove-cmd {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--drift-mono);
+    font-size: 0.84rem;
+    background: var(--drift-dark);
+    color: #c9d1d9;
+    border: 1px solid rgba(0, 150, 136, 0.2);
+    border-radius: 4px;
+    padding: 0.65rem 1.25rem;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    margin-bottom: 0.35rem;
+  }
+  [data-md-color-scheme="default"] .drift-prove-cmd {
+    background: #0d1117;
+  }
+  .drift-prove-hint {
+    font-size: 0.72rem;
+    color: var(--md-default-fg-color--lightest);
+    margin-bottom: 1.5rem;
+  }
+  .drift-prove-checks {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 2rem 0 1.75rem;
+  }
+  .drift-prove-check {
+    border-left: 3px solid var(--drift-accent);
+    padding: 0.75rem 0.9rem;
+    background: var(--md-code-bg-color);
+    border-radius: 0 4px 4px 0;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--md-default-fg-color--light);
+  }
+  .drift-prove-check strong {
+    display: block;
+    font-size: 0.88rem;
+    color: var(--md-default-fg-color);
+    margin-bottom: 0.25rem;
+  }
+  .drift-prove-close {
+    font-size: 0.92rem;
+    color: var(--md-default-fg-color--light);
+    line-height: 1.6;
+  }
+  .drift-prove-close strong {
+    color: var(--md-default-fg-color);
+  }
+  @media (max-width: 720px) {
+    .drift-prove-checks {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 480px) {
+    .drift-prove { padding: 2rem 1.25rem; }
+    .drift-prove h2 { font-size: 1.2rem; }
+    .drift-prove-cmd { font-size: 0.74rem; padding: 0.5rem 0.9rem; }
+    .drift-prove-check { font-size: 0.78rem; }
+  }
+  @media (max-width: 360px) {
+    .drift-prove { padding: 1.75rem 1rem; }
+    .drift-prove-cmd { font-size: 0.68rem; }
   }
 </style>
 
@@ -709,6 +856,10 @@
         <div class="drift-install-label">Agent setup (MCP)</div>
         <div class="drift-install-box outline"><span class="drift-dollar">$</span> pip install drift-analyzer[mcp]</div>
       </div>
+      <div class="drift-install-col">
+        <div class="drift-install-label">Zero-install</div>
+        <div class="drift-install-box outline"><span class="drift-dollar">$</span> uvx drift-analyzer analyze --repo .</div>
+      </div>
     </div>
   </div>
   <div class="drift-hero-actions no-gap-top">
@@ -721,18 +872,6 @@
     <span><strong>23</strong> signals</span>
     <span><strong>15</strong> repos benchmarked</span>
     <span><strong>3,200+</strong> installs/mo</span>
-  </div>
-</section>
-
-<!-- ══════ PERSONAL NOTE ══════ -->
-<section class="drift-personal">
-  <div class="drift-personal-inner">
-    <div class="drift-personal-accent"></div>
-    <div>
-      <p>
-        I'm <a href="https://github.com/mick-gsk">Mick</a>. I built drift because I watched my own AI-assisted projects accumulate structural debt faster than I could review it. This isn't an enterprise product — it's an open-source tool I use on my own code every day. If it finds something that isn't real, <a href="https://github.com/mick-gsk/drift/issues">tell me</a> — every false positive report makes the next release better.
-      </p>
-    </div>
   </div>
 </section>
 
@@ -756,6 +895,81 @@
 <span class="hi">  src/api/routes</span>      0.71  <span class="d">│</span> 12 findings
 <span class="w">  src/services/auth</span>   0.54  <span class="d">│</span>  6 findings
 <span class="ok">  src/db/models</span>       0.23  <span class="d">│</span>  2 findings</pre>
+  </div>
+</section>
+
+<!-- ══════ PROVE IT YOURSELF ══════ -->
+<section class="drift-prove">
+  <div class="drift-section-label">prove it yourself</div>
+  <h2>Don't trust our benchmarks.<br>Run it on your code.</h2>
+  <p class="drift-prove-desc">No config. No sign-up. Your repo, your results.</p>
+
+  <div class="drift-prove-cmd"><span class="drift-dollar">$</span> uvx drift-analyzer analyze --repo . --format json --compact &gt; drift-results.json</div>
+  <p class="drift-prove-hint">zero-install · runs locally · nothing uploaded</p>
+
+  <div class="drift-prove-drop" data-max-findings="3" data-results-target="drift-prove-home-results">
+    <span class="drift-prove-drop-icon">&#128462;</span>
+    Drop <strong>drift-results.json</strong> here<br>
+    <button data-prove-paste>paste from clipboard</button> · <label>browse<input type="file" accept=".json" data-prove-file></label>
+  </div>
+  <div id="drift-prove-home-results" class="drift-prove-results" hidden></div>
+  <p class="drift-prove-privacy">&#128274; Your data never leaves your browser. This viewer runs entirely client-side.</p>
+
+  <div class="drift-prove-checks">
+    <div class="drift-prove-check">
+      <strong>The finding you already knew about</strong>
+      Every codebase has that one file everyone avoids. Check if drift found it.
+    </div>
+    <div class="drift-prove-check">
+      <strong>The duplicate you didn't notice</strong>
+      AI agents generate per-file solutions. Look for MDS findings — are those functions really different?
+    </div>
+    <div class="drift-prove-check">
+      <strong>The import that shouldn't be there</strong>
+      Layer violations feel harmless until they cascade. Check AVS findings against your intended architecture.
+    </div>
+  </div>
+
+  <p class="drift-prove-close">
+    <strong>If drift found something you can confirm — that's the proof.</strong><br>
+    <a href="prove-it/" class="drift-text-link">Full walkthrough with detailed viewer →</a>
+  </p>
+</section>
+
+<section class="drift-prompt-block">
+  <div class="drift-prompt-card">
+    <div class="drift-prompt-card-head">
+      <span class="drift-prompt-card-label">Paste into your agent</span>
+      <span class="drift-prompt-card-hint">Works with Copilot, Cursor, Claude, Windsurf</span>
+    </div>
+    <pre>Install drift-analyzer and run `drift analyze --repo .` on this project.
+Show me the top 3 findings and explain what each one means.</pre>
+    <div class="drift-prompt-card-footer">
+      One prompt, instant results. <a href="getting-started/prompts/">More prompts →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ EDITOR QUICK-START ══════ -->
+<section class="drift-editors">
+  <div class="drift-section-label">Your editor, 30 seconds</div>
+  <div class="drift-editor-grid">
+    <div class="drift-editor-card">
+      <h3>VS Code / Copilot</h3>
+      <p><code>drift init --mcp</code><br>Generates <code>.vscode/mcp.json</code>. Copilot Chat discovers drift tools automatically.</p>
+    </div>
+    <div class="drift-editor-card">
+      <h3>Cursor</h3>
+      <p><code>drift init --mcp</code><br>Same MCP config. Cursor detects drift tools after reload.</p>
+    </div>
+    <div class="drift-editor-card">
+      <h3>Claude Code</h3>
+      <p><code>drift init --claude</code><br>Generates Claude Desktop config snippet. Merge into your existing config.</p>
+    </div>
+    <div class="drift-editor-card">
+      <h3>Windsurf</h3>
+      <p><code>drift init --mcp</code><br>Windsurf reads <code>.vscode/mcp.json</code> natively. No extra setup.</p>
+    </div>
   </div>
 </section>
 
@@ -813,31 +1027,21 @@
 
 <!-- ══════ WHY DRIFT IN AN AI WORKFLOW ══════ -->
 <section class="drift-scenarios">
-  <div class="drift-section-label">Problems every vibe-coder recognizes</div>
+  <div class="drift-section-label">Why drift in an AI workflow?</div>
   <div class="drift-scenario-grid">
     <div class="drift-scenario-card">
       <div class="label">MDS detects</div>
-      <h3>You tab-complete <code>get_current_user()</code> — and it already exists in two other files</h3>
-      <p>Three copies, three names, three slightly different JWT decodings. One returns <code>None</code> on failure, one raises, one returns the raw dict. Drift finds the clones across your codebase.</p>
-    </div>
-    <div class="drift-scenario-card">
-      <div class="label">PFS detects</div>
-      <h3>Four endpoints, four chat sessions, four incompatible error contracts</h3>
-      <p>One raises HTTP 409. One returns 200 with <code>{"error": ...}</code>. One silently passes. One has no handling at all. Drift flags the inconsistency across the module.</p>
+      <h3>Your agent generates 6 identical <code>_run_async()</code> helpers in 6 files</h3>
+      <p>Mutant Duplicates finds AST-level near-clones instantly. Fix-plan prioritizes consolidation into one shared utility.</p>
     </div>
     <div class="drift-scenario-card">
       <div class="label">AVS blocks</div>
-      <h3>You prompt "just make it work" — the AI imports the DB model directly in the API route</h3>
-      <p>Tests pass, the feature ships. But after 30 AI-prompted features, the layer boundary is gone. <code>drift diff --staged-only</code> blocks it before the commit lands.</p>
-    </div>
-    <div class="drift-scenario-card">
-      <div class="label">BAT tracks</div>
-      <h3>Mypy complains, you prompt "fix this" — the AI adds <code># type: ignore</code></h3>
-      <p>Fine once. After 50 times, the type checker protects nothing. Drift tracks bypass density so you can see it growing before it's too late.</p>
+      <h3>Your agent bypasses layer boundaries with a direct DB import in the API</h3>
+      <p>Architecture Violation Signal catches forbidden imports. <code>drift diff --staged-only</code> blocks the commit before it lands.</p>
     </div>
   </div>
   <div class="drift-scenario-full">
-    <p><strong>If you recognized even one of these — drift will find more in your codebase.</strong> Every scenario is a real pattern drift detects deterministically, with file locations, severity scores, and a concrete fix path. <a href="getting-started/vibe-coding-problems/" class="drift-text-link">See the full code examples →</a></p>
+    <p><strong>Duplicate utility code from AI-generated scaffolding</strong> — the #1 pattern in AI-assisted codebases. Agents generate per-file solutions instead of refactoring. Drift surfaces them across module boundaries, with location, cause, and a concrete fix path.</p>
   </div>
 </section>
 
@@ -940,8 +1144,8 @@
 
 <!-- ══════ BOTTOM CTA ══════ -->
 <section class="drift-cta">
-  <h2>Try it on your codebase.</h2>
-  <p>One command, your repo, instant findings. No signup, no cloud, no config. If something feels off, <a href="https://github.com/mick-gsk/drift/issues" class="drift-text-link">open an issue</a> — I read every one.</p>
+  <h2>Run it. Judge for yourself.</h2>
+  <p>One command, your repo, instant findings. No signup, no cloud, no config.</p>
   <div class="drift-cta-cmds">
     <div class="drift-cta-cmd-col">
       <div class="drift-cta-cmd-label">Human dev</div>
@@ -955,7 +1159,7 @@
   <div class="drift-cta-links">
     <a href="getting-started/quickstart/" class="drift-cta-link primary">Quick Start →</a>
     <a href="integrations/#mcp-server" class="drift-cta-link primary">Agent Integration →</a>
-    <a href="getting-started/prompts/" class="drift-cta-link primary">Prompts to Try →</a>
+    <a href="prove-it/" class="drift-cta-link muted">Prove It Yourself →</a>
     <a href="product/example-findings/" class="drift-cta-link muted">Example Findings →</a>
     <a href="start-here/" class="drift-cta-link muted">Benchmark Evidence →</a>
     <a href="case-studies/" class="drift-cta-link muted">Case Studies →</a>

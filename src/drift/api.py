@@ -460,6 +460,7 @@ def _format_scan_response(
         # concise: top 3 signals only; detailed: all
         top_signals=top_sigs[:3] if detail == "concise" else top_sigs,
         finding_count=len(selected_findings),
+        total_finding_count=len(analysis.findings),
         critical_count=critical_count,
         high_count=high_count,
         findings_returned=len(limited),
@@ -650,6 +651,8 @@ def diff(
     target_path: str | None = None,
     max_findings: int = 10,
     response_detail: str = "concise",
+    signals: list[str] | None = None,
+    exclude_signals: list[str] | None = None,
 ) -> dict[str, Any]:
     """Analyze drift changes since a git ref or baseline.
 
@@ -688,6 +691,8 @@ def diff(
         "target_path": target_path,
         "max_findings": max_findings,
         "response_detail": response_detail,
+        "signals": signals,
+        "exclude_signals": exclude_signals,
     }
 
     try:
@@ -774,6 +779,16 @@ def diff(
         else:
             new = diff_analysis.findings
             resolved = []
+
+        # Signal filter: include/exclude by signal abbreviation
+        if signals:
+            _incl = {s.upper() for s in signals}
+            new = [f for f in new if signal_abbrev(f.signal_type) in _incl]
+            resolved = [f for f in resolved if signal_abbrev(f.signal_type) in _incl]
+        if exclude_signals:
+            _excl = {s.upper() for s in exclude_signals}
+            new = [f for f in new if signal_abbrev(f.signal_type) not in _excl]
+            resolved = [f for f in resolved if signal_abbrev(f.signal_type) not in _excl]
 
         scoped_new = new
         scoped_resolved = resolved
@@ -870,6 +885,12 @@ def diff(
         if out_of_scope_new:
             blocking_reasons.append("out_of_scope_diff_noise")
 
+        # Resolved-count-by-rule: helps agents gauge batch fix efficiency
+        _resolved_by_rule: dict[str, int] = {}
+        for _rf in scoped_resolved:
+            _rk = signal_abbrev(_rf.signal_type)
+            _resolved_by_rule[_rk] = _resolved_by_rule.get(_rk, 0) + 1
+
         # Noise context: help agents distinguish pre-existing findings from
         # change-caused findings when drift_detected=false but counts > 0.
         pre_existing_count = len(out_of_scope_new)
@@ -952,6 +973,16 @@ def diff(
             _agent_hint = "Score is improving. Safe to continue with next task."
         else:
             _agent_hint = "No drift change detected. Safe to proceed."
+        # Suggested next batch targets: signals with remaining new findings
+        _new_by_signal: dict[str, int] = {}
+        for _nf in scoped_new:
+            _nk = signal_abbrev(_nf.signal_type)
+            _new_by_signal[_nk] = _new_by_signal.get(_nk, 0) + 1
+        _batch_targets = [
+            {"signal": sig, "remaining": cnt}
+            for sig, cnt in sorted(_new_by_signal.items(), key=lambda x: -x[1])
+        ]
+
         result = _base_response(
             drift_detected=delta > 0.0,
             status=status,
@@ -972,6 +1003,7 @@ def diff(
             new_finding_count=len(scoped_new),
             new_high_or_critical=high_count,
             resolved_count=len(scoped_resolved),
+            resolved_count_by_rule=_resolved_by_rule,
             out_of_scope_new_count=len(out_of_scope_new),
             noise_context=noise_context,
             baseline_recommended=baseline_recommended,
@@ -984,6 +1016,7 @@ def diff(
             blocking_reasons=blocking_reasons,
             decision_reason_code=decision_reason_code,
             decision_reason=decision_reason,
+            suggested_next_batch_targets=_batch_targets,
             recommended_next_actions=_diff_next_actions(
                 scoped_new, status, blocking_reasons,
                 in_scope_accept=in_scope_accept,
@@ -1254,6 +1287,22 @@ def _related_signals(abbr: str) -> list[str]:
         "ECM": ["TVS"],
     }
     return relations.get(abbr, [])
+
+
+def _fix_plan_agent_instruction(tasks: list) -> str:
+    """Build context-dependent agent_instruction for fix_plan responses."""
+    batch_count = sum(1 for t in tasks if getattr(t, "metadata", {}).get("batch_eligible"))
+    if batch_count > 0:
+        return (
+            "Tasks with batch_eligible=true share a fix pattern. "
+            "Apply the fix to ALL affected_files_for_pattern, then verify "
+            "with a single drift_diff(uncommitted=True). "
+            "For non-batch tasks, verify after each file change."
+        )
+    return (
+        "After each file change, call drift_diff(uncommitted=True) "
+        "before proceeding to the next file. Do not batch changes."
+    )
 
 
 def fix_plan(
@@ -1576,6 +1625,13 @@ def fix_plan(
                     f"Path '{target_path}' contains analyzed files but has no actionable findings."
                 ]
 
+        # Compute remaining-by-signal for truncated tasks
+        _remaining_tasks = tasks[len(limited):]
+        _remaining_by_signal: dict[str, int] = {}
+        for _rt in _remaining_tasks:
+            _sig = signal_abbrev(_rt.signal_type)
+            _remaining_by_signal[_sig] = _remaining_by_signal.get(_sig, 0) + 1
+
         result = _base_response(
             drift_score=round(analysis.drift_score, 3),
             drift_score_scope=build_drift_score_scope(
@@ -1586,6 +1642,7 @@ def fix_plan(
             tasks=[_task_to_api_dict(t) for t in limited],
             task_count=len(limited),
             total_available=len(tasks),
+            remaining_by_signal=_remaining_by_signal,
             skipped_low_automation=skipped_low,
             finding_context={
                 "counts": dict(sorted(context_counts.items())),
@@ -1600,10 +1657,7 @@ def fix_plan(
             message=finding_id_message,
             suggested_fix=finding_id_suggested_fix,
             recommended_next_actions=next_actions,
-            agent_instruction=(
-                "After each file change, call drift_diff(uncommitted=True) "
-                "before proceeding to the next file. Do not batch changes."
-            ),
+            agent_instruction=_fix_plan_agent_instruction(limited),
         )
         if warnings:
             result["warnings"] = warnings

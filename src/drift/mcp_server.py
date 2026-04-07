@@ -121,7 +121,30 @@ _BASE_INSTRUCTIONS = (
     "After each file change, call drift_nudge for fast directional feedback. "
     "Use drift_diff for full regression analysis. Do not batch multiple file "
     "changes without checking drift impact. "
-    "Every response includes an 'agent_instruction' field — follow it."
+    "Every response includes an 'agent_instruction' field — follow it.\n\n"
+    "FIX-LOOP PROTOCOL (when fixing multiple findings):\n"
+    "0. BASELINE WARM-UP: Call drift_validate, then drift_scan once to "
+    "establish the nudge baseline — this avoids a costly first-nudge "
+    "delay later. Keep the scan result as your session snapshot.\n"
+    "1. SESSION START: Call drift_fix_plan(max_tasks=20) to see full scope. "
+    "Then run 'drift baseline save' to create a checkpoint.\n"
+    "2. BATCH AWARENESS: Tasks with batch_eligible=true share a fix pattern. "
+    "Apply the fix to ALL affected_files_for_pattern listed, not just the first.\n"
+    "3. VERIFICATION: After batch fixes, call "
+    "drift_diff(uncommitted=True, baseline_file='.drift-baseline.json') "
+    "to verify resolution. Check resolved_count_by_rule for batch efficiency.\n"
+    "4. SESSION RESUME: After interruption, call "
+    "drift_diff(baseline_file='.drift-baseline.json') "
+    "to see remaining work without re-scanning.\n"
+    "5. COMPLETED: When drift_diff shows 0 new findings vs baseline, "
+    "session is done.\n\n"
+    "BATCH REPAIR MODE:\n"
+    "When fixing drift findings, you may apply the same fix pattern across "
+    "multiple files in one iteration for batch_eligible tasks.\n"
+    "Rules: Only batch fixes where batch_eligible=true in fix_plan response. "
+    "Apply the SAME fix template to ALL affected_files_for_pattern. "
+    "Verify the batch with a single drift_diff call, not per-file. "
+    "If any file in the batch fails verification, revert that file only."
 )
 
 
@@ -312,6 +335,19 @@ async def drift_diff(
         str,
         Field(description="Detail level: 'concise' (token-efficient) or 'detailed' (all fields)."),
     ] = "concise",
+    signals: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Comma-separated signal abbreviations to include "
+                "(e.g. 'PFS,BEM'). If omitted, all signals."
+            ),
+        ),
+    ] = None,
+    exclude_signals: Annotated[
+        str | None,
+        Field(description="Comma-separated signal abbreviations to exclude (e.g. 'MDS,DIA')."),
+    ] = None,
 ) -> str:
     """Detect drift changes since a git ref or baseline.
 
@@ -326,10 +362,23 @@ async def drift_diff(
         baseline_file: Path to .drift-baseline.json for comparison.
         max_findings: Maximum findings to return (default: 10).
         response_detail: "concise" or "detailed".
+        signals: Comma-separated signal abbreviations to include.
+        exclude_signals: Comma-separated signal abbreviations to exclude.
     """
 
     def _sync() -> str:
         from drift.api import diff
+
+        signal_list = (
+            [s.strip() for s in signals.split(",") if s.strip()]
+            if signals
+            else None
+        )
+        exclude_list = (
+            [s.strip() for s in exclude_signals.split(",") if s.strip()]
+            if exclude_signals
+            else None
+        )
 
         try:
             with contextlib.redirect_stdout(io.StringIO()):
@@ -341,6 +390,8 @@ async def drift_diff(
                     baseline_file=baseline_file,
                     max_findings=max_findings,
                     response_detail=response_detail,
+                    signals=signal_list,
+                    exclude_signals=exclude_list,
                 )
             return json.dumps(result, default=str)
         except Exception as exc:

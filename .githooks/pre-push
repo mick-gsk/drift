@@ -229,7 +229,12 @@ enforce_version_bump_gate() {
 		exit 1
 	fi
 
-	last_tag=$(git ls-remote --tags --refs origin 2>/dev/null | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
+	# Prefer local tags to avoid unnecessary network latency.
+	# Fallback to remote tags when no local semver tag is available.
+	last_tag=$(git tag -l --sort=-version:refname 'v[0-9]*.[0-9]*.[0-9]*' | head -n1 || true)
+	if [ -z "$last_tag" ]; then
+		last_tag=$(git ls-remote --tags --refs origin 2>/dev/null | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1 || true)
+	fi
 	if [ -z "$last_tag" ]; then
 		echo ">>> [pre-push] WARN: No git tag found. Skipping version bump comparison."
 		return 0

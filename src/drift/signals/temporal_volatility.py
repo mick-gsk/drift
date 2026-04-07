@@ -142,7 +142,8 @@ class TemporalVolatilitySignal(BaseSignal):
             fix_parts = []
             if freq_z > z_threshold:
                 fix_parts.append(
-                    f"{history.total_commits} commits in 30 days — consider splitting the file"
+                    f"{history.total_commits} commits in 30 days — "
+                    "split the file into smaller modules"
                 )
             if author_z > z_threshold:
                 fix_parts.append(f"{history.unique_authors} authors — clarify ownership")

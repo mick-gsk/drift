@@ -101,3 +101,263 @@
     padding: 0.45rem 0.75rem;
   }
 }
+
+/* ─── Prove-It-Yourself Viewer ─── */
+
+.drift-prove-drop {
+  border: 2px dashed var(--md-default-fg-color--lightest);
+  border-radius: 8px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.9rem;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+  margin: 1.5rem 0;
+}
+
+.drift-prove-drop.drag-active {
+  border-color: var(--drift-accent);
+  background: var(--drift-accent-muted);
+}
+
+.drift-prove-drop:hover {
+  border-color: var(--md-default-fg-color--light);
+}
+
+.drift-prove-drop-icon {
+  font-size: 1.6rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+.drift-prove-drop button,
+.drift-prove-drop label {
+  background: none;
+  border: none;
+  color: var(--drift-accent);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
+  padding: 0;
+}
+
+.drift-prove-drop input[type="file"] {
+  display: none;
+}
+
+/* Results container */
+.drift-prove-results {
+  margin: 1.5rem 0;
+}
+
+.drift-prove-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+/* Score badge */
+.drift-prove-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2px solid;
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  min-width: 100px;
+  text-align: center;
+}
+
+.drift-prove-score-num {
+  font-family: var(--drift-mono);
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.drift-prove-score-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--md-default-fg-color--light);
+  margin-top: 0.25rem;
+}
+
+.drift-prove-score-trend {
+  font-family: var(--drift-mono);
+  font-size: 0.72rem;
+  margin-top: 0.2rem;
+}
+
+.drift-prove-summary {
+  font-family: var(--drift-mono);
+  font-size: 0.82rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Findings list */
+.drift-prove-list-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--md-default-fg-color--light);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.drift-prove-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.drift-prove-finding {
+  border-left: 3px solid var(--drift-accent);
+  padding: 0.65rem 0.85rem;
+  background: var(--md-code-bg-color);
+  border-radius: 0 4px 4px 0;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.15rem 0.6rem;
+  align-items: baseline;
+}
+
+.drift-prove-severity {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  line-height: 1.3;
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.drift-prove-signal {
+  font-family: var(--drift-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--drift-accent);
+  grid-row: 1;
+  grid-column: 2;
+}
+
+.drift-prove-finding-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--md-default-fg-color);
+  grid-row: 1;
+  grid-column: 3;
+}
+
+.drift-prove-finding-file {
+  font-family: var(--drift-mono);
+  font-size: 0.72rem;
+  color: var(--md-default-fg-color--light);
+  grid-row: 2;
+  grid-column: 1 / 3;
+}
+
+.drift-prove-finding-next {
+  font-size: 0.78rem;
+  color: var(--md-default-fg-color--light);
+  grid-row: 2;
+  grid-column: 3;
+  line-height: 1.5;
+}
+
+/* Empty state */
+.drift-prove-empty {
+  font-size: 0.88rem;
+  color: var(--md-default-fg-color--light);
+  padding: 1.25rem;
+  text-align: center;
+  background: var(--md-code-bg-color);
+  border-radius: 4px;
+}
+
+/* Metadata */
+.drift-prove-meta {
+  font-family: var(--drift-mono);
+  font-size: 0.68rem;
+  color: var(--md-default-fg-color--lightest);
+  margin-top: 1rem;
+}
+
+/* Reset button */
+.drift-prove-reset {
+  margin-top: 0.75rem;
+  background: none;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--md-default-fg-color--light);
+  cursor: pointer;
+  font-family: var(--drift-mono);
+}
+
+.drift-prove-reset:hover {
+  border-color: var(--drift-accent);
+  color: var(--drift-accent);
+}
+
+/* Error state */
+.drift-prove-error {
+  padding: 0.85rem 1rem;
+  border-left: 3px solid #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 0 4px 4px 0;
+  color: var(--md-default-fg-color);
+  font-size: 0.85rem;
+}
+
+/* Privacy hint */
+.drift-prove-privacy {
+  font-size: 0.72rem;
+  color: var(--md-default-fg-color--lightest);
+  margin-top: 0.5rem;
+}
+
+/* Responsive: prove viewer */
+@media (max-width: 720px) {
+  .drift-prove-finding {
+    grid-template-columns: auto auto 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .drift-prove-drop {
+    padding: 1.25rem 1rem;
+    font-size: 0.82rem;
+  }
+  .drift-prove-finding {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .drift-prove-score-num {
+    font-size: 1.4rem;
+  }
+  .drift-prove-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .drift-prove-drop {
+    padding: 1rem 0.75rem;
+    font-size: 0.75rem;
+  }
+}

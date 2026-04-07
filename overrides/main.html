@@ -2,7 +2,10 @@
 
 {% block announce %}
   <a href="https://github.com/mick-gsk/drift/releases">
-    <strong>Drift v{{ config.extra.version }}</strong> is out — see what's new!
+    <strong>Drift v{{ config.extra.version }}</strong>
+    {% if config.extra.release_headline %}
+      — {{ config.extra.release_headline }}
+    {% endif %}
   </a>
 {% endblock %}
 

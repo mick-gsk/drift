@@ -41,6 +41,9 @@ theme:
   icon:
     repo: fontawesome/brands/github
 
+hooks:
+  - hooks/docs_version.py
+
 plugins:
   - search
   - privacy:
@@ -70,13 +73,14 @@ markdown_extensions:
       permalink: true
 
 extra_javascript:
+  - javascripts/prove-viewer.js
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 extra_css:
   - stylesheets/drift.css
 
 extra:
-  version: "2.5.3"
+  # version + release_headline injected by hooks/docs_version.py at build time
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/mick-gsk/drift
@@ -113,6 +117,7 @@ nav:
           - Drift vs Semgrep and CodeQL: comparisons/drift-vs-semgrep-codeql.md
           - Drift vs Architecture Conformance Tools: comparisons/drift-vs-architecture-conformance.md
   - Trust & Evidence:
+      - Prove It Yourself: prove-it.md
       - Evaluate Drift: start-here.md
       - Trust and Evidence: trust-evidence.md
       - Benchmarking and Trust: benchmarking.md

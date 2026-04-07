@@ -1,6 +1,10 @@
 # Evaluate Drift
 
-Three paths depending on what you need right now.
+Four paths depending on what you need right now.
+
+## I want to prove it on my own code (3 minutes)
+
+1. [Prove It Yourself](prove-it.md) — one command, your repo, your results. No config, no sign-up.
 
 ## I want to try it (2 minutes)
 

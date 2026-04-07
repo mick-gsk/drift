@@ -86,16 +86,43 @@ jobs:
         shell: powershell
         run: git push origin main --tags
 
-      - name: Create GitHub Release (Release Drafter)
+      - name: Create GitHub Release from CHANGELOG
         if: steps.release.outputs.released == 'true'
-        uses: release-drafter/release-drafter@v6
-        with:
-          publish: true
-          tag: ${{ steps.release.outputs.tag }}
-          name: ${{ steps.release.outputs.tag }}
-          version: ${{ steps.release.outputs.version }}
+        shell: powershell
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONUTF8: "1"
+        run: |
+          $version = "${{ steps.release.outputs.version }}"
+          $tag = "${{ steps.release.outputs.tag }}"
+
+          # Extract the release section from CHANGELOG.md
+          $notes = python -c @"
+          import re, sys
+          content = open('CHANGELOG.md', encoding='utf-8').read()
+          heading_re = re.compile(r'^## \[(\d+\.\d+\.\d+)\]', re.MULTILINE)
+          matches = list(heading_re.finditer(content))
+          for i, m in enumerate(matches):
+              if m.group(1) == '$version':
+                  rest = content[m.end():]
+                  start = m.end() + rest.index('\n') + 1 if '\n' in rest else m.end()
+                  end = matches[i+1].start() if i+1 < len(matches) else len(content)
+                  print(content[start:end].strip())
+                  sys.exit(0)
+          print('See [CHANGELOG.md](https://github.com/mick-gsk/drift/blob/main/CHANGELOG.md) for details.')
+          "@
+
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            $notes = "See [CHANGELOG.md](https://github.com/mick-gsk/drift/blob/main/CHANGELOG.md) for details."
+          }
+
+          # Write notes to temp file to avoid shell escaping issues
+          $notesFile = [System.IO.Path]::GetTempFileName()
+          Set-Content -Path $notesFile -Value $notes -Encoding utf8
+
+          gh release create $tag --title $tag --notes-file $notesFile --repo $env:GITHUB_REPOSITORY
+          Remove-Item $notesFile -ErrorAction SilentlyContinue
+          Write-Output "Created GitHub Release: $tag"
 
   publish:
     name: Build and publish to PyPI

@@ -90,21 +90,21 @@ For reproducible CI builds, pin to a specific version:
 
 ```bash
 # pip
-pip install drift-analyzer==2.5.1
+pip install drift-analyzer
 
 # pipx
-pipx install drift-analyzer==2.5.1
+pipx install drift-analyzer
 
 # GitHub Action
-- uses: mick-gsk/drift@v2.5.1
+- uses: mick-gsk/drift@DRIFT_LATEST_TAG
 
 # Docker
-docker run ghcr.io/mick-gsk/drift:v2.5.1 analyze --repo /src
+docker run ghcr.io/mick-gsk/drift:DRIFT_LATEST_TAG analyze --repo /src
 
 # pre-commit
 repos:
   - repo: https://github.com/mick-gsk/drift
-    rev: v2.5.1
+    rev: DRIFT_LATEST_TAG
 ```
 
 ## Requirements

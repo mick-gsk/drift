@@ -252,7 +252,8 @@ class SystemMisalignmentSignal(BaseSignal):
             ]
 
             fix = (
-                f"Verify whether {pkg_list} was intentionally introduced. "
+                f"Verify whether {pkg_list} was intentionally introduced in "
+                f"{module.as_posix()}/. "
                 f"If yes, add it to drift configuration under allowed_imports. "
                 f"If not, remove the dependency."
             )

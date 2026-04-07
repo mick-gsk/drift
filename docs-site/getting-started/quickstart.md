@@ -20,6 +20,13 @@ Drift requires Python 3.11+. If your shell or CI runner is still on 3.10, fix th
 pip install -q drift-analyzer    # requires Python 3.11+ (use -q for clean output)
 ```
 
+!!! tip "No project handy? Try on FastAPI"
+    ```bash
+    git clone --depth 50 https://github.com/tiangolo/fastapi /tmp/fastapi
+    drift analyze --repo /tmp/fastapi
+    ```
+    Real findings on a real codebase — no setup, no risk.
+
 ## 2. Analyze your repository
 
 ```bash
@@ -68,6 +75,14 @@ Typical first-run decisions:
 - **You see a boundary violation at a stable layer edge** → add or tighten an architecture rule before it spreads.
 - **You mostly see weak findings in a small repo** → keep drift in observation mode and revisit after the codebase grows.
 
+!!! warning "Finding looks wrong?"
+    Two options:
+
+    1. **Suppress locally:** Add `# drift:context deliberate-variant` above the flagged line
+    2. **Report it:** [30-second false-positive report](https://github.com/mick-gsk/drift/issues/new?template=false-positive.yml) — helps improve the next release
+
+    False positives are expected on first runs. Drift improves with every report.
+
 ## 5. Verify your installation
 
 Drift can analyze its own codebase — useful to confirm everything works:
@@ -84,7 +99,7 @@ drift self
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/mick-gsk/drift
-    rev: v2.5.1
+    rev: DRIFT_LATEST_TAG
     hooks:
       - id: drift-report          # start report-only, switch to drift-check later
 ```

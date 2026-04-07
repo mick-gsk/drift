@@ -1,5 +1,24 @@
 # Risk Register
 
+## 2026-04-07 - ADR-020: Agent Fix-Loop Batch Metadata (Output Schema Extension)
+
+- Risk ID: RISK-OUTPUT-2026-04-07-020
+- Component: `src/drift/output/agent_tasks.py`, `src/drift/api.py`, `src/drift/api_helpers.py`
+- Type: Output schema extension (additive, non-breaking)
+- Description: ADR-020 adds batch metadata fields to fix_plan and diff responses to reduce agent fix-loop latency. Changes include:
+  - `_inject_batch_metadata()` in agent_tasks.py computes fix-template equivalence classes
+  - `_task_to_api_dict()` exposes 4 new fields: `batch_eligible`, `pattern_instance_count`, `affected_files_for_pattern`, `fix_template_class`
+  - `diff()` gains `signals`/`exclude_signals` params, `resolved_count_by_rule`, `suggested_next_batch_targets`
+  - `fix_plan()` gains `remaining_by_signal`, context-dependent `agent_instruction`
+  - `scan()` gains `total_finding_count`
+- Trigger: Any fix_plan, diff, or scan API call
+- Impact: Schema additive only — no existing fields removed or renamed. `schema_version` remains "2.0".
+- Mitigation:
+  - All new fields are optional/additive (backward-compatible)
+  - 12 dedicated tests in `tests/test_batch_metadata.py`
+  - Existing test suite (865+ tests) passes without modifications
+- Residual risk: Low. `_UNIFORM_TEMPLATE_SIGNALS` set may need expansion as new signals are added.
+
 ## 2026-04-07 - PFS FTA v1: RETURN_PATTERN extraction (MCS-1 recall fix)
 
 - Risk ID: RISK-SIG-2026-04-07-193

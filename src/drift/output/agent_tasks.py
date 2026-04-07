@@ -789,7 +789,76 @@ def analysis_to_agent_tasks(analysis: RepoAnalysis) -> list[AgentTask]:
             risk_idx = _RISK_LEVELS.index(t.review_risk) if t.review_risk in _RISK_LEVELS else 1
             t.review_risk = _RISK_LEVELS[min(risk_idx + 1, len(_RISK_LEVELS) - 1)]
 
+    # Compute batch metadata (fix-template equivalence classes)
+    _inject_batch_metadata(tasks)
+
     return tasks
+
+
+# ---------------------------------------------------------------------------
+# Fix-template equivalence classes for batch metadata
+# ---------------------------------------------------------------------------
+
+_UNIFORM_TEMPLATE_SIGNALS: set[str] = {
+    "broad_exception_monoculture",
+    "guard_clause_deficit",
+    "test_polarity_deficit",
+    "hardcoded_secret",
+    "insecure_default",
+    "missing_authorization",
+}
+
+
+def _fix_template_class(task: AgentTask) -> str:
+    """Compute a fix-template equivalence class key for a task.
+
+    Tasks sharing the same key can be fixed with the same code pattern.
+    """
+    signal = task.signal_type.value
+
+    # Signals where every finding uses the same fix template
+    if signal in _UNIFORM_TEMPLATE_SIGNALS:
+        return signal
+
+    # PFS: group by canonical pattern name
+    if signal == "pattern_fragmentation":
+        canonical = task.metadata.get("canonical", "")
+        return f"{signal}:{canonical}" if canonical else signal
+
+    # MDS: group by duplicate group
+    if signal == "mutant_duplicate":
+        group = task.metadata.get("duplicate_group", "")
+        return f"{signal}:{group}" if group else signal
+
+    # Default: group by signal + rule_id
+    rule_id = task.metadata.get("rule_id", "")
+    return f"{signal}:{rule_id}" if rule_id else signal
+
+
+def _inject_batch_metadata(tasks: list[AgentTask]) -> None:
+    """Annotate tasks with batch eligibility and pattern instance counts.
+
+    Groups tasks by fix-template equivalence class and injects:
+    - batch_eligible: True if >1 task shares the same template class
+    - pattern_instance_count: number of tasks in the same class
+    - affected_files_for_pattern: sorted list of unique files in the class
+    - fix_template_class: the equivalence class key
+    """
+    from collections import defaultdict
+
+    groups: dict[str, list[AgentTask]] = defaultdict(list)
+    for t in tasks:
+        key = _fix_template_class(t)
+        groups[key].append(t)
+
+    for key, group in groups.items():
+        count = len(group)
+        files = sorted({t.file_path for t in group if t.file_path})
+        for t in group:
+            t.metadata["batch_eligible"] = count > 1
+            t.metadata["pattern_instance_count"] = count
+            t.metadata["affected_files_for_pattern"] = files
+            t.metadata["fix_template_class"] = key
 
 
 # ---------------------------------------------------------------------------

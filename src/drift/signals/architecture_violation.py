@@ -742,7 +742,7 @@ class ArchitectureViolationSignal(BaseSignal):
                     ),
                     file_path=Path(node),
                     fix=(
-                        f"Reduce transitive coupling of {Path(node).name} "
+                        f"Refactor {Path(node).name} to reduce transitive coupling "
                         f"via interface extraction or by splitting into "
                         f"smaller, better-encapsulated modules."
                     ),
