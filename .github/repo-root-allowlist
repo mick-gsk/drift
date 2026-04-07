@@ -41,6 +41,7 @@ drift.example.yaml
 drift.schema.json
 examples
 Formula
+hooks
 llms.txt
 master-backlog
 mkdocs.yml
