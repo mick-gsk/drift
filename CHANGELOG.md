@@ -8,6 +8,9 @@
 
 ### Fixed
 
+- Deduplicate `include` glob patterns in `file_discovery.py` to prevent the same file from being processed and appended multiple times when it matches several include patterns; use lazy `glob()` iterator and reuse `relative_to()` result to reduce redundant I/O.
+- Pass `active_signals` directly to `create_signals()` for early pre-instantiation filtering; add `_SIGNAL_TYPE_VALUE_CACHE` in `signals/base.py` to avoid repeated probe instantiation on the signal-type lookup hot path.
+- Add short-lived in-process git history cache (TTL 120 s, 16-entry LRU) in `fetch_git_history()` to skip redundant `git log` parsing across rapid consecutive scans with unchanged commit history.
 - Improve agent fix-loop outputs with additive batch metadata (`batch_eligible`, `pattern_instance_count`, `affected_files_for_pattern`, `fix_template_class`), add signal include/exclude filters in `drift diff` (API/CLI/MCP), and tighten `fix` text actionability wording for AVS/SMS/TVS so the self-analysis actionability gate remains stable.
 - Add return-strategy extraction to AST parsing and emit `RETURN_PATTERN` instances for PFS so mixed conventions (for example `return None`, `raise`, tuple/dict/value returns) are detected as fragmentation instead of being missed in mutation scenario `pfs_002`.
 - Harden AVS `avs_co_change` precision via FTA-driven three-MCS fix (ADR-018): (1) same-directory guard suppresses sister-file co-evolution in package directories while preserving flat-root-repo detection, (2) `known_files` built from `filtered_prs` instead of unfiltered `parse_results` to eliminate test-source false positives, (3) commit-size discount (`1/(n-1)`) in `build_co_change_pairs` reduces inflated confidence from bulk/sweep commits. Expected precision_strict improvement from 0.3 to ≥0.7.

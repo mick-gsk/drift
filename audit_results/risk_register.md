@@ -1,5 +1,21 @@
 # Risk Register
 
+## 2026-04-08 - Ingestion dedup + signal factory active_signals pass-through + git history cache
+
+- Risk ID: RISK-INGESTION-2026-04-08-DEDUP
+- Component: `src/drift/ingestion/file_discovery.py`, `src/drift/signals/base.py`, `src/drift/pipeline.py`
+- Type: Ingestion correctness fix + signal factory optimization + performance cache
+- Description: Three related changes applied together:
+  1. **`file_discovery.py` (ingestion):** `include` patterns are now deduped via `dict.fromkeys` before glob iteration. Previously a file matching multiple patterns could be discovered and appended multiple times, producing duplicate `FileInfo` entries and inflated finding counts. Lazy `glob()` iterator replaces `list(glob())` to avoid materializing all matches at once; `relative_to()` result reused instead of called twice.
+  2. **`signals/base.py` (signals):** `create_signals()` gains an `active_signals: set[str] | None` parameter so callers can pre-filter signals before instantiation. A `_SIGNAL_TYPE_VALUE_CACHE` avoids repeated probe-instantiation for the signal-type lookup on cached code paths.
+  3. **`pipeline.py`:** `fetch_git_history()` adds a short-lived in-process LRU cache (TTL 120 s, max 16 entries, keyed by HEAD SHA + parameters) to avoid redundant `git log` parsing across rapid consecutive scans. `SignalPhase` passes `active_signals` to the factory directly with a backward-compatible fallback for custom `signal_factory` implementations.
+- FP risk: Low. Dedup prevents double-processing; if a legitimate file happened to be discovered twice it was already a pre-existing FP source, not a TP. Active-signals pre-filtering uses same `signal_type.value` values that were already filtered downstream.
+- FN risk: Low. Dedup cannot suppress files that match at least one pattern once. The cache is keyed on HEAD SHA + all analysis parameters; any repo or config change invalidates the cache entry.
+- Mitigation:
+  - New tests in `tests/test_pipeline_components.py` cover cache hit/miss and HEAD-change invalidation.
+  - Full test suite passes; ruff + mypy clean.
+- Residual risk: Very low. Cache is process-local and bounded; no persistent state. Dedup is idempotent. Backward-compat fallback ensures custom signal factories continue to work.
+
 ## 2026-04-11 - ADR-024: Machine-Readable Next-Step Contracts
 
 - Risk ID: RISK-OUTPUT-2026-04-11-024

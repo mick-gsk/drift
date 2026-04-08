@@ -331,6 +331,7 @@ async def drift_scan(
         max_per_signal: Optional cap of findings per signal in the returned list.
         response_detail: "concise" (token-sparing) or "detailed" (full fields).
         include_non_operational: Include non-operational contexts in fix_first ordering.
+        response_profile: Shape response fields for a specific agent role.
         session_id: Optional session ID for stateful workflows.
     """
 

@@ -6,6 +6,7 @@ import datetime
 import logging
 import os
 import subprocess
+import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -55,6 +56,14 @@ if TYPE_CHECKING:
     from drift.config import DriftConfig
 
 ProgressCallback = Callable[[str, int, int], None]
+
+_GIT_HISTORY_CACHE_TTL_SECONDS = 120.0
+_GIT_HISTORY_CACHE_MAX_ENTRIES = 16
+_GIT_HISTORY_CACHE_LOCK = threading.RLock()
+_GIT_HISTORY_CACHE: dict[
+    tuple[str, str, int, float, float, frozenset[str]],
+    tuple[float, list[CommitInfo], dict[str, FileHistory]],
+] = {}
 
 
 def _determine_default_workers() -> int:
@@ -165,6 +174,47 @@ def is_git_repo(path: Path) -> bool:
         return False
 
 
+def _current_git_head(path: Path) -> str | None:
+    """Return current HEAD SHA for cache invalidation, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "HEAD"],
+            capture_output=True,
+            check=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdin=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+    ):
+        return None
+
+    head = result.stdout.strip()
+    return head or None
+
+
+def _prune_git_history_cache(now: float) -> None:
+    """Drop stale entries and enforce bounded cache size."""
+    stale = [
+        key for key, (cached_at, _commits, _histories) in _GIT_HISTORY_CACHE.items()
+        if now - cached_at > _GIT_HISTORY_CACHE_TTL_SECONDS
+    ]
+    for key in stale:
+        _GIT_HISTORY_CACHE.pop(key, None)
+
+    while len(_GIT_HISTORY_CACHE) > _GIT_HISTORY_CACHE_MAX_ENTRIES:
+        oldest_key = min(
+            _GIT_HISTORY_CACHE,
+            key=lambda item: _GIT_HISTORY_CACHE[item][0],
+        )
+        _GIT_HISTORY_CACHE.pop(oldest_key, None)
+
+
 def fetch_git_history(
     repo_path: Path,
     since_days: int,
@@ -172,7 +222,31 @@ def fetch_git_history(
     ai_confidence_threshold: float = 0.50,
     indicator_boost: float = 0.0,
 ) -> tuple[list[CommitInfo], dict[str, FileHistory]]:
-    """Run git history parsing (designed to run in a background thread)."""
+    """Run git history parsing (designed to run in a background thread).
+
+    Uses a short-lived in-process cache keyed by repo head and analysis
+    parameters to avoid repeated expensive git-log parsing across consecutive
+    scans with unchanged commit history.
+    """
+    cache_key: tuple[str, str, int, float, float, frozenset[str]] | None = None
+    head_sha = _current_git_head(repo_path)
+    if head_sha is not None:
+        cache_key = (
+            repo_path.resolve().as_posix(),
+            head_sha,
+            since_days,
+            round(ai_confidence_threshold, 6),
+            round(indicator_boost, 6),
+            frozenset(known_files),
+        )
+        now = time.monotonic()
+        with _GIT_HISTORY_CACHE_LOCK:
+            cached = _GIT_HISTORY_CACHE.get(cache_key)
+            if cached is not None:
+                cached_at, cached_commits, cached_histories = cached
+                if now - cached_at <= _GIT_HISTORY_CACHE_TTL_SECONDS:
+                    return list(cached_commits), dict(cached_histories)
+
     commits = parse_git_history(
         repo_path,
         since_days=since_days,
@@ -181,6 +255,13 @@ def fetch_git_history(
         indicator_boost=indicator_boost,
     )
     file_histories = build_file_histories(commits, known_files=known_files)
+
+    if cache_key is not None:
+        now = time.monotonic()
+        with _GIT_HISTORY_CACHE_LOCK:
+            _GIT_HISTORY_CACHE[cache_key] = (now, list(commits), dict(file_histories))
+            _prune_git_history_cache(now)
+
     return commits, file_histories
 
 
@@ -383,7 +464,7 @@ class SignalPhase:
         self,
         *,
         embedding_factory: Callable[..., Any] = get_embedding_service,
-        signal_factory: Callable[[AnalysisContext], list[BaseSignal]] = create_signals,
+        signal_factory: Callable[..., list[BaseSignal]] = create_signals,
     ) -> None:
         self._embedding_factory = embedding_factory
         self._signal_factory = signal_factory
@@ -414,14 +495,18 @@ class SignalPhase:
             embedding_service=None,
             commits=parsed.commits,
         )
-        signals = self._signal_factory(ctx)
-        if active_signals is not None:
-            filtered_signals: list[BaseSignal] = []
-            for signal in signals:
-                sig_type = getattr(signal, "signal_type", None)
-                if sig_type is not None and sig_type.value in active_signals:
-                    filtered_signals.append(signal)
-            signals = filtered_signals
+        try:
+            signals = self._signal_factory(ctx, active_signals=active_signals)
+        except TypeError:
+            # Backward-compatible fallback for custom factories that only accept ctx.
+            signals = self._signal_factory(ctx)
+            if active_signals is not None:
+                filtered_signals: list[BaseSignal] = []
+                for signal in signals:
+                    sig_type = getattr(signal, "signal_type", None)
+                    if sig_type is not None and sig_type.value in active_signals:
+                        filtered_signals.append(signal)
+                signals = filtered_signals
         total_signals = len(signals)
 
         if total_signals == 0:
