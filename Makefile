@@ -52,7 +52,7 @@ test-all:  ## All tests including slow smoke tests
 	$(PYTEST) -v --tb=short --run-slow --smoke-profile=nightly
 
 coverage:  ## Tests with coverage report
-	$(PYTEST) -v --tb=short --cov=drift --cov-report=term-missing --ignore=tests/test_smoke_real_repos.py
+	$(PYTEST) -q --tb=short --cov=drift --ignore=tests/test_smoke_real_repos.py
 
 check:  ## Run all checks: lint + typecheck + tests + self-analysis
 	@echo ">>> [1/4] Lint..."
