@@ -16,7 +16,7 @@ from drift.recommendations import Recommendation, generate_recommendations
 # Deterministic task ID
 # ---------------------------------------------------------------------------
 
-_SIGNAL_PREFIX = {
+_SIGNAL_PREFIX: dict[str, str] = {
     SignalType.PATTERN_FRAGMENTATION: "pfs",
     SignalType.ARCHITECTURE_VIOLATION: "avs",
     SignalType.MUTANT_DUPLICATE: "mds",

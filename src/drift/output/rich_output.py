@@ -39,7 +39,7 @@ _SEVERITY_ICONS = {
     Severity.INFO: "○",
 }
 
-_SIGNAL_LABELS = {
+_SIGNAL_LABELS: dict[str, str] = {
     SignalType.PATTERN_FRAGMENTATION: "PFS",
     SignalType.ARCHITECTURE_VIOLATION: "AVS",
     SignalType.MUTANT_DUPLICATE: "MDS",
@@ -62,9 +62,10 @@ _SIGNAL_LABELS = {
 }
 
 
-def _signal_label(signal_type: SignalType) -> str:
+def _signal_label(signal_type: str) -> str:
     """Return a stable signal label; fall back to canonical signal id."""
-    return _SIGNAL_LABELS.get(signal_type, signal_type.value)
+    signal = str(signal_type)
+    return _SIGNAL_LABELS.get(signal, signal)
 
 
 def _read_code_snippet(

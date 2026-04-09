@@ -163,8 +163,12 @@ def _collect_actionable_findings(analysis: RepoAnalysis) -> dict[SignalType, lis
     """Collect actionable findings that qualify for Copilot guidance."""
     actionable: dict[SignalType, list[Finding]] = {}
     for finding in analysis.findings:
-        if finding.signal_type in _ACTIONABLE_SIGNALS and finding.score >= _MIN_SCORE:
-            actionable.setdefault(finding.signal_type, []).append(finding)
+        try:
+            signal = SignalType(finding.signal_type)
+        except ValueError:
+            continue
+        if signal in _ACTIONABLE_SIGNALS and finding.score >= _MIN_SCORE:
+            actionable.setdefault(signal, []).append(finding)
 
     return {
         signal: findings

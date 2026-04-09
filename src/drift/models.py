@@ -332,7 +332,7 @@ class AgentTask:
     """An atomic, machine-readable repair task derived from a Finding."""
 
     id: str
-    signal_type: SignalType
+    signal_type: str  # SignalType value for core signals, arbitrary str for plugins
     severity: Severity
     priority: int
     title: str
@@ -404,7 +404,7 @@ class NegativeContext:
 
     anti_pattern_id: str
     category: NegativeContextCategory
-    source_signal: SignalType
+    source_signal: str
     severity: Severity
     scope: NegativeContextScope
     description: str
