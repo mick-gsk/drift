@@ -564,6 +564,8 @@ async def drift_explain(
     Args:
         topic: Signal abbreviation ("PFS"), signal name
             ("pattern_fragmentation"), or error code ("DRIFT-1001").
+        response_profile: Response profile ('planner', 'coder', 'verifier',
+            'merge_readiness'). Omit for full response.
         session_id: Optional session ID for stateful workflows.
     """
 
