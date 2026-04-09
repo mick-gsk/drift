@@ -35,7 +35,7 @@ _SEVERITY_ORDER = {
 }
 
 # Pre-task relevance factor per signal (spec §3.2)
-_PRE_TASK_RELEVANCE: dict[SignalType, float] = {
+_PRE_TASK_RELEVANCE: dict[str, float] = {
     # Critical
     SignalType.ARCHITECTURE_VIOLATION: 1.0,
     SignalType.PATTERN_FRAGMENTATION: 1.0,
@@ -57,7 +57,7 @@ _PRE_TASK_RELEVANCE: dict[SignalType, float] = {
 }
 
 # Constraint class templates per signal
-_CONSTRAINT_TEMPLATES: dict[SignalType, str] = {
+_CONSTRAINT_TEMPLATES: dict[str, str] = {
     SignalType.ARCHITECTURE_VIOLATION: "ARCHITECTURE",
     SignalType.PATTERN_FRAGMENTATION: "PATTERN",
     SignalType.MUTANT_DUPLICATE: "DEDUP",
@@ -102,9 +102,9 @@ class Guardrail:
         }
 
 
-def pre_task_relevance(signal_type: SignalType) -> float:
+def pre_task_relevance(signal_type: str) -> float:
     """Return the pre-task relevance factor for a signal type."""
-    return _PRE_TASK_RELEVANCE.get(signal_type, 0.0)
+    return _PRE_TASK_RELEVANCE.get(str(signal_type), 0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ def pre_task_relevance(signal_type: SignalType) -> float:
 def _nc_to_guardrail(nc: NegativeContext, idx: int) -> Guardrail:
     """Transform a single NegativeContext item into a Guardrail."""
     abbrev = signal_abbrev(nc.source_signal)
-    constraint_class = _CONSTRAINT_TEMPLATES.get(nc.source_signal, "GENERAL")
+    constraint_class = _CONSTRAINT_TEMPLATES.get(str(nc.source_signal), "GENERAL")
 
     # Build concise constraint text from the NC description
     constraint = nc.description
@@ -192,7 +192,7 @@ def generate_guardrails(
     nc_items.sort(
         key=lambda nc: (
             _SEVERITY_ORDER.get(nc.severity, 4),
-            -_PRE_TASK_RELEVANCE.get(nc.source_signal, 0.0),
+            -_PRE_TASK_RELEVANCE.get(str(nc.source_signal), 0.0),
             -nc.confidence,
         ),
     )
@@ -201,7 +201,7 @@ def generate_guardrails(
     seen: set[tuple[str, str]] = set()
     unique: list[NegativeContext] = []
     for nc in nc_items:
-        key = (nc.source_signal.value, nc.affected_files[0] if nc.affected_files else "")
+        key = (str(nc.source_signal), nc.affected_files[0] if nc.affected_files else "")
         if key not in seen:
             seen.add(key)
             unique.append(nc)

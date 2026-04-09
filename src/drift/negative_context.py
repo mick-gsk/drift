@@ -1253,7 +1253,7 @@ def negative_context_to_dict(nc: NegativeContext) -> dict[str, Any]:
     return {
         "anti_pattern_id": nc.anti_pattern_id,
         "category": nc.category.value,
-        "source_signal": nc.source_signal.value,
+        "source_signal": nc.source_signal,
         "severity": nc.severity.value,
         "scope": nc.scope.value,
         "description": nc.description,
