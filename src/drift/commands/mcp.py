@@ -2,15 +2,40 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import sys
-from typing import NoReturn
+from typing import Any, Callable, NoReturn
 
 import click
 
 from drift import __version__
 from drift.commands import console
 from drift.errors import DriftSystemError
+
+
+def _load_mcp_entrypoints() -> tuple[Callable[[], list[dict[str, Any]]], Callable[[], None]]:
+    """Import MCP server entrypoints lazily for CLI startup."""
+    module = importlib.import_module("drift.mcp_server")
+    return module.get_tool_catalog, module.main
+
+
+def _is_missing_mcp_dependency(exc: Exception) -> bool:
+    """Return True only when the missing dependency is the optional mcp extra."""
+    if isinstance(exc, ImportError):
+        missing_module = getattr(exc, "name", None)
+        if missing_module == "mcp" or (
+            isinstance(missing_module, str) and missing_module.startswith("mcp.")
+        ):
+            return True
+
+        message = str(exc)
+        return "No module named 'mcp" in message or 'No module named "mcp' in message
+
+    if isinstance(exc, RuntimeError):
+        return "requires optional dependency 'mcp'" in str(exc)
+
+    return False
 
 
 def _raise_missing_mcp_extra(exc: Exception) -> NoReturn:
@@ -120,10 +145,11 @@ def mcp(serve: bool, list_tools: bool, show_schema: bool, allow_tty: bool) -> No
         )
 
     try:
-        from drift.mcp_server import get_tool_catalog
-        from drift.mcp_server import main as mcp_main
+        get_tool_catalog, mcp_main = _load_mcp_entrypoints()
     except ImportError as exc:
-        _raise_missing_mcp_extra(exc)
+        if _is_missing_mcp_dependency(exc):
+            _raise_missing_mcp_extra(exc)
+        raise
 
     if allow_tty:
         _emit_tty_startup_handshake(tools_count=len(get_tool_catalog()))
@@ -131,6 +157,6 @@ def mcp(serve: bool, list_tools: bool, show_schema: bool, allow_tty: bool) -> No
     try:
         mcp_main()
     except RuntimeError as exc:
-        if "requires optional dependency 'mcp'" not in str(exc):
+        if not _is_missing_mcp_dependency(exc):
             raise
         _raise_missing_mcp_extra(exc)

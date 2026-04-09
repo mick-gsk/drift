@@ -641,6 +641,22 @@ class TestCLICommands:
         assert isinstance(result.exception, DriftSystemError)
         assert result.exception.code == "DRIFT-2010"
 
+    def test_mcp_non_mcp_import_error_is_not_rewritten(self, monkeypatch) -> None:
+        from click.testing import CliRunner
+
+        from drift.cli import main
+
+        def _raise_non_mcp_import_error():
+            raise ModuleNotFoundError("No module named 'yaml'", name="yaml")
+
+        monkeypatch.setattr("drift.commands.mcp._load_mcp_entrypoints", _raise_non_mcp_import_error)
+
+        runner = CliRunner()
+        result = runner.invoke(main, ["mcp", "--serve"])
+
+        assert isinstance(result.exception, ModuleNotFoundError)
+        assert getattr(result.exception, "name", None) == "yaml"
+
     def test_mcp_allow_tty_emits_startup_handshake(self, monkeypatch) -> None:
         import json as _json
 
