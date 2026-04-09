@@ -9,8 +9,8 @@ authors:
 repository-code: "https://github.com/mick-gsk/drift"
 url: "https://mick-gsk.github.io/drift/"
 license: MIT
-version: "2.6.2"
-date-released: "2026-04-08"
+version: "2.7.0"
+date-released: "2026-04-09"
 keywords:
   - static-analysis
   - architectural-drift
