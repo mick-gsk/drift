@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Changed
+
+- Expand TypeScript analysis coverage with additional fixtures and parser/signal/output updates for TS architecture, naming consistency, React hooks, and type-safety bypass detection.
+
+### Fixed
+
+- Resolve pre-push lint blocking in TypeScript parser identifier collection by aligning local variable naming with Ruff conventions.
+
 ## [2.8.0] - 2026-04-10
 
 Short version: Introduce calibration hardening and signal quality improvements for AVS, DIA, and MDS.
