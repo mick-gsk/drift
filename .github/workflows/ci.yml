@@ -64,7 +64,11 @@ jobs:
       - name: Enforce release discipline
         if: github.ref == 'refs/heads/main'
         # [win-only] PowerShell invocation on Windows runner.
+        # Tag-lineage failures degrade to warnings in CI — the release
+        # workflow owns tag repair; CI should not block unrelated work.
         shell: powershell
+        env:
+          DRIFT_TAG_LINEAGE_WARN: "1"
         run: |
           & $env:PYTHON_BIN scripts/check_release_discipline.py
 

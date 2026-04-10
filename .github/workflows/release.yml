@@ -90,15 +90,30 @@ jobs:
         if: steps.release.outputs.released == 'true'
         shell: powershell
         run: |
+          $tag = "${{ steps.release.outputs.tag }}"
           $maxRetries = 3
           for ($i = 1; $i -le $maxRetries; $i++) {
-            git push origin main --tags
+            # Push branch and force-push the tag separately.
+            # --tags does NOT force-update existing remote tags;
+            # the explicit -f ensures the re-tagged (post-amend) ref
+            # always overwrites any stale remote tag.
+            git push origin main
+            if ($LASTEXITCODE -ne 0) {
+              if ($i -lt $maxRetries) {
+                Write-Warning "branch push failed (attempt $i/$maxRetries), retrying in $($i * 10)s..."
+                Start-Sleep -Seconds ($i * 10)
+                continue
+              }
+              Write-Error "branch push failed after $maxRetries attempts"
+              exit 1
+            }
+            git push origin "$tag" -f
             if ($LASTEXITCODE -eq 0) { break }
             if ($i -lt $maxRetries) {
-              Write-Warning "git push failed (attempt $i/$maxRetries), retrying in $($i * 10)s..."
+              Write-Warning "tag push failed (attempt $i/$maxRetries), retrying in $($i * 10)s..."
               Start-Sleep -Seconds ($i * 10)
             } else {
-              Write-Error "git push failed after $maxRetries attempts"
+              Write-Error "tag push failed after $maxRetries attempts"
               exit 1
             }
           }
