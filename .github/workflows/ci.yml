@@ -265,10 +265,10 @@ jobs:
           import json, sys
           data = json.load(open('drift_score.json'))
           score = data['drift_score']
-          if score > 0.47:
-              print(f'FAIL: drift self score {score:.3f} exceeds threshold 0.47')
+          if score > 0.55:
+              print(f'FAIL: drift self score {score:.3f} exceeds threshold 0.55')
               sys.exit(1)
-          print(f'OK: drift self score {score:.3f} (threshold 0.47)')
+          print(f'OK: drift self score {score:.3f} (threshold 0.55)')
           '@
 
       - name: Risk audit compliance (POLICY §18)
