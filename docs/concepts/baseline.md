@@ -20,7 +20,7 @@ Dateistruktur (Beispiel):
   "finding_count": 12,
   "findings": [
     {
-      "fingerprint": "a3f8c12d9e4b0167",
+      "fingerprint": "<fingerprint>",
       "signal": "pattern_fragmentation",
       "severity": "high",
       "file": "src/api/handlers.py",
