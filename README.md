@@ -82,7 +82,7 @@ drift analyze --repo . --format json  # full report
 ```
 
 <div align="center">
-  <img src="demos/demo.gif" alt="drift analyze terminal demo" width="720">
+  <img src="demos/demo.gif" alt="drift brief generates guardrails, drift check enforces them — terminal demo" width="720">
 </div>
 
 📖 [Full workflow guide →](docs-site/getting-started/quickstart.md)

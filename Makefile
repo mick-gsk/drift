@@ -33,11 +33,11 @@ lint-fix:  ## Run ruff with auto-fix
 typecheck:  ## Run mypy type checker
 	$(MYPY) src/drift
 
-test:  ## Run tests (skip slow smoke tests)
-	$(PYTEST) -v --tb=short --ignore=tests/test_smoke_real_repos.py
+test:  ## Run tests in parallel (skip slow smoke tests)
+	$(PYTEST) -v --tb=short --ignore=tests/test_smoke_real_repos.py -n auto --dist=loadscope
 
-test-fast:  ## Fast unit tests — stop on first failure
-	$(PYTEST) -v --tb=short -m "not slow" -x --ignore=tests/test_smoke_real_repos.py
+test-fast:  ## Fast unit tests — parallel, skip slow tests, stop on first failure
+	$(PYTEST) -v --tb=short -m "not slow" -x --ignore=tests/test_smoke_real_repos.py -n auto --dist=loadscope
 
 test-contract:  ## SARIF/JSON contract tests only
 	$(PYTEST) -v --tb=short -m contract
@@ -51,16 +51,16 @@ smoke-nightly:  ## Full smoke matrix on all external repos (cached)
 test-all:  ## All tests including slow smoke tests
 	$(PYTEST) -v --tb=short --run-slow --smoke-profile=nightly
 
-coverage:  ## Tests with coverage report
-	$(PYTEST) -q --tb=short --cov=drift --ignore=tests/test_smoke_real_repos.py
+coverage:  ## Tests with coverage report (quick, skips slow tests)
+	$(PYTEST) -q --tb=short --cov=drift --ignore=tests/test_smoke_real_repos.py -p no:xdist
 
-check:  ## Run all checks: lint + typecheck + tests + self-analysis
+check:  ## Run all checks: lint + typecheck + tests (incl. slow) + self-analysis
 	@echo ">>> [1/4] Lint..."
 	@$(MAKE) --no-print-directory lint
 	@echo ">>> [2/4] Type check..."
 	@$(MAKE) --no-print-directory typecheck
-	@echo ">>> [3/4] Tests + coverage..."
-	@$(MAKE) --no-print-directory coverage
+	@echo ">>> [3/4] Tests + coverage (incl. slow)..."
+	@$(PYTEST) -q --tb=short --cov=drift --ignore=tests/test_smoke_real_repos.py --run-slow -p no:xdist
 	@echo ">>> [4/4] Self-analysis..."
 	@$(MAKE) --no-print-directory self
 	@echo ">>> All checks passed."

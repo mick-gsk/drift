@@ -244,7 +244,9 @@ ingestion/ → signals/ → scoring/ → output/
 |---------|--------|
 | Dev-Setup | `make install` |
 | Alle Checks | `make check` |
-| Nur Tests (schnell) | `make test-fast` |
+| Tests schnell (täglich, kein `@pytest.mark.slow`) | `make test-fast` |
+| Tests parallel (inkl. slow) | `make test` |
+| Coverage (sequenziell, kein xdist) | `make coverage` |
 | Lint + Autofix | `make lint-fix` |
 | CI lokal replizieren | `make ci` |
 | Selbstanalyse | `make self` |

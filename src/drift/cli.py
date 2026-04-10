@@ -243,16 +243,19 @@ from drift.commands.init_cmd import init
 from drift.commands.mcp import mcp
 from drift.commands.patterns import patterns
 from drift.commands.precision_cmd import precision
+from drift.commands.preset import preset
 from drift.commands.roi_estimate import roi_estimate
 from drift.commands.scan import scan
 from drift.commands.self_analyze import self_analyze
 from drift.commands.serve import serve
+from drift.commands.session_report import session_report
 from drift.commands.setup import setup
 from drift.commands.start import start
 from drift.commands.status import status
 from drift.commands.timeline import timeline
 from drift.commands.trend import trend
 from drift.commands.validate_cmd import validate
+from drift.commands.visualize import visualize
 from drift.commands.watch import watch
 
 main.add_command(analyze)
@@ -271,9 +274,11 @@ main.add_command(fix_plan)
 main.add_command(mcp)
 main.add_command(patterns)
 main.add_command(precision)
+main.add_command(preset)
 main.add_command(roi_estimate)
 main.add_command(scan)
 main.add_command(serve)
+main.add_command(session_report)
 main.add_command(start)
 main.add_command(status)
 main.add_command(setup)
@@ -282,6 +287,7 @@ main.add_command(trend)
 main.add_command(validate)
 main.add_command(self_analyze)
 main.add_command(badge)
+main.add_command(visualize)
 main.add_command(watch)
 
 

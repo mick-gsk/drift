@@ -275,7 +275,7 @@ make check
 # Or targeted:
 .venv\Scripts\ruff check src/ tests/           # lint
 .venv\Scripts\python -m mypy src/drift         # types
-.venv\Scripts\python -m pytest tests/ -q --ignore=tests/test_smoke.py  # tests
+make test-fast                                  # tests (schnell, ohne @pytest.mark.slow)
 ```
 
 ---

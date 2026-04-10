@@ -28,8 +28,10 @@
 - Increase self-analysis performance budget from 30s to 45s for CI runners (GitHub Actions 2 vCPU observed 32s).
 - Align coverage fail_under threshold (75→73) with CI quick suite (-m "not slow") which measures ~74%.
 - Raise CI drift self-check score gate threshold (0.47→0.55) to match current baseline (~0.52).
+- Stabilize `tests/test_golden_snapshot.py` under Windows/xdist by using per-run cache directories and treating SARIF trend data as volatile for golden comparisons.
+- Fix malformed fixture payload in `tests/test_low_modules_boost3.py` so cross-package allowlist parsing works deterministically in CI.
 
-## [2.9.0] - 2026-04-10
+## [2.9.1] - 2026-04-10
 
 Short version: Introduce calibration hardening and signal quality improvements for AVS, DIA, and MDS.
 

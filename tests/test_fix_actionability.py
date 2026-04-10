@@ -276,6 +276,7 @@ class TestFixTextPresence:
             + "\n".join(f"  [{f.signal_type}] {f.title}" for f in missing_fix[:10])
         )
 
+    @pytest.mark.slow
     def test_self_analysis_fix_coverage(self, self_analysis_findings: list[Finding]) -> None:
         """Optional self-analysis health-check: >=80% of findings should have fix text."""
         if not self_analysis_findings:
@@ -315,6 +316,7 @@ class TestFixTextActionability:
             + "\n".join(failures[:10])
         )
 
+    @pytest.mark.slow
     def test_self_analysis_actionability_rate(
         self, self_analysis_findings: list[Finding]
     ) -> None:
@@ -377,6 +379,7 @@ class TestFixTextSpecificity:
             + "\n".join(generic[:10])
         )
 
+    @pytest.mark.slow
     def test_actionability_report(self, self_analysis_findings: list[Finding]) -> None:
         """Print actionability breakdown for manual review (always passes)."""
         with_fix = [f for f in self_analysis_findings if f.fix]

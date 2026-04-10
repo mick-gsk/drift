@@ -23,6 +23,8 @@ from drift.analyzer import analyze_diff, analyze_repo
 from drift.config import DriftConfig
 from drift.models import Severity
 
+pytestmark = pytest.mark.slow
+
 DRIFT_REPO = Path(__file__).resolve().parent.parent
 
 
@@ -168,8 +170,7 @@ class TestNoGitHistory:
         from drift.models import SignalType
 
         temporal = [
-            f for f in bare_analysis.findings
-            if f.signal_type == SignalType.TEMPORAL_VOLATILITY
+            f for f in bare_analysis.findings if f.signal_type == SignalType.TEMPORAL_VOLATILITY
         ]
         # Temporal findings should be absent (no history) — not errored
         # This is acceptable; the signal simply doesn't fire
@@ -204,8 +205,7 @@ class TestPerformanceBudget:
 
         assert analysis.total_files > 0
         assert elapsed < self.SELF_ANALYSIS_BUDGET_S, (
-            f"Self-analysis took {elapsed:.1f}s, budget is "
-            f"{self.SELF_ANALYSIS_BUDGET_S}s"
+            f"Self-analysis took {elapsed:.1f}s, budget is {self.SELF_ANALYSIS_BUDGET_S}s"
         )
 
     def test_duration_field_accurate(self) -> None:

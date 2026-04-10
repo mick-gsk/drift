@@ -489,7 +489,7 @@ echo ">>> [3/6] Running mypy..."
 echo ">>> [4/6] Running pytest + coverage (excl. smoke tests)..."
 if "$PYTHON_CMD" -m pytest --help 2>/dev/null | grep -Eq -- "--numprocesses|-n[[:space:]]+numprocesses|-n[[:space:]]+NUM"; then
 	echo ">>> [4/6] xdist detected: running tests in parallel mode (-n auto)."
-	"$PYTHON_CMD" -m pytest -q --tb=short -n auto --dist=worksteal --cov --cov-report= --ignore=tests/test_smoke_real_repos.py
+	"$PYTHON_CMD" -m pytest -q --tb=short -n auto --dist=loadscope --cov --cov-report= --ignore=tests/test_smoke_real_repos.py
 else
 	echo ">>> [4/6] xdist not available: running tests in serial mode."
 	"$PYTHON_CMD" -m pytest -q --tb=short --cov --cov-report= --ignore=tests/test_smoke_real_repos.py

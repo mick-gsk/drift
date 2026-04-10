@@ -94,15 +94,15 @@ Nachdem `nudge` kein Degrading meldet, **gezielte Tests** für die geänderte Da
 | `src/drift/signals/cohesion_deficit*` | `pytest tests/test_cohesion_deficit*.py -q --tb=short` |
 | `src/drift/signals/bypass_accumulation*` | `pytest tests/test_bypass_accumulation*.py -q --tb=short` |
 | `src/drift/signals/*` (andere) | `pytest tests/test_precision_recall.py tests/test_mirofish_signal_improvements.py -q --tb=short` |
-| `src/drift/api.py` | `pytest tests/test_brief.py tests/test_integration.py tests/test_incremental.py tests/test_fix_actionability.py tests/test_nudge.py -q --tb=short` |
+| `src/drift/api.py` | `pytest tests/test_brief.py tests/test_integration.py tests/test_incremental.py tests/test_fix_actionability.py tests/test_nudge.py -q --tb=short -m "not slow"` |
 | `src/drift/mcp_server.py` | `pytest tests/test_mcp_copilot.py tests/test_mcp_hardening.py tests/test_tool_metadata.py tests/test_negative_context_export.py -q --tb=short` |
 | `src/drift/output/*` | `pytest tests/test_json_output.py tests/test_csv_output.py tests/test_sarif_contract.py tests/test_output_golden.py tests/test_agent_tasks.py -q --tb=short` |
 | `src/drift/ingestion/*` | `pytest tests/test_ast_parser.py tests/test_file_discovery.py tests/test_scope_resolver.py tests/test_typescript_parser.py -q --tb=short` |
 | `src/drift/config.py` | `pytest tests/test_config.py tests/test_config_validate.py tests/test_model_consistency.py -q --tb=short` |
-| `src/drift/commands/*` | `pytest tests/test_self_command.py tests/test_patterns_command.py tests/test_ci_reality.py -q --tb=short` |
+| `src/drift/commands/*` | `pytest tests/test_patterns_command.py -q --tb=short` |
 | `src/drift/session.py` | `pytest tests/test_session.py -q --tb=short` |
 | `src/drift/incremental.py` | `pytest tests/test_incremental.py tests/test_nudge.py -q --tb=short` |
-| Fallback (kein Treffer) | `pytest tests/ -q --tb=short --ignore=tests/test_smoke_real_repos.py --maxfail=5` |
+| Fallback (kein Treffer) | `pytest tests/ -q --tb=short --ignore=tests/test_smoke_real_repos.py -m "not slow" --maxfail=5` |
 
 **Bei Testfehlschlag — Entscheidungsbaum:**
 

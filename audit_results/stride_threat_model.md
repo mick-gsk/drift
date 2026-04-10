@@ -1,5 +1,20 @@
 # STRIDE Threat Model
 
+## 2026-04-10 - Output channel extension: session report + TUI visualize
+
+- Scope: Additive CLI output surfaces for session effectiveness rendering (`drift session-report`) and optional interactive dashboard rendering (`drift visualize`) via `textual`.
+- Input path changes: No new external input boundary. `session-report` reads local `.drift-session-*.json` files already produced by drift workflows.
+- Output path changes: Yes - new terminal rendering paths via `session_renderer.py` and `tui_renderer.py`.
+- External interface changes: Additive only. Existing analyze/check/scan output contracts remain unchanged.
+- Trust boundary: No new network or privilege boundary. Optional dependency loading (`textual`) occurs in-process and is explicitly guarded.
+- STRIDE review:
+	- S (Spoofing): No identity or authentication boundary change.
+	- T (Tampering): Low risk. Renderers consume in-process analysis/session data and local files; malformed session files are handled with explicit parse errors.
+	- R (Repudiation): Improved readability of session KPI/audit context, no change to provenance model.
+	- I (Information Disclosure): No new data classes. Outputs display existing drift/session fields only.
+	- D (Denial of Service): Low risk. TUI path is optional and user-invoked; non-availability of `textual` fails fast with a clear message.
+	- E (Elevation of Privilege): No privilege boundary change.
+
 ## 2026-04-10 - ADR-043: Shared First-Run Summary Contract
 
 - Scope: Additive first-run guidance block shared by `drift analyze --format json`, Rich terminal output, and `drift status`. The change introduces a common prioritization helper in `finding_rendering.py`, a new `first_run` top-level JSON block in `json_output.py`, and a `Start Here` / `Starte hier` panel in `rich_output.py`. `status.py` now reuses the same prioritized findings and next-step summary instead of local sorting.

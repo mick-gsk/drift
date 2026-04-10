@@ -1,5 +1,20 @@
 # Risk Register
 
+## 2026-04-10 - Output channel extension: session report + TUI visualize
+
+- Risk ID: RISK-OUTPUT-2026-04-10-SESSION-TUI
+- Component: `src/drift/commands/session_report.py`, `src/drift/output/session_renderer.py`, `src/drift/commands/visualize.py`, `src/drift/output/tui_renderer.py`, `src/drift/cli.py`
+- Type: Output path extension (additive, optional)
+- Description: New CLI output surfaces add session-effectiveness rendering (`drift session-report`) and an optional interactive Textual dashboard (`drift visualize`). The underlying analysis engine is unchanged, but user-facing output paths and rendering logic are expanded.
+- Trigger: Running `drift session-report` with session files or invoking `drift visualize` with the optional `tui` dependency.
+- Impact: Low to Medium. Misrendered or misleading presentation can reduce actionability even when findings remain correct.
+- Mitigation:
+  - `drift visualize` is dependency-gated and exits explicitly when `textual` is unavailable.
+  - Additive output path only; no scoring or finding-generation logic changed.
+  - Dedicated command/output tests added (`tests/test_session_report.py`, `tests/test_visualize.py`, renderer-focused coverage tests).
+  - Golden-snapshot stability hardened for Windows/xdist to reduce CI flakiness in output validation.
+- Residual risk: Low. Primary residual risk is UX-level misinterpretation in new renderers, bounded by dedicated tests and non-invasive integration.
+
 ## 2026-04-10 - ADR-043: Shared First-Run Summary Contract
 
 - Risk ID: RISK-OUTPUT-2026-04-10-043

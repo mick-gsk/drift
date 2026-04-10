@@ -10,9 +10,13 @@
         "pytest",
         "tests/",
         "--tb=short",
-        "--ignore=tests/test_smoke.py",
+        "--ignore=tests/test_smoke_real_repos.py",
+        "-m",
+        "not slow",
         "-q",
-        "--maxfail=1"
+        "-n",
+        "auto",
+        "--dist=loadscope"
       ],
       "group": "test",
       "problemMatcher": []
