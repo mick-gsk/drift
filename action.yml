@@ -1,5 +1,5 @@
-name: "Drift — Architectural Drift Check"
-description: "Deterministic architectural drift detection for AI-accelerated Python codebases. Finds architecture erosion through cross-file coherence signals."
+name: "Drift — AI Code Coherence Monitor"
+description: "Catches structural erosion from AI-generated code that passes all your tests. Quality control layer for AI-assisted Python development."
 
 branding:
   icon: "activity"
@@ -162,8 +162,12 @@ runs:
         t = d.get('trend')
         if t and t.get('delta') is not None:
             delta = t['delta']
-            arrow = '⬆' if delta > 0.005 else '⬇' if delta < -0.005 else '→'
-            print(f'{delta:+.2f} {arrow}')
+            if delta > 0.005:
+                print(f'🔴 {delta:+.3f} ▲ degrading')
+            elif delta < -0.005:
+                print(f'🟢 {delta:+.3f} ▼ improving')
+            else:
+                print(f'⚪ {delta:+.3f} → stable')
         else:
             print('N/A')
         ")
@@ -198,10 +202,27 @@ runs:
             print(f'| {sig} | {title} | \`{loc_str}\` | {fix} |')
         " 2>/dev/null || echo "| — | Analysis produced no ranked findings | — | — |")
 
+        # Determine score badge color
+        if (( $(echo "${SCORE} >= 0.8" | bc -l) )); then
+          BADGE_COLOR="critical"
+        elif (( $(echo "${SCORE} >= 0.6" | bc -l) )); then
+          BADGE_COLOR="orange"
+        elif (( $(echo "${SCORE} >= 0.4" | bc -l) )); then
+          BADGE_COLOR="yellow"
+        elif (( $(echo "${SCORE} >= 0.2" | bc -l) )); then
+          BADGE_COLOR="yellowgreen"
+        else
+          BADGE_COLOR="brightgreen"
+        fi
+
+        SCORE_BADGE="![Drift Score](https://img.shields.io/badge/drift%20score-${SCORE}-${BADGE_COLOR}?style=flat-square)"
+
         # Compose markdown comment body
         {
           echo "comment-body<<DRIFT_EOF"
           echo "## 🏗️ Drift Report"
+          echo ""
+          echo "${SCORE_BADGE}"
           echo ""
           echo "| Metric | Value |"
           echo "|--------|-------|"

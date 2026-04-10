@@ -290,7 +290,8 @@
     max-width: 460px;
   }
   .drift-cta-cmd {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     font-family: var(--drift-mono);
     font-size: 0.86rem;
     background: var(--md-code-bg-color);
@@ -299,6 +300,34 @@
     padding: 0.6rem 1.2rem;
     color: var(--md-default-fg-color);
     margin-bottom: 1.5rem;
+  }
+
+  /* ─── Copy button for command boxes ─── */
+  .drift-copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 0 0 0.75rem;
+    margin-left: auto;
+    color: var(--md-default-fg-color--light);
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity 0.15s ease, color 0.15s ease;
+    line-height: 1;
+  }
+  .drift-copy-btn:hover {
+    opacity: 1;
+    color: var(--drift-accent);
+  }
+  .drift-copy-btn.copied {
+    color: var(--drift-accent);
+    opacity: 1;
+  }
+  .drift-copy-btn svg {
+    width: 13px;
+    height: 13px;
   }
   .drift-cta-links {
     display: flex;
@@ -825,15 +854,15 @@
     <div class="drift-install-group">
       <div class="drift-install-col">
         <div class="drift-install-label">Human dev</div>
-        <div class="drift-install-box"><span class="drift-dollar">$</span> pip install drift-analyzer</div>
+        <div class="drift-install-box" data-copy="pip install drift-analyzer"><span class="drift-dollar">$</span> pip install drift-analyzer<button class="drift-copy-btn" aria-label="Copy command"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" fill="currentColor"/></svg></button></div>
       </div>
       <div class="drift-install-col">
         <div class="drift-install-label">Agent setup (MCP)</div>
-        <div class="drift-install-box outline"><span class="drift-dollar">$</span> pip install drift-analyzer[mcp]</div>
+        <div class="drift-install-box outline" data-copy="pip install drift-analyzer[mcp]"><span class="drift-dollar">$</span> pip install drift-analyzer[mcp]<button class="drift-copy-btn" aria-label="Copy command"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" fill="currentColor"/></svg></button></div>
       </div>
       <div class="drift-install-col">
         <div class="drift-install-label">Zero-install</div>
-        <div class="drift-install-box outline"><span class="drift-dollar">$</span> uvx drift-analyzer analyze --repo .</div>
+        <div class="drift-install-box outline" data-copy="uvx drift-analyzer analyze --repo ."><span class="drift-dollar">$</span> uvx drift-analyzer analyze --repo .<button class="drift-copy-btn" aria-label="Copy command"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" fill="currentColor"/></svg></button></div>
       </div>
     </div>
   </div>
@@ -1126,11 +1155,11 @@ Show me the top 3 findings and explain what each one means.</pre>
   <div class="drift-cta-cmds">
     <div class="drift-cta-cmd-col">
       <div class="drift-cta-cmd-label">Human dev</div>
-      <div class="drift-cta-cmd"><span class="drift-dollar">$ </span>pip install drift-analyzer &amp;&amp; drift analyze --repo .</div>
+      <div class="drift-cta-cmd" data-copy="pip install drift-analyzer && drift analyze --repo ."><span class="drift-dollar">$ </span>pip install drift-analyzer &amp;&amp; drift analyze --repo .<button class="drift-copy-btn" aria-label="Copy command"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" fill="currentColor"/></svg></button></div>
     </div>
     <div class="drift-cta-cmd-col">
       <div class="drift-cta-cmd-label">Agent setup</div>
-      <div class="drift-cta-cmd"><span class="drift-dollar">$ </span>pip install drift-analyzer[mcp] &amp;&amp; drift init --mcp</div>
+      <div class="drift-cta-cmd" data-copy="pip install drift-analyzer[mcp] && drift init --mcp"><span class="drift-dollar">$ </span>pip install drift-analyzer[mcp] &amp;&amp; drift init --mcp<button class="drift-copy-btn" aria-label="Copy command"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" fill="currentColor"/></svg></button></div>
     </div>
   </div>
   <div class="drift-cta-links">
@@ -1144,6 +1173,29 @@ Show me the top 3 findings and explain what each one means.</pre>
 </section>
 
 </div>
+
+<script>
+(function () {
+  var COPY_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" fill="currentColor"/></svg>';
+  var CHECK_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" fill="currentColor"/></svg>';
+
+  document.querySelectorAll('.drift-copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var box = btn.closest('[data-copy]');
+      var text = box ? box.getAttribute('data-copy') : '';
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(function () {
+        btn.innerHTML = CHECK_ICON;
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.innerHTML = COPY_ICON;
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+  });
+})();
+</script>
 
 {% endblock %}
 

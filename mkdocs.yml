@@ -1,8 +1,8 @@
-site_name: Drift — Codebase Coherence Analyzer
+site_name: Drift — AI Code Coherence Monitor
 site_url: https://mick-gsk.github.io/drift/
 repo_url: https://github.com/mick-gsk/drift
 repo_name: mick-gsk/drift
-site_description: Surface architectural drift, architecture degradation, and technical debt patterns in AI-assisted codebases
+site_description: Catches structural erosion from AI-generated code that passes all your tests — quality control layer for AI-assisted Python development
 
 docs_dir: docs-site
 
@@ -91,6 +91,7 @@ extra:
 
 nav:
   - Home: index.md
+  - What is Architectural Drift?: what-is-architectural-drift.md
   - Quickstart: guides/quickstart.md
   - Guides:
     - Agent-Workflow: guides/agent-workflow.md
@@ -104,3 +105,4 @@ nav:
   - Referenz:
     - Commands: reference/commands.md
     - Konfiguration: reference/configuration.md
+  - Community Poll: roadmap-poll.md

@@ -1,13 +1,13 @@
 ---
 template: home.html
-title: Drift — Architecture Erosion Detection for AI-Assisted Python Development
-description: Deterministic static analyzer that detects cross-file coherence problems in AI-assisted Python codebases — pattern fragmentation, architecture violations, and near-duplicate code. Agent-native (MCP), 23 signals, 97% precision, no LLM.
+title: Drift — Catches What AI Coding Tools Break Silently
+description: Quality control layer for AI-generated Python code. Detects structural erosion across files that passes linters, type checkers, and tests — pattern fragmentation, architecture violations, and near-duplicate code. Agent-native (MCP), 24 signals, 97% precision, no LLM.
 ---
 
 <!-- Primary content is rendered by overrides/home.html template. -->
 <!-- Below: supplementary text for search engines and MkDocs site search. -->
 
-Drift is a deterministic static analyzer for **architectural erosion** in AI-assisted Python codebases. AI code generation creates structural drift — identical helpers across files, broken layer boundaries, inconsistent error handling. Drift detects it deterministically: cross-file coherence problems that pass tests but make code progressively harder to change.
+AI coding tools generate code that works — but silently erode structural consistency. Drift catches this before it compounds. It detects cross-file coherence problems that pass tests but make code progressively harder to change: identical helpers across files, broken layer boundaries, inconsistent error handling.
 
 Unlike linters (Ruff, pylint) which check single files, or security scanners (Semgrep, CodeQL) which trace data flows, Drift operates **across module boundaries** — analyzing AST structure and git history to surface structural degradation. No LLM, no cloud calls: same repo, same commit, same results.
 
@@ -58,6 +58,11 @@ Drift parses Python via AST, analyzes git history, runs 23 detection signals, an
 - [Team Rollout](getting-started/team-rollout.md) — start report-only, tighten over time
 - [Case Studies](case-studies/index.md) — FastAPI, Pydantic, Django, Paramiko
 - [Contributing](contributing.md) — the fastest way to help is reporting a false positive
+- [What is Architectural Drift?](what-is-architectural-drift.md) — the category explained, with symptoms and solutions
+
+---
+
+**Shape the roadmap:** [Anonymous community poll](roadmap-poll.md) — 30 seconds, no account required.
 
 ## Agent-Native Features
 

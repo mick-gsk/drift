@@ -18,5 +18,5 @@ keywords:
   - technical-debt
   - python
 abstract: >-
-  Deterministic architectural drift detection for AI-accelerated
-  Python repositories through cross-file coherence analysis.
+  Quality control layer for AI-generated Python code. Catches structural
+  erosion across files that passes linters, type checkers, and tests.

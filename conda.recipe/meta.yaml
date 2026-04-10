@@ -62,8 +62,8 @@ about:
   license: MIT
   license_file: LICENSE
   summary: >-
-    Deterministic architectural drift detection for AI-accelerated Python repositories
-    through cross-file coherence analysis.
+    Catches structural erosion from AI-generated code — the bugs that pass
+    all your tests.
   description: |
     Drift is a static analyzer that detects and scores architectural erosion in
     Python codebases. It finds pattern fragmentation, architecture violations,

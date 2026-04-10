@@ -1,6 +1,6 @@
 # drift-analyzer
 
-> Deterministic architectural drift detection for AI-accelerated Python codebases. Drift is a static analyzer for architecture erosion analysis and cross-file coherence detection, covering pattern fragmentation, architecture violations, dependency cycles, mutant duplicates, and structural technical debt. No LLM in the detection pipeline.
+> Catches what AI coding tools break silently — structural erosion across files that passes all your tests. Drift is a quality control layer for AI-generated Python code: pattern fragmentation, architecture violations, mutant duplicates, and 21 more structural signals. No LLM in the detection pipeline.
 
 Release status: v2.8.0
 

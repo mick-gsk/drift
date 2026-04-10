@@ -2,11 +2,14 @@
 
 # Drift
 
-**Keep your codebase coherent as AI generates more of it.**
+**Catches what AI coding tools break silently — structural erosion across files that passes all your tests.**
+
+*Quality control layer for AI-generated Python code*
 
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![Python versions](https://img.shields.io/pypi/pyversions/drift-analyzer)](https://pypi.org/project/drift-analyzer/)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.50-yellow?style=flat)](docs/STUDY.md)
 [![codecov](https://codecov.io/gh/mick-gsk/drift/branch/main/graph/badge.svg)](https://codecov.io/gh/mick-gsk/drift)
 [![License](https://img.shields.io/github/license/mick-gsk/drift)](LICENSE)
 
@@ -14,7 +17,7 @@
 
 </div>
 
-Drift keeps your codebase coherent as AI generates more of it.
+AI coding tools generate code that works — but silently erode structural consistency. Drift catches this before it compounds.
 
 It detects when the same problem gets solved four different ways across files, when database logic leaks into the API layer, and when AI-generated scaffolding creates structural duplication — without an LLM in the pipeline. Findings come with file locations, severity, and a concrete next step.
 
