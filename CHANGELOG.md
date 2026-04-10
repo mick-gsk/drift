@@ -20,6 +20,7 @@
 
 ### Fixed
 
+- Exclude intentional secret-like test fixtures (`tests/golden/corpus_snapshot.sarif`, `tests/fixtures/ground_truth.py`) from `detect-secrets` pre-commit scanning to keep Security Hygiene CI stable.
 - Resolve pre-push lint blocking in TypeScript parser identifier collection by aligning local variable naming with Ruff conventions.
 - Increase self-analysis performance budget from 30s to 45s for CI runners (GitHub Actions 2 vCPU observed 32s).
 - Align coverage fail_under threshold (75→73) with CI quick suite (-m "not slow") which measures ~74%.
