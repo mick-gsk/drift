@@ -858,6 +858,19 @@
       "title": "Exclude",
       "type": "array"
     },
+    "extends": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Name of a built-in preset to inherit from (e.g. 'vibe-coding', 'strict', 'fastapi', 'library', 'monorepo'). User-level fields override preset defaults.",
+      "title": "Extends"
+    },
     "fail_on": {
       "default": "high",
       "title": "Fail On",
