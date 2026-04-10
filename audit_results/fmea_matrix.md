@@ -1,5 +1,13 @@
 # FMEA Matrix
 
+## 2026-04-10 - TypeScript signal expansion: TSB + NCV TS checks
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| TSB | FP: intentional TypeScript escape hatch flagged as architectural bypass | `as any`, non-null assertions, or `@ts-ignore` used intentionally in migration or framework boundary code | Extra noise in TS-heavy repositories and lower prioritization trust | Dedicated fixtures in `tests/fixtures/typescript/type_safety_bypass/` and `tests/test_type_safety_bypass.py` | Keep severity bounded and rely on focused evidence in metadata for triage | 5 | 4 | 4 | 80 | Open (bounded) |
+| TSB | FN: bypass pattern missed in nested or syntax-variant cast forms | AST shape variance across TS/TSX files or parser edge cases | Real type-safety erosion is under-reported | Parser and signal tests across clean/moderate/severe fixtures | Keep detection logic AST-based and add regression fixtures for new syntax variants | 7 | 3 | 4 | 84 | Open (bounded) |
+| NCV | FP: mixed naming conventions reported in codebases with deliberate multi-style boundaries | Cross-team or generated-code coexistence intentionally mixes interface/generic conventions | Increased low-severity findings and possible alert fatigue | `tests/test_ts_naming_consistency.py` + fixture matrix | Low severity, convention ratio thresholds, and file-level context in findings | 4 | 5 | 4 | 80 | Mitigated |
+
 ## 2026-04-13 - ADR-036/037/038: AVS/DIA/MDS FP-Reduction
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

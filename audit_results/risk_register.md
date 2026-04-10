@@ -1,5 +1,19 @@
 # Risk Register
 
+## 2026-04-10 - TypeScript signal expansion and parser/output wiring hardening
+
+- Risk ID: RISK-TS-SIGNALS-2026-04-10
+- Component: `src/drift/signals/type_safety_bypass.py`, `src/drift/signals/naming_contract_violation.py`, `src/drift/signals/ts_architecture.py`, `src/drift/ingestion/ts_parser.py`, `src/drift/output/agent_tasks.py`, `src/drift/models.py`
+- Type: New signal + signal behavior change + ingestion/output path adjustments
+- Description: TypeScript analysis coverage was expanded with a dedicated type-safety-bypass detector and additional TS naming/architecture checks. Parser extraction and agent-task output shaping were adjusted to surface the new findings consistently.
+- Severity: Medium
+- Likelihood: Low to Medium
+- Mitigation:
+  - New focused TS fixture suites for export detection, naming consistency, React hooks, and type-safety bypass
+  - Golden cache artifacts updated for deterministic corpus behavior
+  - Pre-commit lint gate enforced and fixed for touched files
+- Residual risk: Medium-Low. Main residual risk is precision drift in heterogeneous TS codebases with mixed naming conventions or intentional casts.
+
 ## 2026-04-13 - ADR-036/037/038: AVS/DIA/MDS FP-Reduction
 
 - Risk ID: RISK-SIGNAL-2026-04-13-036-037-038

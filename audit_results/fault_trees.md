@@ -1,5 +1,39 @@
 # Fault Tree Analysis
 
+## 2026-04-10 - TS Type-Safety-Bypass detection path
+
+### Top Event (TE-0)
+Type-safety bypass in TypeScript files is not reported or is over-reported after signal expansion.
+
+### FT-1: False negative branch
+
+```
+        TE-FN: real TS bypass missed
+           |
+            AND-Gate
+       +-----------+-----------+
+      IE-1: AST form not       IE-2: bypass syntax
+        matched by rule           present only in
+        matcher                    unsupported variant
+```
+
+- MCS-1: unsupported AST variant + bypass expression present -> FN
+- Mitigation: add variant fixtures and keep AST walker coverage broad across TS and TSX.
+
+### FT-2: False positive branch
+
+```
+        TE-FP: intentional TS escape flagged
+           |
+            AND-Gate
+       +-----------+-----------+
+      IE-1: project allows     IE-2: expression matches
+        controlled escapes       generic bypass rule
+```
+
+- MCS-1: controlled migration escape + generic pattern match -> FP
+- Mitigation: low severity defaults, metadata detail for quick triage, fixture coverage for clean/moderate/severe examples.
+
 ## 2026-04-13 - ADR-036/037/038: AVS/DIA/MDS FP-Reduction
 
 ### Top Event (TE-0)
