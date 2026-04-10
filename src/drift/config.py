@@ -42,6 +42,7 @@ class PolicyConfig(BaseModel):
     ai_attribution: dict[str, Any] = Field(default_factory=dict)
     allowed_cross_layer: list[str] = Field(default_factory=list)
     lazy_import_rules: list[LazyImportRule] = Field(default_factory=list)
+    omnilayer_dirs: list[str] = Field(default_factory=list)
 
 
 class ThresholdsConfig(BaseModel):
@@ -414,6 +415,13 @@ class CalibrationConfig(BaseModel):
         default=20,
         description="Maximum number of scan snapshots to retain.",
     )
+    threshold_adaptation_enabled: bool = Field(
+        default=False,
+        description=(
+            "Enable adaptive threshold adjustment per signal based on "
+            "feedback metrics.  Experimental — disabled by default."
+        ),
+    )
 
 
 class AttributionConfig(BaseModel):
@@ -474,6 +482,15 @@ class PluginConfig(BaseModel):
     )
 
 
+class DocImplDriftConfig(BaseModel):
+    """DIA-specific configuration for doc-implementation drift detection."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    extra_auxiliary_dirs: list[str] = Field(default_factory=list)
+    extra_context_keywords: list[str] = Field(default_factory=list)
+
+
 class DriftConfig(BaseModel):
     """Main drift configuration, loaded from drift.yaml."""
 
@@ -522,6 +539,7 @@ class DriftConfig(BaseModel):
     finding_context: FindingContextPolicy = Field(default_factory=FindingContextPolicy)
     brief: BriefConfig = Field(default_factory=BriefConfig)
     plugins: PluginConfig = Field(default_factory=PluginConfig)
+    dia: DocImplDriftConfig = Field(default_factory=DocImplDriftConfig)
     calibration: CalibrationConfig = Field(default_factory=CalibrationConfig)
     attribution: AttributionConfig = Field(default_factory=AttributionConfig)
     agent: AgentObjective | None = Field(

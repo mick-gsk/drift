@@ -1,5 +1,58 @@
 # Fault Tree Analysis
 
+## 2026-04-13 - ADR-036/037/038: AVS/DIA/MDS FP-Reduction
+
+### Top Event (TE-0)
+FP-reduction logic incorrectly suppresses a true positive finding for AVS, DIA, or MDS.
+
+### FT-1: AVS models Omnilayer false negative
+
+```
+                         TE-AVS: real models/ violation missed
+                                      |
+                                   AND-Gate
+                         +------------+------------+
+                   IE-1: models/ is      IE-2: project uses models/
+                   in _OMNILAYER_DIRS    as strict DB layer (rare)
+```
+
+- MCS-1: `models` in Omnilayer AND project treats it as strict layer → FN
+- Mitigation: configurable `omnilayer_dirs` — user can remove `models` if their project needs strict layer enforcement
+
+### FT-2: MDS protocol skip false negative
+
+```
+                         TE-MDS: real protocol duplication missed
+                                      |
+                                   AND-Gate
+                         +------------+------------+
+                   IE-1: function name   IE-2: classes have genuinely
+                   in _PROTOCOL_METHOD_  duplicated non-trivial body
+                   NAMES                 beyond protocol interface
+```
+
+- MCS-1: Protocol-method name match AND genuine duplication → FN
+- Mitigation: protocol set is narrow (20 names); only bare-name + different-class qualifies
+
+### FT-3: MDS thin-wrapper false negative
+
+```
+                         TE-MDS: wrapper with real behavior missed
+                                      |
+                                   AND-Gate
+                         +------------+------------+
+                   IE-1: LOC <= 5        IE-2: wrapper adds
+                                         meaningful transform
+                                         (not just delegation)
+```
+
+- MCS-1: Short function with single Call AND meaningful transform → FN
+- Mitigation: `_is_thin_wrapper` requires exactly 1 Call node; any additional logic breaks the gate
+
+### Verification
+- Ground-truth fixtures: `AVS_MODELS_OMNILAYER_TN`, `MDS_CONFOUNDER_PROTOCOL_METHODS_TN`, `MDS_CONFOUNDER_THIN_WRAPPER_TN`, `MDS_CONFOUNDER_NAME_DIVERSE_TN`
+- Precision/recall test: `pytest tests/test_precision_recall.py -v`
+
 ## 2026-04-12 - ADR-035: PHR calibration over-suppression risk
 
 ### Top Event (TE-0)

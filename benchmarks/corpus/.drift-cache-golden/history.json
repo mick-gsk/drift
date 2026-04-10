@@ -1,21 +1,20 @@
 [
   {
-    "timestamp": "2026-04-09T18:52:33.846144+00:00",
-    "drift_score": 0.373,
+    "timestamp": "2026-04-10T06:33:14.414685+00:00",
+    "drift_score": 0.483,
     "signal_scores": {
-      "architecture_violation": 0.1145,
       "cognitive_complexity": 0.5357,
       "dead_code_accumulation": 0.8146,
       "doc_impl_drift": 0.2435,
       "explainability_deficit": 0.4673,
       "guard_clause_deficit": 0.4698,
-      "mutant_duplicate": 0.8532,
+      "mutant_duplicate": 0.7723,
       "naming_contract_violation": 0.3469,
       "pattern_fragmentation": 0.1445,
       "test_polarity_deficit": 0.1734
     },
     "total_files": 26,
-    "total_findings": 64,
+    "total_findings": 62,
     "scope": "repo"
   }
 ]

@@ -78,6 +78,103 @@ def _parse_csv_ids(raw: str | None) -> list[str] | None:
     return values or None
 
 
+def _can_use_session_fix_plan_fast_path(
+    *,
+    session: Any,
+    path: str,
+    signal: str | None,
+    automation_fit_min: str | None,
+    target_path: str | None,
+    exclude_paths: list[str] | None,
+    include_deferred: bool,
+    include_non_operational: bool,
+    response_profile: str | None,
+) -> bool:
+    """Return True when drift_fix_plan can be served from session queue state."""
+    if session is None or not session.selected_tasks:
+        return False
+    if path not in ("", "."):
+        return False
+    if signal is not None:
+        return False
+    if automation_fit_min is not None:
+        return False
+    if target_path is not None:
+        return False
+    if exclude_paths:
+        return False
+    if include_deferred:
+        return False
+    if include_non_operational:
+        return False
+    return response_profile is None
+
+
+def _session_fix_plan_fast_response(session: Any, *, max_tasks: int) -> dict[str, Any]:
+    """Build a fix-plan response directly from the session task queue."""
+    queue = session.queue_status()
+    pending_ids = [
+        task.get("id")
+        for task in queue.get("pending_tasks", [])
+        if isinstance(task, dict) and task.get("id")
+    ]
+
+    selected_tasks = session.selected_tasks or []
+    task_by_id = {
+        str(task.get("id", task.get("task_id", ""))): task
+        for task in selected_tasks
+        if isinstance(task, dict)
+    }
+    pending_tasks = [
+        task_by_id[str(task_id)]
+        for task_id in pending_ids
+        if str(task_id) in task_by_id
+    ]
+
+    limit = max(0, max_tasks)
+    limited = pending_tasks[:limit]
+    remaining = pending_tasks[len(limited):]
+
+    remaining_by_signal: dict[str, int] = {}
+    for task in remaining:
+        signal = str(task.get("signal", "UNKNOWN"))
+        remaining_by_signal[signal] = remaining_by_signal.get(signal, 0) + 1
+
+    response = {
+        "status": "ok",
+        "drift_score": round(float(session.last_scan_score), 3)
+        if session.last_scan_score is not None
+        else None,
+        "drift_score_scope": "context:fix-plan,signals:session,path:session-default",
+        "tasks": limited,
+        "task_count": len(limited),
+        "total_available": len(pending_tasks),
+        "remaining_by_signal": remaining_by_signal,
+        "recommended_next_actions": [
+            "drift_nudge after each fix for fast directional feedback",
+            "drift_diff(uncommitted=True) before final accept/commit",
+        ],
+        "agent_instruction": (
+            "Served fix-plan from session task queue cache (no full re-analysis). "
+            "Call drift_nudge after applying the selected task, then request the next "
+            "task with drift_fix_plan(max_tasks=1)."
+        ),
+        "next_tool_call": {
+            "tool": "drift_nudge",
+        },
+        "fallback_tool_call": {
+            "tool": "drift_diff",
+            "params": {"uncommitted": True},
+        },
+        "done_when": "accept_change == true OR (drift_detected == false AND score_delta <= 0)",
+        "cache": {
+            "hit": True,
+            "source": "session.fix_plan_queue",
+        },
+    }
+    return response
+
+
 async def _run_api_tool(tool_name: str, api_fn: Any, **kwargs: Any) -> str:
     def _sync() -> str:
         try:
@@ -658,6 +755,27 @@ async def drift_fix_plan(
     blocked = _strict_guardrail_block_response("drift_fix_plan", session)
     if blocked is not None:
         return blocked
+    parsed_exclude_paths = _parse_csv_ids(exclude_paths)
+
+    if _can_use_session_fix_plan_fast_path(
+        session=session,
+        path=path,
+        signal=signal,
+        automation_fit_min=automation_fit_min,
+        target_path=target_path,
+        exclude_paths=parsed_exclude_paths,
+        include_deferred=include_deferred,
+        include_non_operational=include_non_operational,
+        response_profile=response_profile,
+    ):
+        cached_result = _session_fix_plan_fast_response(session, max_tasks=max_tasks)
+        _update_session_from_fix_plan(session, cached_result)
+        return _enrich_response_with_session(
+            json.dumps(cached_result, default=str),
+            session,
+            "drift_fix_plan",
+        )
+
     kwargs = _session_defaults(session, {
         "path": path,
         "target_path": target_path,
@@ -673,7 +791,7 @@ async def drift_fix_plan(
         max_tasks=max_tasks,
         automation_fit_min=automation_fit_min,
         target_path=kwargs["target_path"],
-        exclude_paths=_parse_csv_ids(exclude_paths),
+        exclude_paths=parsed_exclude_paths,
         include_deferred=include_deferred,
         include_non_operational=include_non_operational,
         response_profile=response_profile,
@@ -2018,6 +2136,10 @@ async def drift_feedback(
         str,
         Field(description="Optional reason for the verdict."),
     ] = "",
+    start_line: Annotated[
+        int,
+        Field(description="Start line of the finding for line-precise feedback (0 = not set)."),
+    ] = 0,
     path: Annotated[
         str,
         Field(description="Repository path."),
@@ -2038,6 +2160,7 @@ async def drift_feedback(
         file_path: File path the finding relates to.
         verdict: 'tp', 'fp', or 'fn'.
         reason: Optional reason for the verdict.
+        start_line: Start line of the finding (0 means not set).
         path: Repository path.
         session_id: Optional session ID for stateful workflows.
     """
@@ -2060,6 +2183,7 @@ async def drift_feedback(
             file_path=file_path,
             verdict=v,  # type: ignore[arg-type]
             source="user",
+            start_line=start_line if start_line > 0 else None,
             evidence={"reason": reason} if reason else {},
         )
         feedback_path = repo / cfg.calibration.feedback_path

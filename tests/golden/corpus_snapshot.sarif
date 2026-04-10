@@ -92,7 +92,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_postgres ↔ connect_redis\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:17 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_redis\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:17 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -124,7 +124,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_postgres ↔ connect_mongodb\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:26 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_mongodb\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:26 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -156,7 +156,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_postgres ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:35 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:35 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -188,7 +188,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_postgres ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -220,7 +220,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_postgres ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -252,7 +252,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_postgres ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -284,7 +284,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_postgres ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:8 and src\\myapp\\connectors\\db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -316,7 +316,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_redis ↔ connect_mongodb\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:26 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_mongodb\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:26 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -348,7 +348,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_redis ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:35 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:35 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -380,7 +380,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_redis ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -412,7 +412,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_redis ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -444,7 +444,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_redis ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -476,7 +476,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_redis ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:17 and src\\myapp\\connectors\\db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -508,7 +508,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:35 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_elasticsearch\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:35 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -540,7 +540,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -572,7 +572,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -604,7 +604,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -636,7 +636,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_mongodb ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:26 and src\\myapp\\connectors\\db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -668,7 +668,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:44 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_rabbitmq\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -700,7 +700,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -732,7 +732,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -764,7 +764,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_elasticsearch ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:35 and src\\myapp\\connectors\\db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -796,7 +796,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_rabbitmq ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:53 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_kafka\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -828,7 +828,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_rabbitmq ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -860,7 +860,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_rabbitmq ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:44 and src\\myapp\\connectors\\db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -892,7 +892,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_kafka ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:53 and src\\myapp\\connectors\\db.py:62 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_kafka ↔ connect_memcached\nsrc\\myapp\\connectors\\db.py:53 and src\\myapp\\connectors\\db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -924,7 +924,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_kafka ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:53 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_kafka ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:53 and src\\myapp\\connectors\\db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -956,7 +956,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): connect_memcached ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:62 and src\\myapp\\connectors\\db.py:71 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_memcached() into src/myapp/connectors/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (90%): connect_memcached ↔ connect_dynamodb\nsrc\\myapp\\connectors\\db.py:62 and src\\myapp\\connectors\\db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_memcached() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -974,7 +974,7 @@
           "ruleId": "mutant_duplicate"
         },
         {
-          "level": "error",
+          "level": "warning",
           "locations": [
             {
               "physicalLocation": {
@@ -988,7 +988,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (100%): fetch_user_data ↔ get_customer_info\nsrc\\myapp\\handler_v1.py:4 and src\\myapp\\handler_v2.py:4 are 100% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract fetch_user_data() into src/myapp/shared.py. Similarity: 100%. Effort: S."
+            "text": "Near-duplicate (85%): fetch_user_data ↔ get_customer_info\nsrc\\myapp\\handler_v1.py:4 and src\\myapp\\handler_v2.py:4 are 85% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract fetch_user_data() into src/myapp/shared.py. Similarity: 85%. Effort: S."
           },
           "relatedLocations": [
             {
@@ -1076,70 +1076,6 @@
             "text": "Unexplained complexity: calculate_pricing\nComplexity: 19, LOC: 49. No docstring. No corresponding test found. No return type annotation.\nFIX: Function calculate_pricing (complexity 19): add Docstring, Tests, Return-Type."
           },
           "ruleId": "explainability_deficit"
-        },
-        {
-          "level": "warning",
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "src/myapp/models/enriched.py"
-                },
-                "region": {
-                  "startLine": 3
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "Upward layer import: enriched.py → auth.py\nsrc/myapp/models/enriched.py:3 — data/infrastructure layer imports from presentation/API layer. Expected direction: presentation → service → data.\nFIX: Move auth.py logic behind a service layer or abstraction interface that enriched.py is allowed to import."
-          },
-          "relatedLocations": [
-            {
-              "id": 0,
-              "message": {
-                "text": "Related file"
-              },
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "src/myapp/handlers/auth.py"
-                }
-              }
-            }
-          ],
-          "ruleId": "avs_upward_import"
-        },
-        {
-          "level": "warning",
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "src/myapp/models/enriched.py"
-                },
-                "region": {
-                  "startLine": 4
-                }
-              }
-            }
-          ],
-          "message": {
-            "text": "Upward layer import: enriched.py → orders.py\nsrc/myapp/models/enriched.py:4 — data/infrastructure layer imports from presentation/API layer. Expected direction: presentation → service → data.\nFIX: Move orders.py logic behind a service layer or abstraction interface that enriched.py is allowed to import."
-          },
-          "relatedLocations": [
-            {
-              "id": 0,
-              "message": {
-                "text": "Related file"
-              },
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "src/myapp/handlers/orders.py"
-                }
-              }
-            }
-          ],
-          "ruleId": "avs_upward_import"
         },
         {
           "level": "note",
@@ -1713,15 +1649,6 @@
               "id": "explainability_deficit",
               "shortDescription": {
                 "text": "explainability_deficit"
-              }
-            },
-            {
-              "defaultConfiguration": {
-                "level": "warning"
-              },
-              "id": "avs_upward_import",
-              "shortDescription": {
-                "text": "architecture_violation"
               }
             },
             {

@@ -48,6 +48,13 @@ def feedback() -> None:
     help="Optional reason for the verdict.",
 )
 @click.option(
+    "--line",
+    "-l",
+    type=int,
+    default=None,
+    help="Start line of the finding (for line-precise feedback).",
+)
+@click.option(
     "--config",
     "-c",
     type=click.Path(path_type=Path),
@@ -60,6 +67,7 @@ def mark(
     signal: str,
     file_path: str,
     reason: str | None,
+    line: int | None,
     config: Path | None,
 ) -> None:
     """Record a single feedback verdict for a finding."""
@@ -77,13 +85,15 @@ def mark(
         file_path=file_path,
         verdict=mark,  # type: ignore[arg-type]
         source="user",
+        start_line=line,
         evidence={"reason": reason} if reason else {},
     )
 
     record_feedback(feedback_path, event)
+    loc = f"{file_path}:{line}" if line is not None else file_path
     console.print(
         f"[green]Recorded[/green] {mark.upper()} for "
-        f"[bold]{resolved_signal}[/bold] in {file_path}"
+        f"[bold]{resolved_signal}[/bold] in {loc}"
     )
 
 
@@ -104,7 +114,7 @@ def mark(
 )
 def summary(repo: Path, config: Path | None) -> None:
     """Show aggregated feedback counts per signal."""
-    from drift.calibration.feedback import feedback_summary, load_feedback
+    from drift.calibration.feedback import feedback_metrics, load_feedback
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
@@ -115,14 +125,18 @@ def summary(repo: Path, config: Path | None) -> None:
         console.print("[dim]No feedback recorded yet.[/dim]")
         return
 
-    stats = feedback_summary(events)
+    metrics = feedback_metrics(events)
     console.print(f"\n[bold]Feedback Summary[/bold] ({len(events)} events)\n")
-    console.print(f"{'Signal':<30} {'TP':>5} {'FP':>5} {'FN':>5}")
-    console.print("-" * 50)
-    for signal_type in sorted(stats):
-        counts = stats[signal_type]
+    console.print(
+        f"{'Signal':<30} {'TP':>5} {'FP':>5} {'FN':>5}"
+        f" {'Prec':>6} {'Rec':>6} {'F1':>6}"
+    )
+    console.print("-" * 70)
+    for signal_type in sorted(metrics):
+        m = metrics[signal_type]
         console.print(
-            f"{signal_type:<30} {counts['tp']:>5} {counts['fp']:>5} {counts['fn']:>5}"
+            f"{signal_type:<30} {m.tp:>5} {m.fp:>5} {m.fn:>5}"
+            f" {m.precision:>6.2f} {m.recall:>6.2f} {m.f1:>6.2f}"
         )
 
 

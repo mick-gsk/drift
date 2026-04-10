@@ -15,7 +15,7 @@ Prefer reproducible commands, clear scope, and actionable findings over exhausti
 - User asks how to interpret or prioritize findings
 - User wants a guided first-run path or score trend over time
 - User wants project-specific tuning from TP/FP/FN feedback
-- User wants to use the drift MCP server in editor workflows
+- User wants to use direct drift MCP tools in chat or agent workflows
 - User wants to add drift to CI without blocking adoption too early
 
 ## Default Workflow
@@ -109,35 +109,10 @@ Use this only when provenance helps triage. It is optional.
 
 ## MCP Usage
 
-Install MCP support only when the user wants editor or agent workflows.
+If the current chat or agent environment already exposes drift MCP tools, use them directly.
+Do not start `drift mcp --serve` in a terminal just to call drift tools from the same chat session.
 
-```bash
-pip install drift-analyzer[mcp]
-drift mcp --serve
-```
-
-Useful inspection commands:
-
-```bash
-drift mcp --list
-drift mcp --schema
-```
-
-If using VS Code:
-
-```json
-{
-  "servers": {
-    "drift": {
-      "type": "stdio",
-      "command": "drift",
-      "args": ["mcp", "--serve"]
-    }
-  }
-}
-```
-
-If the user is working through MCP tools directly, prefer this order:
+Prefer direct tool calls in chat in this order:
 
 1. `drift_validate`
 2. `drift_brief`
@@ -153,6 +128,34 @@ If the user is working through MCP tools directly, prefer this order:
 This order keeps the workflow predictable: validate first, gather context before changes, scan the baseline, use nudge for fast iteration, use diff for verification, and use feedback plus calibration only when signal quality needs tuning.
 
 For repeated remediation work, prefer `drift_session_start` before repeated `drift_nudge` checks.
+
+Only use terminal-based MCP setup when an editor or external MCP client still needs manual server registration.
+
+```bash
+pip install drift-analyzer[mcp]
+```
+
+Useful inspection commands:
+
+```bash
+drift mcp --list
+drift mcp --schema
+drift mcp --serve
+```
+
+If using VS Code:
+
+```json
+{
+  "servers": {
+    "drift": {
+      "type": "stdio",
+      "command": "drift",
+      "args": ["mcp", "--serve"]
+    }
+  }
+}
+```
 
 ## Response Pattern
 

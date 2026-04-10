@@ -218,42 +218,56 @@ def nudge(
             # Run full scan to create baseline
             from drift.analyzer import analyze_repo
 
-            analysis = analyze_repo(repo_path, config=cfg)
+            # Discover files once and reuse for both analysis and baseline.
             all_files = discover_files(
                 repo_path,
                 include=cfg.include,
                 exclude=cfg.exclude,
                 max_files=cfg.thresholds.max_discovery_files,
             )
-            # Build file_hashes + parse_results map
+            analysis = analyze_repo(repo_path, config=cfg)
+
+            # Build file_hashes + parse_results map.
+            # analyze_repo() already parsed all files via the pipeline,
+            # so ParseCache will serve warm hits here — no re-parse cost
+            # for unchanged files.
             from drift.cache import ParseCache
 
+            pcache = ParseCache(repo_path / cfg.cache_dir)
             file_hashes: dict[str, str] = {}
             parse_map: dict[str, ParseResult] = {}
             for finfo in all_files:
                 full_path = repo_path / finfo.path
+                posix = finfo.path.as_posix()
                 try:
                     h = ParseCache.file_hash(full_path)
-                    posix = finfo.path.as_posix()
                     file_hashes[posix] = h
                 except OSError:
                     continue
 
-            # Parse all files for baseline parse_results
-            for finfo in all_files:
+                # Try cache first (warm from analyze_repo pipeline)
+                cached_pr = pcache.get(h)
+                if cached_pr is not None:
+                    # Fix stale path from content-hash cache
+                    if cached_pr.file_path != finfo.path:
+                        cached_pr.file_path = finfo.path
+                    parse_map[posix] = cached_pr
+                    continue
+
+                # Fallback: parse (should rarely happen after analyze_repo)
                 try:
                     pr = parse_file(finfo.path, repo_path, finfo.language)
-                    parse_map[finfo.path.as_posix()] = pr
+                    parse_map[posix] = pr
                     if pr.parse_errors:
                         record_parse_failure(
-                            file_path=finfo.path.as_posix(),
+                            file_path=posix,
                             stage="baseline",
                             reason="parse_errors",
                             errors=pr.parse_errors,
                         )
                 except Exception as exc:
                     record_parse_failure(
-                        file_path=finfo.path.as_posix(),
+                        file_path=posix,
                         stage="baseline",
                         reason="parse_exception",
                         errors=[str(exc)],
@@ -280,16 +294,31 @@ def nudge(
         current_parse: dict[str, ParseResult] = {}
         effective_changed_set: set[str] = set()
         unchanged_hash_skips = 0
-        all_files_info = discover_files(
-            repo_path,
-            include=cfg.include,
-            exclude=cfg.exclude,
-            max_files=cfg.thresholds.max_discovery_files,
+
+        # Resolve language + exclude checks for changed files directly
+        # instead of walking the entire file tree via discover_files().
+        # Nudge typically touches 1-5 files, so per-file checks are
+        # significantly cheaper than a full glob walk.
+        from drift.ingestion.file_discovery import (
+            _matches_any_prepared,
+            _prepare_patterns,
+            detect_language,
         )
-        file_info_map = {f.path.as_posix(): f for f in all_files_info}
+
+        exclude_patterns = cfg.exclude or [
+            "**/node_modules/**", "**/__pycache__/**", "**/venv/**",
+            "**/.venv/**", "**/.git/**", "**/dist/**", "**/build/**",
+            "**/site-packages/**", "**/tests/**", "**/scripts/**",
+        ]
+        prepared_exclude = _prepare_patterns(tuple(exclude_patterns))
+
         for fp in changed_set:
-            fi = file_info_map.get(fp)
-            if fi is None:
+            full_path = repo_path / fp
+
+            # Quick exclude/language check instead of full tree walk
+            if _matches_any_prepared(fp, prepared_exclude):
+                continue
+            if not full_path.is_file():
                 record_parse_failure(
                     file_path=fp,
                     stage="changed",
@@ -300,7 +329,11 @@ def nudge(
                 effective_changed_set.add(fp)
                 continue
 
-            full_path = repo_path / fi.path
+            lang = detect_language(full_path)
+            if lang is None:
+                # Unsupported file type — skip silently
+                continue
+
             try:
                 current_hash = ParseCache.file_hash(full_path)
             except OSError:
@@ -321,7 +354,7 @@ def nudge(
 
             effective_changed_set.add(fp)
             try:
-                pr = parse_file(fi.path, repo_path, fi.language)
+                pr = parse_file(Path(fp), repo_path, lang)
                 current_parse[fp] = pr
                 if pr.parse_errors:
                     record_parse_failure(

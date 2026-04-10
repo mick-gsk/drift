@@ -554,7 +554,7 @@ class TestMDSThresholds:
                 return average
         """)
         func_b = textwrap.dedent("""\
-            def transform_data(items, config):
+            def process_data(items, config):
                 results = []
                 errors = []
                 for item in items:

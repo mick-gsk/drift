@@ -8,5 +8,6 @@
   "terminal.integrated.env.windows": {
     "PYTHONUNBUFFERED": "1"
   },
+  "task.allowAutomaticTasks": "on",
   "python-envs.defaultEnvManager": "ms-python.python:system"
 }

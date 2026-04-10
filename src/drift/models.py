@@ -96,6 +96,7 @@ class FunctionInfo:
     has_docstring: bool = False
     body_hash: str = ""
     ast_fingerprint: dict[str, Any] = field(default_factory=dict)
+    is_exported: bool = False
 
 
 @dataclass
@@ -108,6 +109,7 @@ class ClassInfo:
     bases: list[str] = field(default_factory=list)
     methods: list[FunctionInfo] = field(default_factory=list)
     has_docstring: bool = False
+    is_interface: bool = False
 
 
 @dataclass

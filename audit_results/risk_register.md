@@ -1,5 +1,21 @@
 # Risk Register
 
+## 2026-04-13 - ADR-036/037/038: AVS/DIA/MDS FP-Reduction
+
+- Risk ID: RISK-SIGNAL-2026-04-13-036-037-038
+- Component: `src/drift/signals/architecture_violation.py`, `src/drift/signals/doc_impl_drift.py`, `src/drift/signals/mutant_duplicates.py`, `src/drift/config.py`
+- Type: Signal behavior change (FP-reduction heuristics) + new config fields
+- Description: Three signals receive precision hardening: AVS moves `models/` to Omnilayer and adds configurable `omnilayer_dirs`; DIA adds configurable `extra_auxiliary_dirs`; MDS adds name-token similarity, protocol-method skip, and thin-wrapper dampening. All changes aim to reduce false positives without degrading recall.
+- Severity: Low to Medium
+- Likelihood: Low (conservative defaults; all changes bounded by narrow heuristics)
+- Mitigation:
+  - AVS: `models` Omnilayer is reversible via config; current default covers >80% of observed repos
+  - DIA: extra_auxiliary_dirs starts empty — no default behavior change
+  - MDS: name component is only 10% weight; protocol set is narrow; thin-wrapper gate is LOC + Call-count
+  - Ground-truth fixtures cover all new behaviors (6 TN fixtures)
+  - Precision/recall baseline validated via `test_precision_recall.py`
+- Residual risk: Low. Primary residual risk is MDS protocol-method FN in rare cases where protocol implementations contain genuinely duplicated non-trivial logic.
+
 ## 2026-04-12 - ADR-035: Per-Repository Signal Calibration
 
 - Risk ID: RISK-SIGNAL-2026-04-12-035

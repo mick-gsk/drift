@@ -41,6 +41,41 @@
       ],
       "group": "build",
       "problemMatcher": []
+    },
+    {
+      "label": "Calibration: cycle (dry-run)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": [
+        "scripts/ops_calibration_cycle.py"
+      ],
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Calibration: cycle (dry-run, auto)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": [
+        "scripts/ops_calibration_cycle.py",
+        "--skip-analyze"
+      ],
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Calibration: cycle (apply)",
+      "type": "shell",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": [
+        "scripts/ops_calibration_cycle.py",
+        "--apply"
+      ],
+      "group": "build",
+      "problemMatcher": []
     }
   ]
 }

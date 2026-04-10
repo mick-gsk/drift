@@ -5132,6 +5132,254 @@ PHR_PARENT_REEXPORT_TN = GroundTruthFixture(
 )
 
 
+# ---------------------------------------------------------------------------
+# FP-Reduction fixtures (ADR-036, ADR-037, ADR-038)
+# ---------------------------------------------------------------------------
+
+# AVS: models/ is now Omnilayer — cross-layer import should not fire
+AVS_MODELS_OMNILAYER_TN = GroundTruthFixture(
+    name="avs_models_omnilayer_tn",
+    description=(
+        "models.py imported from api layer — models is now Omnilayer, "
+        "should NOT fire AVS upward-import"
+    ),
+    files={
+        "api/__init__.py": "",
+        "api/routes.py": textwrap.dedent("""\
+            from models.user import User
+            def get_user() -> User:
+                return User(name="test")
+        """),
+        "models/__init__.py": "",
+        "models/user.py": textwrap.dedent("""\
+            class User:
+                def __init__(self, name: str):
+                    self.name = name
+        """),
+        "services/__init__.py": "",
+        "services/user_service.py": textwrap.dedent("""\
+            from models.user import User
+            def create_user(name: str) -> User:
+                return User(name=name)
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.ARCHITECTURE_VIOLATION,
+            file_path="api/routes.py",
+            should_detect=False,
+            description="models is Omnilayer — no upward-import violation",
+        ),
+    ],
+)
+
+# AVS: DTO models used across layers — should not fire
+AVS_CONFOUNDER_DTO_TN = GroundTruthFixture(
+    name="avs_confounder_dto_tn",
+    description=(
+        "DTO models used across all layers — Omnilayer behavior expected"
+    ),
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "models/__init__.py": "",
+        "models/dto.py": textwrap.dedent("""\
+            from dataclasses import dataclass
+            @dataclass
+            class UserDTO:
+                name: str
+                email: str
+        """),
+        "api/__init__.py": "",
+        "api/views.py": textwrap.dedent("""\
+            from models.dto import UserDTO
+            def render_user(user: UserDTO) -> dict:
+                return {"name": user.name}
+        """),
+        "db/__init__.py": "",
+        "db/repository.py": textwrap.dedent("""\
+            from models.dto import UserDTO
+            def save_user(user: UserDTO) -> None:
+                pass
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.ARCHITECTURE_VIOLATION,
+            file_path="api/views.py",
+            should_detect=False,
+            description="models/dto is Omnilayer — no violation",
+        ),
+    ],
+)
+
+# DIA: Default auxiliary dir (scripts/) — should not report as undocumented
+DIA_CUSTOM_AUXILIARY_TN = GroundTruthFixture(
+    name="dia_custom_auxiliary_tn",
+    description=(
+        "scripts/ is a default auxiliary dir — "
+        "should NOT fire DIA undocumented-dir"
+    ),
+    files={
+        "README.md": textwrap.dedent("""\
+            # My Project
+            The main code lives in `src/`.
+        """),
+        "src/__init__.py": "",
+        "src/core.py": textwrap.dedent("""\
+            def main():
+                pass
+        """),
+        "scripts/__init__.py": "",
+        "scripts/deploy.py": textwrap.dedent("""\
+            def deploy():
+                pass
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.DOC_IMPL_DRIFT,
+            file_path="scripts/",
+            should_detect=False,
+            description=(
+                "scripts/ is a default auxiliary dir — "
+                "not expected in README"
+            ),
+        ),
+    ],
+)
+
+# MDS: Protocol methods in different classes — should not fire
+MDS_CONFOUNDER_PROTOCOL_METHODS_TN = GroundTruthFixture(
+    name="mds_confounder_protocol_methods_tn",
+    description=(
+        "Two classes implementing the same protocol method with similar "
+        "structure — should NOT fire MDS"
+    ),
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "serializers/__init__.py": "",
+        "serializers/json_serializer.py": textwrap.dedent("""\
+            class JsonSerializer:
+                def serialize(self, data: dict) -> str:
+                    import json
+                    result = json.dumps(data)
+                    return result
+
+                def deserialize(self, text: str) -> dict:
+                    import json
+                    result = json.loads(text)
+                    return result
+        """),
+        "serializers/yaml_serializer.py": textwrap.dedent("""\
+            class YamlSerializer:
+                def serialize(self, data: dict) -> str:
+                    import yaml
+                    result = yaml.dump(data)
+                    return result
+
+                def deserialize(self, text: str) -> dict:
+                    import yaml
+                    result = yaml.safe_load(text)
+                    return result
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.MUTANT_DUPLICATE,
+            file_path="serializers/json_serializer.py",
+            should_detect=False,
+            description=(
+                "Protocol methods (serialize/deserialize) in different "
+                "classes — intentional polymorphism"
+            ),
+        ),
+    ],
+)
+
+# MDS: Thin wrapper delegating to another function — should not fire
+MDS_CONFOUNDER_THIN_WRAPPER_TN = GroundTruthFixture(
+    name="mds_confounder_thin_wrapper_tn",
+    description=(
+        "Thin wrapper function delegating to implementation — "
+        "should NOT fire MDS"
+    ),
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "utils/__init__.py": "",
+        "utils/core.py": textwrap.dedent("""\
+            def _do_process(items: list, config: dict) -> list:
+                result = []
+                for item in items:
+                    if config.get("filter"):
+                        if item.get("active"):
+                            result.append(item)
+                    else:
+                        result.append(item)
+                return result
+
+            def process_items(items: list, config: dict) -> list:
+                return _do_process(items, config)
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.MUTANT_DUPLICATE,
+            file_path="utils/core.py",
+            should_detect=False,
+            description=(
+                "process_items is a thin wrapper for _do_process — "
+                "intentional delegation"
+            ),
+        ),
+    ],
+)
+
+# MDS: Similar body but very different names — should not fire
+MDS_CONFOUNDER_NAME_DIVERSE_TN = GroundTruthFixture(
+    name="mds_confounder_name_diverse_tn",
+    description=(
+        "Functions with similar structure but semantically different "
+        "names — name distance should reduce similarity below threshold"
+    ),
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "validators/__init__.py": "",
+        "validators/checks.py": textwrap.dedent("""\
+            def validate_email_format(value: str) -> bool:
+                if not value:
+                    return False
+                if "@" not in value:
+                    return False
+                parts = value.split("@")
+                if len(parts) != 2:
+                    return False
+                return bool(parts[0] and parts[1])
+
+            def sanitize_phone_number(value: str) -> bool:
+                if not value:
+                    return False
+                if "+" not in value:
+                    return False
+                parts = value.split("+")
+                if len(parts) != 2:
+                    return False
+                return bool(parts[0] or parts[1])
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.MUTANT_DUPLICATE,
+            file_path="validators/checks.py",
+            should_detect=False,
+            description=(
+                "validate_email_format and sanitize_phone_number have "
+                "different names — name distance should help"
+            ),
+        ),
+    ],
+)
+
+
 # Append NBV + BAT + PHR fixtures to ALL_FIXTURES
 ALL_FIXTURES.extend([
     NBV_VALIDATE_TP,
@@ -5220,6 +5468,13 @@ ALL_FIXTURES.extend([
     PHR_PRIVATE_NAME_BOUNDARY,
     PHR_SINGLE_CHAR_BOUNDARY,
     PHR_PARENT_REEXPORT_TN,
+    # ── FP-Reduction fixtures (ADR-036/037/038) ──
+    AVS_MODELS_OMNILAYER_TN,
+    AVS_CONFOUNDER_DTO_TN,
+    DIA_CUSTOM_AUXILIARY_TN,
+    MDS_CONFOUNDER_PROTOCOL_METHODS_TN,
+    MDS_CONFOUNDER_THIN_WRAPPER_TN,
+    MDS_CONFOUNDER_NAME_DIVERSE_TN,
 ])
 
 

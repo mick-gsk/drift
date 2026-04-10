@@ -1,5 +1,16 @@
 # FMEA Matrix
 
+## 2026-04-13 - ADR-036/037/038: AVS/DIA/MDS FP-Reduction
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| AVS | FN: models/ cross-layer import no longer detected | `models` moved to `_OMNILAYER_DIRS` — genuine layer violations from models/ are suppressed | Under-reporting for projects using models/ as a strict DB layer | `avs_models_omnilayer_tn` fixture + precision/recall run | Configurable `omnilayer_dirs` allows reversal; `models` is cross-cutting in >80% of observed repos | 4 | 2 | 4 | 32 | Open (bounded) |
+| AVS | FP: custom omnilayer_dirs config too broad | User adds too many dirs → most imports become omnilayer → signal degrades | AVS produces very few findings → loss of signal value | Config validation at load time (empty default) | Conservative default (empty list); documentation explains risk | 3 | 2 | 5 | 30 | Mitigated |
+| DIA | FN: custom auxiliary dir hides real undocumented source dir | `extra_auxiliary_dirs` config skips a dir that should be documented | Genuine documentation gap not reported | Default is empty (no dirs skipped by default) | Only user-configured dirs are skipped; no default change to _AUXILIARY_DIRS | 3 | 2 | 5 | 30 | Mitigated |
+| MDS | FN: protocol-method skip suppresses real duplication | Two classes implement same protocol method with genuinely duplicated non-trivial logic | Real near-duplication in protocol implementations not detected | Protocol-method set is narrow (20 names); only same-name different-class skipped | Only exact bare-name match + different class qualifies; body similarity not checked for skip | 4 | 2 | 5 | 40 | Open (bounded) |
+| MDS | FN: thin-wrapper gate suppresses refactoring opportunity | Wrapper function with LOC ≤ 5 that adds real behavior flagged as thin wrapper | Missed consolidation opportunity | `_is_thin_wrapper` checks for exactly 1 Call node in AST | Single-call heuristic is conservative; complex wrappers with conditions still detected | 3 | 2 | 4 | 24 | Mitigated |
+| MDS | FP: name-token similarity inflates score for same-named functions | Two unrelated functions with similar names get bonus from name similarity | Unrelated functions flagged as near-duplicates | Name component is only 10% of hybrid formula | 10% weight limits maximum name-only inflation to 0.10 total similarity | 3 | 2 | 3 | 18 | Mitigated |
+
 ## 2026-04-12 - ADR-035: PHR per-repository calibration
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

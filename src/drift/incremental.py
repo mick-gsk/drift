@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import subprocess
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -157,6 +158,13 @@ def _finding_key(f: Finding) -> str:
 
 _MAX_CHANGED_FILES_BEFORE_INVALIDATION = 10
 
+# Short TTL cache for _capture_git_state to avoid spawning 3 subprocesses
+# per BaselineManager.get() call.  During a nudge loop the git state is
+# unlikely to change between consecutive calls separated by < 5 s.
+_GIT_STATE_CACHE_LOCK = threading.Lock()
+_GIT_STATE_CACHE: dict[str, tuple[float, _GitState | None]] = {}
+_GIT_STATE_CACHE_TTL = 5.0
+
 
 @dataclass(slots=True)
 class _GitState:
@@ -171,7 +179,25 @@ def _capture_git_state(repo_path: Path) -> _GitState | None:
     """Snapshot current HEAD, stash list, and dirty-file count.
 
     Returns ``None`` when git is unavailable or the path is not a repo.
+    Uses a short TTL cache (5 s) to avoid repeated subprocess spawns
+    within rapid-fire nudge loops.
     """
+    posix_key = repo_path.resolve().as_posix()
+    now = time.monotonic()
+    with _GIT_STATE_CACHE_LOCK:
+        cached = _GIT_STATE_CACHE.get(posix_key)
+        if cached is not None and (now - cached[0]) < _GIT_STATE_CACHE_TTL:
+            return cached[1]
+
+    result = _capture_git_state_uncached(repo_path)
+
+    with _GIT_STATE_CACHE_LOCK:
+        _GIT_STATE_CACHE[posix_key] = (now, result)
+    return result
+
+
+def _capture_git_state_uncached(repo_path: Path) -> _GitState | None:
+    """Perform the actual subprocess calls for git state capture."""
     import hashlib
 
     def _git(*args: str) -> str | None:

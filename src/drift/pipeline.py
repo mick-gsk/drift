@@ -66,7 +66,7 @@ if TYPE_CHECKING:
 
 ProgressCallback = Callable[[str, int, int], None]
 
-_GIT_HISTORY_CACHE_TTL_SECONDS = 120.0
+_GIT_HISTORY_CACHE_TTL_SECONDS = 600.0
 _GIT_HISTORY_CACHE_MAX_ENTRIES = 16
 _GIT_HISTORY_CACHE_LOCK = threading.RLock()
 _GIT_HISTORY_CACHE: dict[
@@ -171,21 +171,58 @@ def make_degradation_event(
 
 
 def is_git_repo(path: Path) -> bool:
-    """Check whether *path* is inside a git working tree."""
+    """Check whether *path* is inside a git working tree.
+
+    Result is cached per resolved path with a short TTL to avoid
+    repeated subprocess spawns on consecutive pipeline runs.
+    """
+    return _is_git_repo_cached(path.resolve().as_posix())
+
+
+# Short-lived cache for is_git_repo to eliminate redundant subprocess calls.
+_IS_GIT_REPO_CACHE_LOCK = threading.Lock()
+_IS_GIT_REPO_CACHE: dict[str, tuple[float, bool]] = {}
+_IS_GIT_REPO_CACHE_TTL = 60.0
+
+
+def _is_git_repo_cached(posix_key: str) -> bool:
+    """Cached check — avoids spawning git rev-parse on every call."""
+    now = time.monotonic()
+    with _IS_GIT_REPO_CACHE_LOCK:
+        cached = _IS_GIT_REPO_CACHE.get(posix_key)
+        if cached is not None and (now - cached[0]) < _IS_GIT_REPO_CACHE_TTL:
+            return cached[1]
+
     try:
         subprocess.run(
-            ["git", "-C", str(path), "rev-parse", "--git-dir"],
+            ["git", "-C", posix_key, "rev-parse", "--git-dir"],
             capture_output=True,
             check=True,
             stdin=subprocess.DEVNULL,
         )
-        return True
+        result = True
     except (subprocess.CalledProcessError, FileNotFoundError):
-        return False
+        result = False
+
+    with _IS_GIT_REPO_CACHE_LOCK:
+        _IS_GIT_REPO_CACHE[posix_key] = (now, result)
+    return result
 
 
 def _current_git_head(path: Path) -> str | None:
-    """Return current HEAD SHA for cache invalidation, or None on failure."""
+    """Return current HEAD SHA for cache invalidation, or None on failure.
+
+    Uses a short-lived per-path cache (5 s) so that consecutive calls
+    within the same pipeline run (ingestion check + fetch_git_history)
+    do not spawn redundant subprocesses.
+    """
+    posix_key = path.resolve().as_posix()
+    now = time.monotonic()
+    with _GIT_HEAD_CACHE_LOCK:
+        cached = _GIT_HEAD_CACHE.get(posix_key)
+        if cached is not None and (now - cached[0]) < _GIT_HEAD_CACHE_TTL:
+            return cached[1]
+
     try:
         result = subprocess.run(
             ["git", "-C", str(path), "rev-parse", "HEAD"],
@@ -202,10 +239,20 @@ def _current_git_head(path: Path) -> str | None:
         FileNotFoundError,
         subprocess.TimeoutExpired,
     ):
+        with _GIT_HEAD_CACHE_LOCK:
+            _GIT_HEAD_CACHE[posix_key] = (now, None)
         return None
 
-    head = result.stdout.strip()
-    return head or None
+    head = result.stdout.strip() or None
+    with _GIT_HEAD_CACHE_LOCK:
+        _GIT_HEAD_CACHE[posix_key] = (now, head)
+    return head
+
+
+# Short-lived HEAD SHA cache to deduplicate subprocess calls within a run.
+_GIT_HEAD_CACHE_LOCK = threading.Lock()
+_GIT_HEAD_CACHE: dict[str, tuple[float, str | None]] = {}
+_GIT_HEAD_CACHE_TTL = 5.0
 
 
 def _prune_git_history_cache(now: float) -> None:

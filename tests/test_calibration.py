@@ -430,3 +430,205 @@ class TestCalibrationIntegration:
         assert gcd_w < gcd_default * 0.1
         # AVS should stay near default (all TP)
         assert abs(avs_w - avs_default) < 0.01
+
+
+# ---------------------------------------------------------------------------
+# AP1: Finding-ID with start_line tests
+# ---------------------------------------------------------------------------
+
+
+class TestFindingIdWithStartLine:
+    def test_same_file_different_lines_different_ids(self) -> None:
+        """Two findings at different lines produce distinct IDs."""
+        from drift.calibration.feedback import FeedbackEvent
+
+        e1 = FeedbackEvent(
+            signal_type="pfs", file_path="a.py", verdict="tp",
+            source="user", start_line=10,
+        )
+        e2 = FeedbackEvent(
+            signal_type="pfs", file_path="a.py", verdict="tp",
+            source="user", start_line=42,
+        )
+        assert e1.finding_id != e2.finding_id
+
+    def test_no_start_line_backward_compat(self) -> None:
+        """Event without start_line produces the same ID as before."""
+        from drift.calibration.feedback import FeedbackEvent, _compute_finding_id
+
+        e = FeedbackEvent(
+            signal_type="x", file_path="y.py", verdict="fp", source="user",
+        )
+        legacy_id = _compute_finding_id("x", "y.py")
+        assert e.finding_id == legacy_id
+
+    def test_finding_id_for_public_api(self) -> None:
+        from drift.calibration.feedback import finding_id_for
+
+        id_no_line = finding_id_for("pfs", "a.py")
+        id_with_line = finding_id_for("pfs", "a.py", start_line=7)
+        assert id_no_line != id_with_line
+
+    def test_roundtrip_with_start_line(self, tmp_path: Path) -> None:
+        from drift.calibration.feedback import load_feedback, record_feedback
+
+        fp = tmp_path / "fb.jsonl"
+        event = _fe(signal="pfs", file="x.py", start_line=99)
+        record_feedback(fp, event)  # type: ignore[arg-type]
+        loaded = load_feedback(fp)
+        assert len(loaded) == 1
+        assert loaded[0].start_line == 99
+
+    def test_roundtrip_without_start_line(self, tmp_path: Path) -> None:
+        from drift.calibration.feedback import load_feedback, record_feedback
+
+        fp = tmp_path / "fb.jsonl"
+        event = _fe(signal="avs", file="z.py")
+        record_feedback(fp, event)  # type: ignore[arg-type]
+        loaded = load_feedback(fp)
+        assert len(loaded) == 1
+        assert loaded[0].start_line is None
+
+
+# ---------------------------------------------------------------------------
+# AP3: Feedback metrics tests
+# ---------------------------------------------------------------------------
+
+
+class TestFeedbackMetrics:
+    def test_mixed_signals(self) -> None:
+        from drift.calibration.feedback import feedback_metrics
+
+        events = [
+            _fe(signal="pfs", file="a", verdict="tp"),
+            _fe(signal="pfs", file="b", verdict="fp"),
+            _fe(signal="pfs", file="c", verdict="fn"),
+            _fe(signal="avs", file="d", verdict="tp"),
+            _fe(signal="avs", file="e", verdict="tp"),
+        ]
+        m = feedback_metrics(events)  # type: ignore[arg-type]
+        pfs = m["pfs"]
+        assert pfs.tp == 1
+        assert pfs.fp == 1
+        assert pfs.fn == 1
+        assert pfs.precision == 0.5
+        assert pfs.recall == 0.5
+        assert pfs.f1 == 0.5
+
+        avs = m["avs"]
+        assert avs.precision == 1.0
+        assert avs.recall == 1.0
+        assert avs.f1 == 1.0
+
+    def test_only_fn(self) -> None:
+        """Only FN events → precision=1.0, recall computable."""
+        from drift.calibration.feedback import feedback_metrics
+
+        events = [
+            _fe(signal="mds", file="a", verdict="fn"),
+            _fe(signal="mds", file="b", verdict="fn"),
+        ]
+        m = feedback_metrics(events)  # type: ignore[arg-type]
+        mds = m["mds"]
+        assert mds.precision == 1.0  # no FP/TP → default
+        assert mds.recall == 0.0
+        assert mds.f1 == 0.0
+
+    def test_empty_events(self) -> None:
+        from drift.calibration.feedback import feedback_metrics
+
+        assert feedback_metrics([]) == {}
+
+
+# ---------------------------------------------------------------------------
+# AP4: Threshold adapter tests
+# ---------------------------------------------------------------------------
+
+
+class TestThresholdAdapter:
+    def test_disabled_returns_base(self) -> None:
+        from drift.calibration.feedback import SignalFeedbackMetrics
+        from drift.calibration.threshold_adapter import adapt_threshold
+
+        m = SignalFeedbackMetrics("pfs", tp=0, fp=20, fn=0)
+        result = adapt_threshold("pfs", 0.5, m, enabled=False)
+        assert result.adapted_threshold == 0.5
+        assert result.adjustment == 0.0
+
+    def test_none_metrics_returns_base(self) -> None:
+        from drift.calibration.threshold_adapter import adapt_threshold
+
+        result = adapt_threshold("pfs", 0.5, None, enabled=True)
+        assert result.adapted_threshold == 0.5
+
+    def test_high_fp_raises_threshold(self) -> None:
+        from drift.calibration.feedback import SignalFeedbackMetrics
+        from drift.calibration.threshold_adapter import adapt_threshold
+
+        m = SignalFeedbackMetrics("pfs", tp=2, fp=18, fn=0)
+        result = adapt_threshold("pfs", 0.5, m, enabled=True, min_observations=5)
+        assert result.adapted_threshold > 0.5
+
+    def test_high_fn_lowers_threshold(self) -> None:
+        from drift.calibration.feedback import SignalFeedbackMetrics
+        from drift.calibration.threshold_adapter import adapt_threshold
+
+        m = SignalFeedbackMetrics("pfs", tp=5, fp=0, fn=15)
+        result = adapt_threshold("pfs", 0.5, m, enabled=True, min_observations=5)
+        assert result.adapted_threshold < 0.5
+
+    def test_clamping_at_min(self) -> None:
+        from drift.calibration.feedback import SignalFeedbackMetrics
+        from drift.calibration.threshold_adapter import adapt_threshold
+
+        m = SignalFeedbackMetrics("pfs", tp=1, fp=0, fn=99)
+        result = adapt_threshold(
+            "pfs", 0.15, m, enabled=True,
+            min_threshold=0.1, min_observations=1,
+        )
+        assert result.adapted_threshold >= 0.1
+        assert result.clamped
+
+    def test_clamping_at_max(self) -> None:
+        from drift.calibration.feedback import SignalFeedbackMetrics
+        from drift.calibration.threshold_adapter import adapt_threshold
+
+        m = SignalFeedbackMetrics("pfs", tp=1, fp=99, fn=0)
+        result = adapt_threshold(
+            "pfs", 0.9, m, enabled=True,
+            max_threshold=0.95, min_observations=1,
+        )
+        assert result.adapted_threshold <= 0.95
+
+    def test_insufficient_observations_returns_base(self) -> None:
+        from drift.calibration.feedback import SignalFeedbackMetrics
+        from drift.calibration.threshold_adapter import adapt_threshold
+
+        m = SignalFeedbackMetrics("pfs", tp=1, fp=1, fn=0)
+        result = adapt_threshold(
+            "pfs", 0.5, m, enabled=True, min_observations=10,
+        )
+        assert result.adapted_threshold == 0.5
+
+
+# ---------------------------------------------------------------------------
+# AP4: CalibrationConfig threshold gate test
+# ---------------------------------------------------------------------------
+
+
+class TestCalibrationConfigThresholdGate:
+    def test_default_disabled(self) -> None:
+        from drift.config import CalibrationConfig
+
+        cfg = CalibrationConfig()
+        assert cfg.threshold_adaptation_enabled is False
+
+    def test_enable_via_yaml(self, tmp_path: Path) -> None:
+        from drift.config import DriftConfig
+
+        (tmp_path / "drift.yaml").write_text(
+            "calibration:\n  threshold_adaptation_enabled: true\n",
+            encoding="utf-8",
+        )
+        cfg = DriftConfig.load(tmp_path)
+        assert cfg.calibration.threshold_adaptation_enabled is True
