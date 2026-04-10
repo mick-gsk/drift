@@ -54,6 +54,8 @@ Drift parses Python via AST, analyzes git history, runs 23 detection signals, an
 ## Integrate
 
 - [Integrations](integrations.md) — GitHub Action, pre-commit, MCP for Copilot/Cursor/Claude, SARIF
+- [Cursor MCP Setup](guides/cursor-mcp-setup.md) — dedicated setup guide with tool catalog and workflow examples
+- [Drift Bot](drift-bot.md) — GitHub App for automatic PR analysis, 1-click org-wide install
 - [Agent Integration](integrations.md) — MCP server, session baselines, structured fix plans
 - [Team Rollout](getting-started/team-rollout.md) — start report-only, tighten over time
 - [Case Studies](case-studies/index.md) — FastAPI, Pydantic, Django, Paramiko

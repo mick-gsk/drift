@@ -5133,6 +5133,150 @@ PHR_PARENT_REEXPORT_TN = GroundTruthFixture(
 
 
 # ---------------------------------------------------------------------------
+# PHR third-party import resolver fixtures (ADR-040)
+# ---------------------------------------------------------------------------
+
+PHR_MISSING_PACKAGE_TP = GroundTruthFixture(
+    name="phr_missing_package_tp",
+    kind=FixtureKind.POSITIVE,
+    description="Import of a nonexistent third-party package → should fire PHR",
+    files={
+        "app/__init__.py": "",
+        "app/pipeline.py": textwrap.dedent("""\
+            import nonexistent_ai_helper
+            from nonexistent_ai_helper import transform_data
+
+            def run(data):
+                return nonexistent_ai_helper.process(transform_data(data))
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.PHANTOM_REFERENCE,
+            file_path="app/pipeline.py",
+            should_detect=True,
+            description=(
+                "nonexistent_ai_helper is not installed → phantom third-party import"
+            ),
+        ),
+    ],
+)
+
+PHR_OPTIONAL_DEP_TN = GroundTruthFixture(
+    name="phr_optional_dep_tn",
+    kind=FixtureKind.CONFOUNDER,
+    description="try/except ImportError guarded import → should NOT fire PHR",
+    files={
+        "lib/__init__.py": "",
+        "lib/compat.py": textwrap.dedent("""\
+            try:
+                import some_optional_accelerator
+                HAS_ACCEL = True
+            except ImportError:
+                some_optional_accelerator = None
+                HAS_ACCEL = False
+
+            def process(data):
+                if HAS_ACCEL:
+                    return some_optional_accelerator.fast_process(data)
+                return data
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.PHANTOM_REFERENCE,
+            file_path="lib/compat.py",
+            should_detect=False,
+            description="Import is guarded by try/except ImportError → conditional",
+        ),
+    ],
+)
+
+PHR_STDLIB_IMPORT_TN = GroundTruthFixture(
+    name="phr_stdlib_import_tn",
+    kind=FixtureKind.CONFOUNDER,
+    description="Only stdlib imports → should NOT fire PHR",
+    files={
+        "tools/__init__.py": "",
+        "tools/utils.py": textwrap.dedent("""\
+            import json
+            import os
+            import sys
+            from pathlib import Path
+            from collections import defaultdict
+
+            def get_config():
+                config_path = Path(os.environ.get("CONFIG", "config.json"))
+                with open(config_path) as fh:
+                    data = json.load(fh)
+                return defaultdict(str, data)
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.PHANTOM_REFERENCE,
+            file_path="tools/utils.py",
+            should_detect=False,
+            description="All imports are stdlib — no phantom references",
+        ),
+    ],
+)
+
+PHR_TYPE_CHECKING_THIRD_PARTY_TN = GroundTruthFixture(
+    name="phr_type_checking_third_party_tn",
+    kind=FixtureKind.BOUNDARY,
+    description="Third-party import inside TYPE_CHECKING → should NOT fire PHR",
+    files={
+        "svc/__init__.py": "",
+        "svc/handler.py": textwrap.dedent("""\
+            from __future__ import annotations
+            import typing
+
+            if typing.TYPE_CHECKING:
+                import nonexistent_type_stubs
+
+            def handle(data: str) -> str:
+                return data.upper()
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.PHANTOM_REFERENCE,
+            file_path="svc/handler.py",
+            should_detect=False,
+            description="TYPE_CHECKING imports excluded from third-party check",
+        ),
+    ],
+)
+
+PHR_MODULE_NOT_FOUND_ERROR_TN = GroundTruthFixture(
+    name="phr_module_not_found_error_tn",
+    kind=FixtureKind.CONFOUNDER,
+    description="try/except ModuleNotFoundError guarded import → should NOT fire PHR",
+    files={
+        "ext/__init__.py": "",
+        "ext/loader.py": textwrap.dedent("""\
+            try:
+                import ujson as json_impl
+            except ModuleNotFoundError:
+                import json as json_impl
+
+            def parse(text):
+                return json_impl.loads(text)
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.PHANTOM_REFERENCE,
+            file_path="ext/loader.py",
+            should_detect=False,
+            description="Import guarded by ModuleNotFoundError → conditional",
+        ),
+    ],
+)
+
+
+# ---------------------------------------------------------------------------
 # HSC scoring-promotion fixtures (ADR-040)
 # ---------------------------------------------------------------------------
 
@@ -5371,6 +5515,15 @@ PHR_FRAMEWORK_DECORATOR_TN = GroundTruthFixture(
     kind=FixtureKind.CONFOUNDER,
     files={
         "web/__init__.py": "",
+        "flask/__init__.py": textwrap.dedent("""\
+            class Flask:
+                def __init__(self, name):
+                    self.name = name
+                def route(self, path):
+                    def decorator(fn):
+                        return fn
+                    return decorator
+        """),
         "web/routes.py": textwrap.dedent("""\
             from flask import Flask
 
@@ -6306,6 +6459,12 @@ ALL_FIXTURES.extend([
     PHR_PRIVATE_NAME_BOUNDARY,
     PHR_SINGLE_CHAR_BOUNDARY,
     PHR_PARENT_REEXPORT_TN,
+    # ── PHR third-party import resolver fixtures (ADR-040) ──
+    PHR_MISSING_PACKAGE_TP,
+    PHR_OPTIONAL_DEP_TN,
+    PHR_STDLIB_IMPORT_TN,
+    PHR_TYPE_CHECKING_THIRD_PARTY_TN,
+    PHR_MODULE_NOT_FOUND_ERROR_TN,
     # ── HSC scoring-promotion fixtures (ADR-040) ──
     HSC_GITHUB_TOKEN_TP,
     HSC_HIGH_ENTROPY_TP,

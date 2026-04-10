@@ -243,6 +243,7 @@ from drift.commands.init_cmd import init
 from drift.commands.mcp import mcp
 from drift.commands.patterns import patterns
 from drift.commands.precision_cmd import precision
+from drift.commands.roi_estimate import roi_estimate
 from drift.commands.scan import scan
 from drift.commands.self_analyze import self_analyze
 from drift.commands.serve import serve
@@ -269,6 +270,7 @@ main.add_command(fix_plan)
 main.add_command(mcp)
 main.add_command(patterns)
 main.add_command(precision)
+main.add_command(roi_estimate)
 main.add_command(scan)
 main.add_command(serve)
 main.add_command(start)

@@ -55,6 +55,17 @@ plugins:
   - git-revision-date-localized:
       enable_creation_date: true
       type: date
+  - redirects:
+      redirect_maps:
+        guides/quickstart.md: getting-started/quickstart.md
+        guides/agent-workflow.md: getting-started/prompts.md
+        guides/health-over-time.md: study.md
+        guides/ci-integration.md: use-cases/ci-architecture-checks-sarif.md
+        concepts/signals.md: algorithms/signals.md
+        concepts/baseline.md: trust-evidence.md
+        concepts/scoring.md: algorithms/scoring.md
+        concepts/diagnosis-vs-navigation.md: product/example-findings.md
+        reference/configuration.md: getting-started/configuration.md
 
 markdown_extensions:
   - admonition
@@ -92,17 +103,95 @@ extra:
 nav:
   - Home: index.md
   - What is Architectural Drift?: what-is-architectural-drift.md
-  - Quickstart: guides/quickstart.md
+  - Start Here: start-here.md
+  - Getting Started:
+    - Quickstart: getting-started/quickstart.md
+    - Installation: getting-started/installation.md
+    - Configuration: getting-started/configuration.md
+    - Finding Triage: getting-started/finding-triage.md
+    - Prompts for AI Assistants: getting-started/prompts.md
+    - Team Rollout: getting-started/team-rollout.md
+    - Vibe Coding Problems: getting-started/vibe-coding-problems.md
+    - Troubleshooting: getting-started/troubleshooting.md
   - Guides:
-    - Agent-Workflow: guides/agent-workflow.md
-    - Code-Health über Zeit: guides/health-over-time.md
-    - CI/CD Integration: guides/ci-integration.md
+    - Quickstart: getting-started/quickstart.md
+    - Agent Workflow: getting-started/prompts.md
+    - Guided Mode (Vibe-Coders): guides/guided-mode.md
+    - Cursor MCP Setup: guides/cursor-mcp-setup.md
+    - Feedback & Calibration: guides/feedback-calibration.md
+    - Negative Context for Agents: guides/negative-context-agents.md
+    - Code-Health über Zeit: study.md
+    - CI/CD Integration: use-cases/ci-architecture-checks-sarif.md
   - Konzepte:
-    - Signals: concepts/signals.md
-    - Baseline: concepts/baseline.md
-    - Scoring: concepts/scoring.md
-    - Diagnose vs. Navigation: concepts/diagnosis-vs-navigation.md
+    - Signals: algorithms/signals.md
+    - Baseline: trust-evidence.md
+    - Scoring: algorithms/scoring.md
+    - Diagnose vs. Navigation: product/example-findings.md
   - Referenz:
-    - Commands: reference/commands.md
-    - Konfiguration: reference/configuration.md
+    - CLI Commands: reference/commands.md
+    - API & Outputs: reference/api-outputs.md
+    - Konfiguration: getting-started/configuration.md
+    - Negative Context: reference/negative-context.md
+    - Performance: reference/performance.md
+    - Signals:
+      - PFS — Pattern Fragmentation: reference/signals/pfs.md
+      - AVS — Architecture Violation: reference/signals/avs.md
+      - MDS — Mutant Duplicate: reference/signals/mds.md
+      - EDS — Explainability Deficit: reference/signals/eds.md
+      - TVS — Temporal Volatility: reference/signals/tvs.md
+      - SMS — System Misalignment: reference/signals/sms.md
+      - DIA — Doc-Impl Drift: reference/signals/dia.md
+      - BEM — Broad Exception: reference/signals/bem.md
+      - TPD — Test Polarity Deficit: reference/signals/tpd.md
+      - GCD — Guard Clause Deficit: reference/signals/gcd.md
+      - NBV — Naming Contract Violation: reference/signals/nbv.md
+      - BAT — Bypass Accumulation: reference/signals/bat.md
+      - ECM — Exception Contract Drift: reference/signals/ecm.md
+      - COD — Cohesion Deficit: reference/signals/cod.md
+      - CCC — Co-Change Coupling: reference/signals/ccc.md
+      - HSC — Hardcoded Secret: reference/signals/hsc.md
+      - FOE — Fan-Out Explosion: reference/signals/foe.md
+      - PHR — Phantom Reference: reference/signals/phr.md
+      - MAZ — Missing Authorization: reference/signals/maz.md
+      - ISD — Insecure Default: reference/signals/isd.md
+      - TSA — TS Architecture: reference/signals/tsa.md
+      - CXS — Cognitive Complexity: reference/signals/cxs.md
+      - CIR — Circular Import: reference/signals/cir.md
+      - DCA — Dead Code Accumulation: reference/signals/dca.md
+  - Algorithms:
+    - Scoring Model: algorithms/scoring.md
+    - Signals: algorithms/signals.md
+    - Deep Dive: algorithms/deep-dive.md
+  - Use Cases:
+    - Overview: use-cases/index.md
+    - Architecture Drift in Python: use-cases/architecture-drift-python.md
+    - Technical Debt in AI Codebases: use-cases/technical-debt-ai-codebases.md
+    - CI Architecture Checks (SARIF): use-cases/ci-architecture-checks-sarif.md
+    - Architectural Linter for AI Teams: use-cases/architectural-linter-ai-teams.md
+  - Case Studies:
+    - Overview: case-studies/index.md
+    - FastAPI: case-studies/fastapi.md
+    - Django: case-studies/django.md
+    - Pydantic: case-studies/pydantic.md
+    - Paramiko: case-studies/paramiko.md
+  - Comparisons:
+    - Overview: comparisons/index.md
+    - Drift vs. Ruff: comparisons/drift-vs-ruff.md
+    - Drift vs. Semgrep/CodeQL: comparisons/drift-vs-semgrep-codeql.md
+    - Drift vs. Architecture Conformance: comparisons/drift-vs-architecture-conformance.md
+  - Trust & Evidence: trust-evidence.md
+  - Prove It: prove-it.md
+  - Study: study.md
+  - Benchmarking: benchmarking.md
+  - Stability: stability.md
+  - Integrations: integrations.md
+  - Drift Bot (GitHub App): drift-bot.md
+  - Product:
+    - Strategy: product-strategy.md
+    - Example Findings: product/example-findings.md
+    - Press & Brand: product/press-brand.md
+  - FAQ: faq.md
+  - Glossary: glossary.md
+  - Changelog: changelog.md
+  - Contributing: contributing.md
   - Community Poll: roadmap-poll.md

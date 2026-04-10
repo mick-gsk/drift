@@ -1,5 +1,14 @@
 # FMEA Matrix
 
+## 2026-04-10 - ADR-040: PHR Third-Party Import Resolver
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| PHR | FP: package in CI but not in local venv → false phantom | `find_spec` depends on environment; dev/CI mismatch | False finding for correctly-imported packages | `phr_stdlib_import_tn` + `phr_optional_dep_tn` fixtures | metadata `confidence: env_dependent`; users can suppress via `drift:ignore` | 4 | 3 | 6 | 72 | Open (bounded) |
+| PHR | FP: conditional import not recognized as guarded | AST walk misidentifies try/except block structure | False phantom for optional dependency imports | `phr_optional_dep_tn` + `phr_module_not_found_error_tn` fixtures | `_is_in_try_except_import_error` checks ImportError + ModuleNotFoundError + bare except | 5 | 2 | 3 | 30 | Mitigated |
+| PHR | FN: dynamically imported module not detected | `importlib.import_module(var)` not statically resolvable | Missed phantom for dynamic plugin loading | N/A (inherent static analysis limitation) | Accept: scope is static AST-based; dynamic imports require runtime analysis | 3 | 4 | 8 | 96 | Accepted |
+| PHR | FN: installed package with missing attribute not detected | `find_spec` checks module existence only, not API surface | Under-reporting for version-mismatched dependencies | N/A (Phase C: runtime validation planned) | Accept: Phase B scope is module existence; attribute validation deferred to Phase C (ADR-041) | 4 | 3 | 8 | 96 | Accepted |
+
 ## 2026-06-14 - ADR-039: Activate MAZ/PHR/HSC/ISD/FOE for Scoring
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

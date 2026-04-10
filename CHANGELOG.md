@@ -6,6 +6,9 @@
 - Recalibrate HSC (0.02→0.01), FOE (0.01→0.005) weights for conservative activation alongside MAZ/ISD (ADR-039).
 - Add 5 new ISD ground-truth fixtures (2 TP, 3 TN) for precision/recall coverage.
 - Add FMEA, fault tree, and risk register entries for 5-signal activation (ADR-039).
+- Extend PHR signal with third-party import validation via `importlib.util.find_spec` — detects AI-hallucinated package imports that are not installed (ADR-040).
+- Add 5 new PHR ground-truth fixtures for third-party import resolver (1 TP missing-package, 4 TN for optional-dep/stdlib/TYPE_CHECKING/ModuleNotFoundError guards).
+- Add FMEA, fault tree, and risk register entries for PHR import resolver (ADR-040).
 - Activate HSC (hardcoded secret, weight 0.02), FOE (fan-out explosion, weight 0.01), and PHR (phantom reference, weight 0.02) as scoring-active signals for agent-safety use cases (ADR-040).
 - Add 9 new ground-truth fixtures for HSC (4), FOE (3), and PHR (2) scoring-promotion coverage.
 - Add PHR to signal abbreviation mapping for drift_nudge/diff resolution.

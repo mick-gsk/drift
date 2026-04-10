@@ -1,5 +1,46 @@
 # Fault Tree Analysis
 
+## 2026-04-10 - ADR-040: PHR Third-Party Import Resolver
+
+### Top Event (TE-PHR-040)
+PHR third-party import check produces false positives or misses real phantom imports.
+
+### FT-1: False positive branch — third-party import FP
+
+```
+            TE-FP: find_spec flags valid import as phantom
+                        |
+                     OR-Gate
+         +------+------+------+
+        IE-1   IE-2   IE-3   IE-4
+```
+
+- **IE-1 (MCS)**: Package installed in CI but not in local venv → `find_spec` returns None
+  - Mitigation: metadata hint `confidence: env_dependent`; documentation guidance
+- **IE-2 (MCS)**: Conditional import (`try/except ImportError`) not recognized
+  - Mitigation: `_is_in_try_except_import_error()` AST guard
+- **IE-3 (MCS)**: TYPE_CHECKING import not recognized
+  - Mitigation: `_collect_type_checking_import_ids()` pre-pass
+- **IE-4 (MCS)**: Namespace package without `__init__.py`
+  - Mitigation: `find_spec` handles PEP 420 namespace packages natively
+
+### FT-2: False negative branch — missed phantom import
+
+```
+            TE-FN: real phantom import not flagged
+                        |
+                     OR-Gate
+              +------+------+
+             IE-5   IE-6   IE-7
+```
+
+- **IE-5 (MCS)**: Dynamic import via `importlib.import_module(variable)`
+  - Accept: Not statically resolvable
+- **IE-6 (MCS)**: Package installed but wrong version (missing class/function)
+  - Accept: Phase C (ADR-041) will address attribute-level validation
+- **IE-7 (MCS)**: String-based plugin loaders
+  - Accept: Not statically resolvable
+
 ## 2026-06-14 - ADR-039: Signal Activation (MAZ/PHR/HSC/ISD/FOE)
 
 ### Top Event (TE-0)

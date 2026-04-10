@@ -1,5 +1,25 @@
 # Risk Register
 
+## 2026-04-10 - ADR-040: PHR Third-Party Import Resolver
+
+- Risk ID: RISK-PHR-IMPORT-RESOLVER-2026-04-10-040
+- Component: `src/drift/signals/phantom_reference.py` (`_check_third_party_imports`, `_is_in_try_except_import_error`, `_collect_type_checking_import_ids`)
+- Type: Signal heuristic extension (new detection capability for third-party imports)
+- Description: PHR now validates third-party `import X` / `from X import Y` statements using `importlib.util.find_spec()`. If the root module is not found in the current Python environment, it is flagged as a phantom import. This extends PHR's recall to cover AI-hallucinated third-party packages. The check is safe (no code execution — only path traversal on sys.path).
+- Severity: Low
+- Likelihood: Low to Medium (environment-dependent FP for packages not installed locally)
+- Mitigation:
+  - Stdlib modules excluded via `sys.stdlib_module_names`
+  - Project-internal modules excluded (already checked by existing import-from logic)
+  - try/except ImportError and ModuleNotFoundError blocks detected and skipped
+  - TYPE_CHECKING blocks detected and skipped via pre-pass
+  - 5 new ground-truth fixtures: 1 TP (missing package), 4 TN (optional dep, stdlib, TYPE_CHECKING, ModuleNotFoundError)
+  - 1 existing fixture updated (flask decorator: added flask stub to fixture project files)
+  - Precision/recall validated: 166/166 fixtures pass (22 PHR-specific)
+  - `find_spec()` is safe: no side effects, no code execution, no imports triggered
+- Residual Risk: FP when package is in CI but not local venv (bounded by metadata hint)
+- Status: Open (bounded)
+
 ## 2026-06-14 - ADR-039: Activate MAZ/PHR/HSC/ISD/FOE for Scoring
 
 - Risk ID: RISK-SIGNAL-ACTIVATION-2026-06-14-039
