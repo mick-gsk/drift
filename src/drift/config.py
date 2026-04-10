@@ -496,6 +496,15 @@ class DriftConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    extends: str | None = Field(
+        default=None,
+        description=(
+            "Name of a built-in preset to inherit from "
+            "(e.g. 'vibe-coding', 'strict', 'fastapi', 'library', 'monorepo'). "
+            "User-level fields override preset defaults."
+        ),
+    )
+
     include: list[str] = Field(default_factory=_default_includes)
     exclude: list[str] = Field(
         default_factory=lambda: [
@@ -596,6 +605,7 @@ class DriftConfig(BaseModel):
                 return cls()
 
         try:
+            data = cls._apply_extends(data)
             return cls.model_validate(data)
         except ValidationError as exc:
             from drift.errors import DriftConfigError
@@ -612,6 +622,66 @@ class DriftConfig(BaseModel):
                 line="?",
                 context=None,
             ) from exc
+
+    @staticmethod
+    def _apply_extends(data: dict[str, Any]) -> dict[str, Any]:
+        """Merge built-in preset defaults under user-supplied overrides.
+
+        If *data* contains an ``extends`` key naming a registered profile,
+        the profile's config dict is used as the base and *data* is merged on
+        top (user wins).  Nested dicts (weights, thresholds, policies) are
+        merged key-by-key; all other fields are replaced wholesale.
+        """
+        extends = data.get("extends")
+        if not extends:
+            return data
+
+        from drift.profiles import PROFILES, get_profile
+
+        try:
+            profile = get_profile(extends)
+        except KeyError as err:
+            from drift.errors import DriftConfigError
+
+            available = ", ".join(sorted(PROFILES))
+            raise DriftConfigError(
+                "DRIFT-1001",
+                config_path="drift.yaml",
+                field="extends",
+                reason=(
+                    f"Unknown preset '{extends}'. "
+                    f"Available: {available}"
+                ),
+                line="?",
+                context=None,
+            ) from err
+
+        # Build base dict from profile
+        base: dict[str, Any] = {
+            "weights": dict(profile.weights),
+            "fail_on": profile.fail_on,
+            "auto_calibrate": profile.auto_calibrate,
+        }
+        if profile.thresholds:
+            base["thresholds"] = dict(profile.thresholds)
+        if profile.policies:
+            base["policies"] = dict(profile.policies)
+        if profile.guided_thresholds:
+            base.setdefault("thresholds", {})
+            base["thresholds"]["guided"] = dict(profile.guided_thresholds)
+
+        # Deep-merge: user data wins over preset base
+        for key, value in data.items():
+            if key == "extends":
+                continue
+            if isinstance(value, dict) and isinstance(base.get(key), dict):
+                base[key] = {**base[key], **value}
+            else:
+                base[key] = value
+
+        # Keep extends in the merged output so it is stored on the model
+        base["extends"] = extends
+        return base
 
     @classmethod
     def load(cls, repo_path: Path, config_path: Path | None = None) -> DriftConfig:
@@ -641,6 +711,7 @@ class DriftConfig(BaseModel):
                 ) from exc
 
             try:
+                data = cls._apply_extends(data)
                 return cls.model_validate(data)
             except ValidationError as exc:
                 from drift.errors import (
