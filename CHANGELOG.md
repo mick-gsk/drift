@@ -29,7 +29,7 @@
 - Align coverage fail_under threshold (75→73) with CI quick suite (-m "not slow") which measures ~74%.
 - Raise CI drift self-check score gate threshold (0.47→0.55) to match current baseline (~0.52).
 
-## [2.8.0] - 2026-04-10
+## [2.9.0] - 2026-04-10
 
 Short version: Introduce calibration hardening and signal quality improvements for AVS, DIA, and MDS.
 
