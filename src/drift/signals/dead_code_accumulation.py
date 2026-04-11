@@ -266,6 +266,11 @@ class DeadCodeAccumulationSignal(BaseSignal):
             for fn in pr.functions:
                 if _is_route_entrypoint_function(fn.decorators):
                     continue
+                if (
+                    pr.language in {"typescript", "javascript"}
+                    and not fn.is_exported
+                ):
+                    continue
                 if _is_public(fn.name) and fn.name not in _FRAMEWORK_NAMES:
                     exported[fn.name].append(
                         (pr.file_path, "function", fn.start_line)

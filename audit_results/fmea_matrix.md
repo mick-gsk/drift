@@ -1,5 +1,19 @@
 # FMEA Matrix
 
+## 2026-04-11 - Issue #232: SMS test-only framework imports counted as production novel imports
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| SMS | FP: test-only framework imports (z. B. `vitest`) als produktive Novel Imports gemeldet | SMS beruecksichtigte `.test/.spec`-Dateien in Baseline und Novel-Import-Erkennung | Hohe Noise-Last in Repos mit co-lokierten Tests, reduzierte Signal-Glaubwuerdigkeit | Neue Regression `test_find_novel_imports_ignores_test_only_framework_imports` in `tests/test_coverage_signals.py` | Testdateien werden ueber zentrale Erkennung (`is_test_file`) in `_module_imports`, `_find_novel_imports` und Analyze-Filter ausgeschlossen | 7 | 8 | 2 | 112 | Mitigated |
+| SMS | FN-Risiko: produktionsnahe Dateien mit testaehnlichem Namensmuster werden ausgeschlossen | Testpfadklassifizierung kann Randfaelle als Testkontext einstufen | Unterberichtung einzelner echter Novel-Import-Faelle | Bestehende zentrale Testdatei-Erkennungsregeln und Signal-Regressionen | Nutzung der bereits etablierten zentralen Testklassifikation statt signal-spezifischer Sonderheuristik; bestehende Fixture-Ausnahmen bleiben aktiv | 4 | 3 | 4 | 48 | Mitigated |
+
+## 2026-04-11 - Issue #231: DCA TS helper FP bei default export
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| DCA | FP: modulinterne TS/JS Helper als dead export gemeldet | DCA behandelte oeffentliche Funktionen in TS/JS pauschal als exportiert, auch wenn `is_exported=False` | Hohe Noise-Last in Facade-/Plugin-Modulen mit `export default` Einstiegspunkt | Regression in `tests/test_ts_export_detection.py::test_non_exported_ts_functions_are_not_treated_as_exports` | TS/JS-Pfad nutzt nur tatsaechlich exportierte Funktionen (`FunctionInfo.is_exported`) als DCA-Kandidaten | 7 | 8 | 2 | 112 | Mitigated |
+| DCA | FN-Risiko: ungenaue Exportmarkierung im Parser unterdrueckt echte DCA-Faelle | Falls `is_exported` in Ingestion falsch gesetzt ist, koennen ungenutzte Exports uebersehen werden | Unterberichtung in einzelnen TS/JS-Dateien | Bestehende Export-Erkennungs-Tests (`tests/test_ts_export_detection.py`) + DCA Export-Testfall | Parser-Exporttests beibehalten; DCA-Logik bleibt fuer Python unveraendert | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-11 - Issue #229: PFS FP-Reduktion fuer Plugin-/Extension-Architekturen
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

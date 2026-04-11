@@ -90,9 +90,9 @@ class TestExportDetection:
 
 @needs_tree_sitter
 class TestDCAScoreBoost:
-    """Test that DCA score boost applies to non-exported TS functions."""
+    """Test DCA handling for exported vs non-exported TS functions."""
 
-    def test_non_exported_ts_functions_get_score_boost(self) -> None:
+    def test_non_exported_ts_functions_are_not_treated_as_exports(self) -> None:
         from drift.config import DriftConfig
         from drift.models import (
             FunctionInfo,
@@ -150,12 +150,8 @@ class TestDCAScoreBoost:
         signal = DeadCodeAccumulationSignal()
         findings = signal.analyze([pr_a, pr_b], {}, DriftConfig())
 
-        # Should produce at least one finding with boosted score
-        assert len(findings) >= 1
-        finding = findings[0]
-        # Base score for 3/3 dead: 0.8 * 1.0 + 3 * 0.02 = 0.86
-        # Boost +0.15 → min(1.0, 1.01) = 1.0
-        assert finding.score >= 0.86  # boosted beyond base
+        # Non-exported TS helpers are module-internal by default.
+        assert findings == []
 
     def test_exported_ts_functions_no_boost(self) -> None:
         from drift.config import DriftConfig

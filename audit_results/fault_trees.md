@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-11 - Issue #231: DCA default-export helper false positives
+
+### Top Event (TE-DCA-231)
+DCA meldet modulinterne TS/JS Helper als dead code, obwohl sie vom default export aufgerufen werden.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: module-internal helper reported as dead export
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: DCA behandelt oeffentliche TS/JS Funktionen ohne Exportpruefung als exportiert.
+  - Mitigation: In TS/JS nur Funktionen mit `is_exported=True` in den Exportkandidaten aufnehmen.
+- **IE-2 (MCS)**: Dateien mit `export default` Facade + interne Helper erzeugen importbasierte Fehlklassifikation.
+  - Mitigation: Nicht exportierte modulinterne Helper nicht als DCA-Ziel betrachten.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Parser markiert Exportstatus falsch, dadurch koennen echte ungenutzte Exports entfallen.
+  - Mitigation: Export-Detection Regressionstests fuer TS (`tests/test_ts_export_detection.py`) beibehalten und DCA-Verhalten gegenpruefen.
+
 ## 2026-04-11 - Issue #229: PFS Plugin-/Extension-Architektur FP-Reduktion
 
 ### Top Event (TE-PFS-229)

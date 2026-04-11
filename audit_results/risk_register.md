@@ -1,5 +1,19 @@
 # Risk Register
 
+## 2026-04-11 - Issue #231: DCA TS/JS default-export helper false positives
+
+- Risk ID: RISK-SIGNAL-2026-04-11-231
+- Component: `src/drift/signals/dead_code_accumulation.py`, `tests/test_ts_export_detection.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Dead Code Accumulation (DCA) betrachtet in TS/JS jetzt nur tatsaechlich exportierte Funktionen (`is_exported=True`) als Exportkandidaten. Modulinterne Helper in Dateien mit `export default` werden dadurch nicht mehr als ungenutzte Exports klassifiziert.
+- Trigger: `drift analyze` auf TypeScript-/JavaScript-Repositories mit Facade-Modulen, Plugin-Entrypoints oder default-export-basierten Extension-Dateien.
+- Impact: Medium-positive. Reduziert dominante DCA-FP-Cluster und verbessert Signal-Glaubwuerdigkeit/Actionability.
+- Mitigation:
+  - DCA-Exportsammlung fuer TS/JS an `FunctionInfo.is_exported` gebunden.
+  - Regression `test_non_exported_ts_functions_are_not_treated_as_exports` deckt den FP-Fall ab.
+  - Bestehende TS Export-Detection-Tests bleiben als Guard aktiv.
+- Residual risk: Low-Medium. Wenn Export-Erkennung im Parser fehlerhaft ist, kann es zu FN bei echten ungenutzten Exports kommen; durch bestehende Export-Detection-Tests begrenzt.
+
 ## 2026-04-11 - Issue #229: PFS Plugin-/Extension-Boundary Dempfung
 
 - Risk ID: RISK-SIGNAL-2026-04-11-229

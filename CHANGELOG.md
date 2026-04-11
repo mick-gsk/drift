@@ -38,9 +38,12 @@
 - `drift status` all output strings translated from German to English (short_help, docstring, found/not-found messages, "Next step:", "Tip:", and calibration hint).
 - Inline code snippets in rich output are now hard-capped at 8 lines per finding; additional lines show a `… (N more lines)` marker instead of overflowing the terminal.
 - `drift.yaml` extended with an `exclude:` section to keep `benchmarks/**`, `benchmark_results/**`, `data/**`, `community_flywheel_output/**`, `work_artifacts/**`, `tagesplanung/**`, `site/**`, and `overrides/**` out of the default scan scope.
+- Built-in default exclude list now includes `**/benchmarks/**` and `**/benchmark_results/**` so benchmark corpora are excluded out-of-the-box even without a `drift.yaml` (config.py + file_discovery fallback).
 
 ### Fixed
 
+- DCA Issue #231: in TypeScript/JavaScript, only actually exported functions are treated as DCA export candidates; module-internal helpers used by `export default` facades are no longer flagged as dead exports.
+- PFS Issue #229: dampen plugin-/extension-boundary fragmentation findings (`extensions`/`plugins`/`packages`) and cap severity to LOW for multi-plugin API surfaces, reducing false positives in deliberate plugin architectures.
 - NBV Issue #214: TypeScript/JavaScript `ensure_*` now also accepts idempotent ensure-by-side-effect patterns (for example `mkdir*`, registry `set`, and property/index assignments), reducing false positives for initialization helpers that intentionally use `void` contracts.
 - HSC Issue #212: suppress false positives for env-var name constants (`*_ENV`, `*_VAR`) and marker/sentinel constants (`MARKER`, `PREFIX`, `ALPHABET`, `MESSAGE`, `ERROR_CODE`) while preserving known-prefix true positives.
 - NBV Issue #210: `ensure_*` in TypeScript/JavaScript now accepts language-conformant upsert/get-or-create semantics (throw **or** value-returning return path), reducing false positives while preserving Python `ensure_*` raise expectations.
