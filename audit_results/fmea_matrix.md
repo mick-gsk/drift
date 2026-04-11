@@ -1,5 +1,13 @@
 # FMEA Matrix
 
+## 2026-04-11 - Issue #212: HSC FP-Reduktion (Env-Name-/Marker-Konstanten)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| HSC | FP: Env-Var-Namenskonstanten als Hardcoded-Secret gemeldet | Secret-shapiger Variablenname (`*_SECRET_*`, `*_TOKEN_*`) + ALL_CAPS env-name literal (`AWS_SECRET_ACCESS_KEY`) wurde als Geheimniswert interpretiert | Hohe Triage-Last in TS/Python-Konstantenmodulen und geringere Signal-Glaubwuerdigkeit | Neue Regressionen in `tests/test_hardcoded_secret.py` (`test_env_var_name_constant_not_flagged`, `test_env_var_name_with_var_suffix_not_flagged`) | Suppression fuer Env-Name-Literale: ALL_CAPS_SNAKE + Secret-Terme + env-name-typischer Variablenname (`*_ENV`, `*_ENV_KEY`, `*_KEY_ENV`, `*_VAR`, `_ENV`) | 6 | 7 | 3 | 126 | Mitigated |
+| HSC | FP: Marker/Sentinel-Konstanten als Hardcoded-Secret gemeldet | Marker- und Message-Konstanten enthalten Token/Secret-Woerter im Namen, aber nur Marker- oder Error-Code-Literale im Wert | Rauschen in Setup-/Runtime-/Error-Konstanten reduziert Actionability | Neue Regression `test_marker_and_message_constants_not_flagged` + Helper-Tests fuer `_is_marker_constant_name` | Suppression auf Variablennamenebene fuer `MARKER`, `PREFIX`, `ALPHABET`, `MESSAGE`, `ERROR_CODE` | 5 | 7 | 3 | 105 | Mitigated |
+| HSC | FN: Neue Suppression verdeckt echte API-Token mit Known Prefix | Suppressionen koennten versehentlich vor Prefix-Erkennung greifen | Realer Secret-Leak bleibt ungemeldet | Guard-Regressionen `test_env_var_name_suppression_does_not_hide_known_prefix` und `test_marker_suppression_does_not_hide_known_prefix` | Bekannte Prefix-Detektion (`ghp_`, `sk-`, `AKIA`, ...) bleibt vor Suppression priorisiert | 8 | 2 | 3 | 48 | Mitigated |
+
 ## 2026-04-11 - Issue #211: TSB exclude test/spec and mock paths
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

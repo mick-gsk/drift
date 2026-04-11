@@ -1,5 +1,19 @@
 # Risk Register
 
+## 2026-04-11 - Issue #212: HSC FP-Reduktion (Env-Name-/Marker-Konstanten)
+
+- Risk ID: RISK-SIGNAL-2026-04-11-212
+- Component: `src/drift/signals/hardcoded_secret.py`, `tests/test_hardcoded_secret.py`, `tests/test_hsc_helpers_coverage.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Hardcoded Secret (HSC) unterdrueckt jetzt zwei dominante FP-Klassen: (1) Env-Var-Namenskonstanten wie `AWS_SECRET_KEY_ENV = "AWS_SECRET_ACCESS_KEY"` und (2) Marker/Sentinel-Konstanten mit Suffixen wie `MARKER`, `PREFIX`, `ALPHABET`, `MESSAGE`, `ERROR_CODE`.
+- Trigger: `drift analyze` auf Repositories mit TypeScript/Python-Konstantenmodulen, die env var names oder Marker-Literale als Stringwerte halten.
+- Impact: Medium-positive. Deutlich weniger HSC-Triage-Rauschen, bessere Actionability und hoehere Signal-Glaubwuerdigkeit.
+- Mitigation:
+  - Neue Helper `_is_env_var_name_literal()` und `_is_marker_constant_name()` im HSC-Signal.
+  - Suppression bleibt hinter der Known-Prefix-Detektion, damit echte Prefix-Secrets weiterhin gemeldet werden.
+  - Regressionen fuer TN-Faelle (env-name/marker) und Guard-Tests fuer TP-Erhalt (known prefix) hinzugefuegt.
+- Residual risk: Low. Restrisiko liegt in edge-case Namensmustern; durch Reihenfolge (prefix zuerst) und Guard-Regressionen begrenzt.
+
 ## 2026-04-11 - Issue #211: TSB test/spec path exclusion
 
 - Risk ID: RISK-SIGNAL-2026-04-11-211

@@ -1,5 +1,32 @@
 # Fault Tree Analysis
 
+## 2026-04-11 - Issue #212: HSC FP-Reduktion (Env-Name-/Marker-Konstanten)
+
+### Top Event (TE-HSC-212)
+HSC meldet nicht-geheime Konstanten (Env-Namen, Marker/Sentinels) als Hardcoded Secret.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: non-secret constants reported as HSC finding
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2      IE-3
+```
+
+- **IE-1 (MCS)**: Env-Var-Namensliteral (`AWS_SECRET_ACCESS_KEY`) wird als Secret-Wert interpretiert
+  - Mitigation: `_is_env_var_name_literal()` erkennt ALL_CAPS env-name Literale fuer env-benannte Variablen und suppresses.
+- **IE-2 (MCS)**: Marker/Sentinel-Konstanten (`*_MARKER`, `*_PREFIX`, `*_ERROR_CODE`) triggern wegen secret-shapigem Variablennamen
+  - Mitigation: `_is_marker_constant_name()` suppresses marker-/message-orientierte Konstantennamen.
+- **IE-3 (MCS)**: Endpoint-/Metadata-Konstanten enthalten Token-Woerter, aber keine Credentials
+  - Mitigation: bestehende URL- und Kontext-Suppressionspfade bleiben aktiv.
+
+### FT-2: false-negative guard
+
+- **IE-4 (Guard)**: neue Suppression maskiert echte Prefix-Secrets in env-/marker-benannten Variablen
+  - Mitigation: Known-Prefix-Erkennung (`ghp_`, `sk-`, `AKIA`, ...) bleibt im Ablauf vor allen neuen Suppressionspfaden; Guard-Regressionen vorhanden.
+
 ## 2026-04-11 - Issue #211: TSB test/spec false-positive reduction
 
 ### Top Event (TE-TSB-211)

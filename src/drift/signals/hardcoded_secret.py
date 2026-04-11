@@ -1,8 +1,8 @@
 """Signal: Hardcoded Secret Detection (HSC).
 
-Detects hardcoded secrets, API tokens, and credentials in Python source
-code by analysing AST assignment nodes for security-sensitive variable
-names combined with string-literal values.
+Detects hardcoded secrets, API tokens, and credentials in Python and
+TypeScript/JavaScript source code by analysing AST assignment nodes for
+security-sensitive variable names combined with string-literal values.
 
 Uses a multi-layer approach:
 1. Variable-name pattern matching (secret, key, token, password, etc.)
@@ -105,6 +105,20 @@ _SYMBOL_DECLARATION_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_:-]{2,}$")
 _OTEL_GENAI_SEMCONV_RE = re.compile(r"^gen_ai\.[a-z0-9_]+(?:\.[a-z0-9_]+)+$")
 
 _ENV_PLACEHOLDER_RE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*\}")
+
+_ENV_VAR_NAME_LITERAL_RE = re.compile(r"^[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+$")
+
+_ENV_NAME_VAR_SUFFIXES: tuple[str, ...] = (
+    "_ENV",
+    "_ENV_KEY",
+    "_KEY_ENV",
+    "_VAR",
+)
+
+_MARKER_CONST_NAME_RE = re.compile(
+    r"(?:^|_)(?:marker|prefix|alphabet|message|error_code)(?:_|$)",
+    re.IGNORECASE,
+)
 
 _ENUM_BASE_NAMES: frozenset[str] = frozenset({
     "Enum",
@@ -305,6 +319,27 @@ def _is_env_placeholder_template_literal(string_val: str) -> bool:
     return ":" in string_val or "=" in string_val
 
 
+def _is_env_var_name_literal(var_name: str, string_val: str) -> bool:
+    """Return True when a literal stores an environment-variable NAME, not a value."""
+    if not _ENV_VAR_NAME_LITERAL_RE.match(string_val):
+        return False
+
+    value_lower = string_val.lower()
+    if not _SECRET_VAR_RE.search(value_lower):
+        return False
+
+    upper_name = var_name.upper()
+    if upper_name.endswith(_ENV_NAME_VAR_SUFFIXES):
+        return True
+
+    return "_ENV" in upper_name
+
+
+def _is_marker_constant_name(var_name: str) -> bool:
+    """Return True for marker/sentinel-style constant names, not credential holders."""
+    return bool(_MARKER_CONST_NAME_RE.search(var_name))
+
+
 @register_signal
 class HardcodedSecretSignal(BaseSignal):
     """Detect hardcoded secrets and credentials in source code."""
@@ -319,6 +354,8 @@ class HardcodedSecretSignal(BaseSignal):
     def name(self) -> str:
         return "Hardcoded Secret"
 
+    _TS_LANGS = frozenset({"typescript", "tsx", "javascript", "jsx"})
+
     def analyze(
         self,
         parse_results: list[ParseResult],
@@ -330,34 +367,183 @@ class HardcodedSecretSignal(BaseSignal):
         min_length = config.thresholds.hsc_min_length
 
         for pr in parse_results:
-            if pr.language != "python":
-                continue
             if is_test_file(pr.file_path):
                 continue
 
-            try:
-                repo_path = self._repo_path or Path(".")
-                source = (repo_path / pr.file_path).read_text(
-                    encoding="utf-8", errors="replace"
+            if pr.language == "python":
+                findings.extend(
+                    self._analyze_python(pr, min_entropy, min_length)
                 )
-                tree = ast.parse(source, filename=str(pr.file_path))
-            except (SyntaxError, OSError):
-                continue
-
-            parent_map = {
-                child: parent
-                for parent in ast.walk(tree)
-                for child in ast.iter_child_nodes(parent)
-            }
-
-            for node in ast.walk(tree):
-                finding = self._check_assignment(
-                    node, pr.file_path, min_entropy, min_length, parent_map
+            elif pr.language in self._TS_LANGS:
+                findings.extend(
+                    self._analyze_typescript(pr, min_entropy, min_length)
                 )
-                if finding:
-                    findings.append(finding)
 
         return findings
+
+    # ------------------------------------------------------------------
+    # Python analysis (AST-based)
+    # ------------------------------------------------------------------
+
+    def _analyze_python(
+        self,
+        pr: ParseResult,
+        min_entropy: float,
+        min_length: int,
+    ) -> list[Finding]:
+        findings: list[Finding] = []
+        try:
+            repo_path = self._repo_path or Path(".")
+            source = (repo_path / pr.file_path).read_text(
+                encoding="utf-8", errors="replace"
+            )
+            tree = ast.parse(source, filename=str(pr.file_path))
+        except (SyntaxError, OSError):
+            return findings
+
+        parent_map = {
+            child: parent
+            for parent in ast.walk(tree)
+            for child in ast.iter_child_nodes(parent)
+        }
+
+        for node in ast.walk(tree):
+            finding = self._check_assignment(
+                node, pr.file_path, min_entropy, min_length, parent_map
+            )
+            if finding:
+                findings.append(finding)
+
+        return findings
+
+    # ------------------------------------------------------------------
+    # TypeScript / JavaScript analysis (tree-sitter)
+    # ------------------------------------------------------------------
+
+    def _analyze_typescript(
+        self,
+        pr: ParseResult,
+        min_entropy: float,
+        min_length: int,
+    ) -> list[Finding]:
+        """Detect hardcoded secrets in TS/JS files via tree-sitter."""
+        findings: list[Finding] = []
+        repo_path = self._repo_path or Path(".")
+        try:
+            source = (repo_path / pr.file_path).read_text(
+                encoding="utf-8", errors="replace"
+            )
+        except OSError:
+            return findings
+
+        # Regex-based line-level scan (language-neutral heuristics).
+        # Matches: const SECRET = "value", let apiKey = 'value', export const TOKEN = `value`
+        _VAR_ASSIGN_RE = re.compile(
+            r"""^[ \t]*(?:export\s+)?(?:const|let|var)\s+"""
+            r"""([A-Za-z_$][A-Za-z0-9_$]*)\s*"""
+            r"""(?::\s*\S+?\s*)?=\s*"""
+            r"""(['"`])(.+?)\2""",
+        )
+        for lineno, line in enumerate(source.splitlines(), start=1):
+            m = _VAR_ASSIGN_RE.match(line)
+            if not m:
+                continue
+            var_name, _quote, string_val = m.group(1), m.group(2), m.group(3)
+
+            finding = self._evaluate_ts_assignment(
+                var_name, string_val, pr.file_path, lineno,
+                min_entropy, min_length, line,
+            )
+            if finding:
+                findings.append(finding)
+
+        return findings
+
+    def _evaluate_ts_assignment(
+        self,
+        var_name: str,
+        string_val: str,
+        file_path: Path,
+        lineno: int,
+        min_entropy: float,
+        min_length: int,
+        line_text: str,
+    ) -> Finding | None:
+        """Evaluate a TS/JS variable assignment for secret patterns."""
+        # Safe patterns: process.env.*, require("dotenv"), etc.
+        if "process.env" in line_text or "import.meta.env" in line_text:
+            return None
+
+        # Check known API token prefixes first (high confidence).
+        candidate = _normalize_secret_literal_candidate(string_val)
+        for prefix in _KNOWN_PREFIXES:
+            if candidate.startswith(prefix):
+                return self._make_finding(
+                    var_name, file_path, lineno,
+                    rule_id="hardcoded_api_token",
+                    score=0.9,
+                    detail=f"Value starts with known API token prefix '{prefix}'.",
+                )
+
+        # Variable-name-based detection.
+        if not _SECRET_VAR_RE.search(var_name):
+            return None
+
+        if len(string_val) < 8:
+            return None
+
+        # Suppression heuristics (shared with Python).
+        if _PLACEHOLDER_RE.match(string_val):
+            return self._make_finding(
+                var_name, file_path, lineno,
+                rule_id="placeholder_secret",
+                score=0.5,
+                detail=(
+                    "Placeholder secret detected. Replace with a proper "
+                    "secret before deployment."
+                ),
+            )
+
+        if _is_endpoint_url_literal(string_val):
+            return None
+        if _is_env_var_name_literal(var_name, string_val):
+            return None
+        if _is_marker_constant_name(var_name):
+            return None
+        if _is_file_like_literal(string_val):
+            return None
+        if _is_ml_tokenizer_context_literal(var_name, string_val):
+            return None
+        if _is_otel_semconv_literal(string_val):
+            return None
+        if _is_env_placeholder_template_literal(string_val):
+            return None
+        if _looks_like_natural_language_message(string_val):
+            return None
+
+        # Entropy-based detection.
+        if len(string_val) >= min_length:
+            entropy = _shannon_entropy(string_val)
+            if entropy >= min_entropy:
+                return self._make_finding(
+                    var_name, file_path, lineno,
+                    rule_id="hardcoded_secret",
+                    score=0.7,
+                    detail=(
+                        f"High-entropy string ({entropy:.2f} bits/char) "
+                        f"assigned to security-sensitive variable."
+                    ),
+                )
+
+        if len(string_val) >= min_length:
+            return self._make_finding(
+                var_name, file_path, lineno,
+                rule_id="hardcoded_secret",
+                score=0.6,
+                detail="String literal assigned to security-sensitive variable.",
+            )
+
+        return None
 
     def _check_assignment(
         self,
@@ -508,6 +694,16 @@ class HardcodedSecretSignal(BaseSignal):
         # OAuth/auth endpoint constants (for example TOKEN_URL/AUTH_URL) are
         # common and are not credentials by themselves.
         if _is_endpoint_url_literal(string_val):
+            return None
+
+        # Constants such as API_KEY_ENV = "OPENAI_API_KEY" describe env-var
+        # names, not hardcoded credential material.
+        if _is_env_var_name_literal(var_name, string_val):
+            return None
+
+        # Sentinel/marker constants (for example *_TOKEN_PREFIX, *_ERROR_CODE)
+        # are often operational metadata rather than credentials.
+        if _is_marker_constant_name(var_name):
             return None
 
         # Filename/path constants can contain "token"/"secret" in their symbol

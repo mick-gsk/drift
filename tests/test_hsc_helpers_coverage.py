@@ -14,8 +14,10 @@ from drift.signals.hardcoded_secret import (
     _extract_string_value,
     _is_endpoint_url_literal,
     _is_env_placeholder_template_literal,
+    _is_env_var_name_literal,
     _is_file_like_literal,
     _is_in_enum_member_context,
+    _is_marker_constant_name,
     _is_ml_tokenizer_context_literal,
     _is_otel_semconv_literal,
     _is_safe_value,
@@ -309,3 +311,40 @@ class TestIsEnvPlaceholderTemplateLiteral:
     def test_ini_template(self):
         val = "key = ${SECRET}\nother = ${TOKEN}"
         assert _is_env_placeholder_template_literal(val) is True
+
+
+# -- _is_env_var_name_literal ---------------------------------------------------
+
+
+class TestIsEnvVarNameLiteral:
+    def test_env_suffix_detected(self):
+        assert _is_env_var_name_literal("AWS_SECRET_KEY_ENV", "AWS_SECRET_ACCESS_KEY") is True
+
+    def test_var_suffix_detected(self):
+        assert _is_env_var_name_literal("OPENAI_API_KEY_VAR", "OPENAI_API_KEY") is True
+
+    def test_not_all_caps_value(self):
+        assert _is_env_var_name_literal("API_KEY_ENV", "openai_api_key") is False
+
+    def test_not_secret_shaped_value(self):
+        assert _is_env_var_name_literal("AUTH_ENV", "APP_SETTINGS") is False
+
+
+# -- _is_marker_constant_name ---------------------------------------------------
+
+
+class TestIsMarkerConstantName:
+    def test_marker(self):
+        assert _is_marker_constant_name("GCP_VERTEX_CREDENTIALS_MARKER") is True
+
+    def test_prefix(self):
+        assert _is_marker_constant_name("ANTHROPIC_SETUP_TOKEN_PREFIX") is True
+
+    def test_message(self):
+        assert _is_marker_constant_name("DEVICE_TOKEN_ROTATION_DENIED_MESSAGE") is True
+
+    def test_error_code(self):
+        assert _is_marker_constant_name("GATEWAY_SECRET_REF_UNAVAILABLE_ERROR_CODE") is True
+
+    def test_regular_secret_name(self):
+        assert _is_marker_constant_name("OPENAI_API_KEY") is False

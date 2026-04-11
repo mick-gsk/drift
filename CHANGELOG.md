@@ -41,6 +41,7 @@
 
 ### Fixed
 
+- HSC Issue #212: suppress false positives for env-var name constants (`*_ENV`, `*_VAR`) and marker/sentinel constants (`MARKER`, `PREFIX`, `ALPHABET`, `MESSAGE`, `ERROR_CODE`) while preserving known-prefix true positives.
 - NBV Issue #210: `ensure_*` in TypeScript/JavaScript now accepts language-conformant upsert/get-or-create semantics (throw **or** value-returning return path), reducing false positives while preserving Python `ensure_*` raise expectations.
 - Activate MAZ (missing authorization, weight 0.02) and ISD (insecure default, weight 0.01) as scoring-active signals, completing the agent-safety signal suite (ADR-039).
 - Recalibrate HSC (0.02→0.01), FOE (0.01→0.005) weights for conservative activation alongside MAZ/ISD (ADR-039).

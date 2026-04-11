@@ -352,6 +352,47 @@ class TestHSCTrueNegatives:
         findings = signal.analyze([_make_pr()], {}, DriftConfig())
         assert len(findings) == 0
 
+    def test_env_var_name_constant_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "constants.py",
+            '''\
+            AWS_SECRET_KEY_ENV = "AWS_SECRET_ACCESS_KEY"
+            ELEVENLABS_API_KEY_ENV = "ELEVENLABS_API_KEY"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("constants.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_env_var_name_with_var_suffix_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "constants.py",
+            '''\
+            OPENAI_API_KEY_VAR = "OPENAI_API_KEY"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("constants.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_marker_and_message_constants_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "constants.py",
+            '''\
+            GCP_VERTEX_CREDENTIALS_MARKER = "vertex-credentials-v1"
+            ANTHROPIC_SETUP_TOKEN_PREFIX = "anthropic-setup-v1"
+            NOVNC_PASSWORD_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
+            DEVICE_TOKEN_ROTATION_DENIED_MESSAGE = "Token rotation denied for this device"
+            GATEWAY_SECRET_REF_UNAVAILABLE_ERROR_CODE = "secret_ref_unavailable"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("constants.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
     def test_token_url_oauth_endpoint_not_flagged(self, tmp_path: Path) -> None:
         _write_source(
             tmp_path,
@@ -531,6 +572,32 @@ class TestHSCTrueNegatives:
         )
         signal = HardcodedSecretSignal(repo_path=tmp_path)
         findings = signal.analyze([_make_pr("mcp_tool_yaml.py")], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].rule_id == "hardcoded_api_token"
+
+    def test_env_var_name_suppression_does_not_hide_known_prefix(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "constants.py",
+            '''\
+            API_TOKEN_ENV = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("constants.py")], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].rule_id == "hardcoded_api_token"
+
+    def test_marker_suppression_does_not_hide_known_prefix(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "constants.py",
+            '''\
+            ANTHROPIC_SETUP_TOKEN_PREFIX = "sk-abcdefghijklmnopqrstuvwxyz123456"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("constants.py")], {}, DriftConfig())
         assert len(findings) == 1
         assert findings[0].rule_id == "hardcoded_api_token"
 
