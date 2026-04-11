@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #246: SMS suppresses novel deps in newly introduced plugin workspaces
+
+- Risk ID: RISK-SIGNAL-2026-04-12-246
+- Component: `src/drift/signals/system_misalignment.py`, `tests/test_coverage_signals.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: System Misalignment (SMS) erkennt jetzt neue Runtime-Plugin-Workspaces (`extensions/*`, `plugins/*`) ueber Dateihistorie und unterdrueckt dort Novel-Dependency-Findings waehrend der initialen Einfuehrungsphase.
+- Trigger: `drift analyze` auf Plugin-Monorepos, in denen neue Extension-Provider in einem Zeitfenster mit mehreren erstmaligen Drittanbieter-Abhaengigkeiten eingefuehrt werden.
+- Impact: High-positive. Reduziert dominante SMS-False-Positives und verhindert Severity-Inflation bei architektonisch erwarteter Plugin-Erweiterung.
+- Mitigation:
+  - Neue Workspace-Heuristik `_runtime_plugin_workspace_key` + `_new_runtime_plugin_workspaces`.
+  - SMS skippt Novel-Import-Erkennung nur fuer Workspaces mit ausschliesslich recent getrackter Historie.
+  - Regressionen fuer beide Richtungen: neue Workspace-Suppression und unveraenderte Erkennung bei etabliertem Workspace.
+- Verification:
+  - `python -m pytest tests/test_coverage_signals.py -q --tb=short -k sms`
+  - `python -m ruff check src/drift/signals/system_misalignment.py tests/test_coverage_signals.py`
+- Residual risk: Low-Medium. Echte Erst-Commit-Misalignment-Faelle in brandneuen Workspaces werden voruebergehend nicht durch SMS priorisiert; nach Etablierung des Workspaces greift SMS wieder normal.
+
 ## 2026-04-12 - Issue #245: PFS combined framework+plugin context severity cap
 
 - Risk ID: RISK-SIGNAL-2026-04-12-245

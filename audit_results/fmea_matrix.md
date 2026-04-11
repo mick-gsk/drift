@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #246: SMS FP bei neuen Extension-Abhaengigkeiten
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| SMS | FP: novel dependencies in neuen `extensions/*`/`plugins/*` Workspaces als Drift priorisiert | SMS bewertet neue Third-Party-Imports module-lokal ohne Beruecksichtigung, dass ein komplett neuer Plugin-Workspace seine eigenen Domain-Abhaengigkeiten bewusst einfuehrt | Hohe Finding-Menge und unnoetige MEDIUM/LOW-Priorisierung bei legitimer Erweiterung | Neue Regressionen in `tests/test_coverage_signals.py` (`test_sms_suppresses_novel_imports_in_new_extension_workspace`, `test_sms_still_reports_novel_imports_for_existing_extension_workspace`) | Workspace-Heuristik: neue Runtime-Plugin-Workspaces (alle getrackten Dateien nur recent) werden fuer SMS-Novel-Import-Erkennung unterdrueckt; etablierte Workspaces bleiben analysiert | 7 | 8 | 2 | 112 | Mitigated |
+| SMS | FN-Risiko: echte Fehlanpassung in ganz neuem Workspace wird nicht sofort gemeldet | Suppression reduziert SMS-Sichtbarkeit waehrend der initialen Einfuehrungsphase eines neuen Plugins | Potenziell spaetere Erkennung echter Architekturabweichungen in Erst-Commits | Guard-Regression fuer etablierte Workspaces bleibt aktiv; bestehende allgemeine SMS-Detektion ausserhalb neuer Workspaces unveraendert | Heuristik ist eng auf `extensions/<name>` und `plugins/<name>` mit rein recent Historie begrenzt; nach Etablierung greift SMS wieder normal | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-12 - Issue #245: PFS cap to INFO for combined framework+plugin context
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

@@ -65,6 +65,56 @@ _NODEJS_BUILTINS: frozenset[str] = frozenset({
 # Combined set for quick lookup
 _ALL_STDLIB: frozenset[str] = _STDLIB_MODULES | _NODEJS_BUILTINS
 
+_RUNTIME_PLUGIN_ROOTS: frozenset[str] = frozenset({"extensions", "plugins"})
+
+
+def _runtime_plugin_workspace_key(file_path: Path) -> str | None:
+    """Return workspace key for extensions/plugins style monorepos."""
+    parts = [part for part in file_path.as_posix().split("/") if part]
+    if len(parts) < 2:
+        return None
+    if parts[0] not in _RUNTIME_PLUGIN_ROOTS:
+        return None
+    return f"{parts[0]}/{parts[1]}"
+
+
+def _new_runtime_plugin_workspaces(
+    parse_results: list[ParseResult],
+    file_histories: dict[str, FileHistory],
+    cutoff: datetime.datetime,
+) -> set[str]:
+    """Return plugin workspaces whose tracked files are all recent.
+
+    This suppresses expected "novel dependency" churn when a brand-new
+    extension/plugin workspace is introduced during the analysis window.
+    """
+    candidates: set[str] = set()
+    established: set[str] = set()
+
+    for pr in parse_results:
+        if is_test_file(pr.file_path):
+            continue
+        workspace = _runtime_plugin_workspace_key(pr.file_path)
+        if workspace is None:
+            continue
+        history = file_histories.get(pr.file_path.as_posix())
+        if history is None:
+            continue
+
+        candidates.add(workspace)
+
+        first_seen = history.first_seen
+        if hasattr(first_seen, "astimezone"):
+            first_seen = first_seen.astimezone(datetime.UTC)
+        last_modified = history.last_modified
+        if hasattr(last_modified, "astimezone"):
+            last_modified = last_modified.astimezone(datetime.UTC)
+
+        if (first_seen and first_seen < cutoff) or (last_modified and last_modified < cutoff):
+            established.add(workspace)
+
+    return candidates - established
+
 
 def _is_stdlib_import(module_spec: str, language: str) -> bool:
     """Return True if *module_spec* is a known standard-library module."""
@@ -132,9 +182,11 @@ def _find_novel_imports(
     module_import_baseline: dict[Path, set[str]],
     file_histories: dict[str, FileHistory],
     recency_days: int = 14,
+    suppressed_workspaces: set[str] | None = None,
 ) -> list[tuple[ImportInfo, Path, str]]:
     """Find imports in recent files that introduce novel dependencies to their module."""
     novel: list[tuple[ImportInfo, Path, str]] = []
+    suppressed_workspaces = suppressed_workspaces or set()
 
     cutoff = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=recency_days)
 
@@ -150,6 +202,10 @@ def _find_novel_imports(
         if hasattr(last_mod, "astimezone"):
             last_mod = last_mod.astimezone(datetime.UTC)
         if last_mod < cutoff:
+            continue
+
+        workspace = _runtime_plugin_workspace_key(pr.file_path)
+        if workspace and workspace in suppressed_workspaces:
             continue
 
         module = pr.file_path.parent
@@ -230,8 +286,17 @@ class SystemMisalignmentSignal(BaseSignal):
             return []
 
         # Find novel imports in recently-modified files
+        suppressed_workspaces = _new_runtime_plugin_workspaces(
+            candidate_parse_results,
+            file_histories,
+            cutoff,
+        )
         novel = _find_novel_imports(
-            candidate_parse_results, baseline, file_histories, recency_days=recency_days
+            candidate_parse_results,
+            baseline,
+            file_histories,
+            recency_days=recency_days,
+            suppressed_workspaces=suppressed_workspaces,
         )
 
         findings: list[Finding] = []

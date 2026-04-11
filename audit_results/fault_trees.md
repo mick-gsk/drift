@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #246: SMS false positives in new extension/plugin workspaces
+
+### Top Event (TE-SMS-246)
+SMS reports expected dependency introduction in newly added plugin workspaces as system misalignment.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: intentional new plugin dependencies reported as SMS drift
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: SMS baseline is module-local and treats first-time plugin dependencies as novelty, even when the entire `extensions/<name>` or `plugins/<name>` workspace is new.
+  - Mitigation: Detect newly introduced runtime plugin workspaces and suppress SMS novel-import findings inside those workspaces.
+- **IE-2 (MCS)**: New plugin workspaces can introduce multiple domain packages at once, inflating score and severity despite expected architecture.
+  - Mitigation: Workspace-level suppression for all-recent tracked files prevents severity inflation during initial plugin introduction.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Suppression can hide real misalignment signals in the first iteration of a new workspace.
+  - Mitigation: Scope is narrow (`extensions/*`, `plugins/*`) and conditioned on workspace recency; once a workspace has established history, SMS findings are emitted normally.
+
 ## 2026-04-12 - Issue #245: PFS cross-extension plugin diversity severity over-prioritization
 
 ### Top Event (TE-PFS-245)

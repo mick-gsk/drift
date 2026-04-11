@@ -432,6 +432,149 @@ class TestSystemMisalignmentCoverage:
         novel = _find_novel_imports([pr], baseline, history, recency_days=14)
         assert novel == []
 
+    def test_sms_suppresses_novel_imports_in_new_extension_workspace(self, tmp_path: Path):
+        """New extension/plugin workspaces should not trigger SMS novel dependency findings."""
+        from drift.signals.system_misalignment import SystemMisalignmentSignal
+
+        signal = SystemMisalignmentSignal()
+        signal._repo_path = tmp_path
+        signal._commits = []
+
+        prs = []
+        histories = {}
+
+        for i in range(8):
+            core_file = Path(f"core/file{i}.py")
+            prs.append(
+                ParseResult(
+                    file_path=core_file,
+                    language="python",
+                    imports=[
+                        ImportInfo(
+                            source_file=core_file,
+                            imported_module="requests",
+                            imported_names=["get"],
+                            line_number=1,
+                        )
+                    ],
+                )
+            )
+            histories[core_file.as_posix()] = FileHistory(
+                path=core_file,
+                total_commits=12,
+                unique_authors=3,
+                last_modified=_days_ago(60),
+                first_seen=_days_ago(120),
+            )
+
+        for i in range(2):
+            ext_file = Path(f"extensions/otel/src/file{i}.ts")
+            imports = [
+                ImportInfo(
+                    source_file=ext_file,
+                    imported_module="@opentelemetry/api" if i == 0 else "@opentelemetry/sdk-logs",
+                    imported_names=["x"],
+                    line_number=1,
+                )
+            ]
+            prs.append(ParseResult(file_path=ext_file, language="typescript", imports=imports))
+            histories[ext_file.as_posix()] = FileHistory(
+                path=ext_file,
+                total_commits=1,
+                unique_authors=1,
+                last_modified=_days_ago(1),
+                first_seen=_days_ago(2),
+            )
+
+        findings = signal.analyze(prs, histories, DriftConfig())
+        assert findings == []
+
+    def test_sms_still_reports_novel_imports_for_existing_extension_workspace(self, tmp_path: Path):
+        """Established extension workspaces should still be analyzed for novel dependencies."""
+        from drift.signals.system_misalignment import SystemMisalignmentSignal
+
+        signal = SystemMisalignmentSignal()
+        signal._repo_path = tmp_path
+        signal._commits = []
+
+        prs = []
+        histories = {}
+
+        for i in range(8):
+            core_file = Path(f"core/file{i}.py")
+            prs.append(
+                ParseResult(
+                    file_path=core_file,
+                    language="python",
+                    imports=[
+                        ImportInfo(
+                            source_file=core_file,
+                            imported_module="requests",
+                            imported_names=["get"],
+                            line_number=1,
+                        )
+                    ],
+                )
+            )
+            histories[core_file.as_posix()] = FileHistory(
+                path=core_file,
+                total_commits=12,
+                unique_authors=3,
+                last_modified=_days_ago(60),
+                first_seen=_days_ago(120),
+            )
+
+        established_file = Path("extensions/otel/src/legacy.ts")
+        prs.append(
+            ParseResult(
+                file_path=established_file,
+                language="typescript",
+                imports=[
+                    ImportInfo(
+                        source_file=established_file,
+                        imported_module="@opentelemetry/api",
+                        imported_names=["x"],
+                        line_number=1,
+                    )
+                ],
+            )
+        )
+        histories[established_file.as_posix()] = FileHistory(
+            path=established_file,
+            total_commits=10,
+            unique_authors=2,
+            last_modified=_days_ago(80),
+            first_seen=_days_ago(120),
+        )
+
+        new_file = Path("extensions/otel/src/new.ts")
+        prs.append(
+            ParseResult(
+                file_path=new_file,
+                language="typescript",
+                imports=[
+                    ImportInfo(
+                        source_file=new_file,
+                        imported_module="@opentelemetry/sdk-logs",
+                        imported_names=["x"],
+                        line_number=1,
+                    )
+                ],
+            )
+        )
+        histories[new_file.as_posix()] = FileHistory(
+            path=new_file,
+            total_commits=1,
+            unique_authors=1,
+            last_modified=_days_ago(1),
+            first_seen=_days_ago(1),
+        )
+
+        findings = signal.analyze(prs, histories, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].signal_type == SignalType.SYSTEM_MISALIGNMENT
+        assert findings[0].file_path == Path("extensions/otel/src")
+
 
 # ---------------------------------------------------------------------------
 # ExplainabilityDeficitSignal — additional coverage
