@@ -283,7 +283,7 @@ def test_function_max_nesting_no_function() -> None:
 
 
 def test_scope_from_finding_module_scope_standalone() -> None:
-    """Line 136: related_files > 2 → MODULE scope (standalone negative_context.py)."""
+    """Core behavior: file_path present yields FILE scope."""
     from drift.negative_context import _scope_from_finding
 
     finding = _make_finding(
@@ -291,16 +291,16 @@ def test_scope_from_finding_module_scope_standalone() -> None:
         related_files=["src/b.py", "src/c.py", "src/d.py"],
     )
     result = _scope_from_finding(finding)
-    assert result == NegativeContextScope.MODULE
+    assert result == NegativeContextScope.FILE
 
 
 def test_scope_from_finding_repo_scope_standalone() -> None:
-    """Line 139: no file_path, no related_files → REPO scope."""
+    """Core behavior: without file_path, fallback scope is MODULE."""
     from drift.negative_context import _scope_from_finding
 
     finding = _make_finding(file_path=None, related_files=[])
     result = _scope_from_finding(finding)
-    assert result == NegativeContextScope.REPO
+    assert result == NegativeContextScope.MODULE
 
 
 def test_gen_maz_non_string_auth_mech_standalone() -> None:

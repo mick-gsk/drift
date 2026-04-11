@@ -29,6 +29,7 @@ from drift.negative_context.core import (
     _neg_id,
     _policy_covered_signal_types,
     _policy_uncovered_signal_types,
+    _scope_from_finding,
 )
 
 # Re-export the fallback generator for direct use in the public function
@@ -42,6 +43,7 @@ __all__ = [
     "_GENERATORS",
     "_neg_id",
     "_policy_covered_signal_types",
+    "_scope_from_finding",
     "_policy_uncovered_signal_types",
 ]
 
