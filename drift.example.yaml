@@ -66,6 +66,16 @@ weights:
 # Set to false for fully manual weight control.
 auto_calibrate: true
 
+# Worker strategy (performance rollout):
+# - fixed: CPU-based default (plus CLI/env overrides)
+# - auto: conservative auto-tuning based on repo size, file types, and I/O proxies
+# performance:
+#   worker_strategy: auto
+#   load_profile: conservative
+#   min_workers: 2
+#   max_workers: 16
+#   small_repo_file_threshold: 40
+
 # Architecture policies
 policies:
   # Layer boundary enforcement

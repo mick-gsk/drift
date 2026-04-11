@@ -1016,18 +1016,12 @@ class TestNudgeUsesBaselineManager:
 
         TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
 
-        call_count = {"n": 0, "analyze_count": 0}
+        call_count = {"analyze_count": 0}
+        phase = {"head": "commit_1"}
 
         def _fake_capture(repo_path: Path) -> _GitState:
-            call_count["n"] += 1
-            if call_count["n"] <= 1:
-                return _GitState(
-                    head_commit="commit_1",
-                    stash_hash="s1",
-                    changed_file_count=0,
-                )
             return _GitState(
-                head_commit="commit_2",
+                head_commit=phase["head"],
                 stash_hash="s1",
                 changed_file_count=0,
             )
@@ -1043,6 +1037,9 @@ class TestNudgeUsesBaselineManager:
         # First call → creates baseline (1 analyze call)
         nudge(tmp_path, changed_files=[])
         first_analyze = call_count["analyze_count"]
+
+        # Simulate external git movement before next nudge call.
+        phase["head"] = "commit_2"
 
         # Second call → git state changed → rescan (another analyze call)
         result = nudge(tmp_path, changed_files=[])
@@ -1080,25 +1077,19 @@ class TestNudgeUsesBaselineManager:
 
         TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
 
-        call_count = {"n": 0}
+        phase = {"stash": "stash_1"}
 
         def _fake_capture(repo_path: Path) -> _GitState:
-            call_count["n"] += 1
-            if call_count["n"] <= 1:
-                return _GitState(
-                    head_commit="commit_1",
-                    stash_hash="stash_1",
-                    changed_file_count=0,
-                )
             return _GitState(
                 head_commit="commit_1",
-                stash_hash="stash_2",
+                stash_hash=phase["stash"],
                 changed_file_count=0,
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
 
         nudge(tmp_path, changed_files=[])
+        phase["stash"] = "stash_2"
         result = nudge(tmp_path, changed_files=[])
         assert result["baseline_refresh_reason"] == "stash_changed"
 
@@ -1113,24 +1104,76 @@ class TestNudgeUsesBaselineManager:
 
         TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
 
-        call_count = {"n": 0}
+        phase = {"count": 1}
 
         def _fake_capture(repo_path: Path) -> _GitState:
-            call_count["n"] += 1
-            if call_count["n"] <= 1:
-                return _GitState(
-                    head_commit="commit_1",
-                    stash_hash="stash_1",
-                    changed_file_count=1,
-                )
             return _GitState(
                 head_commit="commit_1",
                 stash_hash="stash_1",
-                changed_file_count=_MAX_CHANGED_FILES_BEFORE_INVALIDATION + 1,
+                changed_file_count=phase["count"],
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
 
         nudge(tmp_path, changed_files=[])
+        phase["count"] = _MAX_CHANGED_FILES_BEFORE_INVALIDATION + 1
         result = nudge(tmp_path, changed_files=[])
         assert result["baseline_refresh_reason"] == "changed_file_threshold"
+
+    def test_nudge_loads_persisted_baseline_after_manager_reset(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Disk baseline allows warm nudge after process-like manager reset."""
+        TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
+
+        # First run creates persisted baseline artifact.
+        nudge(tmp_path, changed_files=[])
+
+        # Simulate process boundary by dropping singleton state.
+        BaselineManager.reset_instance()
+
+        analyze_calls = {"n": 0}
+
+        def _counting_analyze(*a, **kw):
+            analyze_calls["n"] += 1
+            return _stub_analysis()
+
+        monkeypatch.setattr("drift.analyzer.analyze_repo", _counting_analyze)
+
+        result = nudge(tmp_path, changed_files=[])
+        assert analyze_calls["n"] == 0
+        assert result["baseline_refresh_reason"] == "disk_warm_hit"
+
+    def test_nudge_config_change_invalidates_persisted_baseline(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Changed config fingerprint forces fresh baseline build."""
+        from drift.api import _config as api_config
+        from drift.config import DriftConfig
+
+        TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
+
+        # Create baseline with default config fingerprint.
+        nudge(tmp_path, changed_files=[])
+
+        BaselineManager.reset_instance()
+
+        analyze_calls = {"n": 0}
+
+        def _counting_analyze(*a, **kw):
+            analyze_calls["n"] += 1
+            return _stub_analysis()
+
+        monkeypatch.setattr("drift.analyzer.analyze_repo", _counting_analyze)
+        monkeypatch.setattr(
+            DriftConfig,
+            "load",
+            staticmethod(
+                lambda *a, **kw: DriftConfig(context_dampening=0.12)
+            ),
+        )
+        api_config._CONFIG_CACHE.clear()
+
+        result = nudge(tmp_path, changed_files=[])
+        assert analyze_calls["n"] == 1
+        assert result["baseline_refresh_reason"] == "baseline_missing"

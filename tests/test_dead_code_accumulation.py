@@ -27,6 +27,19 @@ def _func(
     )
 
 
+def _ts_exported_func(name: str, file_path: str, line: int) -> FunctionInfo:
+    return FunctionInfo(
+        name=name,
+        file_path=Path(file_path),
+        start_line=line,
+        end_line=line + 3,
+        language="typescript",
+        complexity=1,
+        loc=4,
+        is_exported=True,
+    )
+
+
 def _cls(
     name: str,
     file_path: str,
@@ -281,3 +294,46 @@ class TestDCATestFileHandling:
         assert len(findings) == 1
         assert findings[0].severity == Severity.LOW
         assert findings[0].metadata.get("finding_context") == "test"
+
+
+class TestDCARuntimePluginConfigHeuristic:
+    def test_extensions_config_file_is_dampened_to_medium(self) -> None:
+        pr_cfg = ParseResult(
+            file_path=Path("extensions/acpx/src/config.ts"),
+            language="typescript",
+            functions=[
+                _ts_exported_func("resolveA", "extensions/acpx/src/config.ts", 10),
+                _ts_exported_func("resolveB", "extensions/acpx/src/config.ts", 20),
+                _ts_exported_func("resolveC", "extensions/acpx/src/config.ts", 30),
+                _ts_exported_func("resolveD", "extensions/acpx/src/config.ts", 40),
+            ],
+            imports=[],
+        )
+
+        findings = DeadCodeAccumulationSignal().analyze([pr_cfg], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.MEDIUM
+        assert findings[0].score <= 0.69
+        assert findings[0].metadata.get("runtime_plugin_config_heuristic_applied") is True
+
+    def test_extensions_non_config_file_is_not_dampened(self) -> None:
+        pr_helpers = ParseResult(
+            file_path=Path("extensions/acpx/src/helpers.ts"),
+            language="typescript",
+            functions=[
+                _ts_exported_func("unusedA", "extensions/acpx/src/helpers.ts", 10),
+                _ts_exported_func("unusedB", "extensions/acpx/src/helpers.ts", 20),
+                _ts_exported_func("unusedC", "extensions/acpx/src/helpers.ts", 30),
+                _ts_exported_func("unusedD", "extensions/acpx/src/helpers.ts", 40),
+            ],
+            imports=[],
+        )
+
+        findings = DeadCodeAccumulationSignal().analyze(
+            [pr_helpers],
+            {},
+            DriftConfig(),
+        )
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.HIGH
+        assert findings[0].metadata.get("runtime_plugin_config_heuristic_applied") is False

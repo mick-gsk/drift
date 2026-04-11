@@ -46,6 +46,14 @@ def _sample_analysis() -> RepoAnalysis:
         total_functions=48,
         ai_attributed_ratio=0.25,
         analysis_duration_seconds=2.3,
+        phase_timings={
+            "discover_seconds": 0.1,
+            "parse_seconds": 0.9,
+            "git_seconds": 0.4,
+            "signals_seconds": 0.7,
+            "output_seconds": 0.2,
+            "total_seconds": 2.3,
+        },
     )
 
 
@@ -65,6 +73,12 @@ def test_analysis_to_json_contains_expected_structure() -> None:
     assert payload["analysis_status"]["is_fully_reliable"] is True
     assert payload["summary"]["total_files"] == 12
     assert payload["summary"]["total_functions"] == 48
+    assert payload["summary"]["phase_timing"]["discover_seconds"] == 0.1
+    assert payload["summary"]["phase_timing"]["parse_seconds"] == 0.9
+    assert payload["summary"]["phase_timing"]["git_seconds"] == 0.4
+    assert payload["summary"]["phase_timing"]["signals_seconds"] == 0.7
+    assert payload["summary"]["phase_timing"]["output_seconds"] == 0.2
+    assert payload["summary"]["phase_timing"]["total_seconds"] == 2.3
     assert "first_run" in payload
     assert "headline" in payload["first_run"]
     assert "next_step" in payload["first_run"]
@@ -311,6 +325,18 @@ def test_analysis_to_json_compact_omits_heavy_sections() -> None:
     assert "compact_summary" in payload
     assert "fix_first" in payload
     assert "first_run" in payload
+
+
+def test_analysis_to_json_concise_profile_uses_compact_findings_shape() -> None:
+    analysis = _sample_analysis()
+
+    payload = json.loads(analysis_to_json(analysis, response_detail="concise"))
+
+    assert "findings" in payload
+    assert "findings_suppressed" in payload
+    assert "description" not in payload["findings"][0]
+    assert "remediation" not in payload["findings"][0]
+    assert "next_step" in payload["findings"][0]
 
 
 def test_analysis_to_json_first_run_honors_language() -> None:

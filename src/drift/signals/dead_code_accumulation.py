@@ -114,6 +114,20 @@ _SCRIPT_PATH_TOKENS: frozenset[str] = frozenset({
     "workflows",
 })
 
+_RUNTIME_PLUGIN_CONFIG_ROOT_TOKENS: frozenset[str] = frozenset({
+    "extensions",
+    "plugins",
+})
+
+_RUNTIME_PLUGIN_CONFIG_BASENAMES: frozenset[str] = frozenset({
+    "config.ts",
+    "config.tsx",
+    "config.js",
+    "config.jsx",
+    "config.mjs",
+    "config.cjs",
+})
+
 
 def _is_script_context_path(file_path: Path) -> bool:
     """Return True for path contexts that are likely executable scripts."""
@@ -125,6 +139,22 @@ def _is_script_context_path(file_path: Path) -> bool:
         return True
 
     return any(token in _SCRIPT_PATH_TOKENS for token in tokens)
+
+
+def _is_runtime_plugin_config_path(file_path: Path) -> bool:
+    """Return True for plugin/extension config modules often loaded dynamically."""
+    tokens = _path_tokens(file_path)
+    if len(tokens) < 3:
+        return False
+
+    if tokens[0] not in _RUNTIME_PLUGIN_CONFIG_ROOT_TOKENS:
+        return False
+
+    file_name = file_path.name.lower()
+    if file_name in _RUNTIME_PLUGIN_CONFIG_BASENAMES:
+        return True
+
+    return file_name.startswith("config-")
 
 
 def _path_tokens(file_path: Path) -> list[str]:
@@ -343,6 +373,18 @@ class DeadCodeAccumulationSignal(BaseSignal):
             if path_context == "test" and handling == "reduce_severity":
                 score = round(score * 0.45, 3)
                 severity = Severity.LOW
+
+            runtime_plugin_config_heuristic_applied = False
+            if (
+                path_context != "test"
+                and _is_runtime_plugin_config_path(file_path)
+            ):
+                # Plugin config modules are frequently loaded via runtime import()
+                # patterns and cannot be resolved reliably with static imports only.
+                score = round(min(0.69, score * 0.6), 3)
+                severity = Severity.MEDIUM
+                runtime_plugin_config_heuristic_applied = True
+
             dead_names = [s[0] for s in dead_symbols[:10]]
 
             # Use line of first dead symbol for SARIF region support (#88)
@@ -386,6 +428,9 @@ class DeadCodeAccumulationSignal(BaseSignal):
                         and (
                             is_library_finding_path(file_path)
                             or _is_public_api_package_path(file_path, package_roots)
+                        ),
+                        "runtime_plugin_config_heuristic_applied": (
+                            runtime_plugin_config_heuristic_applied
                         ),
                         "finding_context": path_context,
                     },

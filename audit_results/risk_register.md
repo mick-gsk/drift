@@ -1,5 +1,98 @@
 # Risk Register
 
+## 2026-04-11 - ADR-061: Pflichtmaessige Phasen-Telemetrie
+
+- Risk ID: RISK-OUTPUT-2026-04-11-061
+- Component: `src/drift/analyzer.py`, `src/drift/pipeline.py`, `src/drift/output/json_output.py`, `src/drift/output/rich_output.py`
+- Type: Performance observability and output contract extension
+- Description: Drift publiziert standardmaessig Zeitmessungen pro Analysephase (`discover`, `parse`, `git`, `signals`, `output`) und `total`.
+- Trigger: Jeder `drift analyze` Lauf (JSON und Rich Rendering).
+- Impact: Medium-positive fuer Bottleneck-Diagnose; low compatibility risk fuer Consumer, die `summary`-Schluessellisten strikt validieren.
+- Mitigation:
+  - Additive Erweiterung (`summary.phase_timing`) ohne Entfernen bestehender Felder.
+  - Beibehaltung von `analysis_duration_seconds` als bestehender Gesamtwert.
+  - Golden- und Output-Tests auf aktualisierten Summary-Vertrag.
+- Verification:
+  - `pytest tests/test_json_output.py -q`
+  - `pytest tests/test_output_golden.py -q`
+  - `pytest tests/test_rich_output_boost.py -q`
+  - `pytest tests/test_pipeline_components.py -q`
+  - `python scripts/check_risk_audit.py --diff-base origin/main`
+- Residual risk: Low. Phasenzeiten sind additive Diagnosefelder; Summenabweichungen durch Ingestion-Parallelitaet (parse/git) sind dokumentiert.
+
+## 2026-04-11 - ADR-060: JSON-Response-Profiling fuer analyze-output
+
+- Risk ID: RISK-OUTPUT-2026-04-11-060
+- Component: `src/drift/output/json_output.py`, `src/drift/commands/analyze.py`, `src/drift/api_helpers.py`
+- Type: Output shaping and serialization performance hardening
+- Description: JSON finding payloads can now be emitted as `concise` or `detailed`; serializer uses shared slim base payloads with additive detailed materialization.
+- Trigger: `drift analyze --format json --response-detail concise|detailed` and internal serializer usage.
+- Impact: Medium-positive for CPU/time on concise flows; low-medium compatibility risk if consumers implicitly rely on detailed-only fields while requesting concise.
+- Mitigation:
+  - CLI default remains `detailed` for backward compatibility.
+  - Explicit profile opt-in via `--response-detail`.
+  - Targeted serializer tests for concise/detailed behavior and existing golden structure.
+- Verification:
+  - `pytest tests/test_json_output.py -q`
+  - `pytest tests/test_output_golden.py -q`
+  - `pytest tests/test_api_and_ts_arch_boost.py -q`
+  - `python scripts/check_risk_audit.py --diff-base origin/main`
+- Residual risk: Low. Profile-specific field expectations can still cause downstream adaptation work if concise is enabled by consumers.
+
+## 2026-04-11 - ADR-059: Persistenter Nudge-Baseline-Store
+
+- Risk ID: RISK-INCREMENTAL-2026-04-11-059
+- Component: `src/drift/incremental.py`, `src/drift/api/nudge.py`, `tests/test_nudge.py`
+- Type: Incremental runtime performance path extension (local persistent baseline)
+- Description: `nudge` kann Baselines ueber Prozessgrenzen aus `.drift-cache/nudge_baselines/` wiederverwenden, key-basiert auf `HEAD` + Config-Fingerprint + Schema-Version.
+- Trigger: Wiederholte `nudge`-Aufrufe mit Prozessneustart bei unveraendertem Repository-Zustand.
+- Impact: Medium-positive fuer Latenz des ersten `nudge`; Medium-Risiko fuer stale/inkonsistente Cache-Zustaende bei Artefaktmanipulation oder Schema-Drift.
+- Mitigation:
+  - Harte Key-Invalidierung (HEAD + config fingerprint + schema version).
+  - Defensive Deserialisierung und fallback auf Full-Scan statt Hard-Fail.
+  - Atomare Writes (temp file + replace) mit explizitem UTF-8.
+  - Regressionstest fuer Prozessgrenzen-Warmstart (`disk_warm_hit`) und Config-Mismatch-Rebuild.
+- Verification:
+  - `pytest tests/test_nudge.py -q --tb=short`
+  - `pytest tests/test_incremental.py -q --tb=short`
+  - `python scripts/check_risk_audit.py --diff-base origin/main`
+- Residual risk: Low-Medium. Lokale Cache-Korruption oder absichtliche Tampering-Angriffe koennen Warm-Hits reduzieren; Ergebnis-Korrektheit bleibt durch deterministischen Full-Scan-Fallback priorisiert.
+
+## 2026-04-11 - ADR-058: Inkrementeller persistenter Git-History-Index
+
+- Risk ID: RISK-INGESTION-2026-04-11-058
+- Component: `src/drift/ingestion/git_history.py`, `src/drift/pipeline.py`, `src/drift/config.py`, `tests/test_git_history_index.py`
+- Type: Ingestion performance path extension (local persistent index)
+- Description: Optionaler persistenter Git-History-Index (`manifest.json` + `commits.jsonl`) ersetzt bei Warm-Runs das wiederholte Full-Parsing von `git log --numstat` und laedt nur Delta-Commits seit letztem indexierten Head nach.
+- Trigger: Wiederholte `drift analyze`-Laeufe auf grossen Repositories mit aktiviertem `git_history_index_enabled`.
+- Impact: Medium-positive fuer Laufzeit und Ressourcenverbrauch; gleichzeitig Medium-Risiko fuer inkonsistente Cache-Zustaende bei History-Rewrite/Korruption.
+- Mitigation:
+  - Feature-Flag default `false` fuer kontrollierten Rollout.
+  - Manifest-Validierung (Schema-Version, Repo-Key, Parameter-Fingerprint).
+  - Ancestry-Guard (`merge-base --is-ancestor`) fuer Delta-Append; Full-Rebuild bei Rebase/Force-Push.
+  - Defensive JSONL-Deserialisierung und sichere Fallbacks ohne Hard-Fail der Analyse.
+  - Regressionstests fuer Initial-Build, Delta-Append und Rebuild bei Rewrite.
+- Verification:
+  - `pytest tests/test_git_history_index.py -q`
+  - `pytest tests/test_pipeline_components.py -q`
+  - `python scripts/check_risk_audit.py --diff-base origin/main`
+- Residual risk: Low-Medium. Stark fragmentierte oder manipulierte lokale Cache-Dateien koennen Warm-Run-Vorteile reduzieren; durch deterministic fallback auf Full-Rebuild bleibt Ergebnis-Korrektheit priorisiert.
+
+## 2026-04-11 - Issue #237: DCA dampening fuer runtime plugin config module
+
+- Risk ID: RISK-SIGNAL-2026-04-11-237
+- Component: `src/drift/signals/dead_code_accumulation.py`, `tests/test_dead_code_accumulation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Dead Code Accumulation (DCA) daempft nun Findings fuer plugin-/extension-Config-Dateien (`extensions/*` oder `plugins/*` mit `config*` Dateinamen), da solche Module in Plugin-Architekturen haeufig per runtime `import()` geladen werden und statisch schwer aufloesbar sind.
+- Trigger: `drift analyze` auf monorepoartigen Plugin-Repositories (z. B. OpenClaw), in denen `config.ts`-Exporte dynamisch konsumiert werden.
+- Impact: Medium-positive. Reduziert dominante DCA-FP-Cluster und verhindert HIGH-Ueberpriorisierung fuer runtime-geladene Config-Exports.
+- Mitigation:
+  - Neue DCA-Heuristik fuer `extensions|plugins` + `config*` Dateimuster.
+  - Score-Daempfung (`*0.6`) plus Severity-Cap auf MEDIUM (`<=0.69`).
+  - Metadata-Marker `runtime_plugin_config_heuristic_applied` fuer Nachvollziehbarkeit.
+  - Regressionen fuer gedaempfte Config-Datei und unveraenderte HIGH-Priorisierung bei Nicht-Config-Datei.
+- Residual risk: Low-Medium. Echte ungenutzte Exports in Plugin-Config-Dateien koennen niedriger priorisiert werden; Risiko ist durch engen Scope und fehlende komplette Suppression begrenzt.
+
 ## 2026-04-11 - Issue #235: CCC suppresses intra-package monorepo co-change pairs
 
 - Risk ID: RISK-SIGNAL-2026-04-11-235

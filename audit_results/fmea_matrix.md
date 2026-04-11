@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-11 - Issue #237: DCA FP bei runtime-geladenen plugin config exports
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| DCA | FP: config-exports in `extensions/*`/`plugins/*` als ungenutzt gemeldet, obwohl runtime geladen | DCA basiert auf statischem Importgraph; dynamische `import()`-Ladepfade fuer Plugin-Configs sind nicht aufloesbar | Hohe DCA-Noise in Plugin-Architekturen, ueberschaetzte Severity (teilweise HIGH) | Neue Regressionen in `tests/test_dead_code_accumulation.py` (`TestDCARuntimePluginConfigHeuristic`) | Kontextheuristik fuer plugin-config-Dateien (`config*`) mit Score-Daempfung und Severity-Cap auf MEDIUM; Marker in Metadata | 7 | 8 | 2 | 112 | Mitigated |
+| DCA | FN-Risiko: echte ungenutzte Exports in plugin-config-Dateien werden niedriger priorisiert | Daempfung greift auf Dateipfad/Filename-Heuristik und kann reale Dead-Exports abschwaechen | Potenziell spaetere Bereinigung von echten Dead-Exports in Plugin-Configs | Gegenregression fuer Nicht-Config-Dateien in `extensions/*` bleibt HIGH (`test_extensions_non_config_file_is_not_dampened`) | Scope eng auf `extensions|plugins` + `config*` begrenzt; kein Suppress, nur Daempfung/Cap mit nachvollziehbarem Metadata-Flag | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-11 - Issue #235: CCC monorepo intra-package co-change FP reduction
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

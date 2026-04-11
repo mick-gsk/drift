@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import importlib
 from pathlib import Path
+from types import SimpleNamespace
 
 from drift.cache import ParseCache
 from drift.config import DriftConfig
@@ -19,10 +20,18 @@ from drift.models import (
     ParseResult,
     PatternCategory,
     PatternInstance,
+    RepoAnalysis,
     Severity,
     SignalType,
 )
-from drift.pipeline import DegradationInfo, IngestionPhase, ParsedInputs, ScoringPhase, SignalPhase
+from drift.pipeline import (
+    AnalysisPipeline,
+    DegradationInfo,
+    IngestionPhase,
+    ParsedInputs,
+    ScoringPhase,
+    SignalPhase,
+)
 
 
 def _config() -> DriftConfig:
@@ -238,6 +247,42 @@ def test_fetch_git_history_cache_invalidates_on_head_change(monkeypatch) -> None
 
     assert calls["parse"] == 2
     assert commits_1[0].hash != commits_2[0].hash
+
+
+def test_fetch_git_history_uses_persistent_index_when_enabled(monkeypatch) -> None:
+    import drift.pipeline as pipeline
+
+    pipeline._GIT_HISTORY_CACHE.clear()
+
+    cfg = _config()
+    cfg.git_history_index_enabled = True
+
+    now = datetime.datetime.now(datetime.UTC)
+
+    def _fake_index(*_args, **_kwargs):
+        return [
+            CommitInfo(
+                hash="idx1",
+                author="bot",
+                email="bot@example.com",
+                timestamp=now,
+                message="test",
+                files_changed=["a.py"],
+            )
+        ]
+
+    monkeypatch.setattr(pipeline, "load_or_update_git_history_index", _fake_index)
+    monkeypatch.setattr(
+        pipeline,
+        "parse_git_history",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("legacy parse path used")),
+    )
+    monkeypatch.setattr(pipeline, "_current_git_head", lambda _p: "HEAD1")
+
+    commits, histories = pipeline.fetch_git_history(Path("."), 30, {"a.py"}, config=cfg)
+
+    assert [c.hash for c in commits] == ["idx1"]
+    assert "a.py" in histories
 
 
 def test_signal_phase_records_degradation_on_signal_failure(tmp_path: Path) -> None:
@@ -566,3 +611,151 @@ def test_signal_phase_file_local_dependency_cache_reruns_only_changed_file(tmp_p
         degradation=DegradationInfo(causes=set(), components=set(), events=[]),
     )
     assert signal.calls == [["a.py"], ["b.py"], ["a.py"]]
+
+
+def test_signal_phase_file_local_cache_reuses_results_across_scope_switch(
+    tmp_path: Path,
+) -> None:
+    class _FileLocalSignal:
+        name = "file-local-scope"
+        signal_type = SignalType.PATTERN_FRAGMENTATION
+        incremental_scope = "file_local"
+        cache_dependency_scope = "file_local"
+
+        def __init__(self) -> None:
+            self.calls: list[list[str]] = []
+
+        def analyze(self, parse_results, *_args, **_kwargs):
+            self.calls.append([pr.file_path.as_posix() for pr in parse_results])
+            return [
+                Finding(
+                    signal_type=SignalType.PATTERN_FRAGMENTATION,
+                    severity=Severity.LOW,
+                    score=0.1,
+                    title=f"f:{pr.file_path.as_posix()}",
+                    description="local",
+                    file_path=pr.file_path,
+                )
+                for pr in parse_results
+            ]
+
+    cfg = DriftConfig(
+        include=["**/*.py"],
+        exclude=["**/.git/**", "**/.drift-cache/**", "**/__pycache__/**"],
+        embeddings_enabled=False,
+        signal_cache_dependency_scopes_enabled=True,
+    )
+
+    a_path = tmp_path / "a.py"
+    b_path = tmp_path / "b.py"
+    a_path.write_text("def a():\n    return 1\n", encoding="utf-8")
+    b_path.write_text("def b():\n    return 2\n", encoding="utf-8")
+
+    signal = _FileLocalSignal()
+    phase = SignalPhase(
+        embedding_factory=lambda **_kwargs: None,
+        signal_factory=lambda _ctx: [signal],
+    )
+
+    full_inputs = ParsedInputs(
+        parse_results=[
+            ParseResult(file_path=Path("a.py"), language="python"),
+            ParseResult(file_path=Path("b.py"), language="python"),
+        ],
+        commits=[],
+        file_histories={},
+        file_hashes={
+            "a.py": ParseCache.file_hash(a_path),
+            "b.py": ParseCache.file_hash(b_path),
+        },
+    )
+
+    scoped_inputs = ParsedInputs(
+        parse_results=[
+            ParseResult(file_path=Path("a.py"), language="python"),
+        ],
+        commits=[],
+        file_histories={},
+        file_hashes={
+            "a.py": ParseCache.file_hash(a_path),
+        },
+    )
+
+    phase.run(
+        tmp_path,
+        cfg,
+        full_inputs,
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+    assert signal.calls == [["a.py"], ["b.py"]]
+
+    # Scope switch from repo-wide to a narrower subset should hit file-local cache.
+    phase.run(
+        tmp_path,
+        cfg,
+        scoped_inputs,
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+    assert signal.calls == [["a.py"], ["b.py"]]
+
+
+def test_analysis_pipeline_exposes_phase_timings() -> None:
+    cfg = _config()
+
+    class _Ingestion:
+        def run(self, *_args, **_kwargs):
+            return ParsedInputs(
+                parse_results=[],
+                commits=[],
+                file_histories={},
+                phase_timings={"parse_seconds": 0.2, "git_seconds": 0.1},
+            )
+
+    class _Signals:
+        def run(self, *_args, **_kwargs):
+            return SimpleNamespace(findings=[], phase_timings={"signals_seconds": 0.3})
+
+    class _Scoring:
+        def run(self, *_args, **_kwargs):
+            return SimpleNamespace(
+                findings=[],
+                repo_score=0.0,
+                module_scores=[],
+                suppressed_count=0,
+                context_tagged_count=0,
+                suppressed_findings=[],
+            )
+
+    class _Assembly:
+        def run(
+            self, repo_path, _files, _artifacts, *, started_at, phase_timings=None, config=None
+        ):
+            _ = (started_at, config)
+            return RepoAnalysis(
+                repo_path=repo_path,
+                analyzed_at=datetime.datetime.now(tz=datetime.UTC),
+                drift_score=0.0,
+                analysis_duration_seconds=0.6,
+                phase_timings=dict(phase_timings or {}),
+            )
+
+    pipeline = AnalysisPipeline(
+        ingestion_phase=_Ingestion(),
+        signal_phase=_Signals(),
+        scoring_phase=_Scoring(),
+        result_assembly_phase=_Assembly(),
+    )
+
+    analysis = pipeline.run(
+        Path("."),
+        [],
+        cfg,
+        discover_duration_seconds=0.15,
+    )
+
+    assert analysis.phase_timings["discover_seconds"] == 0.15
+    assert analysis.phase_timings["parse_seconds"] == 0.2
+    assert analysis.phase_timings["git_seconds"] == 0.1
+    assert analysis.phase_timings["signals_seconds"] == 0.3
+    assert analysis.phase_timings["output_seconds"] >= 0.0
+    assert analysis.phase_timings["total_seconds"] == 0.75

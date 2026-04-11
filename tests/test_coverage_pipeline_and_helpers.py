@@ -10,6 +10,7 @@ from unittest.mock import patch
 from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
+    FileInfo,
     SignalType,
 )
 
@@ -61,6 +62,73 @@ class TestDetermineDefaultWorkers:
                 del os.environ["DRIFT_WORKERS"]
             result = _determine_default_workers()
             assert 2 <= result <= 16
+
+
+class TestResolveWorkerCount:
+    def test_cli_requested_workers_wins(self):
+        from drift.pipeline import resolve_worker_count
+
+        cfg = DriftConfig()
+        files = [FileInfo(path=Path("a.py"), language="python", size_bytes=100, line_count=1)]
+
+        got = resolve_worker_count(config=cfg, files=files, requested_workers=7)
+        assert got == 7
+
+    def test_env_override_wins_over_config_strategy(self):
+        from drift.pipeline import resolve_worker_count
+
+        cfg = DriftConfig()
+        cfg.performance.worker_strategy = "auto"
+        files = [FileInfo(path=Path("a.py"), language="python", size_bytes=100, line_count=1)]
+
+        with patch.dict(os.environ, {"DRIFT_WORKERS": "5"}):
+            got = resolve_worker_count(config=cfg, files=files, requested_workers=None)
+        assert got == 5
+
+    def test_auto_conservative_downscales_small_repo(self):
+        from drift.pipeline import resolve_worker_count
+
+        cfg = DriftConfig()
+        cfg.performance.worker_strategy = "auto"
+        cfg.performance.small_repo_file_threshold = 10
+        cfg.performance.min_workers = 2
+        cfg.performance.max_workers = 16
+
+        files = [
+            FileInfo(path=Path(f"f{i}.py"), language="python", size_bytes=100, line_count=1)
+            for i in range(3)
+        ]
+
+        with patch("drift.pipeline.os.cpu_count", return_value=8):
+            got = resolve_worker_count(config=cfg, files=files, requested_workers=None)
+
+        # cpu fallback 8 -> small repo conservative downscale -> 4
+        assert got == 4
+
+    def test_auto_conservative_io_heavy_dampens_workers(self):
+        from drift.pipeline import resolve_worker_count
+
+        cfg = DriftConfig()
+        cfg.performance.worker_strategy = "auto"
+        cfg.performance.small_repo_file_threshold = 1
+        cfg.performance.io_heavy_non_parser_ratio = 0.3
+        cfg.performance.large_file_ratio_threshold = 0.25
+        cfg.performance.large_file_size_bytes = 1000
+        cfg.performance.min_workers = 2
+        cfg.performance.max_workers = 16
+
+        files = [
+            FileInfo(path=Path("a.md"), language="markdown", size_bytes=2000, line_count=1),
+            FileInfo(path=Path("b.json"), language="json", size_bytes=2000, line_count=1),
+            FileInfo(path=Path("c.py"), language="python", size_bytes=100, line_count=1),
+            FileInfo(path=Path("d.py"), language="python", size_bytes=100, line_count=1),
+        ]
+
+        with patch("drift.pipeline.os.cpu_count", return_value=8):
+            got = resolve_worker_count(config=cfg, files=files, requested_workers=None)
+
+        # base 8, non-parser ratio 0.5 -> -1, large file ratio 0.5 -> -1 => 6
+        assert got == 6
 
 
 class TestMakeDegradationEvent:

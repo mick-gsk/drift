@@ -62,6 +62,14 @@ def _analysis() -> RepoAnalysis:
         total_functions=30,
         ai_attributed_ratio=0.2,
         analysis_duration_seconds=1.5,
+        phase_timings={
+            "discover_seconds": 0.1,
+            "parse_seconds": 0.5,
+            "git_seconds": 0.2,
+            "signals_seconds": 0.5,
+            "output_seconds": 0.2,
+            "total_seconds": 1.5,
+        },
         trend=trend,
         analysis_status="complete",
         ai_tools_detected=["copilot"],
@@ -118,6 +126,7 @@ def test_rich_output_smoke_paths(monkeypatch, tmp_path: Path) -> None:
 
     output = console.export_text()
     assert "DRIFT SCORE" in output
+    assert "Phase timing" in output
     assert "Findings" in output
 
 

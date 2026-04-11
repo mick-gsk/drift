@@ -33,6 +33,7 @@ from drift.ingestion.git_history import (
     build_file_histories,
     detect_ai_tool_indicators,
     indicator_boost_for_tools,
+    load_or_update_git_history_index,
     parse_git_history,
 )
 from drift.models import (
@@ -76,6 +77,32 @@ _GIT_HISTORY_CACHE: dict[
     tuple[float, list[CommitInfo], dict[str, FileHistory]],
 ] = {}
 
+_PARSER_FILE_EXTENSIONS: set[str] = {".py", ".ts", ".tsx", ".js", ".jsx"}
+
+
+def _cpu_worker_fallback() -> int:
+    """Return conservative CPU-based worker fallback in [2, 16]."""
+    cpu = os.cpu_count() or 8
+    return max(2, min(16, cpu))
+
+
+def _read_workers_env_override() -> int | None:
+    """Return DRIFT_WORKERS override if valid, otherwise None."""
+    env_override = os.getenv("DRIFT_WORKERS")
+    if not env_override:
+        return None
+    try:
+        value = int(env_override)
+        if value >= 1:
+            return value
+    except ValueError:
+        pass
+    logging.getLogger("drift").warning(
+        "Ignoring invalid DRIFT_WORKERS=%r; using configured worker strategy.",
+        env_override,
+    )
+    return None
+
 
 def _determine_default_workers() -> int:
     """Return a conservative machine-adaptive worker default.
@@ -85,21 +112,68 @@ def _determine_default_workers() -> int:
     2) CPU-based fallback in [2, 16]
     """
 
-    env_override = os.getenv("DRIFT_WORKERS")
-    if env_override:
-        try:
-            value = int(env_override)
-            if value >= 1:
-                return value
-        except ValueError:
-            pass
-        logging.getLogger("drift").warning(
-            "Ignoring invalid DRIFT_WORKERS=%r; using auto worker count.",
-            env_override,
-        )
+    override = _read_workers_env_override()
+    if override is not None:
+        return override
+    return _cpu_worker_fallback()
 
-    cpu = os.cpu_count() or 8
-    return max(2, min(16, cpu))
+
+def resolve_worker_count(
+    *,
+    config: DriftConfig,
+    files: list[FileInfo],
+    requested_workers: int | None,
+) -> int:
+    """Resolve effective worker count with override and auto-tuning precedence.
+
+    Precedence:
+    1) Explicit requested workers (CLI/API)
+    2) DRIFT_WORKERS environment override
+    3) Configured strategy (fixed or conservative auto)
+    """
+    if requested_workers is not None:
+        return max(1, requested_workers)
+
+    env_override = _read_workers_env_override()
+    if env_override is not None:
+        return env_override
+
+    perf = config.performance
+    base_workers = _cpu_worker_fallback()
+    min_workers = max(1, perf.min_workers)
+    max_workers = max(min_workers, perf.max_workers)
+
+    if perf.worker_strategy != "auto":
+        return max(min_workers, min(max_workers, base_workers))
+
+    total_files = len(files)
+    if total_files == 0:
+        return max(min_workers, min(max_workers, base_workers))
+
+    parser_files = 0
+    large_files = 0
+    for file_info in files:
+        suffix = file_info.path.suffix.lower()
+        if suffix in _PARSER_FILE_EXTENSIONS:
+            parser_files += 1
+        if file_info.size_bytes >= perf.large_file_size_bytes:
+            large_files += 1
+
+    non_parser_ratio = (total_files - parser_files) / total_files
+    large_file_ratio = large_files / total_files
+    tuned = base_workers
+
+    # Conservative rollout: downscale when repo/file profile hints I/O overhead.
+    if total_files <= perf.small_repo_file_threshold:
+        tuned = max(min_workers, tuned // 2)
+
+    if non_parser_ratio >= perf.io_heavy_non_parser_ratio:
+        tuned = max(min_workers, tuned - 1)
+
+    if large_file_ratio >= perf.large_file_ratio_threshold:
+        tuned = max(min_workers, tuned - 1)
+
+    return max(min_workers, min(max_workers, tuned))
 
 
 DEFAULT_WORKERS = _determine_default_workers()
@@ -123,6 +197,7 @@ class ParsedInputs:
     file_histories: dict[str, FileHistory]
     ai_tools_detected: list[str] = field(default_factory=list)
     file_hashes: dict[str, str] = field(default_factory=dict)
+    phase_timings: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -130,6 +205,7 @@ class SignalOutput:
     """Output of the signal execution phase."""
 
     findings: list[Finding]
+    phase_timings: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -260,7 +336,8 @@ _GIT_HEAD_CACHE_TTL = 5.0
 def _prune_git_history_cache(now: float) -> None:
     """Drop stale entries and enforce bounded cache size."""
     stale = [
-        key for key, (cached_at, _commits, _histories) in _GIT_HISTORY_CACHE.items()
+        key
+        for key, (cached_at, _commits, _histories) in _GIT_HISTORY_CACHE.items()
         if now - cached_at > _GIT_HISTORY_CACHE_TTL_SECONDS
     ]
     for key in stale:
@@ -280,6 +357,7 @@ def fetch_git_history(
     known_files: set[str],
     ai_confidence_threshold: float = 0.50,
     indicator_boost: float = 0.0,
+    config: DriftConfig | None = None,
 ) -> tuple[list[CommitInfo], dict[str, FileHistory]]:
     """Run git history parsing (designed to run in a background thread).
 
@@ -306,13 +384,25 @@ def fetch_git_history(
                 if now - cached_at <= _GIT_HISTORY_CACHE_TTL_SECONDS:
                     return list(cached_commits), dict(cached_histories)
 
-    commits = parse_git_history(
-        repo_path,
-        since_days=since_days,
-        file_filter=known_files,
-        ai_confidence_threshold=ai_confidence_threshold,
-        indicator_boost=indicator_boost,
-    )
+    if config is not None and config.git_history_index_enabled:
+        commits = load_or_update_git_history_index(
+            repo_path,
+            cache_root=repo_path / config.cache_dir,
+            since_days=since_days,
+            ai_confidence_threshold=ai_confidence_threshold,
+            indicator_boost=indicator_boost,
+            index_subdir=config.git_history_index_subdir,
+        )
+        if known_files:
+            commits = [c for c in commits if any(f in known_files for f in c.files_changed)]
+    else:
+        commits = parse_git_history(
+            repo_path,
+            since_days=since_days,
+            file_filter=known_files,
+            ai_confidence_threshold=ai_confidence_threshold,
+            indicator_boost=indicator_boost,
+        )
     file_histories = build_file_histories(commits, known_files=known_files)
 
     if cache_key is not None:
@@ -334,7 +424,7 @@ class IngestionPhase:
         parse_file_fn: Callable[[Path, Path, str], ParseResult] = parse_file,
         is_git_repo_fn: Callable[[Path], bool] = is_git_repo,
         fetch_git_history_fn: Callable[
-            [Path, int, set[str], float, float],
+            [Path, int, set[str], float, float, DriftConfig | None],
             tuple[list[CommitInfo], dict[str, FileHistory]],
         ] = fetch_git_history,
     ) -> None:
@@ -362,6 +452,7 @@ class IngestionPhase:
         recorded so later stages can continue with reduced context.
         """
         known_files = {f.path.as_posix() for f in files}
+        parse_started_at = time.monotonic()
         cache = self._cache_factory(repo_path / config.cache_dir)
 
         # Detect AI tool config files for indicator boost
@@ -410,27 +501,52 @@ class IngestionPhase:
             parse_results = [cached_results[i] for i in range(len(files))]
             if progress:
                 progress("Analyzing git history", 0, 0)
+            parse_seconds = round(max(0.0, time.monotonic() - parse_started_at), 3)
             return ParsedInputs(
                 parse_results=parse_results,
                 commits=[],
                 file_histories={},
                 ai_tools_detected=ai_tools,
                 file_hashes=file_hashes,
+                phase_timings={
+                    "parse_seconds": parse_seconds,
+                    "git_seconds": 0.0,
+                },
             )
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
-            git_future = (
-                executor.submit(
-                    self._fetch_git_history,
-                    repo_path,
-                    since_days,
-                    known_files,
-                    config.thresholds.ai_confidence_threshold,
-                    ai_boost,
-                )
-                if has_git
-                else None
-            )
+
+            def _fetch_git_history_timed() -> tuple[
+                list[CommitInfo],
+                dict[str, FileHistory],
+                float,
+                Exception | None,
+            ]:
+                git_started_at = time.monotonic()
+                try:
+                    commits_local, file_histories_local = self._fetch_git_history(
+                        repo_path,
+                        since_days,
+                        known_files,
+                        config.thresholds.ai_confidence_threshold,
+                        ai_boost,
+                        config,
+                    )
+                    return (
+                        commits_local,
+                        file_histories_local,
+                        round(max(0.0, time.monotonic() - git_started_at), 3),
+                        None,
+                    )
+                except Exception as exc:
+                    return (
+                        [],
+                        {},
+                        round(max(0.0, time.monotonic() - git_started_at), 3),
+                        exc,
+                    )
+
+            git_future = executor.submit(_fetch_git_history_timed) if has_git else None
 
             parse_results_opt: list[ParseResult | None] = [None] * len(files)
             for idx, cached in cached_results.items():
@@ -471,15 +587,15 @@ class IngestionPhase:
             if progress:
                 progress("Parsing files", len(files), len(files))
 
+            git_seconds = 0.0
             if git_future is not None:
-                try:
-                    commits, file_histories = git_future.result()
-                except Exception as exc:
+                commits, file_histories, git_seconds, git_error = git_future.result()
+                if git_error is not None:
+                    exc = git_error
                     logging.getLogger("drift").warning(
                         "Git history fetch failed; continuing without history.",
                         exc_info=True,
                     )
-                    commits, file_histories = [], {}
                     degradation.causes.add("git_history_unavailable")
                     degradation.components.add("git_history")
                     degradation.events.append(
@@ -487,8 +603,7 @@ class IngestionPhase:
                             cause="git_history_unavailable",
                             component="git_history",
                             message=(
-                                "Git history parsing failed; temporal/git-based "
-                                "context omitted."
+                                "Git history parsing failed; temporal/git-based context omitted."
                             ),
                             details={"error": str(exc)},
                         ),
@@ -498,9 +613,12 @@ class IngestionPhase:
                     "Not a git repository - skipping git history analysis.",
                 )
                 commits, file_histories = [], {}
+                git_seconds = 0.0
 
         if progress:
             progress("Analyzing git history", 0, 0)
+
+        parse_seconds = round(max(0.0, time.monotonic() - parse_started_at), 3)
 
         return ParsedInputs(
             parse_results=parse_results,
@@ -508,6 +626,10 @@ class IngestionPhase:
             file_histories=file_histories,
             ai_tools_detected=ai_tools,
             file_hashes=file_hashes,
+            phase_timings={
+                "parse_seconds": parse_seconds,
+                "git_seconds": git_seconds,
+            },
         )
 
 
@@ -578,6 +700,7 @@ class SignalPhase:
         and parsed-content fingerprints. Failures are captured in degradation
         metadata instead of aborting the whole analysis pipeline.
         """
+        phase_started_at = time.monotonic()
         ctx = AnalysisContext(
             repo_path=repo_path,
             config=config,
@@ -601,14 +724,14 @@ class SignalPhase:
         total_signals = len(signals)
 
         if total_signals == 0:
-            return SignalOutput(findings=[])
+            return SignalOutput(
+                findings=[],
+                phase_timings={"signals_seconds": 0.0},
+            )
 
         emb_svc = None
         if config.embeddings_enabled:
-            needs_embeddings = any(
-                getattr(signal, "uses_embeddings", False)
-                for signal in signals
-            )
+            needs_embeddings = any(getattr(signal, "uses_embeddings", False) for signal in signals)
             if needs_embeddings:
                 emb_svc = self._embedding_factory(
                     cache_dir=repo_path / config.cache_dir,
@@ -677,7 +800,9 @@ class SignalPhase:
                         parsed.file_hashes,
                     )
                     scoped_hash = SignalCache.content_hash_for_file(
-                        hashlib.sha256(f"module:{module_name}:{module_hash}".encode()).hexdigest()[:32],
+                        hashlib.sha256(f"module:{module_name}:{module_hash}".encode()).hexdigest()[
+                            :32
+                        ],
                     )
                     cached = sig_cache.get(sig_type, scope_config_fp, scoped_hash)
                     if cached is not None:
@@ -717,10 +842,7 @@ class SignalPhase:
 
         max_workers = min(total_signals, workers)
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
-            futures = {
-                pool.submit(_run_or_cache, signal): signal
-                for signal in signals
-            }
+            futures = {pool.submit(_run_or_cache, signal): signal for signal in signals}
             for future in as_completed(futures):
                 signal = futures[future]
                 completed_count += 1
@@ -762,7 +884,12 @@ class SignalPhase:
         for _sig_type, findings in results:
             all_findings.extend(findings)
 
-        return SignalOutput(findings=all_findings)
+        return SignalOutput(
+            findings=all_findings,
+            phase_timings={
+                "signals_seconds": round(max(0.0, time.monotonic() - phase_started_at), 3),
+            },
+        )
 
 
 class ScoringPhase:
@@ -828,7 +955,9 @@ class ScoringPhase:
         # Apply per-path overrides (filter + re-weight) before scoring
         if config.path_overrides:
             all_findings = apply_path_overrides(
-                all_findings, config.path_overrides, effective_weights,
+                all_findings,
+                config.path_overrides,
+                effective_weights,
             )
 
         # Tag findings in deferred areas (still analysed, but flagged)
@@ -886,6 +1015,7 @@ class ResultAssemblyPhase:
         artifacts: PipelineArtifacts,
         *,
         started_at: float,
+        phase_timings: dict[str, float] | None = None,
         config: DriftConfig | None = None,
     ) -> RepoAnalysis:
         pattern_catalog: dict[PatternCategory, list[PatternInstance]] = {}
@@ -918,13 +1048,12 @@ class ResultAssemblyPhase:
             total_functions=total_funcs,
             ai_attributed_ratio=round(ai_ratio, 3),
             analysis_duration_seconds=round(duration, 2),
+            phase_timings=dict(phase_timings or {}),
             commits=artifacts.parsed.commits,
             file_histories=artifacts.parsed.file_histories,
             suppressed_count=artifacts.scored.suppressed_count,
             context_tagged_count=artifacts.scored.context_tagged_count,
-            analysis_status=(
-                "degraded" if artifacts.degradation.events else "complete"
-            ),
+            analysis_status=("degraded" if artifacts.degradation.events else "complete"),
             degradation_causes=sorted(artifacts.degradation.causes),
             degradation_components=sorted(artifacts.degradation.components),
             degradation_events=artifacts.degradation.events,
@@ -958,9 +1087,13 @@ class AnalysisPipeline:
         on_progress: ProgressCallback | None = None,
         workers: int = DEFAULT_WORKERS,
         active_signals: set[str] | None = None,
+        discover_duration_seconds: float = 0.0,
     ) -> RepoAnalysis:
         started_at = time.monotonic()
         degradation = DegradationInfo(causes=set(), components=set(), events=[])
+        phase_timings: dict[str, float] = {
+            "discover_seconds": round(max(0.0, discover_duration_seconds), 3),
+        }
 
         parsed = self._ingestion.run(
             repo_path,
@@ -971,6 +1104,7 @@ class AnalysisPipeline:
             degradation=degradation,
             progress=on_progress,
         )
+        phase_timings.update(parsed.phase_timings)
         signaled = self._signals.run(
             repo_path,
             config,
@@ -980,8 +1114,12 @@ class AnalysisPipeline:
             workers=workers,
             active_signals=active_signals,
         )
+        phase_timings.update(signaled.phase_timings)
         scored = self._scoring.run(
-            repo_path, files, config, signaled.findings,
+            repo_path,
+            files,
+            config,
+            signaled.findings,
             parse_results=parsed.parse_results,
         )
 
@@ -997,7 +1135,8 @@ class AnalysisPipeline:
                 commits=parsed.commits,
             )
 
-        return self._assembly.run(
+        output_started_at = time.monotonic()
+        analysis = self._assembly.run(
             repo_path,
             files,
             PipelineArtifacts(
@@ -1007,5 +1146,18 @@ class AnalysisPipeline:
                 degradation=degradation,
             ),
             started_at=started_at,
+            phase_timings=phase_timings,
             config=config,
         )
+        phase_timings["output_seconds"] = round(
+            max(0.0, time.monotonic() - output_started_at),
+            3,
+        )
+        phase_timings["total_seconds"] = round(
+            max(
+                0.0, analysis.analysis_duration_seconds + phase_timings.get("discover_seconds", 0.0)
+            ),
+            3,
+        )
+        analysis.phase_timings = dict(phase_timings)
+        return analysis

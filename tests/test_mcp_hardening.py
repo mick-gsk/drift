@@ -372,6 +372,7 @@ class TestMcpSessionIntegration:
             mcp_server.drift_session_start(
                 path=str(tmp_path),
                 autopilot=True,
+                autopilot_payload="full",
             )
         )
         result = json.loads(raw)
@@ -381,6 +382,62 @@ class TestMcpSessionIntegration:
         assert "scan" in result["autopilot"]
         assert "fix_plan" in result["autopilot"]
         assert calls["count"] == 1
+
+    def test_session_start_autopilot_defaults_to_summary_payload(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Autopilot defaults to compact summary payload with previews and refs."""
+        from drift import mcp_server
+
+        (tmp_path / "module.py").write_text("def ping() -> int:\n    return 1\n", encoding="utf-8")
+
+        raw = _run_tool(
+            mcp_server.drift_session_start(
+                path=str(tmp_path),
+                autopilot=True,
+            )
+        )
+        result = json.loads(raw)
+
+        assert result["status"] == "ok"
+        autopilot = result["autopilot"]
+        assert autopilot["mode"] == "summary"
+        assert "scan" not in autopilot
+        assert "fix_plan" not in autopilot
+        assert "drift_score" in autopilot
+        assert "task_count" in autopilot
+        assert "top_signals" in autopilot
+        assert autopilot["next_tool_call"]["tool"] == "drift_fix_plan"
+        assert (
+            autopilot["findings_preview"]["total_available"]
+            >= autopilot["findings_preview"]["count"]
+        )
+        assert autopilot["tasks_preview"]["total_available"] >= autopilot["tasks_preview"]["count"]
+        assert set(autopilot["payload_refs"].keys()) == {"validate", "brief", "scan", "fix_plan"}
+        for ref in autopilot["payload_refs"].values():
+            assert isinstance(ref["checksum"], str)
+            assert len(ref["checksum"]) == 16
+
+    def test_session_start_autopilot_rejects_invalid_payload_mode(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        """Invalid autopilot_payload value returns structured input error."""
+        from drift import mcp_server
+
+        raw = _run_tool(
+            mcp_server.drift_session_start(
+                path=str(tmp_path),
+                autopilot=True,
+                autopilot_payload="compact",
+            )
+        )
+        result = json.loads(raw)
+
+        assert result["type"] == "error"
+        assert result["error_code"] == "DRIFT-1003"
+        assert result["invalid_fields"][0]["field"] == "autopilot_payload"
 
 
 class TestMcpStrictGuardrails:

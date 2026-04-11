@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -314,8 +314,7 @@ class AgentObjective(BaseModel):
     effectiveness_thresholds: AgentEffectivenessThresholds = Field(
         default_factory=AgentEffectivenessThresholds,
         description=(
-            "Thresholds used for deterministic effectiveness warnings "
-            "(e.g. low_effect_high_churn)."
+            "Thresholds used for deterministic effectiveness warnings (e.g. low_effect_high_churn)."
         ),
     )
 
@@ -509,6 +508,63 @@ class LanguagesConfig(BaseModel):
     )
 
 
+class PerformanceConfig(BaseModel):
+    """Worker tuning controls for analysis pipeline execution."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    worker_strategy: Literal["fixed", "auto"] = Field(
+        default="fixed",
+        description=(
+            "Worker resolution strategy. 'fixed' uses CPU fallback (or env/CLI override). "
+            "'auto' applies conservative tuning based on repository size, file types, "
+            "and I/O proxy load."
+        ),
+    )
+    load_profile: Literal["conservative"] = Field(
+        default="conservative",
+        description="Auto-tuning profile. Initial rollout supports conservative only.",
+    )
+    min_workers: int = Field(
+        default=2,
+        ge=1,
+        description="Lower clamp for auto-tuned worker counts.",
+    )
+    max_workers: int = Field(
+        default=16,
+        ge=1,
+        description="Upper clamp for auto-tuned worker counts.",
+    )
+    small_repo_file_threshold: int = Field(
+        default=40,
+        ge=1,
+        description=(
+            "Repos at or below this file count are downscaled to avoid "
+            "over-parallelization."
+        ),
+    )
+    io_heavy_non_parser_ratio: float = Field(
+        default=0.45,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "When the non-parser file share exceeds this ratio, auto mode dampens workers "
+            "to account for higher I/O overhead."
+        ),
+    )
+    large_file_size_bytes: int = Field(
+        default=250_000,
+        ge=1,
+        description="Files above this size are considered I/O-heavy for conservative tuning.",
+    )
+    large_file_ratio_threshold: float = Field(
+        default=0.20,
+        ge=0.0,
+        le=1.0,
+        description="Share of large files that triggers additional worker dampening.",
+    )
+
+
 class DriftConfig(BaseModel):
     """Main drift configuration, loaded from drift.yaml."""
 
@@ -564,10 +620,24 @@ class DriftConfig(BaseModel):
         ),
     )
     signal_cache_dependency_scopes_enabled: bool = Field(
-        default=False,
+        default=True,
         description=(
             "Enable dependency-aware signal cache keying "
             "(file_local/module_wide/repo_wide/git_dependent)."
+        ),
+    )
+    git_history_index_enabled: bool = Field(
+        default=False,
+        description=(
+            "Enable persistent incremental git-history index under cache_dir "
+            "to avoid full git-log parsing on repeated scans."
+        ),
+    )
+    git_history_index_subdir: str = Field(
+        default="git_history",
+        description=(
+            "Subdirectory inside cache_dir used for persistent git-history index "
+            "artifacts (manifest + commits jsonl)."
         ),
     )
     fail_on: str = "high"
@@ -591,6 +661,7 @@ class DriftConfig(BaseModel):
     calibration: CalibrationConfig = Field(default_factory=CalibrationConfig)
     attribution: AttributionConfig = Field(default_factory=AttributionConfig)
     languages: LanguagesConfig = Field(default_factory=LanguagesConfig)
+    performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
     agent: AgentObjective | None = Field(
         default=None,
         description=(
@@ -696,10 +767,7 @@ class DriftConfig(BaseModel):
                 "DRIFT-1001",
                 config_path="drift.yaml",
                 field="extends",
-                reason=(
-                    f"Unknown preset '{extends}'. "
-                    f"Available: {available}"
-                ),
+                reason=(f"Unknown preset '{extends}'. Available: {available}"),
                 line="?",
                 context=None,
             ) from err
@@ -802,6 +870,7 @@ def build_config_json_schema() -> dict[str, Any]:
 # Signal abbreviation map & CLI filter helpers
 # ---------------------------------------------------------------------------
 
+
 def _build_signal_abbrev() -> dict[str, str]:
     """Build abbrev→signal_id map from the central registry, with static fallback."""
     try:
@@ -861,8 +930,7 @@ def resolve_signal_names(raw: str) -> list[str]:
         else:
             abbrevs = ", ".join(sorted(SIGNAL_ABBREV))
             raise ValueError(
-                f"Unknown signal: {token!r}. "
-                f"Use abbreviations ({abbrevs}) or full names."
+                f"Unknown signal: {token!r}. Use abbreviations ({abbrevs}) or full names."
             )
     return result
 

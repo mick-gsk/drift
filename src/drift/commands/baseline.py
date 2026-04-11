@@ -28,6 +28,18 @@ def baseline() -> None:
 @click.option("--since", "-s", default=90, type=int, help="Days of git history to analyze.")
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
 @click.option("--workers", "-w", default=None, type=int)
+@click.option(
+    "--worker-strategy",
+    type=click.Choice(["fixed", "auto"]),
+    default=None,
+    help="Worker resolution strategy. fixed uses CPU fallback, auto enables conservative tuning.",
+)
+@click.option(
+    "--load-profile",
+    type=click.Choice(["conservative"]),
+    default=None,
+    help="Auto-tuning load profile (currently conservative only).",
+)
 @click.option("--no-embeddings", is_flag=True, default=False)
 @click.option(
     "--output",
@@ -41,22 +53,26 @@ def save(
     since: int,
     config: Path | None,
     workers: int | None,
+    worker_strategy: str | None,
+    load_profile: str | None,
     no_embeddings: bool,
     output: Path | None,
 ) -> None:
     """Save the current finding state as a baseline."""
-    from drift.analyzer import _DEFAULT_WORKERS, analyze_repo
+    from drift.analyzer import analyze_repo
     from drift.baseline import save_baseline
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
+    if worker_strategy is not None:
+        cfg.performance.worker_strategy = worker_strategy
+    if load_profile is not None:
+        cfg.performance.load_profile = load_profile
     if no_embeddings:
         cfg.embeddings_enabled = False
 
-    effective_workers = workers if workers is not None else _DEFAULT_WORKERS
-
     with console.status("[bold blue]Analyzing repository..."):
-        analysis = analyze_repo(repo, cfg, since_days=since, workers=effective_workers)
+        analysis = analyze_repo(repo, cfg, since_days=since, workers=workers)
 
     dest = output or (repo / DEFAULT_BASELINE_PATH)
     save_baseline(analysis, dest)
@@ -77,6 +93,18 @@ def save(
 @click.option("--since", "-s", default=90, type=int, help="Days of git history to analyze.")
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
 @click.option("--workers", "-w", default=None, type=int)
+@click.option(
+    "--worker-strategy",
+    type=click.Choice(["fixed", "auto"]),
+    default=None,
+    help="Worker resolution strategy. fixed uses CPU fallback, auto enables conservative tuning.",
+)
+@click.option(
+    "--load-profile",
+    type=click.Choice(["conservative"]),
+    default=None,
+    help="Auto-tuning load profile (currently conservative only).",
+)
 @click.option("--no-embeddings", is_flag=True, default=False)
 @click.option(
     "--baseline-file",
@@ -104,6 +132,8 @@ def diff(
     since: int,
     config: Path | None,
     workers: int | None,
+    worker_strategy: str | None,
+    load_profile: str | None,
     no_embeddings: bool,
     baseline_file: Path | None,
     output_format: str,
@@ -112,7 +142,7 @@ def diff(
     """Show only new findings compared to a saved baseline."""
     import json as json_mod
 
-    from drift.analyzer import _DEFAULT_WORKERS, analyze_repo
+    from drift.analyzer import analyze_repo
     from drift.baseline import baseline_diff, load_baseline
     from drift.config import DriftConfig
     from drift.output.json_output import _finding_to_dict
@@ -127,15 +157,17 @@ def diff(
         raise SystemExit(1)
 
     cfg = DriftConfig.load(repo, config)
+    if worker_strategy is not None:
+        cfg.performance.worker_strategy = worker_strategy
+    if load_profile is not None:
+        cfg.performance.load_profile = load_profile
     if no_embeddings:
         cfg.embeddings_enabled = False
-
-    effective_workers = workers if workers is not None else _DEFAULT_WORKERS
 
     fingerprints = load_baseline(bl_path)
 
     with console.status("[bold blue]Analyzing repository..."):
-        analysis = analyze_repo(repo, cfg, since_days=since, workers=effective_workers)
+        analysis = analyze_repo(repo, cfg, since_days=since, workers=workers)
 
     new, known = baseline_diff(analysis.findings, fingerprints)
 

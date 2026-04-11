@@ -412,7 +412,8 @@ In `claude_desktop_config.json`:
 
 ```
 drift_session_start(autopilot=true)
-    → session_id + validate + brief + scan + fix_plan in einem Aufruf
+    → session_id + kompaktes Summary (drift_score/task_count/top_signals)
+      + payload_refs fuer validate/brief/scan/fix_plan
     ↓
   [Für jede Aufgabe:]
   Datei bearbeiten
@@ -424,6 +425,12 @@ drift_session_start(autopilot=true)
 drift_diff(session_id=..., uncommitted=true)   → finale Verifikation (nur einmal!)
     ↓
 drift_session_end(session_id=...)              → Zusammenfassung + Cleanup
+```
+
+Optional fuer eingebettete Vollausgabe:
+
+```
+drift_session_start(autopilot=true, autopilot_payload="full")
 ```
 
 **Warum `drift_session_start(autopilot=true)`?**  

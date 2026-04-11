@@ -238,6 +238,18 @@ def _print_check_result(
     help="Parallel workers for file parsing.",
 )
 @click.option(
+    "--worker-strategy",
+    type=click.Choice(["fixed", "auto"]),
+    default=None,
+    help="Worker resolution strategy. fixed uses CPU fallback, auto enables conservative tuning.",
+)
+@click.option(
+    "--load-profile",
+    type=click.Choice(["conservative"]),
+    default=None,
+    help="Auto-tuning load profile (currently conservative only).",
+)
+@click.option(
     "--no-embeddings", is_flag=True, default=False, help="Disable embedding-based analysis."
 )
 @click.option("--embedding-model", default=None, help="Sentence-transformers model name.")
@@ -321,6 +333,8 @@ def check(
     ignore_signals: str | None,
     config: Path | None,
     workers: int | None,
+    worker_strategy: str | None,
+    load_profile: str | None,
     no_embeddings: bool,
     embedding_model: str | None,
     since_days: int | None,
@@ -339,7 +353,7 @@ def check(
     Use in CI pipelines and pre-merge checks.
     For detailed investigation, use ``analyze``.
     """
-    from drift.analyzer import _DEFAULT_WORKERS, analyze_diff
+    from drift.analyzer import analyze_diff
     from drift.api_helpers import build_drift_score_scope, signal_scope_label
     from drift.config import DriftConfig
     if json_shortcut:
@@ -350,6 +364,10 @@ def check(
     effective_console = _build_effective_console(no_color)
 
     cfg = DriftConfig.load(repo, config)
+    if worker_strategy is not None:
+        cfg.performance.worker_strategy = worker_strategy
+    if load_profile is not None:
+        cfg.performance.load_profile = load_profile
     if no_embeddings:
         cfg.embeddings_enabled = False
     if embedding_model:
@@ -370,7 +388,6 @@ def check(
     )
     threshold = fail_on or cfg.severity_gate()
 
-    effective_workers = workers if workers is not None else _DEFAULT_WORKERS
     effective_since = since_days if since_days is not None else 90
     status_console = Console(stderr=True) if output_format != "rich" else effective_console
     status_context = (
@@ -381,7 +398,7 @@ def check(
             repo,
             cfg,
             diff_ref=diff_ref,
-            workers=effective_workers,
+            workers=workers,
             since_days=effective_since,
             target_path=target_path,
         )

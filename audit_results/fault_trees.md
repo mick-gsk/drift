@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-11 - Issue #237: DCA runtime plugin config false positives
+
+### Top Event (TE-DCA-237)
+DCA reports runtime-loaded plugin config exports as dead code.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: runtime plugin config export reported as unused
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Static import graph cannot resolve dynamic plugin loading via runtime `import()` patterns.
+  - Mitigation: Heuristic dampening for config-like files in `extensions/*` and `plugins/*`.
+- **IE-2 (MCS)**: Config modules are over-prioritized with HIGH severity despite uncertain usage resolution.
+  - Mitigation: Score dampening plus severity cap to MEDIUM and explicit metadata marker.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Dampening may under-prioritize truly unused exports in plugin config modules.
+  - Mitigation: Heuristic is scope-bounded (`extensions|plugins` + `config*`) and does not suppress findings completely.
+
 ## 2026-04-11 - Issue #235: CCC intra-package monorepo coupling false positives
 
 ### Top Event (TE-CCC-235)

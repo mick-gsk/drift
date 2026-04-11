@@ -30,7 +30,9 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     help="Path to the repository root.",
 )
 @click.option(
-    "--path", "--target-path", "-p",
+    "--path",
+    "--target-path",
+    "-p",
     default=None,
     help="Restrict analysis to a subdirectory.",
 )
@@ -42,8 +44,16 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     "output_format",
     type=click.Choice(
         [
-            "rich", "json", "sarif", "csv", "markdown",
-            "agent-tasks", "github", "junit", "llm", "pr-comment",
+            "rich",
+            "json",
+            "sarif",
+            "csv",
+            "markdown",
+            "agent-tasks",
+            "github",
+            "junit",
+            "llm",
+            "pr-comment",
         ],
     ),
     default="rich",
@@ -81,6 +91,18 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     default=None,
     type=click.IntRange(min=1),
     help="Parallel workers for file parsing.",
+)
+@click.option(
+    "--worker-strategy",
+    type=click.Choice(["fixed", "auto"]),
+    default=None,
+    help="Worker resolution strategy. fixed uses CPU fallback, auto enables conservative tuning.",
+)
+@click.option(
+    "--load-profile",
+    type=click.Choice(["conservative"]),
+    default=None,
+    help="Auto-tuning load profile (currently conservative only).",
 )
 @click.option(
     "--no-embeddings", is_flag=True, default=False, help="Disable embedding-based analysis."
@@ -154,6 +176,16 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     help="Emit compact JSON optimized for agent/CI summaries.",
 )
 @click.option(
+    "--response-detail",
+    "response_detail",
+    type=click.Choice(["concise", "detailed"]),
+    default="detailed",
+    help=(
+        "JSON detail level: concise uses slim finding objects, detailed "
+        "includes full finding payloads."
+    ),
+)
+@click.option(
     "--no-color",
     "no_color",
     is_flag=True,
@@ -200,6 +232,8 @@ def analyze(
     ignore_signals: str | None,
     config: Path | None,
     workers: int | None,
+    worker_strategy: str | None,
+    load_profile: str | None,
     no_embeddings: bool,
     embedding_model: str | None,
     sort_by: str,
@@ -212,6 +246,7 @@ def analyze(
     save_baseline_path: Path | None,
     json_shortcut: bool,
     compact_json: bool,
+    response_detail: str,
     no_color: bool,
     progress_format: str,
     explain: bool,
@@ -224,7 +259,7 @@ def analyze(
     """
     from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn
 
-    from drift.analyzer import _DEFAULT_WORKERS, analyze_repo
+    from drift.analyzer import analyze_repo
     from drift.api_helpers import build_drift_score_scope, signal_scope_label
     from drift.config import DriftConfig
 
@@ -257,6 +292,10 @@ def analyze(
     effective_console = Console(no_color=True) if no_color else console
 
     cfg = DriftConfig.load(repo, config)
+    if worker_strategy is not None:
+        cfg.performance.worker_strategy = worker_strategy
+    if load_profile is not None:
+        cfg.performance.load_profile = load_profile
     if no_embeddings:
         cfg.embeddings_enabled = False
     if embedding_model:
@@ -292,11 +331,11 @@ def analyze(
     use_json_progress = progress_format == "json"
     # Auto-suppress Rich progress for machine-readable formats to avoid
     # stderr noise that triggers NativeCommandError in PowerShell (#118).
-    use_rich_progress = (
-        progress_format == "auto" and not quiet and output_format == "rich"
-    )
-    use_no_progress = progress_format == "none" or quiet or (
-        progress_format == "auto" and output_format != "rich"
+    use_rich_progress = progress_format == "auto" and not quiet and output_format == "rich"
+    use_no_progress = (
+        progress_format == "none"
+        or quiet
+        or (progress_format == "auto" and output_format != "rich")
     )
 
     progress = Progress(
@@ -334,6 +373,7 @@ def analyze(
     _json_start = 0.0
     if use_json_progress:
         import time
+
         _json_start = time.monotonic()
 
     if use_json_progress:
@@ -351,7 +391,7 @@ def analyze(
             since_days=since,
             target_path=path,
             on_progress=effective_callback,
-            workers=workers if workers is not None else _DEFAULT_WORKERS,
+            workers=workers,
             active_signals=active_signals,
         )
         if use_rich_progress and task_id is not None:
@@ -371,8 +411,7 @@ def analyze(
         n = len(analysis.findings)
         grade = analysis.grade[0]
         click.echo(
-            f"score: {analysis.drift_score:.3f}  grade: {grade}"
-            f"  severity: {sev}  findings: {n}"
+            f"score: {analysis.drift_score:.3f}  grade: {grade}  severity: {sev}  findings: {n}"
         )
     elif output_format == "json":
         from drift.output.json_output import analysis_to_json
@@ -380,6 +419,7 @@ def analyze(
         json_text = analysis_to_json(
             analysis,
             compact=compact_json,
+            response_detail=response_detail,
             drift_score_scope=drift_score_scope,
             language=cfg.language,
             group_by=group_by,
@@ -490,7 +530,5 @@ def analyze(
                 sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
         elif not quiet:
             effective_console.print(
-                f"\n[bold green]\u2713 Drift check passed[/bold green] "
-                f"(threshold: {threshold}).",
+                f"\n[bold green]\u2713 Drift check passed[/bold green] (threshold: {threshold}).",
             )
-

@@ -208,8 +208,10 @@ def nudge(
         from drift.incremental import BaselineManager
 
         mgr = BaselineManager.instance()
-        stored = mgr.get(repo_path)
+        stored = mgr.get(repo_path, config=cfg)
         baseline_refresh_reason: str | None = None
+        if stored is not None:
+            baseline_refresh_reason = mgr.consume_refresh_reason(repo_path)
 
         if stored is None:
             baseline_refresh_reason = (
@@ -279,7 +281,13 @@ def nudge(
                 file_hashes=file_hashes,
                 score=analysis.drift_score,
             )
-            mgr.store(repo_path, baseline, list(analysis.findings), parse_map)
+            mgr.store(
+                repo_path,
+                baseline,
+                list(analysis.findings),
+                parse_map,
+                config=cfg,
+            )
             stored = (baseline, list(analysis.findings), parse_map)
             # Sync legacy store for backward compat
             _baseline_store[repo_key] = stored

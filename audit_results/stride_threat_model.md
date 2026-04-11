@@ -1,5 +1,65 @@
 # STRIDE Threat Model
 
+## 2026-04-11 - ADR-061: Pflichtmaessige Phasen-Telemetrie im Analyze-Output
+
+- Scope: Additive Telemetrie-Erweiterung in [src/drift/analyzer.py](src/drift/analyzer.py), [src/drift/pipeline.py](src/drift/pipeline.py), [src/drift/output/json_output.py](src/drift/output/json_output.py), [src/drift/output/rich_output.py](src/drift/output/rich_output.py).
+- Input path changes: No.
+- Output path changes: Yes - JSON `summary.phase_timing` und Rich-Ausgabe enthalten jetzt standardmaessig Phasenzeiten (discover/parse/git/signals/output/total).
+- External interface changes: Additive only. `analysis_duration_seconds` bleibt unveraendert bestehen.
+- Trust boundary: Bestehende CLI/JSON-Consumer-Grenze bleibt; keine neue Netzwerk- oder Storage-Boundary.
+- STRIDE review:
+	- S (Spoofing): Keine neue Identitaets- oder Authentisierungsgrenze.
+	- T (Tampering): Niedriges Risiko. Werte werden lokal aus `time.monotonic()` erzeugt; keine extern beschreibbare Datenquelle.
+	- R (Repudiation): Verbesserte Nachvollziehbarkeit durch reproduzierbare Phasenaufschluesselung.
+	- I (Information Disclosure): Niedriges Risiko. Es werden nur aggregierte Laufzeiten publiziert, keine sensiblen Nutzdaten.
+	- D (Denial of Service): Niedriges Risiko. Messung ist O(1) und fuegt nur minimalen Overhead hinzu.
+	- E (Elevation of Privilege): Keine Privileg-Aenderung.
+
+## 2026-04-11 - ADR-060: JSON response profiling for analyze output
+
+- Scope: Additive output-shaping change in [src/drift/output/json_output.py](src/drift/output/json_output.py) and [src/drift/commands/analyze.py](src/drift/commands/analyze.py). JSON output now supports `response_detail` (`concise` or `detailed`) for finding payload materialization.
+- Input path changes: No.
+- Output path changes: Yes - `analysis_to_json` can emit slim or detailed `findings` payloads based on response profile.
+- External interface changes: Additive only. New CLI option `--response-detail` for `drift analyze`; default remains `detailed`.
+- Trust boundary: Existing CLI/JSON consumer boundary remains; no new storage or network boundary introduced.
+- STRIDE review:
+	- S (Spoofing): No identity/auth boundary change.
+	- T (Tampering): Low risk. Output shaping remains deterministic and local; no writable external channel added.
+	- R (Repudiation): Neutral. Output profile is explicit via CLI option and function parameter.
+	- I (Information Disclosure): Low risk. `concise` profile reduces exposed detail fields; `detailed` preserves existing visibility.
+	- D (Denial of Service): Low-positive. `concise` path reduces serializer work in default API flows.
+	- E (Elevation of Privilege): No privilege change.
+
+## 2026-04-11 - ADR-059: Persistenter Nudge-Baseline-Store
+
+- Scope: Additive Persistenz-Erweiterung in [src/drift/incremental.py](src/drift/incremental.py) und [src/drift/api/nudge.py](src/drift/api/nudge.py). `nudge` kann Baselines aus `.drift-cache/nudge_baselines/baseline_<key>.json` laden und damit Full-Scans ueber Prozessgrenzen vermeiden.
+- Input path changes: Yes - neuer lokaler Input-Pfad aus `.drift-cache/nudge_baselines/*.json`.
+- Output path changes: Yes - neuer lokaler Output-Pfad in dieselben Baseline-Dateien (atomarer Write via temp file + replace).
+- External interface changes: Additive only. API-Verhalten bleibt gleich; neu ist nur `baseline_refresh_reason=disk_warm_hit` bei erfolgreichem Persistenz-Hit.
+- Trust boundary: Neue lokale Dateigrenze: drift process <-> repository-local nudge baseline artifacts.
+- STRIDE review:
+	- S (Spoofing): No identity/auth boundary change.
+	- T (Tampering): Low-Medium risk. Baseline-Dateien koennen lokal manipuliert werden. Mitigation: key-bound Load (HEAD + config fingerprint + schema version), defensive Deserialisierung, hard invalidate via key mismatch.
+	- R (Repudiation): Improved traceability via explicit refresh reason (`disk_warm_hit`) und key-gebundene Artefakte.
+	- I (Information Disclosure): Low risk. Baseline speichert nur bereits vorhandene Analysemetadaten und Findings in repo-lokalem Cache.
+	- D (Denial of Service): Low risk. Korrupte Baseline-Dateien koennen zu Cache-Miss fuehren, nicht zu Analyseabbruch; Fallback ist Full-Scan.
+	- E (Elevation of Privilege): No privilege change. Dateizugriffe erfolgen mit denselben Rechten wie der Drift-Prozess.
+
+## 2026-04-11 - ADR-058: Inkrementeller persistenter Git-History-Index
+
+- Scope: Additive Ingestion-Performance-Erweiterung in [src/drift/ingestion/git_history.py](src/drift/ingestion/git_history.py) und [src/drift/pipeline.py](src/drift/pipeline.py). Bei aktiviertem Flag wird Commit-History aus lokalem Cache (`manifest.json` + `commits.jsonl`) gelesen und nur Delta-History seit letztem Head nachgeladen.
+- Input path changes: Yes - neuer lokaler Input-Pfad aus `.drift-cache/<git_history_index_subdir>/manifest.json` und `.drift-cache/<git_history_index_subdir>/commits.jsonl`.
+- Output path changes: Yes - neuer lokaler Output-Pfad in dieselben Cache-Dateien (Manifest rewrite, Commit-Append bei linearem Head-Fortschritt).
+- External interface changes: Additive only. Neues Config-Flag `git_history_index_enabled` und `git_history_index_subdir`; Legacy-Pfad bleibt unveraendert bei deaktiviertem Flag.
+- Trust boundary: Neue lokale Dateigrenze: drift process <-> repository-local history index artifacts.
+- STRIDE review:
+	- S (Spoofing): No identity/auth boundary change.
+	- T (Tampering): Low-Medium risk. Lokale Cache-Dateien koennen manuell veraendert werden. Mitigation: Schema-/Repo-/Parameter-Validierung im Manifest, defensive Deserialisierung, ancestry-check (`merge-base --is-ancestor`) und Full-Rebuild-Fallback bei Inkonsistenz.
+	- R (Repudiation): Improved traceability via manifest fields (`head`, `updated_at`, `params`) und deterministische Rebuild-Regeln.
+	- I (Information Disclosure): Low risk. Persistiert nur Commit-Metadaten, die bereits ueber lokale Git-Historie verfuegbar sind.
+	- D (Denial of Service): Low risk. Korrupte oder riesige Indexdateien koennen Warm-Path verlangsamen; Mitigation: parse-fallback + Full-Rebuild ohne Hard-Fail der Analyse.
+	- E (Elevation of Privilege): No privilege change. Dateizugriffe laufen mit denselben Rechten wie der Drift-Prozess.
+
 ## 2026-04-11 - ADR-054: File-Discovery Manifest Cache (Hybrid Invalidation)
 
 - Scope: Additive ingestion performance path in [src/drift/ingestion/file_discovery.py](src/drift/ingestion/file_discovery.py). Discovery results can be loaded from `.drift-cache/file_discovery_manifest.json` when invalidation state matches.

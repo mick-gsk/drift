@@ -155,7 +155,7 @@ def _build_catalog() -> dict[str, ToolMetadataEntry]:
         # --- Session management ---
         ToolMetadataEntry(
             name="drift_session_start",
-            cost=ToolCostMetadata("medium", "none", 4000, 2000),
+            cost=ToolCostMetadata("medium", "none", 4000, 900),
             context=ToolContextHint(
                 when_to_use="Start a multi-step session (with autopilot=true).",
                 when_not_to_use="For single one-off queries.",

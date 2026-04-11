@@ -235,26 +235,23 @@ def severity_rank(value: str) -> int:
     return _SEVERITY_RANK.get(value, 0)
 
 
-def _finding_concise(f: Any) -> dict[str, Any]:
-    """Minimal finding dict for concise responses."""
-    from drift.output.json_output import _next_step_for_finding
-
-    signal = signal_abbrev(f.signal_type)
-    severity = f.severity.value
+def finding_base_payload(f: Any) -> dict[str, Any]:
+    """Return the shared slim finding payload used by concise serializers."""
     fp = _finding_fingerprint_value(f)
-
     return {
         "finding_id": fp,
-        "signal": signal,
-        "signal_abbrev": signal,
-        "signal_id": signal,
+        "signal": signal_abbrev(f.signal_type),
+        "signal_abbrev": signal_abbrev(f.signal_type),
+        "signal_id": signal_abbrev(f.signal_type),
         "signal_type": f.signal_type,
         "rule_id": f.rule_id,
-        "severity": severity,
-        "severity_rank": severity_rank(severity),
+        "severity": f.severity.value,
+        "severity_rank": severity_rank(f.severity.value),
         "title": f.title,
         "file": f.file_path.as_posix() if f.file_path else None,
         "line": f.start_line,
+        "start_line": f.start_line,
+        "end_line": f.end_line,
         "logical_location": {
             "fully_qualified_name": f.logical_location.fully_qualified_name,
             "name": f.logical_location.name,
@@ -264,8 +261,16 @@ def _finding_concise(f: Any) -> dict[str, Any]:
         } if getattr(f, "logical_location", None) else None,
         "finding_context": classify_finding_context(f, DriftConfig()),
         "fingerprint": fp,
-        "next_step": _next_step_for_finding(f),
     }
+
+
+def _finding_concise(f: Any) -> dict[str, Any]:
+    """Minimal finding dict for concise responses."""
+    from drift.output.json_output import _next_step_for_finding
+
+    payload = finding_base_payload(f)
+    payload["next_step"] = _next_step_for_finding(f)
+    return payload
 
 
 def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
@@ -278,18 +283,9 @@ def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
     from drift.recommendations import generate_recommendation
 
     rec = generate_recommendation(f)
-    signal = signal_abbrev(f.signal_type)
-    severity = f.severity.value
-    fp = _finding_fingerprint_value(f)
+    base = finding_base_payload(f)
     return {
-        "finding_id": fp,
-        "signal": signal,
-        "signal_abbrev": signal,
-        "signal_id": signal,
-        "signal_type": f.signal_type,
-        "rule_id": f.rule_id,
-        "severity": severity,
-        "severity_rank": severity_rank(severity),
+        **base,
         "score": f.score,
         "impact": f.impact,
         "score_contribution": f.score_contribution,
@@ -297,20 +293,8 @@ def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
         "title": f.title,
         "description": f.description,
         "fix": f.fix,
-        "file": f.file_path.as_posix() if f.file_path else None,
-        "start_line": f.start_line,
-        "end_line": f.end_line,
-        "finding_context": classify_finding_context(f, DriftConfig()),
         "symbol": f.symbol,
-        "logical_location": {
-            "fully_qualified_name": f.logical_location.fully_qualified_name,
-            "name": f.logical_location.name,
-            "kind": f.logical_location.kind,
-            "class_name": f.logical_location.class_name,
-            "namespace": f.logical_location.namespace,
-        } if getattr(f, "logical_location", None) else None,
         "related_files": [rf.as_posix() for rf in f.related_files],
-        "fingerprint": fp,
         "next_step": _next_step_for_finding(f),
         "expected_benefit": _expected_benefit_for_finding(f),
         "remediation": {

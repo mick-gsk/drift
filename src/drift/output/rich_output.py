@@ -306,6 +306,33 @@ def _sparkline(values: list[float], width: int = 20) -> str:
     return "".join(chars[int((v - mn) / rng * (len(chars) - 1))] for v in values[-width:])
 
 
+def _render_phase_timing(analysis: RepoAnalysis, console: Console) -> None:
+    phase = analysis.phase_timings or {}
+    discover = float(phase.get("discover_seconds", 0.0))
+    parse = float(phase.get("parse_seconds", 0.0))
+    git = float(phase.get("git_seconds", 0.0))
+    signals = float(phase.get("signals_seconds", 0.0))
+    output = float(phase.get("output_seconds", 0.0))
+    total = float(phase.get("total_seconds", analysis.analysis_duration_seconds))
+
+    console.print(
+        Text.assemble(
+            ("  Phase timing: ", "dim"),
+            (f"discover {discover:.3f}s", "dim"),
+            (" | ", "dim"),
+            (f"parse {parse:.3f}s", "dim"),
+            (" | ", "dim"),
+            (f"git {git:.3f}s", "dim"),
+            (" | ", "dim"),
+            (f"signals {signals:.3f}s", "dim"),
+            (" | ", "dim"),
+            (f"output {output:.3f}s", "dim"),
+            (" | ", "dim"),
+            (f"total {total:.3f}s", "dim"),
+        ),
+    )
+
+
 def _render_first_run_panel(
     analysis: RepoAnalysis,
     *,
@@ -476,6 +503,8 @@ def render_summary(
             f"  [bold yellow]Analysis degraded[/bold yellow]: causes={causes}; "
             f"components={components}",
         )
+
+    _render_phase_timing(analysis, console)
 
     # Warn when TypeScript/JS files were skipped due to missing tree-sitter
     if analysis.skipped_languages:

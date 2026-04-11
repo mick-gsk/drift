@@ -22,6 +22,7 @@ from drift.pipeline import (
     fetch_git_history,
     is_git_repo,
     make_degradation_event,
+    resolve_worker_count,
 )
 from drift.signals.base import create_signals
 from drift.trend_history import (
@@ -117,6 +118,7 @@ def _run_pipeline(
     on_progress: ProgressCallback | None = None,
     workers: int = _DEFAULT_WORKERS,
     active_signals: set[str] | None = None,
+    discover_duration_seconds: float = 0.0,
 ) -> RepoAnalysis:
     """Shared analysis pipeline delegated to composable phase components."""
     pipeline = AnalysisPipeline(signal_phase=SignalPhase(signal_factory=create_signals))
@@ -128,6 +130,7 @@ def _run_pipeline(
         on_progress=on_progress,
         workers=workers,
         active_signals=active_signals,
+        discover_duration_seconds=discover_duration_seconds,
     )
 
 
@@ -198,7 +201,7 @@ def analyze_repo(
     since_days: int = 90,
     target_path: str | None = None,
     on_progress: ProgressCallback | None = None,
-    workers: int = _DEFAULT_WORKERS,
+    workers: int | None = None,
     active_signals: set[str] | None = None,
 ) -> RepoAnalysis:
     """Run full drift analysis on a repository."""
@@ -211,6 +214,7 @@ def analyze_repo(
         on_progress("Discovering files", 0, 0)
 
     skipped_langs: dict[str, int] = {}
+    discover_started_at = time.monotonic()
     files = discover_files(
         repo_path,
         include=config.include,
@@ -232,6 +236,16 @@ def analyze_repo(
                     or f.path.as_posix().strip("/").startswith(target + "/")
                 )
             ]
+    discover_duration_seconds = round(
+        max(0.0, time.monotonic() - discover_started_at),
+        3,
+    )
+
+    effective_workers = resolve_worker_count(
+        config=config,
+        files=files,
+        requested_workers=workers,
+    )
 
     analysis = _run_pipeline(
         repo_path,
@@ -239,10 +253,13 @@ def analyze_repo(
         config,
         since_days=since_days,
         on_progress=on_progress,
-        workers=workers,
+        workers=effective_workers,
         active_signals=active_signals,
+        discover_duration_seconds=discover_duration_seconds,
     )
     analysis.analysis_duration_seconds = round(time.monotonic() - start, 2)
+    analysis.phase_timings["discover_seconds"] = discover_duration_seconds
+    analysis.phase_timings["total_seconds"] = analysis.analysis_duration_seconds
     analysis.skipped_files = sum(skipped_langs.values())
     analysis.skipped_languages = skipped_langs
 
@@ -261,7 +278,7 @@ def analyze_diff(
     config: DriftConfig | None = None,
     diff_ref: str = "HEAD~1",
     diff_mode: str = "ref",
-    workers: int = _DEFAULT_WORKERS,
+    workers: int | None = None,
     on_progress: ProgressCallback | None = None,
     since_days: int = 90,
     target_path: str | None = None,
@@ -336,6 +353,7 @@ def analyze_diff(
             drift_score=0.0,
         )
 
+    discover_started_at = time.monotonic()
     all_files = discover_files(
         repo_path,
         include=config.include,
@@ -357,6 +375,10 @@ def analyze_diff(
                     or f.path.as_posix().strip("/").startswith(target + "/")
                 )
             ]
+    discover_duration_seconds = round(
+        max(0.0, time.monotonic() - discover_started_at),
+        3,
+    )
 
     if not files:
         return RepoAnalysis(
@@ -365,15 +387,24 @@ def analyze_diff(
             drift_score=0.0,
         )
 
+    effective_workers = resolve_worker_count(
+        config=config,
+        files=files,
+        requested_workers=workers,
+    )
+
     analysis = _run_pipeline(
         repo_path,
         files,
         config,
         since_days=since_days,
         on_progress=on_progress,
-        workers=workers,
+        workers=effective_workers,
+        discover_duration_seconds=discover_duration_seconds,
     )
     analysis.analysis_duration_seconds = round(time.monotonic() - start, 2)
+    analysis.phase_timings["discover_seconds"] = discover_duration_seconds
+    analysis.phase_timings["total_seconds"] = analysis.analysis_duration_seconds
 
     _apply_trend_and_persist_snapshot(
         repo_path,

@@ -40,13 +40,19 @@ drift_session_start(
 )
 ```
 
-Dieser eine Aufruf führt automatisch `validate → brief → scan → fix_plan` aus und gibt die kombinierten Ergebnisse zurück. Die Session-ID wird in allen Folge-Aufrufen wiederverwendet.
+Dieser eine Aufruf führt automatisch `validate → brief → scan → fix_plan` aus. Standardmäßig liefert die Antwort ein kompaktes Summary plus Referenzen/Checksummen (`autopilot_payload="summary"`).
+
+Falls die volle eingebettete Payload benötigt wird:
+
+```
+drift_session_start(path=".", autopilot=true, autopilot_payload="full")
+```
 
 **Wichtig:** Die `session_id` aus der Antwort merken und an **jeden** weiteren Tool-Aufruf übergeben.
 
 ### Schritt 2 — Ersten Task aus fix_plan bearbeiten
 
-Die Autopilot-Antwort enthält bereits den `fix_plan`. Den **ersten** Task nehmen und umsetzen.
+Den **ersten** Task über `drift_fix_plan(session_id=..., max_tasks=1)` holen und umsetzen.
 
 **Regel:** Immer nur einen Task gleichzeitig. Nicht mehrere Findings in einem Schritt mischen.
 

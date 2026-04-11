@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -76,6 +77,163 @@ def _parse_csv_ids(raw: str | None) -> list[str] | None:
         return None
     values = [part.strip() for part in raw.split(",") if part.strip()]
     return values or None
+
+
+_AUTOPILOT_PAYLOAD_MODES = frozenset({"summary", "full"})
+_AUTOPILOT_PREVIEW_LIMIT = 3
+
+
+def _payload_checksum(payload: Any) -> str:
+    """Return a stable short checksum for payload references."""
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()[:16]
+
+
+def _autopilot_scan_finding_preview(item: dict[str, Any]) -> dict[str, Any]:
+    """Return a slim finding preview entry for summary autopilot payloads."""
+    return {
+        "finding_id": item.get("finding_id"),
+        "signal": item.get("signal") or item.get("signal_abbrev"),
+        "severity": item.get("severity"),
+        "title": item.get("title"),
+        "file": item.get("file"),
+        "line": item.get("line") or item.get("start_line"),
+    }
+
+
+def _autopilot_task_preview(item: dict[str, Any]) -> dict[str, Any]:
+    """Return a slim fix-plan task preview entry for summary autopilot payloads."""
+    metadata_raw = item.get("metadata")
+    metadata: dict[str, Any] = metadata_raw if isinstance(metadata_raw, dict) else {}
+    return {
+        "id": item.get("id"),
+        "signal": item.get("signal") or item.get("signal_abbrev"),
+        "severity": item.get("severity"),
+        "title": item.get("title"),
+        "file": item.get("file") or item.get("file_path"),
+        "start_line": item.get("start_line"),
+        "batch_eligible": bool(item.get("batch_eligible") or metadata.get("batch_eligible")),
+    }
+
+
+def _autopilot_refs(
+    *,
+    session_id: str,
+    validate_result: dict[str, Any],
+    brief_result: dict[str, Any],
+    scan_result: dict[str, Any],
+    fix_plan_result: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Return on-demand references and checksums for heavy autopilot payload sections."""
+    return {
+        "validate": {
+            "tool": "drift_validate",
+            "params": {"session_id": session_id},
+            "checksum": _payload_checksum(validate_result),
+        },
+        "brief": {
+            "tool": "drift_brief",
+            "params": {"session_id": session_id},
+            "checksum": _payload_checksum(brief_result),
+        },
+        "scan": {
+            "tool": "drift_scan",
+            "params": {"session_id": session_id},
+            "checksum": _payload_checksum(scan_result),
+        },
+        "fix_plan": {
+            "tool": "drift_fix_plan",
+            "params": {"session_id": session_id},
+            "checksum": _payload_checksum(fix_plan_result),
+        },
+    }
+
+
+def _build_autopilot_summary(
+    *,
+    session_id: str,
+    validate_result: dict[str, Any],
+    brief_result: dict[str, Any],
+    scan_result: dict[str, Any],
+    fix_plan_result: dict[str, Any],
+) -> dict[str, Any]:
+    """Build compact default autopilot payload with previews and references."""
+    finding_items_raw = scan_result.get("findings")
+    task_items_raw = fix_plan_result.get("tasks")
+    guardrail_items_raw = brief_result.get("guardrails")
+
+    finding_items = finding_items_raw if isinstance(finding_items_raw, list) else []
+    task_items = task_items_raw if isinstance(task_items_raw, list) else []
+    guardrail_items = guardrail_items_raw if isinstance(guardrail_items_raw, list) else []
+
+    finding_preview = [
+        _autopilot_scan_finding_preview(item)
+        for item in finding_items[:_AUTOPILOT_PREVIEW_LIMIT]
+        if isinstance(item, dict)
+    ]
+    task_preview = [
+        _autopilot_task_preview(item)
+        for item in task_items[:_AUTOPILOT_PREVIEW_LIMIT]
+        if isinstance(item, dict)
+    ]
+    guardrail_preview = guardrail_items[:_AUTOPILOT_PREVIEW_LIMIT]
+
+    top_signals_raw = scan_result.get("top_signals")
+    top_signals = [
+        {
+            "signal": item.get("signal"),
+            "score": item.get("score"),
+            "finding_count": item.get("finding_count"),
+        }
+        for item in (top_signals_raw if isinstance(top_signals_raw, list) else [])[:3]
+        if isinstance(item, dict)
+    ]
+
+    total_finding_count = scan_result.get("total_finding_count")
+    if not isinstance(total_finding_count, int):
+        total_finding_count = int(scan_result.get("finding_count", len(finding_items)))
+
+    total_task_count = fix_plan_result.get("total_available")
+    if not isinstance(total_task_count, int):
+        total_task_count = int(fix_plan_result.get("task_count", len(task_items)))
+
+    return {
+        "mode": "summary",
+        "drift_score": scan_result.get("drift_score"),
+        "task_count": total_task_count,
+        "top_signals": top_signals,
+        "next_tool_call": {
+            "tool": "drift_fix_plan",
+            "params": {"session_id": session_id},
+        },
+        "findings_preview": {
+            "items": finding_preview,
+            "count": len(finding_preview),
+            "total_available": total_finding_count,
+        },
+        "tasks_preview": {
+            "items": task_preview,
+            "count": len(task_preview),
+            "total_available": total_task_count,
+        },
+        "guardrails_preview": {
+            "items": guardrail_preview,
+            "count": len(guardrail_preview),
+            "total_available": len(guardrail_items),
+        },
+        "payload_refs": _autopilot_refs(
+            session_id=session_id,
+            validate_result=validate_result,
+            brief_result=brief_result,
+            scan_result=scan_result,
+            fix_plan_result=fix_plan_result,
+        ),
+    }
 
 
 def _can_use_session_fix_plan_fast_path(
@@ -1335,6 +1493,15 @@ async def drift_session_start(
             ),
         ),
     ] = False,
+    autopilot_payload: Annotated[
+        str,
+        Field(
+            description=(
+                "Autopilot payload mode: 'summary' (default, compact with previews) "
+                "or 'full' (embedded validate/brief/scan/fix_plan)."
+            ),
+        ),
+    ] = "summary",
     response_profile: Annotated[
         str | None,
         Field(
@@ -1363,9 +1530,37 @@ async def drift_session_start(
         exclude_paths: Comma-separated paths to exclude.
         ttl_seconds: Session TTL in seconds (default: 1800).
         autopilot: Run validate → brief → scan → fix_plan automatically.
+        autopilot_payload: Response detail mode for the autopilot bundle.
         response_profile: Shape sub-results for a specific agent role.
     """
     from drift.session import SessionManager
+
+    payload_mode = str(autopilot_payload).strip().lower()
+    if payload_mode not in _AUTOPILOT_PAYLOAD_MODES:
+        from drift.api_helpers import _error_response
+
+        error = _error_response(
+            "DRIFT-1003",
+            f"Invalid autopilot_payload '{autopilot_payload}'",
+            invalid_fields=[{
+                "field": "autopilot_payload",
+                "value": autopilot_payload,
+                "reason": "Expected one of: summary, full",
+            }],
+            suggested_fix={
+                "action": "Use a supported autopilot payload mode.",
+                "valid_values": ["summary", "full"],
+                "example_call": {
+                    "tool": "drift_session_start",
+                    "params": {
+                        "path": path,
+                        "autopilot": True,
+                        "autopilot_payload": "summary",
+                    },
+                },
+            },
+        )
+        return json.dumps(error, default=str)
 
     mgr = SessionManager.instance()
     session_id = mgr.create(
@@ -1513,17 +1708,28 @@ async def drift_session_start(
             None,
             _autopilot_from_shared_analysis,
         )
-        result["autopilot"] = {
-            "validate": val_result,
-            "brief": brief_result,
-            "scan": scan_result,
-            "fix_plan": fp_result,
-        }
+        if payload_mode == "full":
+            result["autopilot"] = {
+                "validate": val_result,
+                "brief": brief_result,
+                "scan": scan_result,
+                "fix_plan": fp_result,
+            }
+        else:
+            result["autopilot"] = _build_autopilot_summary(
+                session_id=session_id,
+                validate_result=val_result,
+                brief_result=brief_result,
+                scan_result=scan_result,
+                fix_plan_result=fp_result,
+            )
         result["agent_instruction"] = (
-            f"Session {session_id[:8]} created with autopilot. "
-            "Validate, brief, scan, and fix_plan already executed — "
-            "results included in autopilot field. Proceed to fix tasks."
+            "Autopilot ready. Next: drift_fix_plan(session_id)."
         )
+        result["recommended_next_actions"] = [
+            f"drift_fix_plan(session_id=\"{session_id}\", max_tasks=1)",
+            f"drift_session_status(session_id=\"{session_id}\")",
+        ]
         result["next_tool_call"] = {
             "tool": "drift_fix_plan",
             "params": {"session_id": session_id},

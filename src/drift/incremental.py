@@ -10,13 +10,19 @@ Provides:
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
+import os
 import subprocess
+import tempfile
 import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
+
+from drift import __version__
 
 if TYPE_CHECKING:
     from drift.config import DriftConfig
@@ -75,9 +81,7 @@ class BaselineSnapshot:
         added = current_keys - baseline_keys
         removed = baseline_keys - current_keys
         modified = {
-            p
-            for p in baseline_keys & current_keys
-            if self.file_hashes[p] != current_hashes[p]
+            p for p in baseline_keys & current_keys if self.file_hashes[p] != current_hashes[p]
         }
         return added, removed, modified
 
@@ -157,6 +161,7 @@ def _finding_key(f: Finding) -> str:
 # ---------------------------------------------------------------------------
 
 _MAX_CHANGED_FILES_BEFORE_INVALIDATION = 10
+_NUDGE_BASELINE_SCHEMA_VERSION = 1
 
 # Short TTL cache for _capture_git_state to avoid spawning 3 subprocesses
 # per BaselineManager.get() call.  During a nudge loop the git state is
@@ -261,6 +266,7 @@ class BaselineManager:
             str,
             tuple[BaselineSnapshot, list[Finding], dict[str, ParseResult]],
         ] = {}
+        self._nudge_key_meta: dict[str, tuple[str, str, str]] = {}
         self._git_state: dict[str, _GitState] = {}
         self._last_refresh_reason: dict[str, str] = {}
 
@@ -281,6 +287,8 @@ class BaselineManager:
     def get(
         self,
         repo_path: Path,
+        *,
+        config: DriftConfig | None = None,
     ) -> tuple[BaselineSnapshot, list[Finding], dict[str, ParseResult]] | None:
         """Return stored baseline or ``None`` if missing / expired / invalidated.
 
@@ -290,9 +298,30 @@ class BaselineManager:
         """
         repo_key = repo_path.resolve().as_posix()
         stored = self._store.get(repo_key)
+        if stored is None and config is not None:
+            loaded = self._load_persisted_nudge_baseline(repo_path, config)
+            if loaded is not None:
+                self._store[repo_key] = loaded
+                stored = loaded
+                self._last_refresh_reason[repo_key] = "disk_warm_hit"
+
         if stored is None:
             self._last_refresh_reason[repo_key] = "baseline_missing"
             return None
+
+        if config is not None:
+            current_meta = self._compute_nudge_key_meta(repo_path, config)
+            previous_meta = self._nudge_key_meta.get(repo_key)
+            if previous_meta is not None and previous_meta != current_meta:
+                if previous_meta[0] != current_meta[0]:
+                    reason = "git_head_changed"
+                elif previous_meta[1] != current_meta[1]:
+                    reason = "config_fingerprint_changed"
+                else:
+                    reason = "baseline_key_changed"
+                self._last_refresh_reason[repo_key] = reason
+                self.invalidate(repo_path)
+                return None
 
         # TTL expiry
         if not stored[0].is_valid():
@@ -321,11 +350,24 @@ class BaselineManager:
         baseline: BaselineSnapshot,
         findings: list[Finding],
         parse_map: dict[str, ParseResult],
+        *,
+        config: DriftConfig | None = None,
     ) -> None:
         """Cache a baseline and snapshot the current git state."""
         repo_key = repo_path.resolve().as_posix()
         self._store[repo_key] = (baseline, findings, parse_map)
         self._last_refresh_reason.pop(repo_key, None)
+
+        if config is not None:
+            key_meta = self._compute_nudge_key_meta(repo_path, config)
+            self._nudge_key_meta[repo_key] = key_meta
+            self._persist_nudge_baseline(
+                repo_path=repo_path,
+                cache_dir=config.cache_dir,
+                key_meta=key_meta,
+                baseline=baseline,
+                findings=findings,
+            )
 
         git_state = _capture_git_state(repo_path)
         if git_state is not None:
@@ -335,6 +377,7 @@ class BaselineManager:
         """Remove cached baseline for *repo_path*."""
         repo_key = repo_path.resolve().as_posix()
         self._store.pop(repo_key, None)
+        self._nudge_key_meta.pop(repo_key, None)
         self._git_state.pop(repo_key, None)
 
     def consume_refresh_reason(self, repo_path: Path) -> str | None:
@@ -380,6 +423,211 @@ class BaselineManager:
             return "changed_file_threshold"
 
         return None
+
+    def _compute_nudge_key_meta(
+        self,
+        repo_path: Path,
+        config: DriftConfig,
+    ) -> tuple[str, str, str]:
+        """Return key metadata tuple: (head_commit, config_fingerprint, key_hash)."""
+        git_state = _capture_git_state(repo_path)
+        head_commit = git_state.head_commit if git_state is not None else "nogit"
+        cfg_payload = json.dumps(
+            config.model_dump(mode="json"),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        cfg_fingerprint = hashlib.sha256(cfg_payload.encode("utf-8")).hexdigest()[:16]
+        raw_key = f"v{_NUDGE_BASELINE_SCHEMA_VERSION}:{head_commit}:{cfg_fingerprint}"
+        key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
+        return head_commit, cfg_fingerprint, key_hash
+
+    def _nudge_baseline_path(
+        self,
+        repo_path: Path,
+        cache_dir: str,
+        key_meta: tuple[str, str, str],
+    ) -> Path:
+        """Return filesystem path for a persistent nudge baseline artifact."""
+        key_hash = key_meta[2]
+        return repo_path / cache_dir / "nudge_baselines" / f"baseline_{key_hash}.json"
+
+    def _persist_nudge_baseline(
+        self,
+        *,
+        repo_path: Path,
+        cache_dir: str,
+        key_meta: tuple[str, str, str],
+        baseline: BaselineSnapshot,
+        findings: list[Finding],
+    ) -> None:
+        """Persist baseline payload for cross-process warm starts.
+
+        Uses atomic temp-file replacement to avoid partial writes.
+        """
+        path = self._nudge_baseline_path(repo_path, cache_dir, key_meta)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        payload: dict[str, Any] = {
+            "schema_version": _NUDGE_BASELINE_SCHEMA_VERSION,
+            "drift_version": __version__,
+            "head_commit": key_meta[0],
+            "config_fingerprint": key_meta[1],
+            "created_at": baseline.created_at,
+            "ttl_seconds": baseline.ttl_seconds,
+            "score": baseline.score,
+            "file_hashes": baseline.file_hashes,
+            "findings": [self._serialize_finding(f) for f in findings],
+        }
+
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=".nudge-baseline-",
+            suffix=".json",
+            dir=path.parent,
+            text=True,
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(payload, handle, ensure_ascii=True)
+            Path(tmp_name).replace(path)
+        except Exception:
+            logger.debug(
+                "Failed to persist nudge baseline to %s",
+                path,
+                exc_info=logger.isEnabledFor(logging.DEBUG),
+            )
+            try:
+                Path(tmp_name).unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    def _load_persisted_nudge_baseline(
+        self,
+        repo_path: Path,
+        config: DriftConfig,
+    ) -> tuple[BaselineSnapshot, list[Finding], dict[str, ParseResult]] | None:
+        """Load a persisted nudge baseline if key and schema match."""
+        repo_key = repo_path.resolve().as_posix()
+        key_meta = self._compute_nudge_key_meta(repo_path, config)
+        path = self._nudge_baseline_path(repo_path, config.cache_dir, key_meta)
+        if not path.exists():
+            return None
+
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(payload, dict):
+                return None
+            if payload.get("schema_version") != _NUDGE_BASELINE_SCHEMA_VERSION:
+                return None
+            if payload.get("head_commit") != key_meta[0]:
+                return None
+            if payload.get("config_fingerprint") != key_meta[1]:
+                return None
+
+            raw_hashes = payload.get("file_hashes")
+            if not isinstance(raw_hashes, dict):
+                return None
+            file_hashes = {
+                str(k): str(v)
+                for k, v in raw_hashes.items()
+                if isinstance(k, str) and isinstance(v, str)
+            }
+
+            raw_findings = payload.get("findings")
+            findings: list[Finding] = []
+            if isinstance(raw_findings, list):
+                for entry in raw_findings:
+                    if isinstance(entry, dict):
+                        finding = self._deserialize_finding(entry)
+                        if finding is not None:
+                            findings.append(finding)
+
+            baseline = BaselineSnapshot(
+                file_hashes=file_hashes,
+                score=float(payload.get("score", 0.0)),
+                created_at=float(payload.get("created_at", time.time())),
+                ttl_seconds=int(payload.get("ttl_seconds", 900)),
+            )
+            self._nudge_key_meta[repo_key] = key_meta
+            git_state = _capture_git_state(repo_path)
+            if git_state is not None:
+                self._git_state[repo_key] = git_state
+            return (baseline, findings, {})
+        except Exception:
+            logger.debug(
+                "Failed to load persisted nudge baseline from %s",
+                path,
+                exc_info=logger.isEnabledFor(logging.DEBUG),
+            )
+            return None
+
+    @staticmethod
+    def _serialize_finding(finding: Finding) -> dict[str, Any]:
+        """Convert Finding into a JSON-safe dictionary for baseline storage."""
+        return {
+            "signal_type": finding.signal_type,
+            "severity": finding.severity.value,
+            "score": finding.score,
+            "title": finding.title,
+            "description": finding.description,
+            "file_path": finding.file_path.as_posix() if finding.file_path else None,
+            "start_line": finding.start_line,
+            "end_line": finding.end_line,
+            "symbol": finding.symbol,
+            "related_files": [p.as_posix() for p in finding.related_files],
+            "ai_attributed": finding.ai_attributed,
+            "fix": finding.fix,
+            "impact": finding.impact,
+            "score_contribution": finding.score_contribution,
+            "metadata": finding.metadata,
+            "rule_id": finding.rule_id,
+            "language": finding.language,
+            "finding_context": finding.finding_context,
+        }
+
+    @staticmethod
+    def _deserialize_finding(entry: dict[str, Any]) -> Finding | None:
+        """Recreate Finding from persistent baseline payload."""
+        from drift.models import Severity
+
+        try:
+            severity = Severity(str(entry.get("severity", "medium")))
+            file_path_raw = entry.get("file_path")
+            related_files_raw = entry.get("related_files", [])
+            related_files = [Path(p) for p in related_files_raw if isinstance(p, str)]
+            metadata = entry.get("metadata", {})
+            if not isinstance(metadata, dict):
+                metadata = {}
+
+            return Finding(
+                signal_type=str(entry.get("signal_type", "unknown")),
+                severity=severity,
+                score=float(entry.get("score", 0.0)),
+                title=str(entry.get("title", "")),
+                description=str(entry.get("description", "")),
+                file_path=Path(file_path_raw) if isinstance(file_path_raw, str) else None,
+                start_line=int(entry["start_line"])
+                if entry.get("start_line") is not None
+                else None,
+                end_line=int(entry["end_line"]) if entry.get("end_line") is not None else None,
+                symbol=str(entry["symbol"]) if entry.get("symbol") is not None else None,
+                related_files=related_files,
+                ai_attributed=bool(entry.get("ai_attributed", False)),
+                fix=str(entry["fix"]) if entry.get("fix") is not None else None,
+                impact=float(entry.get("impact", 0.0)),
+                score_contribution=float(entry.get("score_contribution", 0.0)),
+                metadata=metadata,
+                rule_id=str(entry["rule_id"]) if entry.get("rule_id") is not None else None,
+                language=str(entry["language"]) if entry.get("language") is not None else None,
+                finding_context=(
+                    str(entry["finding_context"])
+                    if entry.get("finding_context") is not None
+                    else None
+                ),
+            )
+        except Exception:
+            return None
 
 
 # ---------------------------------------------------------------------------
@@ -464,9 +712,7 @@ class IncrementalSignalRunner:
                 other_classes.append(cls)
 
         # 3. Run file-local signals on changed-file parse results only
-        changed_prs = [
-            pr for path, pr in merged.items() if path in changed_files
-        ]
+        changed_prs = [pr for path, pr in merged.items() if path in changed_files]
         file_local_findings: list[Finding] = []
         file_local_signal_names: list[str] = []
 
@@ -514,11 +760,7 @@ class IncrementalSignalRunner:
                 carried_findings.append(f)
 
         cross_file_signal_names: list[str] = sorted(
-            {
-                f.signal_type
-                for f in carried_findings
-                if f.signal_type not in file_local_st_values
-            },
+            {f.signal_type for f in carried_findings if f.signal_type not in file_local_st_values},
         )
 
         # 5. Merge and score

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import json
 import logging
 import re
 import subprocess
@@ -260,6 +261,7 @@ def parse_git_history(
     *,
     ai_confidence_threshold: float = 0.50,
     indicator_boost: float = 0.0,
+    rev_range: str | None = None,
 ) -> list[CommitInfo]:
     """Parse git history and return enriched commit information.
 
@@ -281,14 +283,18 @@ def parse_git_history(
     fmt = f"{rs}%H{rs}%aN{rs}%aE{rs}%aI{rs}%B{rs}"
 
     try:
+        cmd = [
+            "git",
+            "log",
+            f"--since={since_date.isoformat()}",
+            f"--format={fmt}",
+            "--numstat",
+        ]
+        if rev_range:
+            cmd.append(rev_range)
+
         result = subprocess.run(
-            [
-                "git",
-                "log",
-                f"--since={since_date.isoformat()}",
-                f"--format={fmt}",
-                "--numstat",
-            ],
+            cmd,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -434,6 +440,289 @@ def build_file_histories(
         )
 
     return histories
+
+
+_HISTORY_INDEX_SCHEMA_VERSION = 1
+
+
+def _history_index_paths(cache_root: Path, subdir: str = "git_history") -> tuple[Path, Path, Path]:
+    base = cache_root / subdir
+    return base, base / "manifest.json", base / "commits.jsonl"
+
+
+def _git_head_sha(repo_path: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            stdin=subprocess.DEVNULL,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    head = result.stdout.strip()
+    return head or None
+
+
+def _is_ancestor(repo_path: Path, older: str, newer: str) -> bool:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "merge-base", "--is-ancestor", older, newer],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            stdin=subprocess.DEVNULL,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+def _serialize_commit(commit: CommitInfo) -> dict[str, object]:
+    return {
+        "hash": commit.hash,
+        "author": commit.author,
+        "email": commit.email,
+        "timestamp": commit.timestamp.isoformat(),
+        "message": commit.message,
+        "files_changed": commit.files_changed,
+        "insertions": commit.insertions,
+        "deletions": commit.deletions,
+        "is_ai_attributed": commit.is_ai_attributed,
+        "ai_confidence": commit.ai_confidence,
+        "coauthors": commit.coauthors,
+    }
+
+
+def _deserialize_commit(payload: dict[str, object]) -> CommitInfo | None:
+    try:
+        ts_raw = payload.get("timestamp")
+        if not isinstance(ts_raw, str):
+            return None
+        ts = datetime.datetime.fromisoformat(ts_raw)
+        return CommitInfo(
+            hash=str(payload.get("hash", "")),
+            author=str(payload.get("author", "unknown")),
+            email=str(payload.get("email", "")),
+            timestamp=ts,
+            message=str(payload.get("message", "")),
+            files_changed=[str(x) for x in payload.get("files_changed", [])],
+            insertions=int(payload.get("insertions", 0)),
+            deletions=int(payload.get("deletions", 0)),
+            is_ai_attributed=bool(payload.get("is_ai_attributed", False)),
+            ai_confidence=float(payload.get("ai_confidence", 0.0)),
+            coauthors=[str(x) for x in payload.get("coauthors", [])],
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+def _read_manifest(path: Path) -> dict[str, object] | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _write_manifest(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=True, sort_keys=True), encoding="utf-8")
+
+
+def _read_commits_jsonl(path: Path) -> list[CommitInfo]:
+    if not path.exists():
+        return []
+
+    commits: list[CommitInfo] = []
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    payload = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(payload, dict):
+                    continue
+                commit = _deserialize_commit(payload)
+                if commit is not None:
+                    commits.append(commit)
+    except OSError:
+        return []
+    return commits
+
+
+def _append_commits_jsonl(path: Path, commits: list[CommitInfo]) -> None:
+    if not commits:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        for commit in commits:
+            fh.write(json.dumps(_serialize_commit(commit), ensure_ascii=True, sort_keys=True))
+            fh.write("\n")
+
+
+def _rewrite_commits_jsonl(path: Path, commits: list[CommitInfo]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        for commit in commits:
+            fh.write(json.dumps(_serialize_commit(commit), ensure_ascii=True, sort_keys=True))
+            fh.write("\n")
+
+
+def _prune_to_since_window(commits: list[CommitInfo], since_days: int) -> list[CommitInfo]:
+    since_date = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=since_days)
+    filtered = [c for c in commits if c.timestamp.astimezone(datetime.UTC) >= since_date]
+    return sorted(filtered, key=lambda c: c.timestamp, reverse=True)
+
+
+def _dedupe_commits(commits: list[CommitInfo]) -> list[CommitInfo]:
+    by_hash: dict[str, CommitInfo] = {}
+    for commit in commits:
+        by_hash.setdefault(commit.hash, commit)
+    return sorted(by_hash.values(), key=lambda c: c.timestamp, reverse=True)
+
+
+def load_or_update_git_history_index(
+    repo_path: Path,
+    *,
+    cache_root: Path,
+    since_days: int,
+    ai_confidence_threshold: float = 0.50,
+    indicator_boost: float = 0.0,
+    index_subdir: str = "git_history",
+) -> list[CommitInfo]:
+    """Load or incrementally update persistent git-history index.
+
+    The commit store is append-only for fast-path updates (HEAD is descendant
+    of indexed HEAD). Any non-linear history transition triggers a full rebuild.
+    """
+    current_head = _git_head_sha(repo_path)
+    if current_head is None:
+        return []
+
+    index_dir, manifest_path, commits_path = _history_index_paths(cache_root, index_subdir)
+    manifest = _read_manifest(manifest_path)
+
+    params = {
+        "since_days": since_days,
+        "ai_confidence_threshold": round(ai_confidence_threshold, 6),
+        "indicator_boost": round(indicator_boost, 6),
+    }
+    repo_key = repo_path.resolve().as_posix()
+
+    if (
+        manifest is None
+        or manifest.get("schema_version") != _HISTORY_INDEX_SCHEMA_VERSION
+        or manifest.get("repo_key") != repo_key
+        or manifest.get("params") != params
+    ):
+        commits = parse_git_history(
+            repo_path,
+            since_days=since_days,
+            file_filter=None,
+            ai_confidence_threshold=ai_confidence_threshold,
+            indicator_boost=indicator_boost,
+        )
+        commits = _dedupe_commits(commits)
+        _rewrite_commits_jsonl(commits_path, commits)
+        _write_manifest(
+            manifest_path,
+            {
+                "schema_version": _HISTORY_INDEX_SCHEMA_VERSION,
+                "repo_key": repo_key,
+                "head": current_head,
+                "params": params,
+                "updated_at": datetime.datetime.now(tz=datetime.UTC).isoformat(),
+            },
+        )
+        return _prune_to_since_window(commits, since_days)
+
+    indexed_head = manifest.get("head")
+    if not isinstance(indexed_head, str) or not indexed_head:
+        commits = parse_git_history(
+            repo_path,
+            since_days=since_days,
+            file_filter=None,
+            ai_confidence_threshold=ai_confidence_threshold,
+            indicator_boost=indicator_boost,
+        )
+        commits = _dedupe_commits(commits)
+        _rewrite_commits_jsonl(commits_path, commits)
+        _write_manifest(
+            manifest_path,
+            {
+                "schema_version": _HISTORY_INDEX_SCHEMA_VERSION,
+                "repo_key": repo_key,
+                "head": current_head,
+                "params": params,
+                "updated_at": datetime.datetime.now(tz=datetime.UTC).isoformat(),
+            },
+        )
+        return _prune_to_since_window(commits, since_days)
+
+    existing_commits = _read_commits_jsonl(commits_path)
+
+    if indexed_head == current_head:
+        return _prune_to_since_window(_dedupe_commits(existing_commits), since_days)
+
+    if _is_ancestor(repo_path, indexed_head, current_head):
+        delta = parse_git_history(
+            repo_path,
+            since_days=since_days,
+            file_filter=None,
+            ai_confidence_threshold=ai_confidence_threshold,
+            indicator_boost=indicator_boost,
+            rev_range=f"{indexed_head}..{current_head}",
+        )
+        if delta:
+            _append_commits_jsonl(commits_path, _dedupe_commits(delta))
+            merged = _dedupe_commits(existing_commits + delta)
+        else:
+            merged = _dedupe_commits(existing_commits)
+        _write_manifest(
+            manifest_path,
+            {
+                "schema_version": _HISTORY_INDEX_SCHEMA_VERSION,
+                "repo_key": repo_key,
+                "head": current_head,
+                "params": params,
+                "updated_at": datetime.datetime.now(tz=datetime.UTC).isoformat(),
+            },
+        )
+        return _prune_to_since_window(merged, since_days)
+
+    # History was rewritten (e.g., force-push/rebase) — rebuild index safely.
+    commits = parse_git_history(
+        repo_path,
+        since_days=since_days,
+        file_filter=None,
+        ai_confidence_threshold=ai_confidence_threshold,
+        indicator_boost=indicator_boost,
+    )
+    commits = _dedupe_commits(commits)
+    _rewrite_commits_jsonl(commits_path, commits)
+    _write_manifest(
+        manifest_path,
+        {
+            "schema_version": _HISTORY_INDEX_SCHEMA_VERSION,
+            "repo_key": repo_key,
+            "head": current_head,
+            "params": params,
+            "updated_at": datetime.datetime.now(tz=datetime.UTC).isoformat(),
+        },
+    )
+    return _prune_to_since_window(commits, since_days)
 
 
 # ---------------------------------------------------------------------------

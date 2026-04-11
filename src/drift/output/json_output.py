@@ -6,7 +6,12 @@ import json
 from typing import Any
 
 from drift import __version__
-from drift.api_helpers import build_drift_score_scope, signal_abbrev, signal_abbrev_map
+from drift.api_helpers import (
+    build_drift_score_scope,
+    finding_base_payload,
+    signal_abbrev,
+    signal_abbrev_map,
+)
 from drift.baseline import finding_fingerprint
 from drift.config import DriftConfig
 from drift.finding_context import classify_finding_context, split_findings_by_context
@@ -98,10 +103,14 @@ def _priority_rank(priority_class: str) -> int:
     return 2
 
 
-def _next_step_for_finding(f: Finding) -> str | None:
-    rec = generate_recommendation(f)
-    if rec:
-        return rec.title
+def _next_step_for_finding(
+    f: Finding,
+    include_recommendation: bool = False,
+) -> str | None:
+    if include_recommendation:
+        rec = generate_recommendation(f)
+        if rec:
+            return rec.title
     return f.fix
 
 
@@ -155,33 +164,28 @@ def _finding_sort_key(f: Finding) -> tuple[float, str, str, int, int]:
 
 
 def _finding_to_dict(f: Finding, *, impact_rank: int | None = None) -> dict[str, Any]:
+    base = finding_base_payload(f)
     rec = generate_recommendation(f)
     d: dict[str, Any] = {
         "finding_id": finding_fingerprint(f),
         "signal": f.signal_type,
         "signal_abbrev": signal_abbrev(f.signal_type),
         "rule_id": f.rule_id,
-        "severity": f.severity.value,
+        "severity": base["severity"],
         "score": f.score,
         "impact": f.impact,
         "score_contribution": f.score_contribution,
         "impact_rank": impact_rank,
-        "title": f.title,
+        "title": base["title"],
         "description": f.description,
         "fix": f.fix,
-        "file": f.file_path.as_posix() if f.file_path else None,
+        "file": base["file"],
         "language": f.language,
-        "start_line": f.start_line,
-        "end_line": f.end_line,
-        "finding_context": classify_finding_context(f, DriftConfig()),
+        "start_line": base["start_line"],
+        "end_line": base["end_line"],
+        "finding_context": base["finding_context"],
         "symbol": f.symbol,
-        "logical_location": {
-            "fully_qualified_name": f.logical_location.fully_qualified_name,
-            "name": f.logical_location.name,
-            "kind": f.logical_location.kind,
-            "class_name": f.logical_location.class_name,
-            "namespace": f.logical_location.namespace,
-        } if f.logical_location else None,
+        "logical_location": base["logical_location"],
         "related_files": [rf.as_posix() for rf in f.related_files],
         "ai_attributed": f.ai_attributed,
         "deferred": f.deferred,
@@ -258,10 +262,26 @@ def _analysis_status_to_dict(analysis: RepoAnalysis) -> dict[str, Any]:
     }
 
 
+def _phase_timing_summary(analysis: RepoAnalysis) -> dict[str, float]:
+    phase_timings = analysis.phase_timings or {}
+    return {
+        "discover_seconds": round(float(phase_timings.get("discover_seconds", 0.0)), 3),
+        "parse_seconds": round(float(phase_timings.get("parse_seconds", 0.0)), 3),
+        "git_seconds": round(float(phase_timings.get("git_seconds", 0.0)), 3),
+        "signals_seconds": round(float(phase_timings.get("signals_seconds", 0.0)), 3),
+        "output_seconds": round(float(phase_timings.get("output_seconds", 0.0)), 3),
+        "total_seconds": round(
+            float(phase_timings.get("total_seconds", analysis.analysis_duration_seconds)),
+            3,
+        ),
+    }
+
+
 def analysis_to_json(
     analysis: RepoAnalysis,
     indent: int = 2,
     compact: bool = False,
+    response_detail: str = "detailed",
     drift_score_scope: str | None = None,
     language: str | None = None,
     group_by: str | None = None,
@@ -316,6 +336,7 @@ def analysis_to_json(
             "ai_attributed_ratio": analysis.ai_attributed_ratio,
             "ai_tools_detected": analysis.ai_tools_detected,
             "analysis_duration_seconds": analysis.analysis_duration_seconds,
+            "phase_timing": _phase_timing_summary(analysis),
             "skipped_languages": analysis.skipped_languages or None,
         },
         "first_run": build_first_run_summary(
@@ -369,14 +390,32 @@ def analysis_to_json(
 
     if not compact:
         data["modules"] = [_module_to_dict(m) for m in analysis.module_scores]
-        data["findings"] = [
-            _finding_to_dict(f, impact_rank=impact_ranks.get(id(f)))
-            for f in ranked
-        ]
-        data["findings_suppressed"] = [
-            _finding_to_dict(f)
-            for f in suppressed_ranked
-        ]
+        if response_detail == "detailed":
+            data["findings"] = [
+                _finding_to_dict(f, impact_rank=impact_ranks.get(id(f)))
+                for f in ranked
+            ]
+            data["findings_suppressed"] = [
+                _finding_to_dict(f)
+                for f in suppressed_ranked
+            ]
+        else:
+            data["findings"] = [
+                _finding_compact_dict(
+                    f,
+                    rank=impact_ranks.get(id(f), 0),
+                    duplicate_count=duplicate_counts.get(id(f), 1),
+                )
+                for f in ranked
+            ]
+            data["findings_suppressed"] = [
+                _finding_compact_dict(
+                    f,
+                    rank=0,
+                    duplicate_count=1,
+                )
+                for f in suppressed_ranked
+            ]
 
     return json.dumps(data, indent=indent, default=str, sort_keys=True)
 
