@@ -34,23 +34,23 @@ def _make_cfg():
 
 def test_render_sarif_calls_emit(tmp_path: Path) -> None:
     analysis = _make_analysis()
-    console = Console(file=open(tmp_path / "out.txt", "w"))
-
-    with patch(
-        "drift.output.json_output.findings_to_sarif", return_value='{"sarif":"ok"}'
-    ) as mock_sarif, patch(
-        "drift.commands.check._emit_machine_output"
-    ) as mock_emit:
-        _render_or_emit_output(
-            analysis=analysis,
-            output_format="sarif",
-            compact_json=False,
-            drift_score_scope="repo",
-            output_file=None,
-            effective_console=console,
-            max_findings=20,
-            no_code=False,
-        )
+    with open(tmp_path / "out.txt", "w", encoding="utf-8") as fh:
+        console = Console(file=fh)
+        with patch(
+            "drift.output.json_output.findings_to_sarif", return_value='{"sarif":"ok"}'
+        ) as mock_sarif, patch(
+            "drift.commands.check._emit_machine_output"
+        ) as mock_emit:
+            _render_or_emit_output(
+                analysis=analysis,
+                output_format="sarif",
+                compact_json=False,
+                drift_score_scope="repo",
+                output_file=None,
+                effective_console=console,
+                max_findings=20,
+                no_code=False,
+            )
 
     mock_sarif.assert_called_once_with(analysis)
     mock_emit.assert_called_once_with('{"sarif":"ok"}', None)
@@ -62,23 +62,23 @@ def test_render_sarif_calls_emit(tmp_path: Path) -> None:
 
 def test_render_csv_calls_emit(tmp_path: Path) -> None:
     analysis = _make_analysis()
-    console = Console(file=open(tmp_path / "out.txt", "w"))
-
-    with patch(
-        "drift.output.csv_output.analysis_to_csv", return_value="col1,col2\n"
-    ) as mock_csv, patch(
-        "drift.commands.check._emit_machine_output"
-    ) as mock_emit:
-        _render_or_emit_output(
-            analysis=analysis,
-            output_format="csv",
-            compact_json=False,
-            drift_score_scope="repo",
-            output_file=None,
-            effective_console=console,
-            max_findings=20,
-            no_code=False,
-        )
+    with open(tmp_path / "out.txt", "w", encoding="utf-8") as fh:
+        console = Console(file=fh)
+        with patch(
+            "drift.output.csv_output.analysis_to_csv", return_value="col1,col2\n"
+        ) as mock_csv, patch(
+            "drift.commands.check._emit_machine_output"
+        ) as mock_emit:
+            _render_or_emit_output(
+                analysis=analysis,
+                output_format="csv",
+                compact_json=False,
+                drift_score_scope="repo",
+                output_file=None,
+                effective_console=console,
+                max_findings=20,
+                no_code=False,
+            )
 
     mock_csv.assert_called_once_with(analysis)
     mock_emit.assert_called_once_with("col1,col2\n", None)
@@ -90,23 +90,23 @@ def test_render_csv_calls_emit(tmp_path: Path) -> None:
 
 def test_render_agent_tasks_calls_emit(tmp_path: Path) -> None:
     analysis = _make_analysis()
-    console = Console(file=open(tmp_path / "out.txt", "w"))
-
-    with patch(
-        "drift.output.agent_tasks.analysis_to_agent_tasks_json", return_value="[]"
-    ) as mock_at, patch(
-        "drift.commands.check._emit_machine_output"
-    ) as mock_emit:
-        _render_or_emit_output(
-            analysis=analysis,
-            output_format="agent-tasks",
-            compact_json=False,
-            drift_score_scope="repo",
-            output_file=None,
-            effective_console=console,
-            max_findings=20,
-            no_code=False,
-        )
+    with open(tmp_path / "out.txt", "w", encoding="utf-8") as fh:
+        console = Console(file=fh)
+        with patch(
+            "drift.output.agent_tasks.analysis_to_agent_tasks_json", return_value="[]"
+        ) as mock_at, patch(
+            "drift.commands.check._emit_machine_output"
+        ) as mock_emit:
+            _render_or_emit_output(
+                analysis=analysis,
+                output_format="agent-tasks",
+                compact_json=False,
+                drift_score_scope="repo",
+                output_file=None,
+                effective_console=console,
+                max_findings=20,
+                no_code=False,
+            )
 
     mock_at.assert_called_once_with(analysis)
     mock_emit.assert_called_once_with("[]", None)
@@ -118,23 +118,23 @@ def test_render_agent_tasks_calls_emit(tmp_path: Path) -> None:
 
 def test_render_github_calls_emit(tmp_path: Path) -> None:
     analysis = _make_analysis()
-    console = Console(file=open(tmp_path / "out.txt", "w"))
-
-    with patch(
-        "drift.output.github_format.findings_to_github_annotations", return_value="::notice::"
-    ) as mock_gh, patch(
-        "drift.commands.check._emit_machine_output"
-    ) as mock_emit:
-        _render_or_emit_output(
-            analysis=analysis,
-            output_format="github",
-            compact_json=False,
-            drift_score_scope="repo",
-            output_file=None,
-            effective_console=console,
-            max_findings=20,
-            no_code=False,
-        )
+    with open(tmp_path / "out.txt", "w", encoding="utf-8") as fh:
+        console = Console(file=fh)
+        with patch(
+            "drift.output.github_format.findings_to_github_annotations", return_value="::notice::"
+        ) as mock_gh, patch(
+            "drift.commands.check._emit_machine_output"
+        ) as mock_emit:
+            _render_or_emit_output(
+                analysis=analysis,
+                output_format="github",
+                compact_json=False,
+                drift_score_scope="repo",
+                output_file=None,
+                effective_console=console,
+                max_findings=20,
+                no_code=False,
+            )
 
     mock_gh.assert_called_once_with(analysis)
     mock_emit.assert_called_once_with("::notice::", None)
