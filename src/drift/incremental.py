@@ -18,6 +18,7 @@ import subprocess
 import tempfile
 import threading
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
@@ -497,10 +498,8 @@ class BaselineManager:
                 path,
                 exc_info=logger.isEnabledFor(logging.DEBUG),
             )
-            try:
+            with suppress(OSError):
                 Path(tmp_name).unlink(missing_ok=True)
-            except OSError:
-                pass
 
     def _load_persisted_nudge_baseline(
         self,
