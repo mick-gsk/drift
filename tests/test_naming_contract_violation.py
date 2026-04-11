@@ -365,6 +365,37 @@ export function ensureThemeRegistered(registry: Map<string, object>, key: string
         ]
         assert nbv_findings == []
 
+    @needs_tree_sitter
+    def test_ensure_ts_lazy_init_method_no_finding(self, tmp_path: Path):
+        pr = _write_and_parse_ts(
+                tmp_path,
+                "extensions/acpx/src/runtime.ts",
+                """\
+export type Session = { id: string };
+
+export class AcpxRuntime {
+    private session?: Session;
+
+    private async createSession(): Promise<Session> {
+        return { id: "s" };
+    }
+
+    async ensureSession(): Promise<Session> {
+        if (!this.session) {
+            this.session = await this.createSession();
+        }
+        return this.session;
+    }
+}
+""",
+        )
+
+        findings = _run([pr], repo_path=tmp_path)
+        nbv_findings = [
+            f for f in findings if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+        ]
+        assert nbv_findings == []
+
 
 # ===================================================================
 # is_* / has_* — expects bool return
@@ -498,6 +529,28 @@ def try_parse_config(raw: str) -> dict[str, str]:
 
         findings = _run([pr], repo_path=tmp_path)
         assert findings == []
+
+    @needs_tree_sitter
+    def test_try_ts_nullable_getter_contract_no_finding(self, tmp_path: Path):
+        pr = _write_and_parse_ts(
+                tmp_path,
+                "extensions/bluebubbles/src/runtime.ts",
+                """\
+export type BlueBubblesRuntime = { connected: boolean };
+
+let globalRuntime: BlueBubblesRuntime | undefined;
+
+export function tryGetBlueBubblesRuntime(): BlueBubblesRuntime | undefined {
+    return globalRuntime ?? undefined;
+}
+""",
+        )
+
+        findings = _run([pr], repo_path=tmp_path)
+        nbv_findings = [
+            f for f in findings if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+        ]
+        assert nbv_findings == []
 
 
 # ===================================================================
@@ -739,6 +792,27 @@ export function isUsableTimestamp(input: unknown) {
 export const hasConversation: (state: { messages: unknown[] }) => boolean = (state) => {
     return state.messages.length > 0;
 };
+""",
+                )
+
+                findings = _run([pr], repo_path=tmp_path)
+                nbv_findings = [
+                    f
+                    for f in findings
+                    if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+                ]
+                assert nbv_findings == []
+
+        def test_boolean_or_expression_return_no_finding(self, tmp_path: Path):
+                pr = _write_and_parse_ts(
+                        tmp_path,
+                        "extensions/browser/src/browser-tool.ts",
+                        """\
+type TreeNode = { type: string };
+
+export function isBrowserNode(node: TreeNode): boolean {
+    return node.type === "browser" || node.type === "chromium";
+}
 """,
                 )
 

@@ -1,5 +1,55 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #238: HSC false positives bei dynamischen Template-Literalen
+
+### Top Event (TE-HSC-238)
+HSC meldet dynamisch interpolierte Template-Literale als Hardcoded Secret.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: runtime template token reported as hardcoded secret
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: TS/JS-Literalerkennung extrahiert Inhalt zwischen Backticks und behandelt interpolierte Werte (`${...}`) wie statische String-Literale.
+  - Mitigation: Fruehe Suppression fuer dynamische Template-Literale in `_evaluate_ts_assignment`.
+- **IE-2 (MCS)**: Entropie-/Fallback-Pfad greift trotz runtime-Konstruktion und erzeugt HIGH/MEDIUM Findings.
+  - Mitigation: Interpolierte Template-Literale werden vor Entropiepruefung ausgeschlossen.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Echte Secrets, die zur Laufzeit per Template zusammengesetzt werden, koennen unterdrueckt werden.
+  - Mitigation: Scope ist strikt auf interpolierte Templates begrenzt; statische Literale und bekannte Prefix-Tokens bleiben unveraendert detektierbar; neue Regressionen sichern OpenClaw-FP-Muster.
+
+## 2026-04-12 - Issue #240: NBV TS try* nullable getter false positives
+
+### Top Event (TE-NBV-240)
+NBV meldet TypeScript `try*` nullable getter als Naming-Contract-Verletzung.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: TS try* nullable getter reported as NBV violation
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: `try_*`-Regel basiert auf Python-`try/except`-Erwartung und erkennt TS-Nullable-Getter-Semantik nicht.
+  - Mitigation: TS-spezifische Contract-Erfuellung bei nullable Return-Signaturen (`|undefined`/`|null`).
+- **IE-2 (MCS)**: Ohne nullable-Contract-Pfad wird best-effort Getter-Design als Defekt klassifiziert.
+  - Mitigation: Prefix-begrenzte Heuristik nur fuer `try_*`; andere Regeln unveraendert.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Nullable-Return-Signatur kann schwache `try*`-Implementierungen kaschieren.
+  - Mitigation: Scope strikt auf `try_*` beschraenkt; bestehende Negativkontrollen fuer nicht-erfuellte Contracts bleiben aktiv.
+
 ## 2026-04-11 - Issue #237: DCA runtime plugin config false positives
 
 ### Top Event (TE-DCA-237)

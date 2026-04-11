@@ -514,6 +514,18 @@ def _ts_has_try_except(root: Any, src: bytes) -> bool:
     return False
 
 
+def _ts_has_nullable_return_contract(fn_info: FunctionInfo) -> bool:
+    """Return True for TS/JS try_* nullable getter return signatures.
+
+    In TS/JS, ``try*`` is frequently used for best-effort getters that
+    communicate failure via ``null``/``undefined`` unions instead of exceptions.
+    """
+    return_type = (fn_info.return_type or "").replace(" ", "").lower()
+    if not return_type:
+        return False
+    return "|undefined" in return_type or "|null" in return_type
+
+
 def _read_function_source(
     file_path: Path,
     fn: FunctionInfo,
@@ -605,6 +617,10 @@ def _ts_check_rule(
     # TS/JS convention: ensure_* often means get-or-create/upsert.
     if matched_prefix == "ensure_":
         return _ts_has_ensure_contract(root, src)
+
+    # TS/JS convention: try_* can be a nullable getter contract.
+    if matched_prefix == "try_" and _ts_has_nullable_return_contract(fn):
+        return True
 
     checker = _TS_CHECKERS.get(checker_name)
     if checker is None:

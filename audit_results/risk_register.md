@@ -1,5 +1,36 @@
 # Risk Register
 
+## 2026-04-12 - Issue #240: NBV TS naming-contract FP reduction (`try*` nullable getter)
+
+- Risk ID: RISK-SIGNAL-2026-04-12-240
+- Component: `src/drift/signals/naming_contract_violation.py`, `tests/test_naming_contract_violation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Naming Contract Violation (NBV) erkennt fuer TypeScript `try*` nun nullable Getter-Vertraege (`T | undefined` / `T | null`) als gueltige Attempt-Semantik. Zusaetzlich sichern Regressionstests die konkreten OpenClaw-Muster fuer `tryGet*`, `ensureSession` Lazy-Init und `is*`-Bool-Ausdrucke.
+- Trigger: `drift analyze` auf TypeScript-Repositories mit best-effort Runtime-Gettern und lazy-init Patterns.
+- Impact: Medium-positive. Erwartete Reduktion dominanter NBV-FPs bei TS-Konventionen und verbesserte Signal-Glaubwuerdigkeit.
+- Mitigation:
+  - Neue TS-Contract-Heuristik `_ts_has_nullable_return_contract()` fuer `try_*`.
+  - Regressionen: `test_try_ts_nullable_getter_contract_no_finding`, `test_ensure_ts_lazy_init_method_no_finding`, `test_boolean_or_expression_return_no_finding`.
+  - Keine Aenderung an Python-Regeln; Prefix-begrenzte TS-Logik.
+- Verification:
+  - `python -m pytest tests/test_naming_contract_violation.py -q --tb=short`
+  - `python -m ruff check src/drift/signals/naming_contract_violation.py tests/test_naming_contract_violation.py`
+- Residual risk: Low-Medium. Nullable-Return-Signaturen koennen in Randfaellen semantisch schwache `try*`-Implementierungen passieren lassen; Risiko ist durch enge Prefix-Skopierung und bestehende Negativkontrollen begrenzt.
+
+## 2026-04-12 - Issue #238: HSC suppresses dynamic template literals
+
+- Risk ID: RISK-SIGNAL-2026-04-12-238
+- Component: `src/drift/signals/hardcoded_secret.py`, `tests/test_hardcoded_secret.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Hardcoded Secret (HSC) treats TS/JS template literals with interpolation (`${...}`) as runtime-generated values and suppresses these findings before entropy evaluation.
+- Trigger: `drift analyze` on repositories that build token-like strings via template interpolation (for example UUID-based test tokens, display tokenizers, JWT assembly).
+- Impact: Medium-positive. Reduces high-severity HSC false positives and improves actionability in JS/TS-heavy repositories.
+- Mitigation:
+  - New HSC helper `_is_dynamic_template_literal(quote, string_val)` with strict guard `quote == "`" and `${` present.
+  - Suppression only for interpolated template literals; static string literals and known-prefix token detection remain unchanged.
+  - Regression tests for three concrete OpenClaw patterns added to `tests/test_hardcoded_secret.py`.
+- Residual risk: Low-Medium. A true secret intentionally assembled via template interpolation may now be under-reported; known-prefix hardcoded tokens and non-interpolated literals remain covered.
+
 ## 2026-04-11 - ADR-061: Pflichtmaessige Phasen-Telemetrie
 
 - Risk ID: RISK-OUTPUT-2026-04-11-061

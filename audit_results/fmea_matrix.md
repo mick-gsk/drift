@@ -1,5 +1,19 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #238: HSC FP bei dynamischen Template-Literalen
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| HSC | FP: interpolierte Template-Literale (`token = `${a}:${b}``) werden als hardcoded secret gemeldet | TS/JS-Pfad bewertet den extrahierten Template-String wie ein statisches Literal und laesst Entropie-/Literal-Regeln greifen | Security-Noise (teils HIGH) bei runtime-generierten Token/ID/Display-Werten | Neue Regressionen in `tests/test_hardcoded_secret.py` fuer randomUUID-, display- und JWT-Template-Faelle | Suppression fuer dynamische Template-Literale (`quote == \`` und `${` im Wert) vor Entropiepfad in `_evaluate_ts_assignment` | 6 | 8 | 2 | 96 | Mitigated |
+| HSC | FN-Risiko: echte Secrets, die erst per Template zusammengebaut werden, werden nicht mehr gemeldet | Neue Suppression akzeptiert alle interpolierten Template-Literale unabhaengig vom konkreten Ausdruck | Potenzielle Unterberichtung bei bewusst zusammengesetzten Secrets | Bestehende Known-Prefix-Regressionen und statische Literal-TPs bleiben aktiv; Full test suite gruen | Scope bleibt auf interpolierte Templates begrenzt; statische Literale und Known-Prefix-Strings sind unveraendert detektierbar | 5 | 3 | 4 | 60 | Mitigated |
+
+## 2026-04-12 - Issue #240: NBV TS naming-contract precision hardening (is*/has*/try*/ensure*)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| NBV | FP: `try*` TypeScript nullable getter als Contract-Verletzung gemeldet | `try_*` wurde primär als Python-`try/except`-Konvention interpretiert; TS-Nullable-Getter (`T \| undefined/null`) nicht als gueltiger Versuchsvertrag erkannt | Hohe FP-Quote in TS-Runtime-Helpern, reduzierte Glaubwuerdigkeit des NBV-Signals | Neue Regression `test_try_ts_nullable_getter_contract_no_finding` in `tests/test_naming_contract_violation.py` | TS-spezifische `try_*`-Contract-Erfuellung bei nullable Return-Signaturen (`|undefined`/`|null`) plus bestehende graceful-failure Heuristiken | 7 | 7 | 2 | 98 | Mitigated |
+| NBV | FN-Risiko: zu weite Nullable-Akzeptanz koennte echte try*-Verletzungen verdecken | Nullable-Union allein kann semantisch schwache Implementierungen legitimieren | Potenzielle Unterberichtung einzelner schwacher `try*`-Implementierungen | Bestehende Negativtests fuer nicht-erfuellte Vertrage bleiben aktiv; bool/ensure/testfaelle weiterhin regressionsgesichert | Regel auf `try_*` und explizite nullable Return-Typen begrenzt; andere Prefix-Regeln unveraendert | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-11 - Issue #237: DCA FP bei runtime-geladenen plugin config exports
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
