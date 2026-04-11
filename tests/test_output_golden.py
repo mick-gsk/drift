@@ -101,6 +101,7 @@ class TestJsonOutputGolden:
             "ai_attributed_ratio",
             "ai_tools_detected",
             "analysis_duration_seconds",
+            "skipped_languages",
         }
         assert set(data["summary"].keys()) == expected_summary_keys
 
