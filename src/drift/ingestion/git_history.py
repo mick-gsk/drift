@@ -506,18 +506,43 @@ def _deserialize_commit(payload: dict[str, object]) -> CommitInfo | None:
         if not isinstance(ts_raw, str):
             return None
         ts = datetime.datetime.fromisoformat(ts_raw)
+        files_changed_raw = payload.get("files_changed", [])
+        files_changed = (
+            [str(x) for x in files_changed_raw] if isinstance(files_changed_raw, list) else []
+        )
+        coauthors_raw = payload.get("coauthors", [])
+        coauthors = [str(x) for x in coauthors_raw] if isinstance(coauthors_raw, list) else []
+
+        insertions_raw = payload.get("insertions", 0)
+        deletions_raw = payload.get("deletions", 0)
+        ai_confidence_raw = payload.get("ai_confidence", 0.0)
+        insertions = (
+            int(insertions_raw)
+            if isinstance(insertions_raw, (int, float, str))
+            else 0
+        )
+        deletions = (
+            int(deletions_raw)
+            if isinstance(deletions_raw, (int, float, str))
+            else 0
+        )
+        ai_confidence = (
+            float(ai_confidence_raw)
+            if isinstance(ai_confidence_raw, (int, float, str))
+            else 0.0
+        )
         return CommitInfo(
             hash=str(payload.get("hash", "")),
             author=str(payload.get("author", "unknown")),
             email=str(payload.get("email", "")),
             timestamp=ts,
             message=str(payload.get("message", "")),
-            files_changed=[str(x) for x in payload.get("files_changed", [])],
-            insertions=int(payload.get("insertions", 0)),
-            deletions=int(payload.get("deletions", 0)),
+            files_changed=files_changed,
+            insertions=insertions,
+            deletions=deletions,
             is_ai_attributed=bool(payload.get("is_ai_attributed", False)),
-            ai_confidence=float(payload.get("ai_confidence", 0.0)),
-            coauthors=[str(x) for x in payload.get("coauthors", [])],
+            ai_confidence=ai_confidence,
+            coauthors=coauthors,
         )
     except (TypeError, ValueError):
         return None
@@ -527,7 +552,8 @@ def _read_manifest(path: Path) -> dict[str, object] | None:
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
     except (OSError, json.JSONDecodeError):
         return None
 

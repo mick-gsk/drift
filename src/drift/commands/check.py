@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from contextlib import nullcontext
 from pathlib import Path
+from typing import Literal, cast
 
 import click
 from rich.console import Console
@@ -365,9 +366,9 @@ def check(
 
     cfg = DriftConfig.load(repo, config)
     if worker_strategy is not None:
-        cfg.performance.worker_strategy = worker_strategy
+        cfg.performance.worker_strategy = cast(Literal["fixed", "auto"], worker_strategy)
     if load_profile is not None:
-        cfg.performance.load_profile = load_profile
+        cfg.performance.load_profile = cast(Literal["conservative"], load_profile)
     if no_embeddings:
         cfg.embeddings_enabled = False
     if embedding_model:
