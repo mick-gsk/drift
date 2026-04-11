@@ -1,5 +1,55 @@
 # Fault Tree Analysis
 
+## 2026-04-11 - Issue #232: SMS test-only framework import false positives
+
+### Top Event (TE-SMS-232)
+SMS meldet Test-Framework-Imports aus Testdateien als produktive Novel Imports.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: test-only imports reported as production novel imports
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: `_module_imports` uebernimmt Testdatei-Imports in den Modulkontext und verfaelscht den Baseline-Vergleich.
+  - Mitigation: Testdateien via zentrale `is_test_file`-Erkennung aus Baseline-Berechnung ausschliessen.
+- **IE-2 (MCS)**: `_find_novel_imports` bewertet Imports aus `.test/.spec`-Dateien als produktive Neuimporte.
+  - Mitigation: Testdateien vor Novel-Import-Erkennung filtern; Analyze-Pfad auf produktionsnahe Dateien begrenzen.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Ueberbreiter Testdatei-Filter unterdrueckt echte produktive Novel Imports in Randfaellen.
+  - Mitigation: Wiederverwendung der zentralen Testklassifikation (`ingestion/test_detection.py`) statt neuer SMS-Sonderregeln; Regressionstest fuer den konkreten vitest-Fall.
+
+## 2026-04-11 - Issue #230: COD Logger-/Utility-FP-Reduktion
+
+### Top Event (TE-COD-230)
+COD klassifiziert Logger- und Utility-Module als starke Kohaesionsdefizite, obwohl deren Struktur absichtlich ist.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: logger/utility module reported as COD deficit
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Log-Level-Fassaden (`trace/debug/info/warn/error`) haben absichtlich geringe paarweise Namensaehnlichkeit.
+  - Mitigation: Logger-Mustererkennung ueber Dateiname (`logger`) oder >=50% logger-nahe Unit-Namen; starke Dempfung.
+- **IE-2 (MCS)**: Utility-Dateien mit `utils/helpers/constants` werden ohne Kontext gleich streng bewertet wie heterogene Dump-Module.
+  - Mitigation: Moderate Utility-Dateinamens-Dempfung, um erwartete Hilfsmodul-Varianz abzuschwaechen.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Dempfung kann echte Inkohaerenz in Logger-Modulen teilweise verdecken.
+  - Mitigation: Dempfung nur bei klaren Logger-Signalen; Utility-Dempfung bleibt begrenzt und bestehende COD-TP/TN-Regressionen bleiben aktiv.
+
 ## 2026-04-11 - Issue #231: DCA default-export helper false positives
 
 ### Top Event (TE-DCA-231)

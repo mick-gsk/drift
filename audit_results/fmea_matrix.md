@@ -7,6 +7,14 @@
 | SMS | FP: test-only framework imports (z. B. `vitest`) als produktive Novel Imports gemeldet | SMS beruecksichtigte `.test/.spec`-Dateien in Baseline und Novel-Import-Erkennung | Hohe Noise-Last in Repos mit co-lokierten Tests, reduzierte Signal-Glaubwuerdigkeit | Neue Regression `test_find_novel_imports_ignores_test_only_framework_imports` in `tests/test_coverage_signals.py` | Testdateien werden ueber zentrale Erkennung (`is_test_file`) in `_module_imports`, `_find_novel_imports` und Analyze-Filter ausgeschlossen | 7 | 8 | 2 | 112 | Mitigated |
 | SMS | FN-Risiko: produktionsnahe Dateien mit testaehnlichem Namensmuster werden ausgeschlossen | Testpfadklassifizierung kann Randfaelle als Testkontext einstufen | Unterberichtung einzelner echter Novel-Import-Faelle | Bestehende zentrale Testdatei-Erkennungsregeln und Signal-Regressionen | Nutzung der bereits etablierten zentralen Testklassifikation statt signal-spezifischer Sonderheuristik; bestehende Fixture-Ausnahmen bleiben aktiv | 4 | 3 | 4 | 48 | Mitigated |
 
+## 2026-04-11 - Issue #230: COD FP-Reduktion fuer Logger- und Utility-Module
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| COD | FP: Logger-Fassaden als Cohesion Deficit gemeldet | COD bewertet niedrige paarweise Namensaehnlichkeit bei Log-Level-Funktionen (`trace/debug/info/warn/error`) als Isolation, obwohl diese Entry-Points absichtlich parallel sind | Hohe FP-Last in Logger-Modulen und sinkende Signal-Glaubwuerdigkeit | Neue Regression `test_cod_logger_module_is_not_flagged` + `tests/test_precision_recall.py` | Logger-Modulerkennung (`logger`-Dateiname oder >=50% logger-/log-level-nahe Unit-Namen) mit starker Muster-Dempfung (`module_pattern_dampening=0.35`) | 7 | 8 | 3 | 168 | Mitigated |
+| COD | FP: Utility-Dateien mit erwarteter Funktionsvielfalt zu streng priorisiert | Dateinamen mit `utils/helpers/constants` erhalten bisher keine Kontextdifferenzierung | Unnoetig hohe COD-Scores bei Hilfsmodulen | Regression `test_cod_utility_filename_still_flags_clear_deficit` verifiziert bounded behavior | Utility-Dateinamens-Hinweise fuehren zu moderater Dempfung (`module_pattern_dampening=0.8`), ohne klare Defizite komplett zu unterdruecken | 5 | 6 | 3 | 90 | Mitigated |
+| COD | FN-Risiko: echte Inkohaerenz in Logger-Dateien wird unterdrueckt | Logger-Musterdempfung kann in Randfaellen auch problematische Logger-Module entschaerfen | Potenziell spaetere Erkennung realer Refactoring-Bedarfe in Logger-Modulen | Guard ueber bestehende COD-TP/TN-Suite + Ground-Truth-Lauf | Dempfung nur bei klaren Logger-Signalen; Utility-Dempfung bleibt konservativ und behaelt klare Defizite detektierbar | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-11 - Issue #231: DCA TS helper FP bei default export
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

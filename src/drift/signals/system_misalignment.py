@@ -20,6 +20,7 @@ from drift.models import (
     Severity,
     SignalType,
 )
+from drift.signals._utils import is_test_file
 from drift.signals.base import BaseSignal, register_signal
 
 # Python stdlib top-level modules — never "novel" in any module
@@ -95,6 +96,8 @@ def _module_imports(
     """
     module_imports: dict[Path, set[str]] = defaultdict(set)
     for pr in parse_results:
+        if is_test_file(pr.file_path):
+            continue
         # Exclude recently-modified files from baseline
         fpath_str = pr.file_path.as_posix()
         history = file_histories.get(fpath_str)
@@ -136,6 +139,8 @@ def _find_novel_imports(
     cutoff = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=recency_days)
 
     for pr in parse_results:
+        if is_test_file(pr.file_path):
+            continue
         fpath_str = pr.file_path.as_posix()
         history = file_histories.get(fpath_str)
         if not history or not history.last_modified:
@@ -203,13 +208,16 @@ class SystemMisalignmentSignal(BaseSignal):
         if hasattr(config, "thresholds"):
             recency_days = config.thresholds.recency_days
         cutoff = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=recency_days)
-        baseline = _module_imports(parse_results, file_histories, cutoff)
+        candidate_parse_results = [
+            pr for pr in parse_results if not is_test_file(pr.file_path)
+        ]
+        baseline = _module_imports(candidate_parse_results, file_histories, cutoff)
 
         # Guard against shallow clones / repos where nearly all files appear recent:
         # if fewer than 10% of files have established history, the baseline is too
         # thin to produce reliable "novel import" signals — skip SMS entirely.
         established_count = 0
-        for pr in parse_results:
+        for pr in candidate_parse_results:
             h = file_histories.get(pr.file_path.as_posix())
             if not h or not h.last_modified:
                 continue
@@ -218,12 +226,12 @@ class SystemMisalignmentSignal(BaseSignal):
                 lm = lm.astimezone(datetime.UTC)
             if lm < cutoff:
                 established_count += 1
-        if parse_results and established_count / len(parse_results) < 0.10:
+        if candidate_parse_results and established_count / len(candidate_parse_results) < 0.10:
             return []
 
         # Find novel imports in recently-modified files
         novel = _find_novel_imports(
-            parse_results, baseline, file_histories, recency_days=recency_days
+            candidate_parse_results, baseline, file_histories, recency_days=recency_days
         )
 
         findings: list[Finding] = []

@@ -1,5 +1,35 @@
 # Risk Register
 
+## 2026-04-11 - Issue #232: SMS excludes test-only framework imports from production novel-import analysis
+
+- Risk ID: RISK-SIGNAL-2026-04-11-232
+- Component: `src/drift/signals/system_misalignment.py`, `tests/test_coverage_signals.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: System Misalignment (SMS) schliesst Testdateien aus der Baseline- und Novel-Import-Analyse aus. Damit werden Test-Framework-Imports wie `vitest` in `.test.ts` nicht mehr als produktive Novel Imports in Modulfindings gezahlt.
+- Trigger: `drift analyze` auf Repositories mit co-lokierten Tests in Modulpfaden (z. B. `*.test.ts`, `*.spec.ts`, `__tests__/`).
+- Impact: Medium-positive. Reduziert SMS-FP-Cluster deutlich und verbessert Glaubwuerdigkeit sowie Handlungsfaehigkeit der SMS-Befunde.
+- Mitigation:
+  - Filter ueber zentrale Testdatei-Erkennung (`is_test_file`) in `_module_imports`, `_find_novel_imports` und im Analyze-Kandidaten-Set.
+  - Regressionstest `test_find_novel_imports_ignores_test_only_framework_imports` deckt den vitest-Fall ab.
+  - Keine neue, signal-spezifische Pfadheuristik; Nutzung der etablierten zentralen Klassifikation.
+- Residual risk: Low-Medium. Randfaelle mit testaehnlicher Dateibenennung koennen produktive Dateien ausschliessen; Risiko ist durch bestehende zentrale Klassifikationsregeln und Fixture-Ausnahmen begrenzt.
+
+## 2026-04-11 - Issue #230: COD Logger-/Utility-FP-Reduktion
+
+- Risk ID: RISK-SIGNAL-2026-04-11-230
+- Component: `src/drift/signals/cohesion_deficit.py`, `tests/test_cohesion_deficit.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Cohesion Deficit (COD) beruecksichtigt jetzt Logger- und Utility-Modulkontext. Logger-Fassaden (`trace/debug/info/warn/error`) werden als absichtliches Muster erkannt und stark gedaempft; Utility-Dateinamen (`utils/helpers/constants`) erhalten eine moderate Dempfung.
+- Trigger: `drift analyze` auf TypeScript-/Python-Repositories mit Logger-Facades oder Utility-Modulen mit voneinander unabhaengigen Hilfsfunktionen.
+- Impact: Medium-positive. Erwartete deutliche Reduktion von COD-False-Positives und bessere Actionability bei grossen Repos.
+- Mitigation:
+  - Neue Logger-Mustererkennung ueber Dateinamen- und Unit-Namens-Signale.
+  - Pattern-Dempfung im Scoring-Pfad (`module_pattern_dampening`) mit konservativen Faktoren.
+  - Utility-Dempfung bleibt bounded, sodass klare Defizite weiter detektierbar sind.
+  - Regressionen: `test_cod_logger_module_is_not_flagged`, `test_cod_utility_filename_still_flags_clear_deficit`.
+  - Ground-truth/Precision-Recall Suite weiterhin gruen.
+- Residual risk: Low-Medium. In seltenen Faellen kann echte Inkohaerenz in Logger-Modulen abgeschwaecht priorisiert werden; durch begrenzte Triggerbedingungen und bestehende COD-Regressionen reduziert.
+
 ## 2026-04-11 - Issue #231: DCA TS/JS default-export helper false positives
 
 - Risk ID: RISK-SIGNAL-2026-04-11-231

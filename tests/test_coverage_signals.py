@@ -404,6 +404,34 @@ class TestSystemMisalignmentCoverage:
         assert len(novel) == 1
         assert novel[0][2] == "@angular/core"
 
+    def test_find_novel_imports_ignores_test_only_framework_imports(self):
+        """Test-only framework imports in .test.ts must not trigger SMS novel imports."""
+        from drift.signals.system_misalignment import _find_novel_imports
+
+        baseline = {Path("extensions/amazon-bedrock"): {"@aws-sdk/client-bedrock"}}
+        pr = ParseResult(
+            file_path=Path("extensions/amazon-bedrock/discovery.test.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/amazon-bedrock/discovery.test.ts"),
+                    imported_module="vitest",
+                    imported_names=["describe", "it", "expect"],
+                    line_number=1,
+                )
+            ],
+        )
+        history = {
+            "extensions/amazon-bedrock/discovery.test.ts": FileHistory(
+                path=Path("extensions/amazon-bedrock/discovery.test.ts"),
+                total_commits=2,
+                unique_authors=1,
+                last_modified=_days_ago(1),
+            ),
+        }
+        novel = _find_novel_imports([pr], baseline, history, recency_days=14)
+        assert novel == []
+
 
 # ---------------------------------------------------------------------------
 # ExplainabilityDeficitSignal — additional coverage

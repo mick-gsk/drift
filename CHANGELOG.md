@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- SMS Issue #232: exclude test files from novel-import baseline and detection so test-only framework imports (for example vitest in .test.ts/.spec.ts) are no longer reported as production novel dependencies.
 - DCA Issue #231: in TypeScript/JavaScript, only actually exported functions are treated as DCA export candidates; module-internal helpers used by `export default` facades are no longer flagged as dead exports.
 - PFS Issue #229: dampen plugin-/extension-boundary fragmentation findings (`extensions`/`plugins`/`packages`) and cap severity to LOW for multi-plugin API surfaces, reducing false positives in deliberate plugin architectures.
 - NBV Issue #214: TypeScript/JavaScript `ensure_*` now also accepts idempotent ensure-by-side-effect patterns (for example `mkdir*`, registry `set`, and property/index assignments), reducing false positives for initialization helpers that intentionally use `void` contracts.
