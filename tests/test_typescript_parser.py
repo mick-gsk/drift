@@ -140,6 +140,62 @@ class TestTypeScriptParser:
         error_patterns = [p for p in result.patterns if p.category.value == "error_handling"]
         assert len(error_patterns) >= 1
 
+    def test_api_client_wrapper_call_is_not_detected_as_endpoint(self, tmp_path: Path) -> None:
+        from drift.ingestion.ts_parser import parse_typescript_file
+
+        ts_code = textwrap.dedent("""\
+            type DiscordReactOpts = { token?: string };
+
+            function resolveDiscordRest(opts: DiscordReactOpts) {
+                return {
+                    put: async (_path: string, _payload: unknown) => undefined,
+                };
+            }
+
+            export async function setChannelPermissionDiscord(
+                payload: { channelId: string; targetId: string },
+                opts: DiscordReactOpts = {},
+            ) {
+                const rest = resolveDiscordRest(opts);
+                await rest.put(`/channels/${payload.channelId}/permissions/${payload.targetId}`, {
+                    body: { type: "role" },
+                });
+                return { ok: true };
+            }
+        """)
+        (tmp_path / "discord-client.ts").write_text(ts_code, encoding="utf-8")
+        result = parse_typescript_file(Path("discord-client.ts"), tmp_path, "typescript")
+
+        endpoint_patterns = [p for p in result.patterns if p.category.value == "api_endpoint"]
+        assert endpoint_patterns == []
+
+    def test_inline_route_handler_body_auth_is_detected(self, tmp_path: Path) -> None:
+        from drift.ingestion.ts_parser import parse_typescript_file
+
+        ts_code = textwrap.dedent("""\
+            import express from "express";
+
+            const app = express();
+
+            function hasVerifiedBrowserAuth(req: unknown): boolean {
+                return Boolean(req);
+            }
+
+            app.get("/sandbox/novnc", (req, res) => {
+                if (!hasVerifiedBrowserAuth(req)) {
+                    res.status(401).send("Unauthorized");
+                    return;
+                }
+                res.send("ok");
+            });
+        """)
+        (tmp_path / "bridge-server.ts").write_text(ts_code, encoding="utf-8")
+        result = parse_typescript_file(Path("bridge-server.ts"), tmp_path, "typescript")
+
+        endpoint_patterns = [p for p in result.patterns if p.category.value == "api_endpoint"]
+        assert len(endpoint_patterns) == 1
+        assert endpoint_patterns[0].fingerprint.get("has_auth") is True
+
     def test_parse_tsx(self, tmp_path: Path) -> None:
         from drift.ingestion.ts_parser import parse_typescript_file
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -644,6 +645,20 @@ _TS_ROUTE_METHODS: frozenset[str] = frozenset({
     "Get", "Post", "Put", "Patch", "Delete", "Head", "Options",
 })
 
+# Inbound route registrations are usually attached to framework router/app
+# objects. This avoids flagging outbound API client wrappers like rest.get().
+_TS_ROUTE_REGISTRATION_OBJECT_MARKERS: frozenset[str] = frozenset({
+    "app",
+    "router",
+    "route",
+    "server",
+    "fastify",
+    "koa",
+    "hono",
+    "controller",
+    "nest",
+})
+
 # Auth-related middleware/guard/decorator identifiers (case-insensitive match).
 _TS_AUTH_MARKERS: frozenset[str] = frozenset({
     "authenticate", "auth", "authorize", "isauth", "isauthenticated",
@@ -659,6 +674,18 @@ def _looks_like_ts_auth(text: str) -> bool:
     """Return True if *text* looks like an auth middleware/guard reference."""
     normalized = text.lower().replace("_", "").replace("-", "")
     return any(marker in normalized for marker in _TS_AUTH_MARKERS)
+
+
+def _looks_like_ts_route_registration_call(fn_node: Any, source: bytes) -> bool:
+    """Return True when call target looks like a router/app registration."""
+    object_node = _child_by_field(fn_node, "object")
+    if object_node is None:
+        return False
+    object_text = _node_text(object_node, source).lower()
+    normalized = re.sub(r"[^a-z0-9]", "", object_text)
+    if not normalized:
+        return False
+    return any(marker in normalized for marker in _TS_ROUTE_REGISTRATION_OBJECT_MARKERS)
 
 
 def _has_auth_in_call_args(node: Any, source: bytes) -> bool:
@@ -678,6 +705,40 @@ def _has_auth_in_call_args(node: Any, source: bytes) -> bool:
         if _looks_like_ts_auth(text):
             return True
     return False
+
+
+def _has_auth_in_handler_body(handler_node: Any, source: bytes) -> bool:
+    """Detect auth checks inside inline route handlers.
+
+    Example: if (!hasVerifiedBrowserAuth(req)) { res.status(401)... }
+    """
+    has_auth_condition = False
+    has_reject_hint = False
+
+    for child in _walk(handler_node):
+        if child.type == "if_statement":
+            cond = _child_by_field(child, "condition")
+            if cond is not None and _looks_like_ts_auth(_node_text(cond, source)):
+                has_auth_condition = True
+        elif child.type in ("string", "template_string"):
+            text = _node_text(child, source).strip("'\"`").lower()
+            if "unauthorized" in text or "forbidden" in text:
+                has_reject_hint = True
+        elif child.type == "number":
+            if _node_text(child, source).strip() in {"401", "403"}:
+                has_reject_hint = True
+
+    if has_auth_condition:
+        return True
+
+    has_auth_symbol = False
+    for child in _walk(handler_node):
+        if child.type in ("identifier", "property_identifier"):
+            if _looks_like_ts_auth(_node_text(child, source)):
+                has_auth_symbol = True
+                break
+
+    return has_auth_symbol and has_reject_hint
 
 
 def _has_auth_decorator_ts(
@@ -719,7 +780,10 @@ def _extract_api_patterns(
                 prop = _child_by_field(fn_node, "property")
                 if prop:
                     method = _node_text(prop, source)
-                    if method.lower() in _TS_ROUTE_METHODS:
+                    if (
+                        method.lower() in _TS_ROUTE_METHODS
+                        and _looks_like_ts_route_registration_call(fn_node, source)
+                    ):
                         is_route = True
 
         # @Get("/path") / @Post("/path") NestJS decorators
@@ -748,6 +812,17 @@ def _extract_api_patterns(
                     route_path = _node_text(arg, source).strip("'\"`")
                     break
 
+        has_auth = (
+            _has_auth_in_call_args(node, source)
+            or _has_auth_decorator_ts(node, source, root)
+        )
+        if not has_auth and args_node is not None:
+            args = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+            if args:
+                handler_node = args[-1]
+                if handler_node.type in ("arrow_function", "function", "function_expression"):
+                    has_auth = _has_auth_in_handler_body(handler_node, source)
+
         patterns.append(
             PatternInstance(
                 category=PatternCategory.API_ENDPOINT,
@@ -759,10 +834,7 @@ def _extract_api_patterns(
                     "method": method.upper(),
                     "route": route_path,
                     "framework": "express",  # generic label
-                    "has_auth": (
-                        _has_auth_in_call_args(node, source)
-                        or _has_auth_decorator_ts(node, source, root)
-                    ),
+                    "has_auth": has_auth,
                 },
             )
         )
