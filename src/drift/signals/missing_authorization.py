@@ -15,16 +15,17 @@ from __future__ import annotations
 import re
 
 from drift.config import DriftConfig
+from drift.ingestion.test_detection import classify_file_context
 from drift.models import (
     FileHistory,
     Finding,
     FunctionInfo,
     ParseResult,
     PatternCategory,
+    PatternInstance,
     Severity,
     SignalType,
 )
-from drift.signals._utils import is_test_file
 from drift.signals.base import BaseSignal, register_signal
 
 # Class-level auth mixins (Django CBV pattern).
@@ -113,6 +114,31 @@ def _is_public_allowlisted(fn_name: str, allowlist: list[str]) -> bool:
     return any(allowed.replace("_", "") in lower for allowed in allowlist)
 
 
+def _is_public_route_allowlisted(route: str, allowlist: list[str]) -> bool:
+    """Return True if the route path matches known intentionally public endpoints."""
+    normalized_route = route.lower().replace("_", "").replace("-", "")
+    normalized_route = normalized_route.replace("/", "")
+    return any(allowed.replace("_", "") in normalized_route for allowed in allowlist)
+
+
+def _looks_like_http_route_path(route: str) -> bool:
+    """Return True when route resembles an HTTP path (not a cache/store key)."""
+    candidate = route.strip().strip("'\"")
+    if not candidate:
+        return False
+    if candidate == "*":
+        return True
+    return candidate.startswith("/")
+
+
+def _has_strong_unknown_ts_route_evidence(pr: ParseResult, pat: PatternInstance) -> bool:
+    """Require stronger endpoint evidence for TS/JS when framework detection failed."""
+    if pr.language not in {"typescript", "tsx", "javascript", "jsx"}:
+        return True
+    route = str(pat.fingerprint.get("route", ""))
+    return _looks_like_http_route_path(route)
+
+
 def _is_dev_tool_path(file_path: str, dev_paths: list[str]) -> bool:
     """Return True if the file lives under a known dev/internal tool directory."""
     parts = file_path.lower().replace("\\", "/").split("/")
@@ -192,6 +218,17 @@ def _detect_framework(parse_result: ParseResult) -> str:
             return "starlette"
         if "sanic" in mod:
             return "sanic"
+        # TypeScript / JavaScript frameworks
+        if "express" in mod:
+            return "express"
+        if "fastify" in mod:
+            return "fastify"
+        if "@nestjs" in mod:
+            return "nestjs"
+        if "koa" in mod:
+            return "koa"
+        if "hono" in mod:
+            return "hono"
     return "unknown"
 
 
@@ -206,6 +243,17 @@ def _fix_suggestion(framework: str) -> str:
         "flask": "Add @login_required from flask_login or check current_user.",
         "starlette": "Add requires() decorator or auth middleware.",
         "sanic": "Add @authorized() decorator or check request.ctx.user.",
+        "express": (
+            "Add auth middleware: "
+            "router.get('/path', authMiddleware, handler)"
+        ),
+        "fastify": (
+            "Add onRequest hook: "
+            "{ onRequest: [fastify.authenticate] }"
+        ),
+        "nestjs": "Add @UseGuards(AuthGuard) decorator.",
+        "koa": "Add auth middleware before the route handler.",
+        "hono": "Add auth middleware via app.use().",
     }
     base = suggestions.get(
         framework,
@@ -237,11 +285,14 @@ class MissingAuthorizationSignal(BaseSignal):
         findings: list[Finding] = []
         allowlist = config.thresholds.maz_public_endpoint_allowlist
         dev_paths = config.thresholds.maz_dev_tool_paths
+        handling = config.test_file_handling or "exclude"
 
+        supported_langs = {"python", "typescript", "tsx", "javascript", "jsx"}
         for pr in parse_results:
-            if pr.language != "python":
+            if pr.language not in supported_langs:
                 continue
-            if is_test_file(pr.file_path):
+            path_context = classify_file_context(pr.file_path)
+            if path_context == "test" and handling == "exclude":
                 continue
             if _is_dev_tool_path(pr.file_path.as_posix(), dev_paths):
                 continue
@@ -269,8 +320,14 @@ class MissingAuthorizationSignal(BaseSignal):
                 if fp.get("has_auth", False):
                     continue
 
+                if framework == "unknown" and not _has_strong_unknown_ts_route_evidence(pr, pat):
+                    continue
+
                 fn_name = pat.function_name
                 if _is_public_allowlisted(fn_name, allowlist):
+                    continue
+                route = str(fp.get("route", ""))
+                if route and _is_public_route_allowlisted(route, allowlist):
                     continue
 
                 # Check if function belongs to an authed class.
@@ -287,6 +344,9 @@ class MissingAuthorizationSignal(BaseSignal):
 
                 score = 0.35 if is_documented_public_safe else 0.85
                 severity = Severity.LOW if is_documented_public_safe else Severity.CRITICAL
+                if path_context == "test" and handling == "reduce_severity":
+                    score = min(score, 0.25)
+                    severity = Severity.LOW
 
                 description = (
                     f"The route handler '{fn_name}' in {pr.file_path} "
@@ -325,7 +385,10 @@ class MissingAuthorizationSignal(BaseSignal):
                             "endpoint_name": fn_name,
                             "auth_mechanism": "none",
                             "public_safe_documented": is_documented_public_safe,
+                            "route": route,
+                            "finding_context": path_context,
                         },
+                        finding_context=path_context,
                         rule_id="missing_authz_route",
                     )
                 )
@@ -356,6 +419,9 @@ class MissingAuthorizationSignal(BaseSignal):
 
                 score = 0.35 if is_documented_public_safe else 0.85
                 severity = Severity.LOW if is_documented_public_safe else Severity.CRITICAL
+                if path_context == "test" and handling == "reduce_severity":
+                    score = min(score, 0.25)
+                    severity = Severity.LOW
 
                 description = (
                     f"The route handler '{fn_name}' in {pr.file_path} "
@@ -395,7 +461,9 @@ class MissingAuthorizationSignal(BaseSignal):
                             "auth_mechanism": "none",
                             "public_safe_documented": is_documented_public_safe,
                             "detection_source": "decorator_fallback",
+                            "finding_context": path_context,
                         },
+                        finding_context=path_context,
                         rule_id="missing_authz_route",
                     )
                 )

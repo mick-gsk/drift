@@ -263,11 +263,11 @@ class TestMAZTrueNegatives:
 
     def test_non_python_skipped(self) -> None:
         pr = ParseResult(
-            file_path=Path("api.ts"),
-            language="typescript",
+            file_path=Path("api.rs"),
+            language="rust",
             functions=[],
             imports=[],
-            patterns=[_endpoint_pattern("getUsers", "api.ts", 10)],
+            patterns=[_endpoint_pattern("getUsers", "api.rs", 10)],
         )
         signal = MissingAuthorizationSignal()
         findings = signal.analyze([pr], {}, DriftConfig())
@@ -652,3 +652,112 @@ class TestMAZEdgeCases:
         findings = signal.analyze([pr], {}, DriftConfig())
         assert len(findings) == 1
         assert findings[0].metadata["detection_source"] == "decorator_fallback"
+
+    def test_typescript_unknown_framework_suppresses_non_route_like_pattern(self) -> None:
+        """Unknown TS framework must not flag generic method calls as endpoints."""
+        pr = ParseResult(
+            file_path=Path("extensions/active-memory/index.ts"),
+            language="typescript",
+            functions=[
+                FunctionInfo(
+                    name="getCachedResult",
+                    file_path=Path("extensions/active-memory/index.ts"),
+                    start_line=20,
+                    end_line=40,
+                    language="typescript",
+                )
+            ],
+            imports=[],
+            patterns=[
+                PatternInstance(
+                    category=PatternCategory.API_ENDPOINT,
+                    file_path=Path("extensions/active-memory/index.ts"),
+                    function_name="getCachedResult",
+                    start_line=24,
+                    end_line=24,
+                    fingerprint={
+                        "method": "GET",
+                        "route": "cache_key",
+                        "framework": "express",
+                        "has_auth": False,
+                    },
+                )
+            ],
+        )
+
+        signal = MissingAuthorizationSignal()
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert findings == []
+
+    def test_typescript_unknown_framework_keeps_route_like_path(self) -> None:
+        """Unknown TS framework should still flag clear HTTP route paths."""
+        pr = ParseResult(
+            file_path=Path("src/api/routes.ts"),
+            language="typescript",
+            functions=[
+                FunctionInfo(
+                    name="listUsers",
+                    file_path=Path("src/api/routes.ts"),
+                    start_line=10,
+                    end_line=30,
+                    language="typescript",
+                )
+            ],
+            imports=[],
+            patterns=[
+                PatternInstance(
+                    category=PatternCategory.API_ENDPOINT,
+                    file_path=Path("src/api/routes.ts"),
+                    function_name="listUsers",
+                    start_line=14,
+                    end_line=14,
+                    fingerprint={
+                        "method": "GET",
+                        "route": "/users",
+                        "framework": "express",
+                        "has_auth": False,
+                    },
+                )
+            ],
+        )
+
+        signal = MissingAuthorizationSignal()
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].metadata["framework"] == "unknown"
+
+    def test_route_allowlist_skips_login_path_even_without_name_hint(self) -> None:
+        """Public route allowlist should also work on route path metadata."""
+        pr = ParseResult(
+            file_path=Path("src/api/routes.ts"),
+            language="typescript",
+            functions=[
+                FunctionInfo(
+                    name="handleAuthRequest",
+                    file_path=Path("src/api/routes.ts"),
+                    start_line=10,
+                    end_line=30,
+                    language="typescript",
+                )
+            ],
+            imports=[],
+            patterns=[
+                PatternInstance(
+                    category=PatternCategory.API_ENDPOINT,
+                    file_path=Path("src/api/routes.ts"),
+                    function_name="handleAuthRequest",
+                    start_line=14,
+                    end_line=14,
+                    fingerprint={
+                        "method": "POST",
+                        "route": "/oauth/callback",
+                        "framework": "express",
+                        "has_auth": False,
+                    },
+                )
+            ],
+        )
+
+        signal = MissingAuthorizationSignal()
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert findings == []

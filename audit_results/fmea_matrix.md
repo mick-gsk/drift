@@ -1,5 +1,24 @@
 # FMEA Matrix
 
+## 2026-04-11 - Issue #213: MAZ unknown-framework false-positive suppression
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| MAZ | FP: ordinary TS helpers flagged as missing-auth route handlers | Framework detection returned `unknown`, but MAZ trusted generic API pattern matches from method names like `get()` | Large false-positive clusters in utility/cache/store modules and lower triage trust | Regression tests in `tests/test_missing_authorization.py` (`test_typescript_unknown_framework_suppresses_non_route_like_pattern`, `test_typescript_unknown_framework_keeps_route_like_path`) | For TS/JS with `framework=unknown`, require strong route evidence (`route` looks like HTTP path) before flagging; add route-path public allowlist handling (e.g. `/oauth/callback`) | 7 | 8 | 3 | 168 | Mitigated |
+
+## 2026-06-15 — Phase 4: Complex Signal Ports (HSC/CXS/ISD/MAZ for TypeScript)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| HSC | FP: TS environment reads (`process.env.X`) flagged as hardcoded secret | Regex `_VAR_ASSIGN_RE` captures assignment RHS including env reads | False triaging of env-based config as leaked secrets | Ground-truth TN fixture `hsc_ts_env_read_tn` + suppression tests | `_evaluate_ts_assignment()` suppresses `process.env.*` and `import.meta.env.*` prefixes before score evaluation | 6 | 3 | 3 | 54 | Mitigated |
+| HSC | FN: TS secret with non-standard quoting not detected | Regex requires `"` or `'` delimited string values; template literals not covered | Potential under-reporting on template-literal secrets | Ground-truth TP fixture `hsc_ts_github_token_tp` validates direct string assignment detection | Regex covers both quote styles and all `const/let/var` forms; template-literal gap documented | 5 | 2 | 4 | 40 | Accepted |
+| CXS | FP: Simple TS function reported as high cognitive complexity | tree-sitter nesting model may over-count in JSX-heavy components | Over-reporting on idiomatic React patterns | Ground-truth TN fixture `cxs_ts_flat_code_tn` with flat functions | `_ts_cc_recurse()` only counts language-level nesting types, not JSX elements | 5 | 2 | 3 | 30 | Mitigated |
+| CXS | FN: TS function with deep ternary chains not detected | Threshold at 15 may miss moderate-complexity functions | Under-reporting of moderately complex TS code | Ground-truth TP fixture `cxs_ts_deep_nesting_tp` with nested if/for/switch at CC>15 | Threshold consistent with Python CXS; validated by TP fixture | 4 | 3 | 3 | 36 | Mitigated |
+| ISD | FP: TS `secure: false` in non-cookie context flagged | Regex `_TS_COOKIE_INSECURE_RE` matches any `secure: false` line | Over-reporting on non-session configuration | Context keyword check (`cookie`, `session`, `express-session`) on same line | Only fires when cookie/session context keyword found on same line | 5 | 3 | 3 | 45 | Mitigated |
+| ISD | FN: CORS misconfiguration in dynamic config not detected | Regex-based detection misses computed or variable-based origins | Under-reporting of dynamic CORS bypasses | Ground-truth TP fixtures `isd_ts_cors_wildcard_tp` and `isd_ts_reject_unauth_tp` | Regex patterns cover most common literal patterns; dynamic configs require runtime analysis | 4 | 4 | 4 | 64 | Accepted |
+| MAZ | FP: TS Express route with middleware auth not recognized | `_has_auth_in_call_args()` may miss custom auth middleware names | Over-reporting on properly secured endpoints | Ground-truth TN fixture `maz_ts_express_auth_tn` with named middleware | `_TS_AUTH_MARKERS` covers 30+ common auth identifiers; middleware arg positions checked | 5 | 3 | 3 | 45 | Mitigated |
+| MAZ | FN: NestJS decorator-based auth not detected | `_has_auth_decorator_ts()` may miss custom guard class names | Under-reporting on NestJS apps with custom guards | `@UseGuards` detection via sibling decorator search on class methods | Covers `UseGuards`, `Authenticated`, and 10+ common decorator names | 4 | 3 | 4 | 48 | Accepted |
+
 ## 2026-04-11 - Issue #212: HSC FP-Reduktion (Env-Name-/Marker-Konstanten)
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

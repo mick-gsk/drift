@@ -1,5 +1,97 @@
 # Fault Tree Analysis
 
+## 2026-04-11 - Issue #213: MAZ unknown-framework false-positive suppression
+
+### Top Event (TE-MAZ-213)
+MAZ reports non-endpoint TypeScript functions as missing-authorization route handlers when framework detection is unknown.
+
+### FT-1: false-positive branch
+
+```
+           TE-FP: non-endpoint TS function flagged as MAZ finding
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Generic object method call (for example `cache.get("key")`) interpreted as API route
+  - Mitigation: when `framework == unknown` and language is TS/JS, require route-path evidence (`route` starts with `/` or wildcard `*`) before emitting finding.
+- **IE-2 (MCS)**: Intentionally public auth bootstrap routes (`/login`, `/oauth/callback`, `/webhook`) emitted despite public intent
+  - Mitigation: apply allowlist not only to function names, but also to route-path metadata.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Real unauthenticated route missed for unknown framework due stricter guard
+  - Mitigation: clear HTTP-style paths (`/users`, `/admin/*`) remain detectable; regression test ensures route-like unknown-framework cases still emit findings.
+
+## 2026-06-15 — Phase 4: Complex Signal Ports (HSC/CXS/ISD/MAZ for TypeScript)
+
+### Top Event (TE-P4-TS)
+Phase 4 TS signal ports produce false positives or miss real findings in TypeScript codebases.
+
+### FT-1: HSC TypeScript false-positive branch
+
+```
+           TE-FP: Non-secret TS assignments flagged as HSC
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2      IE-3
+```
+
+- **IE-1 (MCS)**: `process.env.SECRET_KEY` assigned to variable misidentified as hardcoded secret
+  - Mitigation: `_evaluate_ts_assignment()` checks for `process.env.` and `import.meta.env.` prefixes first.
+- **IE-2 (MCS)**: Placeholder values (`changeme`, `TODO`, `xxx`) still flagged
+  - Mitigation: `_is_placeholder()` suppression reused from Python path.
+- **IE-3 (MCS)**: URL constants with `token` in variable name flagged
+  - Mitigation: `_looks_like_url()` suppression reused from Python path.
+
+### FT-2: CXS TypeScript false-positive / false-negative
+
+```
+           TE: CXS under-/over-counts TS cognitive complexity
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (FP)**: JSX elements miscounted as nesting increments
+  - Mitigation: `_TS_NESTING_TYPES` explicitly enumerates only language-level control flow types; JSX excluded.
+- **IE-2 (FN)**: Arrow function without variable binding yields `<anonymous>` name
+  - Mitigation: Functional — findings still emitted with `<anonymous>` name; no loss of detection.
+
+### FT-3: ISD TypeScript false-positive / false-negative
+
+```
+           TE: ISD misclassifies TS security configs
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (FP)**: `secure: false` in non-cookie object flagged as insecure cookie
+  - Mitigation: Context keyword check (`cookie`, `session`, `express-session`) on same line.
+- **IE-2 (FN)**: Dynamic CORS origin config (`origin: allowedOrigins`) not detected
+  - Mitigation: Accepted risk — regex detection fundamentally limited to literal patterns.
+
+### FT-4: MAZ TypeScript false-positive / false-negative
+
+```
+           TE: MAZ misclassifies TS endpoint auth status
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (FP)**: Custom auth middleware with non-standard name not recognized
+  - Mitigation: `_TS_AUTH_MARKERS` frozenset covers 30+ common auth identifiers; extensible.
+- **IE-2 (FN)**: NestJS custom guard class not matched by `@UseGuards` decorator search
+  - Mitigation: Accepted risk — decorator name matching covers standard patterns; custom guards documented as limitation.
+
 ## 2026-04-11 - Issue #212: HSC FP-Reduktion (Env-Name-/Marker-Konstanten)
 
 ### Top Event (TE-HSC-212)

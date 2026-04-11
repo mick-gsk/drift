@@ -1,5 +1,37 @@
 # Risk Register
 
+## 2026-04-11 - Issue #213: MAZ unknown-framework false-positive suppression
+
+- Risk ID: RISK-SIGNAL-2026-04-11-213
+- Component: `src/drift/signals/missing_authorization.py`, `tests/test_missing_authorization.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Missing Authorization (MAZ) now suppresses TypeScript/JavaScript findings when framework detection is `unknown` and endpoint evidence is weak (non-route-like path metadata). MAZ also applies the existing public endpoint allowlist to route paths (for example `/oauth/callback`) and not only to function names.
+- Trigger: `drift analyze` on TS/JS repositories with utility calls that resemble HTTP verbs (`get`, `post`) but are not router declarations.
+- Impact: Medium-positive. Reduces high-volume false positives and improves MAZ trust/actionability in TS-heavy repos.
+- Mitigation:
+  - Added strong-evidence gate for unknown-framework TS/JS patterns (`route` must look like HTTP path).
+  - Added route-path allowlist check in MAZ pattern evaluation.
+  - Added regression tests for suppression and retained true-positive behavior under unknown framework.
+- Residual risk: Low to Medium. Some true endpoints with dynamic/non-literal route definitions may now be missed when framework detection remains unknown.
+
+## 2026-06-15 — Phase 4: Complex Signal Ports (HSC/CXS/ISD/MAZ for TypeScript)
+
+- Risk ID: RISK-SIGNAL-2026-06-15-TS-PHASE4
+- Component: `src/drift/signals/hardcoded_secret.py`, `src/drift/signals/cognitive_complexity.py`, `src/drift/signals/insecure_default.py`, `src/drift/signals/missing_authorization.py`, `src/drift/ingestion/ts_parser.py`
+- Type: Signal coverage extension (4 complex signals ported to TypeScript)
+- Description: Phase 4 extends HSC, CXS, ISD, and MAZ signals to analyze TypeScript/JavaScript files. HSC uses regex-based line scanning (`_analyze_typescript`), CXS uses tree-sitter-based cognitive complexity computation (`_ts_cognitive_complexity`), ISD uses regex-based CORS/TLS/cookie detection (`_analyze_typescript`), MAZ leverages existing ts_parser API endpoint fingerprints with new auth detection (`_has_auth_in_call_args`, `_has_auth_decorator_ts`). The ts_parser was enhanced with 30+ auth marker identifiers and `has_auth` in API_ENDPOINT fingerprint.
+- Trigger: `drift analyze` on TypeScript/JavaScript repositories now reports findings for HSC, CXS, ISD, and MAZ signals.
+- Impact: Medium-positive. Increases validated TS signal coverage from 17/24 to 21/24, covering the most critical security-relevant signals (hardcoded secrets, insecure defaults, missing authorization) in TypeScript.
+- Mitigation:
+  - 9 new ground-truth fixtures (HSC TP/TN, CXS TP/TN, ISD TP/TP/TN, MAZ TP/TN) in precision/recall suite.
+  - 196/196 precision/recall tests pass.
+  - All Python suppression heuristics (entropy, placeholders, URLs, file paths, ML tokenizers) reused in HSC TS path.
+  - CXS tree-sitter nesting model uses explicit `_TS_NESTING_TYPES` — no JSX false positives.
+  - ISD cookie detection requires context keyword on same line.
+  - MAZ auth detection covers Express middleware args, NestJS decorators, and 30+ common auth identifiers.
+  - Mypy clean, ruff clean, 4146 tests pass.
+- Residual risk: Low-Medium. Main gaps: (1) HSC template literals not covered by regex, (2) ISD dynamic CORS configs not detectable, (3) MAZ custom NestJS guard names may be missed. All documented as accepted risks in FMEA.
+
 ## 2026-04-11 - Issue #212: HSC FP-Reduktion (Env-Name-/Marker-Konstanten)
 
 - Risk ID: RISK-SIGNAL-2026-04-11-212
