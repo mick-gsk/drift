@@ -166,3 +166,24 @@ class TestIntegrationAnalyzeRepo:
 
         # Just verify it completes successfully with cache
         assert analysis.total_files > 0
+
+    def test_empty_repo_only_init_py(self, tmp_path: Path) -> None:
+        """drift analyze on empty repo (only __init__.py) does not crash."""
+        # Create minimal git repo with only empty __init__.py
+        _git(tmp_path, "init")
+        _git(tmp_path, "config", "user.email", "test@example.com")
+        _git(tmp_path, "config", "user.name", "Test User")
+
+        # Create empty __init__.py
+        (tmp_path / "__init__.py").write_text("")
+
+        _git(tmp_path, "add", ".")
+        _git(tmp_path, "commit", "-m", "Initial commit")
+
+        # Run analysis - should not raise any exception
+        analysis = analyze_repo(tmp_path, since_days=365)
+
+        # Verify expected behavior for empty repo
+        assert analysis.drift_score == 0.0
+        assert analysis.findings == []
+        assert analysis.repo_path == tmp_path.resolve()
