@@ -43,6 +43,7 @@
 ### Fixed
 
 - MAZ Issue #250: reduce false positives for outbound TypeScript API client helpers in unknown-framework contexts by requiring inbound handler-like parameters (`req/request/res/response/reply/ctx/context/next`) in addition to route-like path evidence.
+- TSB/BAT Issue #251: classify `src`-co-located TS/JS test helper filenames (`test-helpers.*`, `test-*.ts/js/tsx/jsx`) as test context and dampen SDK-idiomatic EventEmitter non-null assertions (`on!/off!/once!`) for known Playwright/Discord import contexts, reducing false-positive severity in plugin/SDK-heavy repositories.
 - GCD Issue #247: reduce false positives for TypeScript declarative wrappers by treating one-statement delegation call-through functions and strongly typed non-imperative functions as guarded; add targeted regressions for delegation and typed patterns.
 - EDS Issue #248: treat typed TypeScript/TSX signatures as explainability evidence (including inferred return scenarios) so missing JSDoc/explicit return annotations are no longer over-penalized; add targeted TS and JS guard regressions.
 - COD Issue #249: reduce false positives for plugin registration and typed utility module patterns by adding bounded dampening for dominant action-prefix families (`register*`, `format*`, `create*`), filename-domain cohesion, and plugin workspace context under `extensions/*/src`.

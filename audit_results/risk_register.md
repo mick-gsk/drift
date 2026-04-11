@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #251: TSB/BAT precision hardening for src test-helper naming and SDK event-emitter non-null assertions
+
+- Risk ID: RISK-SIGNAL-2026-04-12-251
+- Component: `src/drift/ingestion/test_detection.py`, `src/drift/signals/type_safety_bypass.py`, `tests/test_test_detection.py`, `tests/test_type_safety_bypass.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Type Safety Bypass now classifies `src`-co-located test helper filenames (`test-helpers.*`, `test-*.ts/js/tsx/jsx`) as test context and applies reduced weighting to SDK-idiomatic EventEmitter non-null assertions (`on!/off!/once!`) for known Playwright/Discord import contexts.
+- Trigger: `drift analyze` on TypeScript monorepos with co-located test helpers under `src/` and SDK interaction files that use EventEmitter non-null assertion patterns.
+- Impact: High-positive. Reduces dominant TSB/BAT false positives and improves finding credibility/actionability in SDK-heavy extension repos.
+- Mitigation:
+  - Extended centralized test-path detection with filename-based TS/JS test helper patterns.
+  - Added SDK-aware `non_null_assertion_sdk` classification and weighted scoring path in TSB.
+  - Added targeted regressions for both path-classification and score dampening behavior.
+- Verification:
+  - `python -m pytest tests/test_test_detection.py tests/test_type_safety_bypass.py -q --tb=short`
+  - `python -m ruff check src/drift/ingestion/test_detection.py src/drift/signals/type_safety_bypass.py tests/test_test_detection.py tests/test_type_safety_bypass.py`
+- Residual risk: Low-Medium. Some real unsafe `!` usage in SDK-adjacent code may be down-ranked; dampening is constrained to known SDK imports and explicit EventEmitter method patterns.
+
 ## 2026-04-12 - Issue #249: COD dampening for plugin registration and typed utility modules
 
 - Risk ID: RISK-SIGNAL-2026-04-12-249

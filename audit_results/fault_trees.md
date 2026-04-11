@@ -25,6 +25,31 @@ COD reports intentional plugin/utility module patterns as semantic cohesion defi
 - **IE-3 (Guard)**: New dampening can under-prioritize true cohesion deficits that match prefix/filename patterns accidentally.
   - Mitigation: Apply bounded thresholds (`>=0.6` action-prefix, `>=0.5` filename cohesion) and keep COD TP/TN and ground-truth regressions active.
 
+## 2026-04-12 - Issue #251: TSB/BAT false positives in src test-helper naming and SDK event-emitter non-null assertions
+
+### Top Event (TE-TSB-251)
+TSB/BAT reports test-helper files or SDK-idiomatic EventEmitter `!` patterns as production type-safety bypass debt.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: test-helper/SDK interop pattern reported as production bypass risk
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Test helper files under `src/` with names like `test-helpers.ts` or `test-http-response.ts` were not classified as test context.
+  - Mitigation: Extend centralized `is_test_file` patterns for filename-based `test-helpers.*` and `test-*.{ts,js,tsx,jsx}` cases.
+- **IE-2 (MCS)**: SDK event-emitter non-null assertions (`on!/off!/once!`) were scored like direct type bypasses.
+  - Mitigation: Mark these patterns as `non_null_assertion_sdk` and apply reduced score weight while preserving finding traceability.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Reduced weighting can under-prioritize genuine unsafe `!` usage in SDK-like files.
+  - Mitigation: Scope dampening to known SDK imports (Playwright/Discord) and explicit EventEmitter member patterns; `as any`, double-cast, and ts-directive paths remain fully weighted.
+
 ## 2026-04-12 - Issue #250: MAZ outbound API-client false positives (TS unknown framework)
 
 ### Top Event (TE-MAZ-250)

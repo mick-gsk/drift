@@ -226,3 +226,98 @@ class TestTypeSafetyBypassSignal:
         assert len(findings) == 1
         assert findings[0].severity == Severity.LOW
         assert findings[0].metadata.get("finding_context") == "test"
+
+    @pytest.mark.parametrize(
+        "relative_path",
+        [
+            "extensions/whatsapp/src/test-helpers.ts",
+            "src/gateway/test-http-response.ts",
+        ],
+    )
+    def test_src_test_helpers_and_test_prefixed_paths_are_skipped(
+        self, tmp_path: Path, relative_path: str
+    ) -> None:
+        from drift.config import DriftConfig
+        from drift.models import ParseResult
+        from drift.signals.type_safety_bypass import TypeSafetyBypassSignal
+
+        file_path = tmp_path / Path(relative_path)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(
+            "const payload = JSON.parse(raw) as any;\n"
+            "export const value = payload!;",
+            encoding="utf-8",
+        )
+
+        pr = ParseResult(
+            file_path=file_path,
+            language="typescript",
+            functions=[],
+            classes=[],
+            imports=[],
+            patterns=[],
+            line_count=2,
+        )
+
+        findings = TypeSafetyBypassSignal().analyze([pr], {}, DriftConfig())
+        assert findings == []
+
+    def test_sdk_event_emitter_non_null_assertions_are_dampened(self, tmp_path: Path) -> None:
+        from drift.config import DriftConfig
+        from drift.models import ParseResult
+        from drift.signals.type_safety_bypass import TypeSafetyBypassSignal
+
+        sdk_path = tmp_path / "src" / "browser" / "pw-tools-core.interactions.ts"
+        sdk_path.parent.mkdir(parents=True, exist_ok=True)
+        sdk_path.write_text(
+            "import { Page } from '@playwright/test';\n"
+            "export function wire(page: Page): void {\n"
+            "  page.on!(\"dialog\", () => {});\n"
+            "  page.off!(\"dialog\", () => {});\n"
+            "  page.once!(\"dialog\", () => {});\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        plain_path = tmp_path / "src" / "core" / "interactions.ts"
+        plain_path.parent.mkdir(parents=True, exist_ok=True)
+        plain_path.write_text(
+            "export function wire(page: any): void {\n"
+            "  page.on!(\"dialog\", () => {});\n"
+            "  page.off!(\"dialog\", () => {});\n"
+            "  page.once!(\"dialog\", () => {});\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        parse_results = [
+            ParseResult(
+                file_path=sdk_path,
+                language="typescript",
+                functions=[],
+                classes=[],
+                imports=[],
+                patterns=[],
+                line_count=5,
+            ),
+            ParseResult(
+                file_path=plain_path,
+                language="typescript",
+                functions=[],
+                classes=[],
+                imports=[],
+                patterns=[],
+                line_count=5,
+            ),
+        ]
+
+        findings = TypeSafetyBypassSignal().analyze(parse_results, {}, DriftConfig())
+        assert len(findings) == 2
+
+        by_name = {finding.file_path.name: finding for finding in findings}
+        sdk_finding = by_name["pw-tools-core.interactions.ts"]
+        plain_finding = by_name["interactions.ts"]
+
+        assert sdk_finding.score < plain_finding.score
+        assert sdk_finding.metadata["kind_distribution"].get("non_null_assertion_sdk", 0) == 3
+        assert plain_finding.metadata["kind_distribution"].get("non_null_assertion", 0) == 3

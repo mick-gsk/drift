@@ -29,6 +29,13 @@ from drift.signals._utils import _TS_LANGUAGES, ts_node_text, ts_parse_source, t
 from drift.signals.base import BaseSignal, register_signal
 
 _TS_DIRECTIVE_RE = re.compile(r"@ts-(ignore|expect-error)")
+_SDK_IMPORT_RE = re.compile(
+    r"from\s+[\"'](?:@?playwright(?:/test)?|discord\.js|@discordjs/[^\"']+)[\"']"
+)
+_EVENT_EMITTER_NON_NULL_RE = re.compile(
+    r"\.(?:on|off|once|addlistener|removelistener)!\s*$",
+    re.IGNORECASE,
+)
 
 _DEFAULT_THRESHOLD = 5
 
@@ -44,6 +51,7 @@ def _count_bypasses(source: str, language: str) -> list[dict[str, str | int]]:
 
     root, source_bytes = tree
     bypasses: list[dict[str, str | int]] = []
+    has_sdk_import = bool(_SDK_IMPORT_RE.search(source))
 
     for node in ts_walk(root):
         # as any
@@ -78,11 +86,23 @@ def _count_bypasses(source: str, language: str) -> list[dict[str, str | int]]:
 
         # Non-null assertion (postfix !)
         elif node.type == "non_null_expression":
+            node_text = ts_node_text(node, source_bytes).strip()
+            is_sdk_event_emitter = bool(
+                has_sdk_import and _EVENT_EMITTER_NON_NULL_RE.search(node_text)
+            )
             bypasses.append(
                 {
-                    "kind": "non_null_assertion",
+                    "kind": (
+                        "non_null_assertion_sdk"
+                        if is_sdk_event_emitter
+                        else "non_null_assertion"
+                    ),
                     "line": node.start_point[0] + 1,
-                    "detail": "non-null assertion (!)",
+                    "detail": (
+                        "non-null assertion (!), SDK event-emitter pattern"
+                        if is_sdk_event_emitter
+                        else "non-null assertion (!)"
+                    ),
                 }
             )
 
@@ -101,6 +121,25 @@ def _count_bypasses(source: str, language: str) -> list[dict[str, str | int]]:
                 )
 
     return bypasses
+
+
+def _effective_bypass_count(bypasses: list[dict[str, str | int]]) -> float:
+    """Return weighted bypass count for severity scoring.
+
+    Some SDK-specific event-emitter patterns use non-null assertions as an
+    idiomatic TypeScript interop pattern. These remain visible, but contribute
+    less to severity than direct bypasses such as ``as any`` or directives.
+    """
+
+    weight_by_kind: dict[str, float] = {
+        "non_null_assertion_sdk": 0.2,
+    }
+
+    effective = 0.0
+    for bypass in bypasses:
+        kind = str(bypass.get("kind", ""))
+        effective += weight_by_kind.get(kind, 1.0)
+    return effective
 
 
 @register_signal
@@ -143,7 +182,8 @@ class TypeSafetyBypassSignal(BaseSignal):
                 continue
 
             bypass_count = len(bypasses)
-            score = round(min(1.0, bypass_count / max(1, threshold)), 3)
+            effective_count = _effective_bypass_count(bypasses)
+            score = round(min(1.0, effective_count / max(1, threshold)), 3)
             if path_context == "test" and handling == "reduce_severity":
                 score = round(score * 0.4, 3)
 
@@ -185,6 +225,7 @@ class TypeSafetyBypassSignal(BaseSignal):
                     ),
                     metadata={
                         "bypass_count": bypass_count,
+                        "effective_bypass_count": round(effective_count, 3),
                         "bypasses": bypasses[:20],
                         "kind_distribution": kinds,
                         "finding_context": path_context,
