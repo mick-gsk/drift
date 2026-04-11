@@ -50,6 +50,14 @@ _FRAMEWORK_SURFACE_TOKENS: frozenset[str] = frozenset(
     },
 )
 
+_PLUGIN_ROOT_TOKENS: frozenset[str] = frozenset(
+    {
+        "extensions",
+        "plugins",
+        "packages",
+    },
+)
+
 
 def _normalize_fingerprint(fingerprint: dict[str, Any]) -> dict[str, Any]:
     """Normalize fingerprint to reduce false positives from async/sync equivalence.
@@ -134,6 +142,19 @@ def _framework_surface_hints(
     return hints
 
 
+def _plugin_scope(module_path: Path) -> tuple[str, str] | None:
+    """Return plugin root/name when module path is inside plugin-style layout."""
+    parts = [part.lower() for part in module_path.parts]
+    for idx, part in enumerate(parts[:-1]):
+        if part not in _PLUGIN_ROOT_TOKENS:
+            continue
+        plugin_name = parts[idx + 1]
+        if plugin_name in {"src", "lib", "app", "test", "tests"}:
+            continue
+        return (part, plugin_name)
+    return None
+
+
 def _extract_canonical_snippet(file_path: str, start_line: int, max_lines: int = 8) -> str:
     """Read source lines around start_line for canonical pattern display (ADR-049)."""
     try:
@@ -182,6 +203,13 @@ class PatternFragmentationSignal(BaseSignal):
         for category, patterns in all_patterns.items():
             # Analyze per-module fragmentation
             module_groups = _group_by_module(patterns)
+            plugin_roots: dict[str, set[str]] = defaultdict(set)
+            for module_path in module_groups:
+                plugin_scope = _plugin_scope(module_path)
+                if plugin_scope is None:
+                    continue
+                plugin_root, plugin_name = plugin_scope
+                plugin_roots[plugin_root].add(plugin_name)
 
             for module_path, module_patterns in module_groups.items():
                 if len(module_patterns) < 2:
@@ -221,6 +249,20 @@ class PatternFragmentationSignal(BaseSignal):
                         # error behavior and should not default to HIGH urgency.
                         frag_score *= 0.65
 
+                plugin_hints: list[str] = []
+                plugin_scope = _plugin_scope(module_path)
+                if plugin_scope is not None:
+                    plugin_root, _ = plugin_scope
+                    plugin_count = len(plugin_roots.get(plugin_root, set()))
+                    if plugin_count >= 3:
+                        plugin_hints = [
+                            "plugin-layout-detected",
+                            f"multi-plugin-surface:{plugin_root}:{plugin_count}",
+                        ]
+                        # Distinct plugin boundaries often represent intentional
+                        # extension-level API differences rather than drift.
+                        frag_score *= 0.45
+
                 # Build description
                 desc_parts = [
                     f"{num_variants} {category.value} variants in {module_path.as_posix()}/ "
@@ -246,6 +288,8 @@ class PatternFragmentationSignal(BaseSignal):
 
                 if framework_hints and severity is Severity.HIGH:
                     severity = Severity.MEDIUM
+                if plugin_hints and severity in {Severity.HIGH, Severity.MEDIUM}:
+                    severity = Severity.LOW
 
                 # Canonical-ratio downgrade: weak patterns (very few canonical instances)
                 # should not fire with the same urgency as dominant ones (ADR-049).
@@ -312,6 +356,8 @@ class PatternFragmentationSignal(BaseSignal):
                             "total_instances": total,
                             "framework_context_dampened": bool(framework_hints),
                             "framework_context_hints": framework_hints,
+                            "plugin_context_dampened": bool(plugin_hints),
+                            "plugin_context_hints": plugin_hints,
                             "deliberate_pattern_risk": (
                                 "May reflect architecture transition or deliberate variation. "
                                 "Review whether variants serve distinct purposes."

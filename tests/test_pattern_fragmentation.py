@@ -193,6 +193,46 @@ def test_identical_decorator_patterns_no_finding():
     assert findings == [], "Identical decorator patterns must not produce any PFS finding"
 
 
+def test_plugin_architecture_api_fragmentation_is_dampened_to_low():
+    # Plugin/extension layouts intentionally vary across plugin boundaries.
+    # High-severity PFS should be dampened for extension-specific API surfaces.
+    target_fingerprints = [
+        {"route": "send-message"},
+        {"route": "send-media"},
+        {"route": "edit-message"},
+        {"route": "delete-message"},
+        {"route": "pin-message"},
+    ]
+    patterns = [
+        _make_pattern(PatternCategory.API_ENDPOINT, "extensions/bluebubbles/src", f"f{i}", fp)
+        for i, fp in enumerate(target_fingerprints)
+    ]
+    patterns.extend(
+        [
+            _make_pattern(
+                PatternCategory.API_ENDPOINT,
+                "extensions/discord/src",
+                "discord_route",
+                {"route": "send-message"},
+            ),
+            _make_pattern(
+                PatternCategory.API_ENDPOINT,
+                "extensions/whatsapp/src",
+                "whatsapp_route",
+                {"route": "send-message"},
+            ),
+        ]
+    )
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.file_path.as_posix() == "extensions/bluebubbles/src"
+    assert finding.severity == Severity.LOW
+    assert finding.metadata["plugin_context_dampened"] is True
+    assert finding.metadata["plugin_context_hints"]
+
+
 def test_score_aggregation():
     findings = [
         Finding(
