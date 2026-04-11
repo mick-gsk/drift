@@ -1,5 +1,23 @@
 # Risk Register
 
+## 2026-04-12 - Issue #244: MDS caps cross-plugin workspace duplicates to INFO
+
+- Risk ID: RISK-SIGNAL-2026-04-12-244
+- Component: `src/drift/signals/mutant_duplicates.py`, `tests/test_mutant_duplicates_edge_cases.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Mutant Duplicate Signal (MDS) now detects duplicate groups/pairs that span different plugin workspaces (`extensions/*` or `plugins/*`) and caps those findings to `INFO` with reduced score, because this pattern is often deliberate isolation.
+- Trigger: `drift analyze` on plugin monorepos with intentionally copied helpers/boilerplate across independent workspace packages.
+- Impact: High-positive. Reduces dominant MDS false-positive severity inflation and improves trust/actionability for plugin architectures.
+- Mitigation:
+  - Added workspace-scope helpers in MDS (`_workspace_plugin_scope`, cross-workspace pair/group detection).
+  - Exact duplicate groups across different plugin scopes are emitted as `INFO` with low score and explicit metadata marker.
+  - Near-duplicate cross-workspace pairs are severity/score-capped and get intent-preserving fix guidance.
+  - Added targeted regressions for cross-workspace and same-workspace behavior.
+- Verification:
+  - `python -m pytest tests/test_mutant_duplicates_edge_cases.py -q --tb=short`
+  - `python -m ruff check src/drift/signals/mutant_duplicates.py tests/test_mutant_duplicates_edge_cases.py`
+- Residual risk: Low-Medium. Some true cross-plugin duplication worth refactoring may now be lower priority; bounded by strict cross-workspace scope requirement and preserved same-workspace high-severity behavior.
+
 ## 2026-04-12 - Issue #243: CCC suppresses parallel implementation FPs and honors explicit TS type imports
 
 - Risk ID: RISK-SIGNAL-2026-04-12-243

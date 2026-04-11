@@ -23,7 +23,7 @@ MDS reports deliberate cross-plugin workspace duplicates as severe architectural
 ### FT-2: false-negative guard
 
 - **IE-3 (Guard)**: Broad suppression may hide real harmful duplication that should still be acted on.
-  - Mitigation: Heuristic is strictly bounded to *different* plugin scopes; same-workspace duplicates remain actionable and covered by regression tests.
+  - Mitigation: Heuristic is strictly bounded to *different* plugin scopes; same-workspace duplicates remain actionable and covered by regression tests (`test_analyze_keeps_same_workspace_exact_duplicates_actionable_issue_244`).
 
 ## 2026-04-12 - Issue #243: CCC false positives for parallel implementations and explicit type imports
 

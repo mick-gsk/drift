@@ -22,10 +22,12 @@ from drift.models import FunctionInfo, ParseResult
 from drift.signals.mutant_duplicates import (
     MutantDuplicateSignal,
     _get_precomputed_ngrams,
+    _is_cross_workspace_plugin_pair,
     _is_package_lazy_getattr,
     _is_tutorial_step_standalone_sample,
     _jaccard,
     _structural_similarity,
+    _workspace_plugin_scope,
 )
 
 # ── _jaccard ──────────────────────────────────────────────────────────────
@@ -453,3 +455,102 @@ def test_analyze_skips_numbered_sample_step_exact_duplicates_issue_179():
 
     findings = signal.analyze([pr_step_1, pr_step_2], {}, config)
     assert findings == []
+
+
+def test_workspace_plugin_scope_detection():
+    assert _workspace_plugin_scope(Path("extensions/sglang/src/utils.ts")) == "extensions/sglang"
+    assert _workspace_plugin_scope(Path("plugins/foo/main.py")) == "plugins/foo"
+    assert _workspace_plugin_scope(Path("src/core/utils.py")) is None
+
+
+def test_cross_workspace_plugin_pair_detection():
+    assert _is_cross_workspace_plugin_pair(
+        Path("extensions/sglang/src/utils.ts"),
+        Path("extensions/vllm/src/utils.ts"),
+    ) is True
+    assert _is_cross_workspace_plugin_pair(
+        Path("extensions/sglang/src/utils.ts"),
+        Path("extensions/sglang/src/normalize.ts"),
+    ) is False
+    assert _is_cross_workspace_plugin_pair(
+        Path("extensions/sglang/src/utils.ts"),
+        Path("src/shared/utils.ts"),
+    ) is False
+
+
+def test_analyze_caps_cross_plugin_exact_duplicates_to_info_issue_244():
+    signal = MutantDuplicateSignal()
+    config = DriftConfig()
+    ngrams = [["Name", "Load"], ["Call", "Return"], ["If", "Return"]]
+
+    pr_a = ParseResult(
+        file_path=Path("extensions/sglang/src/utils.ts"),
+        language="typescript",
+        functions=[
+            _make_fn(
+                name="asRecord",
+                file_path="extensions/sglang/src/utils.ts",
+                body_hash="utils_hash",
+                ngrams=ngrams,
+            )
+        ],
+    )
+    pr_b = ParseResult(
+        file_path=Path("extensions/vllm/src/utils.ts"),
+        language="typescript",
+        functions=[
+            _make_fn(
+                name="asRecord",
+                file_path="extensions/vllm/src/utils.ts",
+                body_hash="utils_hash",
+                ngrams=ngrams,
+            )
+        ],
+    )
+
+    findings = signal.analyze([pr_a, pr_b], {}, config)
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.severity.value == "info"
+    assert finding.score <= 0.2
+    assert finding.metadata.get("workspace_isolation_heuristic_applied") is True
+    assert finding.metadata.get("workspace_scopes") == ["extensions/sglang", "extensions/vllm"]
+
+
+def test_analyze_keeps_same_workspace_exact_duplicates_actionable_issue_244():
+    signal = MutantDuplicateSignal()
+    config = DriftConfig()
+    ngrams = [["Name", "Load"], ["Call", "Return"], ["If", "Return"]]
+
+    pr_a = ParseResult(
+        file_path=Path("extensions/sglang/src/utils_a.ts"),
+        language="typescript",
+        functions=[
+            _make_fn(
+                name="asRecord",
+                file_path="extensions/sglang/src/utils_a.ts",
+                body_hash="utils_same_workspace",
+                ngrams=ngrams,
+            )
+        ],
+    )
+    pr_b = ParseResult(
+        file_path=Path("extensions/sglang/src/utils_b.ts"),
+        language="typescript",
+        functions=[
+            _make_fn(
+                name="asRecord",
+                file_path="extensions/sglang/src/utils_b.ts",
+                body_hash="utils_same_workspace",
+                ngrams=ngrams,
+            )
+        ],
+    )
+
+    findings = signal.analyze([pr_a, pr_b], {}, config)
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.severity.value == "high"
+    assert finding.metadata.get("workspace_isolation_heuristic_applied") is False

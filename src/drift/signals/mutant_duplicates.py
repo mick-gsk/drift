@@ -82,6 +82,37 @@ _NUMBERED_SAMPLE_DIR_RE = re.compile(
 )
 
 
+def _workspace_plugin_scope(file_path: Path) -> str | None:
+    """Return monorepo workspace scope for extension/plugin files.
+
+    Examples:
+    - extensions/alpha/src/x.ts -> extensions/alpha
+    - plugins/foo/main.py -> plugins/foo
+    """
+    parts = [p for p in file_path.as_posix().lstrip("./").split("/") if p]
+    if len(parts) >= 2 and parts[0] in {"extensions", "plugins"}:
+        return f"{parts[0]}/{parts[1]}"
+    return None
+
+
+def _is_cross_workspace_plugin_pair(file_a: Path, file_b: Path) -> bool:
+    """Return True when both files are in different plugin workspaces."""
+    scope_a = _workspace_plugin_scope(file_a)
+    if scope_a is None:
+        return False
+    scope_b = _workspace_plugin_scope(file_b)
+    return scope_b is not None and scope_a != scope_b
+
+
+def _is_cross_workspace_plugin_group(group: list[FunctionInfo]) -> tuple[bool, list[str]]:
+    """Return whether all duplicates are split across isolated plugin workspaces."""
+    scopes = [_workspace_plugin_scope(fn.file_path) for fn in group]
+    if any(scope is None for scope in scopes):
+        return False, []
+    unique_scopes = sorted({scope for scope in scopes if scope is not None})
+    return len(unique_scopes) >= 2, unique_scopes
+
+
 def _is_package_lazy_getattr(fn: FunctionInfo) -> bool:
     """Return True for the common package lazy-loading __getattr__ idiom.
 
@@ -362,17 +393,34 @@ class MutantDuplicateSignal(BaseSignal):
                 )
 
                 locations_desc = ", ".join(f"{fn.file_path}:{fn.start_line}" for fn in group)
+                is_cross_workspace_group, workspace_scopes = _is_cross_workspace_plugin_group(group)
+
+                severity = Severity.HIGH
+                score = 0.9
+                description = (
+                    f"{len(group)} identical copies ({anchor.loc} lines each) "
+                    f"at: {locations_desc}. Consider consolidating."
+                )
+                if is_cross_workspace_group:
+                    severity = Severity.INFO
+                    score = 0.15
+                    description = (
+                        f"{len(group)} identical copies across isolated plugin workspaces "
+                        f"({', '.join(workspace_scopes)}). This is often intentional "
+                        f"for deploy-time isolation."
+                    )
+                    fix_exact = (
+                        "Likely intentional workspace isolation. Keep duplicated helper code "
+                        "unless shared runtime coupling is explicitly desired."
+                    )
 
                 findings.append(
                     Finding(
                         signal_type=self.signal_type,
-                        severity=Severity.HIGH,
-                        score=0.9,
+                        severity=severity,
+                        score=score,
                         title=f"Exact duplicates ({len(group)}×): {names_str}",
-                        description=(
-                            f"{len(group)} identical copies ({anchor.loc} lines each) "
-                            f"at: {locations_desc}. Consider consolidating."
-                        ),
+                        description=description,
                         file_path=anchor.file_path,
                         start_line=anchor.start_line,
                         related_files=[fn.file_path for fn in others],
@@ -393,6 +441,8 @@ class MutantDuplicateSignal(BaseSignal):
                                 "May reflect deliberate polymorphism "
                                 "(Strategy, Adapter, Plugin). Verify intent before consolidating."
                             ),
+                            "workspace_isolation_heuristic_applied": is_cross_workspace_group,
+                            "workspace_scopes": workspace_scopes,
                         },
                     )
                 )
@@ -493,6 +543,13 @@ class MutantDuplicateSignal(BaseSignal):
 
                     severity = Severity.MEDIUM if sim < 0.9 else Severity.HIGH
                     score = sim * 0.85
+                    is_cross_workspace_pair = _is_cross_workspace_plugin_pair(
+                        a.file_path,
+                        b.file_path,
+                    )
+                    if is_cross_workspace_pair:
+                        severity = Severity.INFO
+                        score = min(score, 0.2)
 
                     metadata: dict[str, Any] = {
                         "similarity": round(sim, 3),
@@ -504,6 +561,9 @@ class MutantDuplicateSignal(BaseSignal):
                             "May reflect deliberate polymorphism "
                             "(Strategy, Adapter, Plugin). Verify intent before consolidating."
                         ),
+                        "workspace_isolation_heuristic_applied": is_cross_workspace_pair,
+                        "workspace_scope_a": _workspace_plugin_scope(a.file_path),
+                        "workspace_scope_b": _workspace_plugin_scope(b.file_path),
                     }
                     if use_hybrid:
                         metadata["ast_similarity"] = round(ast_sim, 3)
@@ -523,6 +583,11 @@ class MutantDuplicateSignal(BaseSignal):
                         f"Extract {a.name}() into {near_parent.as_posix()}/shared.py. "
                         f"Similarity: {sim:.0%}. Effort: {effort}."
                     )
+                    if is_cross_workspace_pair:
+                        fix_near = (
+                            "Likely intentional plugin/workspace isolation. Keep duplicate pattern "
+                            "unless shared runtime coupling is explicitly desired."
+                        )
 
                     findings.append(
                         Finding(

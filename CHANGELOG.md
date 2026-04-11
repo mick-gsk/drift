@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- MDS Issue #244: cap deliberate cross-plugin workspace duplicates (`extensions/*`/`plugins/*` across different package scopes) to INFO with low score and explicit workspace-isolation metadata, reducing false positives in isolated plugin monorepos.
 - AVS Issue #241: resolve TypeScript ESM relative imports with explicit runtime extensions (`.js`, `.jsx`, `.mjs`, `.cjs`) to internal source files (`.ts`, `.tsx`, `.mts`, `.cts`) in `build_import_graph`, preventing false hidden-coupling findings when static import edges exist.
 - DCA Issue #237: reduce false positives for runtime-loaded plugin/extension config modules (`extensions/*` / `plugins/*`, `config*`) by dampening score and capping severity to MEDIUM, with explicit metadata marker for heuristic application.
 - DCA Issue #242: extend plugin-runtime dampening to plugin entrypoint modules (`components`/`plugin-sdk` under `extensions/*` and `plugins/*`) and add metadata marker `runtime_plugin_entrypoint_heuristic_applied` to reduce false positives in registry/dynamic-rendered plugin architectures.
