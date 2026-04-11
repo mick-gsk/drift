@@ -1,5 +1,20 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #248: EDS FP-Reduktion fuer typisierte TypeScript/TSX-Funktionen ohne JSDoc
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| EDS | FP: typisierte TS/TSX-Funktionen ohne JSDoc als Explainability Deficit priorisiert | EDS behandelte fehlende Docstring-/Return-Type-Evidenz sprachunabhaengig wie Python und bewertete TS-Signaturen nicht als Erklaerungsbeleg | Dominante Finding-Mengen in TS-Monorepos, reduzierte Glaubwuerdigkeit und Triage-Last | Neue Regressionen in `tests/test_coverage_boost_15_signals_misc.py` (`test_exd_typescript_typed_signature_not_flagged_without_jsdoc`, `test_exd_typescript_inferred_return_not_penalized`) | TS/TSX-Heuristik: signaturbasierte Erklaerungs-Evidenz (`self_documenting_signature`), inferierte Return-Typen akzeptieren, score-daempfung und sprachspezifische Description/Fix-Hinweise | 7 | 8 | 2 | 112 | Mitigated |
+| EDS | FN-Risiko: reale Explainability-Defizite in TS/TSX werden zu stark abgeschwaecht | Neue TS-Signatur-Heuristik kann schlecht benannte, aber typisierte Helfer niedriger priorisieren | Potenziell spaetere Priorisierung einzelner echter EDS-Befunde in TS-Modulen | Guard-Regression `test_exd_javascript_still_requires_explainability_evidence` sichert, dass nur TS/TSX betroffen ist | Heuristik ist eng auf TS/TSX mit vorhandenen Parametern begrenzt; JS/Python-Logik bleibt unveraendert | 4 | 3 | 4 | 48 | Mitigated |
+
+## 2026-04-12 - Issue #247: GCD FP bei deklarativen Plugin-Methoden und stark typisierten TS-Wrappern
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| GCD | FP: deklarative TS-Delegationsfunktionen ohne inhaltliche Guard-Logik als Defizit gemeldet | Bisherige TS-Heuristik erkannte nur explizite `if-throw/return` Guards und behandelte Call-through-Wrapper pauschal als unguarded | Ueberpriorisierte GCD-Findings in Plugin-Registrierungs-/Adaptercode, reduzierte Signal-Glaubwuerdigkeit | Neue Regressionen in `tests/test_ts_signals_phase2.py` (`test_ts_single_delegation_wrappers_are_treated_as_guarded`) | Wrapper-Heuristik: einzeilige TS-Call-through-Funktionen, die Parameter weiterreichen, gelten als guarded | 7 | 8 | 2 | 112 | Mitigated |
+| GCD | FP: stark typisierte TS-Funktionen ohne imperativen Kontrollfluss als fehlende Guards gemeldet | TypeScript-Vertragsinformation (nicht-`any` Parameter) wurde nicht als Eingabevalidierungs-Signal gewertet | Noise in statisch sicherem Adapter-/Transformationscode, unnoetige Triage | Neue Regression `test_ts_strongly_typed_non_imperative_functions_are_treated_as_guarded` | Zusatzheuristik: voll typisierte TS-Parameter ohne weak types (`any`, `unknown`, `object`, `null`, `undefined`) und ohne imperativen Kontrollfluss werden als guarded bewertet | 6 | 6 | 3 | 108 | Mitigated |
+| GCD | FN-Risiko: reale Guard-Defizite in einfach wirkenden Wrappern werden abgeschwaecht | Neue Wrapper-/Typed-Suppression kann in Randfaellen semantisch schwache Validierungsmuster zu niedrig priorisieren | Potenziell spaetere Priorisierung einzelner echter Defekte | Bestehende Negativregression fuer unguarded TS-Funktionen bleibt aktiv (`test_ts_unguarded_functions_triggers`) | Heuristiken sind eng auf Call-through-Pattern und non-imperative, stark typisierte TS-Funktionen begrenzt | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-12 - Issue #246: SMS FP bei neuen Extension-Abhaengigkeiten
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

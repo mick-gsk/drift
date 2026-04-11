@@ -1,5 +1,55 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #248: EDS false positives on typed TypeScript/TSX functions without JSDoc
+
+### Top Event (TE-EDS-248)
+EDS reports typed TS/TSX functions as unexplained complexity because Python-like doc requirements are applied.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: typed TS/TSX function flagged as unexplained
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Missing JSDoc in TS/TSX was penalized even when the function signature already provides API intent.
+  - Mitigation: Treat TS/TSX signatures with parameters as self-documenting evidence.
+- **IE-2 (MCS)**: Missing explicit return annotation was penalized although TS often relies on inferred returns.
+  - Mitigation: Add inferred-return evidence for self-documenting TS/TSX signatures and dampen score.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Broad suppression could hide true explainability gaps in JavaScript or non-typed code.
+  - Mitigation: Scope is bounded to TS/TSX signature heuristic; JS behavior remains explicitly regression-protected.
+
+## 2026-04-12 - Issue #247: GCD false positives on declarative TS wrappers and strongly typed non-imperative functions
+
+### Top Event (TE-GCD-247)
+GCD reports declarative TypeScript wrappers and strongly typed non-imperative functions as guard-clause deficits.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: declarative/typed TS wrappers reported as missing guards
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: TS guard detection only accepted explicit early `if-throw/return` patterns, missing one-statement delegation wrappers.
+  - Mitigation: Treat parameter-forwarding single-statement call-through wrappers as guarded.
+- **IE-2 (MCS)**: Typed TS contracts in non-imperative functions were ignored, so statically constrained parameter contracts still counted as unguarded.
+  - Mitigation: Treat strongly typed non-imperative TS functions as guarded when weak types are absent.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: New suppression could under-report true guard deficits in superficially simple wrappers.
+  - Mitigation: Scope is bounded to call-through wrappers and non-imperative bodies; existing unguarded TS regression remains active.
+
 ## 2026-04-12 - Issue #246: SMS false positives in new extension/plugin workspaces
 
 ### Top Event (TE-SMS-246)

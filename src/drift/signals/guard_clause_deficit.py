@@ -16,6 +16,7 @@ vulnerable to a single incorrect assumption propagating everywhere.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -199,6 +200,68 @@ def _ts_find_body_stmts(root: Any) -> list[Any]:
     return []
 
 
+_TS_WEAK_TYPES_RE = re.compile(r"\b(any|unknown|object|null|undefined)\b")
+
+
+def _ts_params_are_strongly_typed(source: str, param_names: set[str]) -> bool:
+    """Return True when all params have explicit non-weak TS types."""
+    if not param_names:
+        return False
+
+    header = source.split("{", 1)[0]
+    for param in param_names:
+        canonical = param.strip()
+        if canonical.startswith("..."):
+            canonical = canonical[3:]
+        canonical = canonical.removesuffix("?")
+        if not canonical or canonical in {"this"}:
+            continue
+
+        match = re.search(rf"\b{re.escape(canonical)}\s*\??\s*:\s*([^,\)\n]+)", header)
+        if not match:
+            return False
+
+        type_text = match.group(1).strip().lower()
+        if _TS_WEAK_TYPES_RE.search(type_text):
+            return False
+
+    return True
+
+
+def _ts_has_control_flow(body_stmts: list[Any]) -> bool:
+    """Return True when the function body contains imperative control flow."""
+    flow_nodes = {
+        "if_statement",
+        "switch_statement",
+        "for_statement",
+        "for_in_statement",
+        "while_statement",
+        "do_statement",
+        "try_statement",
+        "catch_clause",
+    }
+    return any(node.type in flow_nodes for stmt in body_stmts for node in ts_walk(stmt))
+
+
+def _ts_is_single_delegation_wrapper(
+    body_stmts: list[Any], param_names: set[str], src: bytes,
+) -> bool:
+    """Return True for one-statement call-through wrappers."""
+    if len(body_stmts) != 1:
+        return False
+
+    stmt = body_stmts[0]
+    if stmt.type not in {"return_statement", "expression_statement"}:
+        return False
+
+    has_call = any(node.type == "call_expression" for node in ts_walk(stmt))
+    if not has_call:
+        return False
+
+    # Wrappers should forward inputs; hardcoded call-throughs are not considered guards.
+    return _ts_references_param(stmt, param_names, src)
+
+
 def _ts_function_is_guarded(
     source: str, func_info: FunctionInfo, param_names: set[str], language: str,
 ) -> bool:
@@ -215,6 +278,12 @@ def _ts_function_is_guarded(
     root, src = result
     body_stmts = _ts_find_body_stmts(root)
     if not body_stmts:
+        return True
+
+    if _ts_is_single_delegation_wrapper(body_stmts, param_names, src):
+        return True
+
+    if _ts_params_are_strongly_typed(source, param_names) and not _ts_has_control_flow(body_stmts):
         return True
 
     check_count = max(1, len(body_stmts) * 50 // 100)
@@ -335,11 +404,6 @@ class GuardClauseDeficitSignal(BaseSignal):
                                 rule_id="deep_nesting",
                             )
                         )
-
-                if is_guarded:
-                    guarded += 1
-                else:
-                    total_complexity += fn.complexity
 
             total = len(func_list)
             guarded_ratio = guarded / total

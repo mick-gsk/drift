@@ -60,6 +60,7 @@ def _ts_func(
     end_line: int = 10,
     return_type: str | None = None,
     decorators: list[str] | None = None,
+    is_exported: bool = False,
 ) -> FunctionInfo:
     return FunctionInfo(
         name=name,
@@ -75,6 +76,7 @@ def _ts_func(
         has_docstring=False,
         body_hash="abc123",
         ast_fingerprint={},
+        is_exported=is_exported,
     )
 
 
@@ -309,6 +311,116 @@ function handle{i}(data: any, config: object, mode: string): void {{
         fns = [_ts_func(f"handle_{i}", fp) for i in range(4)]
         pr = _ts_parse_result(fp, functions=fns)
         assert self._run([pr]) == []
+
+    @needs_tree_sitter
+    def test_ts_single_delegation_wrappers_are_treated_as_guarded(
+        self, tmp_path: Path,
+    ):
+        """One-line TS call-through wrappers should not trigger GCD."""
+        source = """\
+export function handleA(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    return browserAct(action, ctx);
+}
+
+export function handleB(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    return browserAct(action, ctx);
+}
+
+export function handleC(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    return browserAct(action, ctx);
+}
+
+export function handleD(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    return browserAct(action, ctx);
+}
+"""
+        _write_ts(tmp_path, "src/mod/delegation.ts", source)
+
+        fns = [
+            _ts_func(
+                "handleA", Path("src/mod/delegation.ts"),
+                start_line=1, end_line=3, complexity=8,
+                params=["action", "ctx"],
+            ),
+            _ts_func(
+                "handleB", Path("src/mod/delegation.ts"),
+                start_line=5, end_line=7, complexity=8,
+                params=["action", "ctx"],
+            ),
+            _ts_func(
+                "handleC", Path("src/mod/delegation.ts"),
+                start_line=9, end_line=11, complexity=8,
+                params=["action", "ctx"],
+            ),
+            _ts_func(
+                "handleD", Path("src/mod/delegation.ts"),
+                start_line=13, end_line=15, complexity=8,
+                params=["action", "ctx"],
+            ),
+        ]
+        for fn in fns:
+            fn.is_exported = True
+
+        pr = _ts_parse_result(Path("src/mod/delegation.ts"), functions=fns)
+        findings = self._run([pr], repo_path=tmp_path)
+        assert findings == []
+
+    @needs_tree_sitter
+    def test_ts_strongly_typed_non_imperative_functions_are_treated_as_guarded(
+        self, tmp_path: Path,
+    ):
+        """Strongly typed TS functions without imperative control flow are not GCD targets."""
+        source = """\
+export function buildA(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    const payload = serializeAction(action);
+    const envelope = addContext(payload, ctx);
+    return execute(envelope);
+}
+
+export function buildB(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    const payload = serializeAction(action);
+    const envelope = addContext(payload, ctx);
+    return execute(envelope);
+}
+
+export function buildC(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    const payload = serializeAction(action);
+    const envelope = addContext(payload, ctx);
+    return execute(envelope);
+}
+
+export function buildD(action: BrowserAction, ctx: RuntimeContext): Promise<Result> {
+    const payload = serializeAction(action);
+    const envelope = addContext(payload, ctx);
+    return execute(envelope);
+}
+"""
+        _write_ts(tmp_path, "src/mod/typed.ts", source)
+
+        fns = [
+            _ts_func("buildA", Path("src/mod/typed.ts"), start_line=1, end_line=5, complexity=9),
+            _ts_func(
+                "buildB", Path("src/mod/typed.ts"),
+                start_line=7, end_line=11, complexity=9,
+                params=["action", "ctx"],
+            ),
+            _ts_func(
+                "buildC", Path("src/mod/typed.ts"),
+                start_line=13, end_line=17, complexity=9,
+                params=["action", "ctx"],
+            ),
+            _ts_func(
+                "buildD", Path("src/mod/typed.ts"),
+                start_line=19, end_line=23, complexity=9,
+                params=["action", "ctx"],
+            ),
+        ]
+        for fn in fns:
+            fn.is_exported = True
+
+        pr = _ts_parse_result(Path("src/mod/typed.ts"), functions=fns)
+        findings = self._run([pr], repo_path=tmp_path)
+        assert findings == []
 
 
 # ===================================================================

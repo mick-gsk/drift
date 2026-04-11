@@ -1,5 +1,23 @@
 # Risk Register
 
+## 2026-04-12 - Issue #247: GCD TypeScript precision hardening for declarative wrappers
+
+- Risk ID: RISK-SIGNAL-2026-04-12-247
+- Component: `src/drift/signals/guard_clause_deficit.py`, `tests/test_ts_signals_phase2.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Guard Clause Deficit (GCD) erkennt jetzt TypeScript-Call-through-Wrapper und stark typisierte non-imperative Funktionen als guarded, um false positives in deklarativem Plugin-/Adaptercode zu reduzieren.
+- Trigger: `drift analyze` auf TS-Repositories mit delegierenden `export function`/arrow Wrappern und stark typisierten Transformationsfunktionen ohne imperative Kontrollflusszweige.
+- Impact: Medium-positive. Reduziert GCD-FP-Noise und verbessert Signal-Glaubwuerdigkeit bei plugin-/integration-lastigen Monorepos.
+- Mitigation:
+  - Neue TS-Wrapper-Heuristik fuer einzeilige parameter-forwarding delegation functions.
+  - Neue Typ-Heuristik fuer stark typisierte TS-Parameter (Ausschluss weak types) in non-imperativen Bodies.
+  - Korrektur eines doppelten Guarded-/Complexity-Zaehlpfads im GCD-Loop zur konsistenten Modulaggregation.
+  - Regressionen in `tests/test_ts_signals_phase2.py` fuer Wrapper- und Typed-Pattern plus bestehender unguarded Kontrolltest.
+- Verification:
+  - `python -m ruff check src/drift/signals/guard_clause_deficit.py tests/test_ts_signals_phase2.py`
+  - `python -m pytest tests/test_ts_signals_phase2.py -k "GCDTypeScript and (delegation or strongly_typed or unguarded_functions_triggers or guarded_functions_no_finding)" --tb=short -q`
+- Residual risk: Low-Medium. Echte Guard-Defizite in einfach aufgebauten Wrappern koennen punktuell niedriger priorisiert werden; Scope bleibt durch enge Pattern-Bedingungen begrenzt.
+
 ## 2026-04-12 - Issue #246: SMS suppresses novel deps in newly introduced plugin workspaces
 
 - Risk ID: RISK-SIGNAL-2026-04-12-246
