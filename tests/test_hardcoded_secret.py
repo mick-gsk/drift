@@ -665,6 +665,50 @@ class TestHSCTrueNegatives:
         findings = signal.analyze([pr], {}, DriftConfig())
         assert len(findings) == 0
 
+    def test_ts_test_helpers_file_token_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "extensions/msteams/src/graph-messages.test-helpers.ts",
+            '''\
+            const TOKEN = "mock-bearer-token-for-testing";
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        pr = ParseResult(
+            file_path=Path("extensions/msteams/src/graph-messages.test-helpers.ts"),
+            language="typescript",
+        )
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_python_test_prefixed_secret_var_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "settings.py",
+            '''\
+            TEST_RESOLVED_PRIVATE_KEY = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgh"
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("settings.py")], {}, DriftConfig())
+        assert len(findings) == 0
+
+    def test_ts_mock_prefixed_secret_var_not_flagged(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "src/auth/mock-values.ts",
+            '''\
+            const MOCK_ACCESS_TOKEN = "sk-abcdefghijklmnopqrstuvwxyz123456";
+            ''',
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        pr = ParseResult(
+            file_path=Path("src/auth/mock-values.ts"),
+            language="typescript",
+        )
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert len(findings) == 0
+
 
 # ---------------------------------------------------------------------------
 # Edge cases

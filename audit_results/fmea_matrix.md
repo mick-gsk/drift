@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-11 - Issue #236: HSC FP bei testnahen Secret-Fixtures mit TEST_/MOCK_-Praefix
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| HSC | FP: testnahe Fixture-Konstanten (`TEST_*`, `MOCK_*`, `FAKE_*`, `DUMMY_*`, `STUB_*`) als Hardcoded Secret gemeldet | Known-prefix- und secret-var Erkennung unterschied nicht zwischen produktiven Variablen und explizit testmarkierten Fixture-Konstanten | Security-Noise in Test-/Fixture-nahem Code, reduzierte Signal-Glaubwuerdigkeit | Neue Regressionen in `tests/test_hardcoded_secret.py` fuer Prefix- und test-helper-Faelle | Prefix-Suppression fuer testmarkierte Variablennamen + erweiterte test-helper/test-fixture Pfadbehandlung in HSC | 6 | 7 | 2 | 84 | Mitigated |
+| HSC | FN-Risiko: zu breite Prefix-Suppression koennte echte Leaks mit testaehnlichem Namen maskieren | Prefix-Regel greift kontextunabhaengig auf Variablennamen | Potenzielle Unterberichtung in seltenen Fehlbenennungen | Guard ueber bestehende bekannte-prefix True-Positive-Regressionen + gezielte Negativtests | Regel auf explizite Start-Praefixe begrenzt (`TEST_`, `MOCK_`, `FAKE_`, `DUMMY_`, `STUB_`); keine globale Secret-Pattern-Abschwaechung | 5 | 2 | 4 | 40 | Mitigated |
+
 ## 2026-04-11 - Issue #234: Testkontext-Erkennung fuer test-harness/test-helpers erweitert
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

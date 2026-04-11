@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-11 - Issue #236: HSC false positives fuer test-prefix secrets
+
+### Top Event (TE-HSC-236)
+HSC meldet testnahe Fixture-Strings als produktive Hardcoded Secrets.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: test fixture constants reported as hardcoded secrets
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Secret-Variablen mit klaren Test-Praefixen (`TEST_*`, `MOCK_*`, ...) wurden im Known-Prefix-Pfad wie produktive Credentials behandelt.
+  - Mitigation: Prefix-Suppression fuer explizit testmarkierte Variablennamen in allen HSC-Erkennungspfaden.
+- **IE-2 (MCS)**: Test-helper-Pfade ausserhalb klassischer `tests/`-Muster (`*.test-helpers.*`) wurden nicht robust im HSC-Filter berücksichtigt.
+  - Mitigation: Erweiterte HSC-Pfaderkennung fuer `test-helpers`/`test_helpers` und bestehende test-fixture Varianten.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Test-Praefix-Suppression koennte in seltenen Faellen echte Leaks mit irrefuehrender Benennung unterdruecken.
+  - Mitigation: Suppression ist strikt auf wenige explizite Prefixe begrenzt; bestehende Known-Prefix-Guards bleiben aktiv.
+
 ## 2026-04-11 - Issue #232: SMS test-only framework import false positives
 
 ### Top Event (TE-SMS-232)

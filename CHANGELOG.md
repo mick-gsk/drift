@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- HSC Issue #236: suppress test-fixture secret constants with prefixes (`TEST_`, `MOCK_`, `FAKE_`, `DUMMY_`, `STUB_`), expand `test-helpers` path handling, and add defensive test-context score dampening metadata to reduce false positives.
 - Test-context detection Issue #234: classify `*.test-harness.{ts,js,tsx,jsx}`, `*.test-helpers.{ts,js,tsx,jsx}`, and `test-support/` / `test-helpers/` directories as test files to reduce cross-signal false positives in monorepos.
 - SMS Issue #232: exclude test files from novel-import baseline and detection so test-only framework imports (for example vitest in .test.ts/.spec.ts) are no longer reported as production novel dependencies.
 - DCA Issue #231: in TypeScript/JavaScript, only actually exported functions are treated as DCA export candidates; module-internal helpers used by `export default` facades are no longer flagged as dead exports.

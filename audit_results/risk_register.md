@@ -1,5 +1,19 @@
 # Risk Register
 
+## 2026-04-11 - Issue #236: HSC suppression fuer test-prefix fixture secrets
+
+- Risk ID: RISK-SIGNAL-2026-04-11-236
+- Component: `src/drift/signals/hardcoded_secret.py`, `tests/test_hardcoded_secret.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Hardcoded Secret (HSC) behandelt jetzt explizit testmarkierte Variablennamen (`TEST_`, `MOCK_`, `FAKE_`, `DUMMY_`, `STUB_`) als Fixture-Kontext und unterdrueckt entsprechende Findings. Zusaetzlich erkennt HSC `*.test-helpers.*` robust als testnahen Kontext.
+- Trigger: `drift analyze` auf Repositories mit testnahen Credentials in Hilfs-/Fixture-Dateien (z. B. OpenClaw test-fixtures und test-helpers).
+- Impact: Medium-positive. Reduziert HSC-False-Positives in Testinfrastruktur und verbessert Glaubwuerdigkeit/Actionability.
+- Mitigation:
+  - Prefix-Suppression in Python/TS HSC-Pfaden inklusive Known-Prefix-Erkennung.
+  - Erweiterte HSC-Path-Heuristik fuer `test-helpers` plus bestehende `test-fixture` Varianten.
+  - Regressionssuite erweitert um test-helper-Datei und Prefix-Faelle in Python/TypeScript.
+- Residual risk: Low-Medium. Echte Leaks mit absichtlich testartigen Variablennamen koennen unterdrueckt werden; Risiko bleibt durch enge Prefix-Liste und bestehende TP-Guards begrenzt.
+
 ## 2026-04-11 - Issue #234: Test-file detection erweitert fuer test-harness/test-helpers Konventionen
 
 - Risk ID: RISK-INGESTION-2026-04-11-234

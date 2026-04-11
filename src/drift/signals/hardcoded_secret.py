@@ -24,6 +24,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from drift.config import DriftConfig
+from drift.ingestion.test_detection import classify_file_context
 from drift.models import (
     FileHistory,
     Finding,
@@ -127,6 +128,11 @@ _ENDPOINT_CONST_NAME_RE = re.compile(
 
 _CONFIG_IDENTIFIER_NAME_RE = re.compile(
     r"(?:^|_)(?:profile_id|config_id|credential_id|token_profile_id)(?:_|$)",
+    re.IGNORECASE,
+)
+
+_TEST_SECRET_VAR_PREFIX_RE = re.compile(
+    r"^(?:test_|mock_|fake_|dummy_|stub_)",
     re.IGNORECASE,
 )
 
@@ -377,7 +383,17 @@ def _is_config_identifier_literal(var_name: str, string_val: str) -> bool:
 def _is_test_fixture_like_path(file_path: Path) -> bool:
     """Return True for test-fixture style paths not covered by generic test detection."""
     value = file_path.as_posix().lower()
-    return "test-fixture" in value or "test_fixture" in value
+    return (
+        "test-fixture" in value
+        or "test_fixture" in value
+        or ".test-helpers." in value
+        or ".test_helpers." in value
+    )
+
+
+def _is_test_prefixed_secret_var(var_name: str) -> bool:
+    """Return True for test-fixture constant prefixes that should not trigger HSC."""
+    return bool(_TEST_SECRET_VAR_PREFIX_RE.match(var_name))
 
 
 @register_signal
@@ -512,6 +528,9 @@ class HardcodedSecretSignal(BaseSignal):
         """Evaluate a TS/JS variable assignment for secret patterns."""
         # Safe patterns: process.env.*, require("dotenv"), etc.
         if "process.env" in line_text or "import.meta.env" in line_text:
+            return None
+
+        if _is_test_prefixed_secret_var(var_name):
             return None
 
         # Check known API token prefixes first (high confidence).
@@ -684,6 +703,9 @@ class HardcodedSecretSignal(BaseSignal):
         if _is_safe_value(value_node):
             return None
 
+        if _is_test_prefixed_secret_var(var_name):
+            return None
+
         string_val = _extract_string_value(value_node)
         if string_val is None or len(string_val) < 8:
             return None
@@ -718,6 +740,9 @@ class HardcodedSecretSignal(BaseSignal):
     ) -> Finding | None:
         """Evaluate whether the assigned value is a hardcoded secret."""
         if _is_safe_value(value_node):
+            return None
+
+        if _is_test_prefixed_secret_var(var_name):
             return None
 
         string_val = _extract_string_value(value_node)
@@ -846,11 +871,16 @@ class HardcodedSecretSignal(BaseSignal):
         score: float,
         detail: str,
     ) -> Finding:
-        severity = Severity.HIGH if score >= 0.6 else Severity.MEDIUM
+        finding_context = classify_file_context(file_path)
+        effective_score = score
+        if finding_context == "test":
+            effective_score *= 0.5
+
+        severity = Severity.HIGH if effective_score >= 0.6 else Severity.MEDIUM
         return Finding(
             signal_type=self.signal_type,
             severity=severity,
-            score=score,
+            score=effective_score,
             title=f"Hardcoded secret in '{var_name}'",
             description=(
                 f"{detail} "
@@ -869,6 +899,8 @@ class HardcodedSecretSignal(BaseSignal):
                 "cwe": "CWE-798",
                 "variable": var_name,
                 "rule_id": rule_id,
+                "finding_context": finding_context,
             },
             rule_id=rule_id,
+            finding_context=finding_context,
         )
