@@ -337,3 +337,70 @@ class TestDCARuntimePluginConfigHeuristic:
         assert len(findings) == 1
         assert findings[0].severity == Severity.HIGH
         assert findings[0].metadata.get("runtime_plugin_config_heuristic_applied") is False
+
+
+class TestDCARuntimePluginEntrypointHeuristic:
+    def test_extensions_components_entrypoint_is_dampened_to_medium(self) -> None:
+        pr_components = ParseResult(
+            file_path=Path("extensions/discord/src/components.ts"),
+            language="typescript",
+            functions=[
+                _ts_exported_func("resolveA", "extensions/discord/src/components.ts", 10),
+                _ts_exported_func("resolveB", "extensions/discord/src/components.ts", 20),
+                _ts_exported_func("resolveC", "extensions/discord/src/components.ts", 30),
+                _ts_exported_func("resolveD", "extensions/discord/src/components.ts", 40),
+            ],
+            imports=[],
+        )
+
+        findings = DeadCodeAccumulationSignal().analyze(
+            [pr_components],
+            {},
+            DriftConfig(),
+        )
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.MEDIUM
+        assert findings[0].score <= 0.69
+        assert findings[0].metadata.get("runtime_plugin_config_heuristic_applied") is False
+        assert (
+            findings[0].metadata.get("runtime_plugin_entrypoint_heuristic_applied")
+            is True
+        )
+
+    def test_extensions_plugin_sdk_entrypoint_is_dampened_to_medium(self) -> None:
+        pr_sdk = ParseResult(
+            file_path=Path("extensions/copilot-hub/src/plugin-sdk/core.ts"),
+            language="typescript",
+            functions=[
+                _ts_exported_func(
+                    "createClient",
+                    "extensions/copilot-hub/src/plugin-sdk/core.ts",
+                    10,
+                ),
+                _ts_exported_func(
+                    "resolveSession",
+                    "extensions/copilot-hub/src/plugin-sdk/core.ts",
+                    20,
+                ),
+                _ts_exported_func(
+                    "buildRuntime",
+                    "extensions/copilot-hub/src/plugin-sdk/core.ts",
+                    30,
+                ),
+                _ts_exported_func(
+                    "registerCore",
+                    "extensions/copilot-hub/src/plugin-sdk/core.ts",
+                    40,
+                ),
+            ],
+            imports=[],
+        )
+
+        findings = DeadCodeAccumulationSignal().analyze([pr_sdk], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.MEDIUM
+        assert findings[0].score <= 0.69
+        assert (
+            findings[0].metadata.get("runtime_plugin_entrypoint_heuristic_applied")
+            is True
+        )

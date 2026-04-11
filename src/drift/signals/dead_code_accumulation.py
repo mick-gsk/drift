@@ -128,6 +128,21 @@ _RUNTIME_PLUGIN_CONFIG_BASENAMES: frozenset[str] = frozenset({
     "config.cjs",
 })
 
+_RUNTIME_PLUGIN_ENTRYPOINT_PATH_TOKENS: frozenset[str] = frozenset({
+    "components",
+    "component",
+    "plugin-sdk",
+    "plugin_sdk",
+    "sdk",
+})
+
+_RUNTIME_PLUGIN_ENTRYPOINT_BASENAMES: frozenset[str] = frozenset({
+    "components.ts",
+    "components.tsx",
+    "components.js",
+    "components.jsx",
+})
+
 
 def _is_script_context_path(file_path: Path) -> bool:
     """Return True for path contexts that are likely executable scripts."""
@@ -155,6 +170,24 @@ def _is_runtime_plugin_config_path(file_path: Path) -> bool:
         return True
 
     return file_name.startswith("config-")
+
+
+def _is_runtime_plugin_entrypoint_path(file_path: Path) -> bool:
+    """Return True for plugin/extension entrypoint modules loaded indirectly."""
+    tokens = _path_tokens(file_path)
+    if len(tokens) < 3:
+        return False
+
+    if tokens[0] not in _RUNTIME_PLUGIN_CONFIG_ROOT_TOKENS:
+        return False
+
+    file_name = file_path.name.lower()
+    if file_name in _RUNTIME_PLUGIN_ENTRYPOINT_BASENAMES:
+        return True
+
+    return any(
+        token in _RUNTIME_PLUGIN_ENTRYPOINT_PATH_TOKENS for token in tokens
+    )
 
 
 def _path_tokens(file_path: Path) -> list[str]:
@@ -375,6 +408,7 @@ class DeadCodeAccumulationSignal(BaseSignal):
                 severity = Severity.LOW
 
             runtime_plugin_config_heuristic_applied = False
+            runtime_plugin_entrypoint_heuristic_applied = False
             if (
                 path_context != "test"
                 and _is_runtime_plugin_config_path(file_path)
@@ -384,6 +418,15 @@ class DeadCodeAccumulationSignal(BaseSignal):
                 score = round(min(0.69, score * 0.6), 3)
                 severity = Severity.MEDIUM
                 runtime_plugin_config_heuristic_applied = True
+            elif (
+                path_context != "test"
+                and _is_runtime_plugin_entrypoint_path(file_path)
+            ):
+                # Plugin entrypoint modules (components/plugin-sdk) are often
+                # consumed via host registries and dynamic framework wiring.
+                score = round(min(0.69, score * 0.6), 3)
+                severity = Severity.MEDIUM
+                runtime_plugin_entrypoint_heuristic_applied = True
 
             dead_names = [s[0] for s in dead_symbols[:10]]
 
@@ -431,6 +474,9 @@ class DeadCodeAccumulationSignal(BaseSignal):
                         ),
                         "runtime_plugin_config_heuristic_applied": (
                             runtime_plugin_config_heuristic_applied
+                        ),
+                        "runtime_plugin_entrypoint_heuristic_applied": (
+                            runtime_plugin_entrypoint_heuristic_applied
                         ),
                         "finding_context": path_context,
                     },

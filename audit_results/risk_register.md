@@ -1,5 +1,23 @@
 # Risk Register
 
+## 2026-04-12 - Issue #242: DCA plugin entrypoint FP reduction (`components`/`plugin-sdk`)
+
+- Risk ID: RISK-SIGNAL-2026-04-12-242
+- Component: `src/drift/signals/dead_code_accumulation.py`, `tests/test_dead_code_accumulation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Dead Code Accumulation (DCA) daempft nun plugin-/extension-Entrypoint-Pfade mit `components` oder `plugin-sdk` unter `extensions/*` und `plugins/*`, da diese Exporte haeufig indirekt via Host-Registry oder Framework-Runtime konsumiert werden.
+- Trigger: `drift analyze` auf Plugin-Monorepos mit UI-Komponenten-Barrels und SDK-Entrypoints ohne direkte in-repo Importkanten.
+- Impact: Medium-positive. Reduziert dominante DCA-FP-Cluster fuer Plugin-Entrypoints und verhindert CRITICAL/HIGH-Ueberpriorisierung bei statisch schwer aufloesbaren Runtime-Consumption-Pfaden.
+- Mitigation:
+  - Neue Heuristik `_is_runtime_plugin_entrypoint_path()` fuer `components`/`plugin-sdk`-Indikatoren in `extensions|plugins`.
+  - Bestehendes DCA-Daempfungsmuster wiederverwendet (Score-Daempfung, Severity-Cap MEDIUM).
+  - Neues Metadata-Feld `runtime_plugin_entrypoint_heuristic_applied` fuer technische Nachvollziehbarkeit.
+  - Regressionen: `test_extensions_components_entrypoint_is_dampened_to_medium`, `test_extensions_plugin_sdk_entrypoint_is_dampened_to_medium`.
+- Verification:
+  - `python -m pytest tests/test_dead_code_accumulation.py -q --tb=short`
+  - `python -m ruff check src/drift/signals/dead_code_accumulation.py tests/test_dead_code_accumulation.py`
+- Residual risk: Low-Medium. Echte ungenutzte Exporte in betroffenen Entrypoint-Dateien koennen geringer priorisiert werden; durch engen Scope und fehlende Vollsuppression begrenzt.
+
 ## 2026-04-12 - Issue #241: AVS TS ESM relative import extension mapping
 
 - Risk ID: RISK-SIGNAL-2026-04-12-241

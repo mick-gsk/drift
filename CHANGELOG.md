@@ -44,6 +44,7 @@
 
 - AVS Issue #241: resolve TypeScript ESM relative imports with explicit runtime extensions (`.js`, `.jsx`, `.mjs`, `.cjs`) to internal source files (`.ts`, `.tsx`, `.mts`, `.cts`) in `build_import_graph`, preventing false hidden-coupling findings when static import edges exist.
 - DCA Issue #237: reduce false positives for runtime-loaded plugin/extension config modules (`extensions/*` / `plugins/*`, `config*`) by dampening score and capping severity to MEDIUM, with explicit metadata marker for heuristic application.
+- DCA Issue #242: extend plugin-runtime dampening to plugin entrypoint modules (`components`/`plugin-sdk` under `extensions/*` and `plugins/*`) and add metadata marker `runtime_plugin_entrypoint_heuristic_applied` to reduce false positives in registry/dynamic-rendered plugin architectures.
 - HSC Issue #236: suppress test-fixture secret constants with prefixes (`TEST_`, `MOCK_`, `FAKE_`, `DUMMY_`, `STUB_`), expand `test-helpers` path handling, and add defensive test-context score dampening metadata to reduce false positives.
 - HSC Issue #238: suppress false positives for interpolated TypeScript/JavaScript template literals (for example `qa-suite-${randomUUID()}`, `${entry.label}:${entry.value}`, `${signingInput}.${toBase64UrlBytes(signature)}`) by treating them as runtime-generated values before entropy checks.
 - Test-context detection Issue #234: classify `*.test-harness.{ts,js,tsx,jsx}`, `*.test-helpers.{ts,js,tsx,jsx}`, and `test-support/` / `test-helpers/` directories as test files to reduce cross-signal false positives in monorepos.
