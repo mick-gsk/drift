@@ -1,5 +1,101 @@
 # Fault Tree Analysis
 
+## 2026-04-11 - Issue #210: NBV TS/JS ensure_* upsert FP reduction
+
+### Top Event (TE-NBV-210)
+NBV emits false positives for TypeScript/JavaScript `ensure_*` helpers that guarantee existence via upsert/get-or-create patterns.
+
+### FT-1: False positive branch - TS/JS upsert semantics treated as Python ensure semantics
+
+```
+            TE-FP: TS/JS ensure_* upsert flagged by NBV
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2      IE-3
+```
+
+- **IE-1 (MCS)**: TS/JS `ensure_*` checker required `throw` unconditionally
+  - Mitigation: language-aware ensure checker accepts `throw` OR value-returning `return`
+- **IE-2 (MCS)**: Return-value guarantee paths (`return obj`) were not recognized as contract-satisfying
+  - Mitigation: explicit `_ts_has_return_value()` helper added
+- **IE-3 (MCS)**: Upsert branch (`if missing -> create -> return`) interpreted as violation despite guarantee semantics
+  - Mitigation: TS/JS ensure path validated by throw/value-return semantics instead of Python-only raise rule
+
+### FT-2: False negative guard
+
+- **IE-4 (Guard)**: Bare `return;` in TS/JS `ensure_*` is incorrectly accepted
+  - Mitigation: rule requires value-returning return; bare return remains a violation (regression test added)
+
+## 2026-04-11 - Issue #209: NBV TypeScript async bool-wrapper FP reduction
+
+### Top Event (TE-NBV-209)
+NBV emits false positives for TypeScript is_*/has_* functions that return async bool wrappers.
+
+### FT-1: False positive branch — async bool wrapper classified as non-bool
+
+```
+            TE-FP: async bool wrapper flagged by NBV
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2      IE-3
+```
+
+- **IE-1 (MCS)**: Return annotation `Promise<boolean>` not unwrapped before bool contract check
+  - Mitigation: recursive wrapper unwrapping accepts terminal boolean
+- **IE-2 (MCS)**: Return annotation `PromiseLike<boolean>` not recognized as bool-compatible wrapper
+  - Mitigation: wrapper allowlist expanded (`Promise`, `PromiseLike`, `Observable`)
+- **IE-3 (MCS)**: Nested wrappers (`Promise<PromiseLike<boolean>>`) stop at first generic layer
+  - Mitigation: bounded recursive unwrapping (max depth 6)
+
+### FT-2: False negative guard
+
+- **IE-4 (Guard)**: Non-bool payloads in wrappers (e.g. `Promise<string>`) accepted by mistake
+  - Mitigation: terminal type must exactly match `bool`/`builtins.bool`/`boolean`; regression test keeps `Promise<string>` as finding
+
+## 2026-04-13 - ADR-047–051: Actionability Hardening (MAZ/EDS/PFS/AVS/CCC)
+
+### Top Event (TE-AVS-050)
+AVS blast-radius churn guard produces false negatives (stable-but-dangerous modules skipped).
+
+### FT-1: False negative — high-blast-radius module silently skipped
+
+```
+        TE-FN: module with br > threshold skipped due to churn guard
+                            |
+                         OR-Gate
+              +-------------+-------------+
+             IE-1           IE-2          IE-3
+```
+
+- **IE-1 (MCS)**: `change_frequency_30d = 0` for a module that changed once 31 days ago (outside window)
+  - Mitigation: Accept; 30-day window is consistent with TVS convention; very-recently-destabilized modules trigger churn > 1.0
+- **IE-2 (MCS)**: `blast_radius = 50` exactly — dual guard applies, module is skipped
+  - Mitigation: Threshold set at `<= 50` — blast_radius > 50 alone bypasses the guard regardless of churn
+- **IE-3 (MCS)**: `file_histories` is empty (non-git context) → default churn = 0 → guard may suppress
+  - Mitigation: Non-git repos by definition have no commit-churn data; existing AVS findings retain scoring
+
+### Top Event (TE-PFS-049, TE-EDS-048, TE-MAZ-047, TE-CCC-051)
+Other hardening signals produce false negatives due to threshold or filter changes.
+
+```
+        TE-FN: finding suppressed by new filter/threshold
+                            |
+                         OR-Gate
+              +-------+-------+-------+-------+
+             EDS-1  PFS-1  MAZ-1  CCC-1
+```
+
+- **EDS-1**: Private helper at weighted_score 0.40–0.44 suppressed by 0.45 threshold
+  - Mitigation: Defect-correlated override reduces threshold to 0.30; test coverage for correlated helpers retained
+- **PFS-1**: canonical_ratio < 0.10 → HIGH→MEDIUM severity downgrade misses critical fragmentation
+  - Mitigation: Downgrade bounded (never skips LOW); raw `frag_score` in metadata allows manual triage
+- **MAZ-1**: CRITICAL severity bump may cause CI gate failures in repos where MAZ findings were previously HIGH
+  - Mitigation: A2A exemption note in fix text; users can `drift:ignore` intentional public endpoints
+- **CCC-1**: 60-char message truncation hides key co-change reason
+  - Mitigation: Accept; 3-sample window + intentional/accidental branch template provides sufficient context
+
 ## 2026-04-11 - ADR-041: PHR Runtime Import Attribute Validation
 
 ### Top Event (TE-PHR-041)

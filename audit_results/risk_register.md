@@ -1,5 +1,106 @@
 # Risk Register
 
+## 2026-04-11 - Issue #210: NBV TS/JS ensure_* upsert false positives
+
+- Risk ID: RISK-SIGNAL-2026-04-11-210
+- Component: `src/drift/signals/naming_contract_violation.py`, `tests/test_naming_contract_violation.py`, `tests/fixtures/ground_truth.py`
+- Type: Signal behavior change (language-aware NBV ensure_* contract)
+- Description: NBV no longer enforces Python-only `ensure_* -> raise` semantics for TypeScript/JavaScript. For TS/JS, `ensure_*` now passes when the function has either a `throw` path or a value-returning `return` path (upsert/get-or-create semantics).
+- Trigger: `drift analyze` on TS/JS repos with helper functions such as `ensureRecord(...)` that create and return guaranteed objects.
+- Impact: Medium-positive. Reduces a major NBV false-positive class in TS/JS repositories and improves actionability.
+- Mitigation:
+  - Added TS/JS-specific ensure checker in NBV signal (`throw` OR value-returning `return`).
+  - Added TS regression tests for upsert TN and bare-return TP behavior.
+  - Added ground-truth TN fixture `nbv_ts_ensure_upsert_tn` to precision/recall suite.
+- Residual risk: Low. Relaxation is constrained to TS/JS and still flags `ensure_*` functions without throw and without value-returning contract.
+
+## 2026-04-11 - Issue #209: NBV TypeScript async bool-wrapper false positives
+
+- Risk ID: RISK-SIGNAL-2026-04-11-209
+- Component: `src/drift/signals/naming_contract_violation.py`, `tests/test_naming_contract_violation.py`, `tests/test_nbv_helpers_coverage.py`, `tests/fixtures/ground_truth.py`
+- Type: Signal behavior change (NBV bool-return contract hardening)
+- Description: NBV now treats TypeScript async wrappers `Promise<boolean>`, `PromiseLike<boolean>`, and `Observable<boolean>` as bool-compatible for `is_*/has_*` naming contracts. This directly addresses large-scale false positives reported in Issue 209.
+- Trigger: `drift analyze` on TypeScript repositories containing async bool-returning `is_*`/`has_*` functions.
+- Impact: Medium-positive. Reduces FP pressure and improves trust for NBV on TS-heavy repos.
+- Mitigation:
+  - New helper `_is_bool_like_return_type()` with strict terminal bool matching.
+  - Reused in both Python and TypeScript NBV bool-check path to keep behavior consistent.
+  - Regression tests added for `Promise<boolean>`, `PromiseLike<boolean>`, `Observable<boolean>`, nested wrappers, and negative control (`Promise<string>`).
+  - New ground-truth TN fixture `nbv_ts_async_bool_tn` added to precision/recall suite.
+- Residual risk: Low. Over-acceptance risk is bounded by strict terminal-type checks and explicit negative controls.
+
+## 2026-04-13 - ADR-047 through ADR-051: Actionability Hardening (MAZ, EDS, PFS, AVS, CCC)
+
+- Risk ID: RISK-SIGNAL-2026-04-13-047-051
+- Component: `src/drift/signals/missing_authorization.py`, `src/drift/signals/explainability_deficit.py`, `src/drift/signals/pattern_fragmentation.py`, `src/drift/signals/architecture_violation.py`, `src/drift/signals/co_change_coupling.py`, `src/drift/output/rich_output.py`
+- Type: Signal behavior change (scoring + filtering + metadata + output)
+- Description: Five targeted signal changes to improve actionability of findings and a Rich output
+  security-findings panel rendered before the main findings table.
+  - **MAZ (ADR-047):** Score raised from 0.7 to 0.85, severity from HIGH to CRITICAL for unauthorized endpoints. Fix text adds A2A agent card exemption note. Security signals (MAZ, HSC, ISD) now get a dedicated `_render_security_section()` banner at the top of `render_findings()`.
+  - **EDS (ADR-048):** Private function minimum threshold raised from 0.30 to 0.45. Defect-correlated files override threshold downward to 0.30. FileHistory lookup moved before threshold guard.
+  - **PFS (ADR-049):** New `_extract_canonical_snippet()` reads source lines for canonical exemplar. Canonical ratio severity downgrade: < 10% canonical instances lowers HIGH→MEDIUM or MEDIUM→LOW; < 15% lowers HIGH→MEDIUM. `canonical_snippet` and `canonical_ratio` added to Finding metadata.
+  - **AVS (ADR-050):** `_check_blast_radius()` gains `file_histories` parameter. Stable modules with `change_frequency_30d <= 1.0` AND `blast_radius <= 50` are skipped (churn guard). `churn_per_week` added to Finding metadata.
+  - **CCC (ADR-051):** `pair_commit_messages` accumulates truncated (60 chars) commit message strings alongside commit hashes. Finding `fix` text includes intentional-vs-accidental branch with test scaffold template. `commit_messages` added to Finding metadata.
+- Trigger: Any `drift analyze` run that produces MAZ/EDS/PFS/AVS/CCC findings.
+- Impact: Medium. Score and severity changes affect prioritization outputs (JSON, SARIF, CI gates). Threshold changes affect recall — EDS may produce fewer FPs for private helpers; AVS may produce fewer stable-module FPs. New metadata keys added to JSON output.
+- FP Risk: Lower — EDS private-helper filter and AVS churn gate both reduce FPs.
+- FN Risk: Low — MAZ CRITICAL bump guards security findings from being buried; EDS defect-correlation override prevents suppressing risky helpers.
+- Mitigation:
+  - Threshold changes tuned against existing ground-truth fixtures (no reported regressions).
+  - `_extract_canonical_snippet()` uses try/except with `OSError`+`IndexError` — any read failure yields empty string (no finding suppression).
+  - Rich `_render_security_section()` is additive output only — no scoring change.
+  - AVS churn guard uses dual condition (`<= 1.0/week AND <= 50`): avoids suppressing truly high-coupling modules with low activity.
+  - All changes covered by existing test suite (1179 passing tests).
+- Residual risk: Low. All changes are deterministic, purely in-process, and well-guarded by the pre-push gate and CI.
+
+## 2026-04-12 - ADR-053: External Report Import (drift import)
+
+- Risk ID: RISK-INPUT-2026-04-12-053
+- Component: `src/drift/ingestion/external_report.py` (new), `src/drift/commands/import_cmd.py` (new), `src/drift/cli.py`
+- Type: New input path (external JSON files) + new CLI command (additive)
+- Description: `drift import <report> --format sonarqube|pylint|codeclimate` reads a user-supplied JSON report file, parses it through format-specific adapters, and displays a side-by-side comparison with Drift's own analysis. Imported findings have `score=0.0` and are never fed into scoring. Three adapter functions use `dict.get()` with defaults — no dynamic dispatch, no `eval`, no shell interaction.
+- Trigger: User runs `drift import report.json --format sonarqube`.
+- Impact: Low. Malformed JSON is handled by stdlib `json.loads()` raising `JSONDecodeError` (caught and surfaced as `ClickException`). Unexpected keys are ignored via `.get()` defaults. No imported data persists beyond the command's lifetime.
+- Mitigation:
+  - JSON parsing uses stdlib `json.loads()` only — no `yaml.load()`, no `pickle`, no `eval`.
+  - Adapter functions extract only expected fields with `.get()` defaults — unknown keys silently ignored.
+  - Imported `Finding` objects always have `score=0.0` — no scoring contamination.
+  - File reads use `encoding="utf-8"` explicitly.
+  - All adapters and CLI covered by 15 dedicated tests (`tests/test_import_command.py`).
+  - `ValueError` for unsupported format raised before any file I/O.
+- Residual risk: Minimal. Memory consumption on very large JSON files is bounded by Python stdlib limits. No external network calls, no file writes, no dynamic code execution.
+
+## 2026-04-11 - ADR-052: PR-Comment Output + SARIF Enrichment + Markdown Compact + CSV signal_label
+
+- Risk ID: RISK-OUTPUT-2026-04-11-052
+- Component: `src/drift/output/pr_comment.py` (new), `src/drift/output/json_output.py`, `src/drift/output/markdown_report.py`, `src/drift/output/csv_output.py`, `src/drift/commands/analyze.py`
+- Type: Output path extension (additive + one breaking column change)
+- Description: Four output-layer changes — new `--format pr-comment` formatter; SARIF `message.text` appended with `generate_recommendation()` title (capped at 400 chars) and rule `help` field added; `analysis_to_markdown()` extended with `include_modules` / `include_signal_coverage` flags wired to `--compact`; CSV gains `signal_label` column (breaking: column indices shift by 1). No signal/scoring/ingestion changes.
+- Trigger: User runs `drift analyze --format pr-comment|sarif|markdown|csv`.
+- Impact: Low. CSV breaking change may affect existing automation pipelines reading CSV by column index. SARIF `message.text` length cap (400 chars) may truncate very long recommendations. No trust boundary crossed.
+- Mitigation:
+  - CSV breaking change documented in CHANGELOG as `BREAKING CHANGE`.
+  - SARIF text cap set conservatively at 400 chars — GitHub UI renders first ~300 chars.
+  - `generate_recommendation()` calls wrapped in `try/except` — missing recommender silently falls back to existing behavior.
+  - `get_meta()` calls wrapped in `try/except` — unknown signal_type falls back to raw signal_type string.
+  - All changes covered by dedicated tests (`test_pr_comment.py`, +2 in `test_json_output.py`, updated `test_csv_output.py`).
+- Residual risk: Minimal. All new paths are pure in-process output composition with no I/O or external calls.
+
+
+- Risk ID: RISK-OUTPUT-2026-04-11-S1S5
+- Component: `src/drift/output/junit_output.py`, `src/drift/output/llm_output.py`, `src/drift/commands/ci.py`, `src/drift/commands/completions.py`, `src/drift/ci_detect.py`
+- Type: Output path extension + new commands (additive, non-breaking)
+- Description: Five DX features adding shell completions, JUnit XML and LLM text output formats, a zero-config CI command with auto-environment detection, and a `gate` alias for `check`. No signal, scoring, or ingestion changes. All outputs consume existing `RepoAnalysis` data.
+- Trigger: User runs `drift completions <shell>`, `drift analyze --format junit|llm`, `drift ci`, or `drift gate`.
+- Impact: Low. JUnit XML malformation could break CI parsers; LLM output changes could affect agent workflows; CI auto-detection could select wrong diff-ref on unsupported providers. No trust boundary crossed.
+- Mitigation:
+  - JUnit uses `xml.etree.ElementTree` for proper XML escaping and structure.
+  - LLM output is pure text composition with no markup or escape codes.
+  - CI detection has explicit provider cascade with generic fallback.
+  - All features have dedicated test suites (24 tests total).
+  - `drift gate` is an exact alias — no code duplication.
+- Residual risk: Minimal. Additive output paths, no new dependencies, well-tested formatters.
+
 ## 2026-04-11 - ADR-046: Markdown CLI format + Guidance footer
 
 - Risk ID: RISK-OUTPUT-2026-04-11-046

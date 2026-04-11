@@ -4,10 +4,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from drift.config import DriftConfig
 from drift.ingestion.ast_parser import PythonFileParser
+from drift.ingestion.ts_parser import parse_typescript_file, tree_sitter_available
 from drift.models import ParseResult, SignalType
 from drift.signals.naming_contract_violation import NamingContractViolationSignal
+
+needs_tree_sitter = pytest.mark.skipif(
+    not tree_sitter_available(),
+    reason="tree-sitter-typescript not installed",
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -39,6 +47,14 @@ def _run(
 ):
     sig = NamingContractViolationSignal(repo_path=repo_path)
     return sig.analyze(parse_results, {}, _cfg(**kw))
+
+
+def _write_and_parse_ts(tmp_path: Path, rel: str, source: str) -> ParseResult:
+    """Write a TS file and parse it with tree-sitter parser."""
+    p = tmp_path / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(source, encoding="utf-8")
+    return parse_typescript_file(Path(rel), tmp_path, language="typescript")
 
 
 # ===================================================================
@@ -152,6 +168,53 @@ def ensure_directory(path: str) -> str:
         assert len(findings) == 1
         assert "ensure_" in findings[0].metadata["prefix_rule"]
         assert "add at least one raise path" in findings[0].fix
+
+    @needs_tree_sitter
+    def test_ensure_upsert_pattern_no_finding(self, tmp_path: Path):
+        pr = _write_and_parse_ts(
+                tmp_path,
+                "src/guards.ts",
+                """\
+export type JsonRecord = Record<string, unknown>;
+
+export function ensureRecord(root: JsonRecord, key: string): JsonRecord {
+    let next = root[key];
+    if (next == null || typeof next !== "object" || Array.isArray(next)) {
+        next = {};
+        root[key] = next;
+    }
+    return next as JsonRecord;
+}
+""",
+        )
+
+        findings = _run([pr], repo_path=tmp_path)
+        nbv_findings = [
+            f for f in findings if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+        ]
+        assert nbv_findings == []
+
+    @needs_tree_sitter
+    def test_ensure_without_throw_or_return_value_is_flagged(self, tmp_path: Path):
+        pr = _write_and_parse_ts(
+                tmp_path,
+                "src/guards.ts",
+                """\
+export function ensureReady(flag: boolean): void {
+    if (!flag) {
+        return;
+    }
+    const state = "ready";
+}
+""",
+        )
+
+        findings = _run([pr], repo_path=tmp_path)
+        nbv_findings = [
+            f for f in findings if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+        ]
+        assert len(nbv_findings) == 1
+        assert nbv_findings[0].metadata.get("prefix_rule") == "ensure_"
 
 
 # ===================================================================
@@ -428,3 +491,53 @@ def validate_contract(payload: dict) -> dict:
 
         assert len(findings) == 1
         assert findings[0].metadata.get("library_context_candidate") is True
+
+
+@needs_tree_sitter
+class TestTypeScriptBoolRule:
+        def test_async_bool_wrappers_no_finding(self, tmp_path: Path):
+                pr = _write_and_parse_ts(
+                        tmp_path,
+                        "src/checks.ts",
+                        """\
+export async function isSessionActive(): Promise<boolean> {
+    return false;
+}
+
+export function hasPermission(): PromiseLike<boolean> {
+    return Promise.resolve(true);
+}
+
+export function isObservableReady(): Observable<boolean> {
+    return ready$;
+}
+""",
+                )
+
+                findings = _run([pr], repo_path=tmp_path)
+                nbv_findings = [
+                    f
+                    for f in findings
+                    if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+                ]
+                assert nbv_findings == []
+
+        def test_async_non_bool_wrapper_is_flagged(self, tmp_path: Path):
+                pr = _write_and_parse_ts(
+                        tmp_path,
+                        "src/checks.ts",
+                        """\
+export async function isSessionLabel(): Promise<string> {
+    return "active";
+}
+""",
+                )
+
+                findings = _run([pr], repo_path=tmp_path)
+                nbv_findings = [
+                    f
+                    for f in findings
+                    if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+                ]
+                assert len(nbv_findings) == 1
+                assert nbv_findings[0].metadata.get("prefix_rule") == "is_"

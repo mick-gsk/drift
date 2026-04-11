@@ -39,6 +39,13 @@ from drift.signals._utils import (
 )
 from drift.signals.base import BaseSignal, register_signal
 
+
+def _resolve_source_path(file_path: Path, repo_path: Path | None) -> Path:
+    """Resolve a potentially relative file_path using the repo root."""
+    if repo_path and not file_path.is_absolute():
+        return repo_path / file_path
+    return file_path
+
 # ── Naming rules ──────────────────────────────────────────────────
 # Each rule: (prefix_set, description, checker_function_name)
 
@@ -122,13 +129,44 @@ def _has_create_path(tree: ast.Module) -> bool:
     return False
 
 
+def _is_bool_like_return_type(return_type: str | None) -> bool:
+    """Return True for bool-like annotations, including async TS wrappers.
+
+    Accepted examples:
+    - bool, builtins.bool, boolean
+    - Promise<boolean>, PromiseLike<boolean>, Observable<boolean>
+    - nested wrappers like Promise<PromiseLike<boolean>>
+    """
+    if not return_type:
+        return False
+
+    normalized = "".join(return_type.strip().split())
+    lowered = normalized.lower()
+    if lowered in {"bool", "builtins.bool", "boolean"}:
+        return True
+
+    wrapper_names = {"promise", "promiselike", "observable"}
+    current = lowered
+    max_unwrap = 6
+    for _ in range(max_unwrap):
+        if "<" not in current or not current.endswith(">"):
+            break
+        wrapper, inner = current.split("<", 1)
+        wrapper_name = wrapper.rsplit(".", 1)[-1]
+        if wrapper_name not in wrapper_names:
+            break
+        current = inner[:-1].strip()
+        if current in {"bool", "builtins.bool", "boolean"}:
+            return True
+
+    return False
+
+
 def _has_bool_return(tree: ast.Module, fn_info: FunctionInfo) -> bool:
     """Return True if function has bool return type or only returns bool literals."""
     # Check annotation first
-    if fn_info.return_type:
-        rt = fn_info.return_type.lower().strip()
-        if rt in ("bool", "builtins.bool"):
-            return True
+    if _is_bool_like_return_type(fn_info.return_type):
+        return True
 
     # Check actual return statements — all must be bool constants
     returns: list[ast.Return] = []
@@ -205,6 +243,22 @@ def _ts_has_raise(root: Any, src: bytes) -> bool:
     return any(n.type == "throw_statement" for n in ts_walk(root))
 
 
+def _ts_has_return_value(root: Any, src: bytes) -> bool:
+    """Return True if TS function has a return statement with a value."""
+    for node in ts_walk(root):
+        if node.type != "return_statement":
+            continue
+        value_children = [c for c in node.children if c.type not in ("return", ";")]
+        if value_children:
+            return True
+    return False
+
+
+def _ts_has_ensure_contract(root: Any, src: bytes) -> bool:
+    """TS/JS ensure_* allows either throw path or value-returning guarantee path."""
+    return _ts_has_raise(root, src) or _ts_has_return_value(root, src)
+
+
 def _ts_has_create_path(root: Any, src: bytes) -> bool:
     """Return True if there is branching (if/else) — heuristic for get-or-create."""
     for node in ts_walk(root):
@@ -215,7 +269,7 @@ def _ts_has_create_path(root: Any, src: bytes) -> bool:
 
 def _ts_has_bool_return(root: Any, src: bytes, fn_info: FunctionInfo) -> bool:
     """Return True if TS function has boolean return type or only returns booleans."""
-    if fn_info.return_type and fn_info.return_type.lower().strip() == "boolean":
+    if _is_bool_like_return_type(fn_info.return_type):
         return True
 
     returns = [n for n in ts_walk(root) if n.type == "return_statement"]
@@ -316,12 +370,18 @@ def _ts_check_rule(
     language: str,
     fn: FunctionInfo,
     checker_name: str,
+    matched_prefix: str,
 ) -> bool:
     """Run a naming-contract checker against TS/JS source via tree-sitter."""
     result = ts_parse_source(source, language)
     if result is None:
         return True  # benefit of doubt
     root, src = result
+
+    # TS/JS convention: ensure_* often means get-or-create/upsert.
+    if matched_prefix == "ensure_":
+        return _ts_has_ensure_contract(root, src)
+
     checker = _TS_CHECKERS.get(checker_name)
     if checker is None:
         return True
@@ -379,7 +439,13 @@ class NamingContractViolationSignal(BaseSignal):
                     continue
 
                 if is_ts:
-                    satisfied = _ts_check_rule(source, pr.language, fn, checker_name)
+                    satisfied = _ts_check_rule(
+                        source,
+                        pr.language,
+                        fn,
+                        checker_name,
+                        matched_prefix,
+                    )
                 else:
                     try:
                         tree = ast.parse(textwrap.dedent(source))
@@ -520,7 +586,9 @@ class NamingContractViolationSignal(BaseSignal):
                 continue
 
             try:
-                source_text = pr.file_path.read_text(encoding="utf-8", errors="replace")
+                source_text = _resolve_source_path(
+                    pr.file_path, self.repo_path
+                ).read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
 
@@ -590,7 +658,9 @@ class NamingContractViolationSignal(BaseSignal):
                 continue
 
             try:
-                source_text = pr.file_path.read_text(encoding="utf-8", errors="replace")
+                source_text = _resolve_source_path(
+                    pr.file_path, self.repo_path
+                ).read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
 
@@ -716,7 +786,9 @@ class NamingContractViolationSignal(BaseSignal):
                 continue
 
             try:
-                source_text = pr.file_path.read_text(encoding="utf-8", errors="replace")
+                source_text = _resolve_source_path(
+                    pr.file_path, self.repo_path
+                ).read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
 
@@ -786,7 +858,9 @@ class NamingContractViolationSignal(BaseSignal):
                 continue
 
             try:
-                source_text = pr.file_path.read_text(encoding="utf-8", errors="replace")
+                source_text = _resolve_source_path(
+                    pr.file_path, self.repo_path
+                ).read_text(encoding="utf-8", errors="replace")
             except OSError:
                 continue
 

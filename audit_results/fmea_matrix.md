@@ -1,5 +1,34 @@
 # FMEA Matrix
 
+## 2026-04-11 - Issue #210: NBV TS/JS ensure_* upsert FP reduction
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| NBV | FP: TypeScript/JavaScript `ensure_*` upsert helpers flagged as contract violation | TS path reused Python `ensure_*` contract (`throw` required) and ignored value-returning guarantee semantics | Large FP volume on TS/JS repos and reduced NBV trust | Added TS regression tests in `tests/test_naming_contract_violation.py` and TN ground-truth fixture `nbv_ts_ensure_upsert_tn` | Added language-aware TS/JS ensure contract: satisfy when function has `throw` OR a value-returning `return` path | 7 | 7 | 3 | 147 | Mitigated |
+| NBV | FN: TS/JS `ensure_*` may be over-accepted by relaxed rule | Relaxation could accept weak functions that return arbitrary values without true guarantee | Potential under-reporting in edge cases | Negative control regression: `ensureReady` with bare `return;` remains flagged | Contract only accepts value-returning `return` or `throw`; bare return is explicitly not sufficient | 4 | 3 | 4 | 48 | Mitigated |
+
+## 2026-04-11 - Issue #209: NBV TypeScript async bool-wrapper FP reduction
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| NBV | FP: is_*/has_* with PromiseLike<boolean>/Observable<boolean> flagged as non-bool | `_ts_has_bool_return` only accepted literal `boolean` and did not unwrap generic wrappers | High FP volume on TypeScript repos and reduced trust in NBV | Added regression tests in `tests/test_naming_contract_violation.py` and helper coverage in `tests/test_nbv_helpers_coverage.py`; ground-truth TN fixture `nbv_ts_async_bool_tn` | Added `_is_bool_like_return_type()` with recursive unwrapping of `Promise`, `PromiseLike`, and `Observable`; reused in Python/TS bool-check path | 7 | 6 | 3 | 126 | Mitigated |
+| NBV | FN: permissive wrapper handling may incorrectly accept non-bool wrapped types | Generic unwrapping logic could classify wrappers too broadly | Real naming violations might be missed for non-bool payloads | Negative control test `Promise<string>` remains a finding | Unwrapping is strict and only accepts terminal `bool`/`builtins.bool`/`boolean` | 4 | 2 | 4 | 32 | Mitigated |
+
+## 2026-04-13 - ADR-047–051: Actionability Hardening (MAZ/EDS/PFS/AVS/CCC)
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| MAZ | FP: intentionally public A2A agent card endpoint flagged as CRITICAL missing-auth | CRITICAL severity may alarm users whose agent card URL is deliberately unauthenticated | False alarm for A2A/multi-agent repos; trust erosion | `maz_tn_cli_serving_path` and A2A-aware fixtures | Fix text explicitly notes A2A/public exemption; users can label via `drift:ignore` | 5 | 3 | 3 | 45 | Mitigated |
+| MAZ | FN: score bump 0.7→0.85 does not change detection logic; no new FN scenarios | Threshold change is output-only | No new FN risk | Existing MAZ TP/TN fixtures | N/A | 1 | 1 | 1 | 1 | N/A |
+| EDS | FP: private function that is genuinely complex but not defect-correlated now requires 0.45 threshold | Raises bar for private helpers — legitimate complex private code less likely to appear | Under-reporting for complex-but-valid private helpers | Ground-truth fixtures include private complex function TPs | Default 0.45 is conservative; `defect_correlated` override at 0.30 preserves coverage for risky code | 4 | 3 | 4 | 48 | Open (bounded) |
+| EDS | FN: defect_correlated flag depends on `defect_correlated_commits` in FileHistory; absent outside git context | Non-git repos always have `defect_correlated = False`, no threshold reduction | Private helpers in non-git repos may be under-filtered | `history is not None and history.defect_correlated_commits > 0` guard | Accept: non-git repos have no commit context by design; threshold falls back to default | 3 | 3 | 5 | 45 | Accepted |
+| PFS | FP: canonical snippet exposes sensitive code in on-screen output | Canonical snippet (~8 lines) appended to Finding shown in Rich terminal output | Potential credential/proprietary-code exposure in terminal | Snippet limited to 400 chars via `[:400]`; `show_code=False` in security section | No secret scanning on snippets; recommend combining with `drift:ignore` for sensitive exemplars | 4 | 2 | 5 | 40 | Open (bounded) |
+| PFS | FN: canonical_ratio < 0.10 severity downgrade may suppress a valid high-severity fragmentation | If only few instances exist of dominant pattern, severity is lowered to MEDIUM | Real fragmentation in small module may be missed at original severity | PFS TP fixtures include small-module fragmentation cases | Downgrade is two-step bounded (HIGH→MED never jumps to LOW in single step); metadata retains raw frag_score | 4 | 2 | 4 | 32 | Open (bounded) |
+| AVS | FP: module that was historically stable but recently became active bypasses churn guard | `change_frequency_30d` reflects last 30 days only; new activity not yet reflected | Recent high-blast-radius change velocity not flagged | AVS TP fixtures + precision/recall run | 30-day rolling window is current convention across all signals; consistent with TVS behavior | 3 | 3 | 5 | 45 | Accepted |
+| AVS | FN: churn guard drops finding for a high-impact but stable module (churn ≤ 1.0, br ≤ 50) | Dual condition means a module with blast_radius=50 and 1 change/week is skipped | Low-churn high-blast-radius module not flagged | AVS threshold: br > 50 OR churn > 1.0 is required to escape guard | Guard only applies when BOTH conditions hold; br > 50 alone escapes the guard | 4 | 2 | 4 | 32 | Accepted |
+| CCC | FP: commit messages expose internal implementation detail or sensitive info in on-screen output | `commit_messages` metadata (3 × 60-char truncated message strings) visible in JSON/Rich output | Internal commit message leakage if running on proprietary repo | Messages truncated at 60 chars; only top-3 samples | Accept: commit messages already visible in git log; no additional exposure beyond existing git ingestion | 2 | 2 | 5 | 20 | Accepted |
+| CCC | FN: commit message truncation at 60 chars may hide actionable context string | Long messages with key co-change reason after 60 chars are cut | Less informative context for accidental-coupling diagnosis | 60 chars typically covers the conventional commit type+scope prefix | Accept: 60 chars captures `feat(scope): ` style; 3-sample window provides adequate context | 2 | 3 | 5 | 30 | Accepted |
+
 ## 2026-04-11 - ADR-041: PHR Runtime Import Attribute Validation
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

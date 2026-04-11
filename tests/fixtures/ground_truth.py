@@ -2398,6 +2398,67 @@ NBV_STUB_TN = GroundTruthFixture(
     ],
 )
 
+NBV_TS_ASYNC_BOOL_TN = GroundTruthFixture(
+    name="nbv_ts_async_bool_tn",
+    description=(
+        "TypeScript is_*/has_* with PromiseLike/Observable<boolean> wrappers "
+        "should NOT fire NBV"
+    ),
+    files={
+        "src/checks.ts": """\
+            export async function isSessionActive(): Promise<boolean> {
+                return false;
+            }
+
+            export function hasPermission(): PromiseLike<boolean> {
+                return Promise.resolve(true);
+            }
+
+            export function isObservableReady(): Observable<boolean> {
+                return streamReady;
+            }
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.NAMING_CONTRACT_VIOLATION,
+            file_path="src/checks.ts",
+            should_detect=False,
+            description="Async boolean wrappers satisfy is_*/has_* bool contract",
+        ),
+    ],
+)
+
+NBV_TS_ENSURE_UPSERT_TN = GroundTruthFixture(
+    name="nbv_ts_ensure_upsert_tn",
+    description=(
+        "TypeScript ensure_* upsert/get-or-create pattern with return value "
+        "should NOT fire NBV"
+    ),
+    files={
+        "src/config.ts": """\
+            export type JsonRecord = Record<string, unknown>;
+
+            export function ensureRecord(root: JsonRecord, key: string): JsonRecord {
+                let next = root[key];
+                if (next == null || typeof next !== "object" || Array.isArray(next)) {
+                    next = {};
+                    root[key] = next;
+                }
+                return next as JsonRecord;
+            }
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.NAMING_CONTRACT_VIOLATION,
+            file_path="src/config.ts",
+            should_detect=False,
+            description="TS ensure_* upsert with value return satisfies language-specific contract",
+        ),
+    ],
+)
+
 
 # ── Bypass Accumulation (BAT) ───────────────────────────────────────────
 
@@ -6420,6 +6481,364 @@ ISD_IGNORE_DIRECTIVE_TN = GroundTruthFixture(
 )
 
 
+# ── TypeScript Ground-Truth Fixtures (Phase 1 — TS Parity) ──────────────
+
+# TYPE_SAFETY_BYPASS — TS-specific signal for @ts-ignore, as any, non-null assertions
+
+TSB_TS_TRUE_POSITIVE = GroundTruthFixture(
+    name="tsb_ts_tp",
+    description="TypeScript file with multiple type safety bypasses → should fire TSB",
+    files={
+        "src/legacy.ts": (
+            "// Legacy TypeScript module with accumulated bypasses\n"
+            "interface User { id: string; name: string; role: string; }\n"
+            "\n"
+            "// @ts-ignore\n"
+            "const config = JSON.parse(rawData) as any;\n"
+            "\n"
+            "// @ts-ignore\n"
+            "const settings = loadSettings() as any;\n"
+            "\n"
+            "// @ts-expect-error\n"
+            "const broken: number = 'not a number';\n"
+            "\n"
+            "function getUser(id: string): User {\n"
+            "  const el = document.getElementById(id)!;\n"
+            "  const parent = el.parentElement!;\n"
+            "  return { id, name: el.textContent as any, role: parent.dataset.role as any };\n"
+            "}\n"
+            "\n"
+            "function processData(data: unknown): void {\n"
+            "  const items = data as any;\n"
+            "  items.forEach((item: any) => console.log(item));\n"
+            "}\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TYPE_SAFETY_BYPASS,
+            file_path="src/legacy.ts",
+            should_detect=True,
+            description="Multiple @ts-ignore, as any, and non-null assertion bypasses",
+        ),
+    ],
+)
+
+TSB_TS_TRUE_NEGATIVE = GroundTruthFixture(
+    name="tsb_ts_tn",
+    description="Clean TypeScript file without bypasses → should NOT fire TSB",
+    files={
+        "src/clean.ts": (
+            "// Well-typed TypeScript module\n"
+            "interface User {\n"
+            "  id: string;\n"
+            "  name: string;\n"
+            "  email: string;\n"
+            "}\n"
+            "\n"
+            "interface Config {\n"
+            "  host: string;\n"
+            "  port: number;\n"
+            "  debug: boolean;\n"
+            "}\n"
+            "\n"
+            "function createUser(name: string, email: string): User {\n"
+            "  return { id: crypto.randomUUID(), name, email };\n"
+            "}\n"
+            "\n"
+            "function validateConfig(config: Config): boolean {\n"
+            "  if (!config.host) return false;\n"
+            "  if (config.port < 1 || config.port > 65535) return false;\n"
+            "  return true;\n"
+            "}\n"
+            "\n"
+            "function formatUser(user: User): string {\n"
+            "  return `${user.name} <${user.email}>`;\n"
+            "}\n"
+            "\n"
+            "export { createUser, validateConfig, formatUser };\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TYPE_SAFETY_BYPASS,
+            file_path="src/clean.ts",
+            should_detect=False,
+            description="No bypasses in well-typed code",
+        ),
+    ],
+)
+
+# NAMING_CONTRACT_VIOLATION — TS-specific: camelCase naming + tree-sitter checkers
+
+NBV_TS_VALIDATE_TP = GroundTruthFixture(
+    name="nbv_ts_validate_tp",
+    description="TS validateEmail() without throw or return false → should fire NBV",
+    files={
+        "src/validators.ts": (
+            "// Validator module\n"
+            "\n"
+            "export function validateEmail(email: string): string {\n"
+            "  const parts = email.split('@');\n"
+            "  const domain = parts.length > 1 ? parts[1] : '';\n"
+            "  const local = parts[0] || '';\n"
+            "  const cleaned = local.trim().toLowerCase();\n"
+            "  return `${cleaned}@${domain}`;\n"
+            "}\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.NAMING_CONTRACT_VIOLATION,
+            file_path="src/validators.ts",
+            should_detect=True,
+            description="validateEmail has no throw and never returns false/null",
+        ),
+    ],
+)
+
+NBV_TS_TRUE_NEGATIVE = GroundTruthFixture(
+    name="nbv_ts_tn",
+    description="TS validateEmail() with proper throw → should NOT fire NBV",
+    files={
+        "src/validators_clean.ts": (
+            "// Validator module with proper contracts\n"
+            "\n"
+            "export function validateEmail(email: string): boolean {\n"
+            "  if (!email.includes('@')) {\n"
+            "    throw new Error('Invalid email format');\n"
+            "  }\n"
+            "  return true;\n"
+            "}\n"
+            "\n"
+            "export function isAdmin(user: { role: string }): boolean {\n"
+            "  return user.role === 'admin';\n"
+            "}\n"
+            "\n"
+            "export function hasPermission(user: { perms: string[] }, perm: string): boolean {\n"
+            "  return user.perms.includes(perm);\n"
+            "}\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.NAMING_CONTRACT_VIOLATION,
+            file_path="src/validators_clean.ts",
+            should_detect=False,
+            description="validateEmail has throw, isAdmin/hasPermission return boolean",
+        ),
+    ],
+)
+
+# GUARD_CLAUSE_DEFICIT — TS functions with no guards
+
+GCD_TS_TRUE_POSITIVE = GroundTruthFixture(
+    name="gcd_ts_tp",
+    description="TS module with 3+ unguarded complex public functions → should fire GCD",
+    files={
+        "src/processor.ts": (
+            "// Data processing module — no input validation guards\n"
+            "\n"
+            "export function transformData(data: unknown[], schema: Record<string, string>,\n"
+            "                              options: Record<string, unknown>): "
+            "Record<string, unknown>[] {\n"
+            "  const result: Record<string, unknown>[] = [];\n"
+            "  for (const item of data as Record<string, unknown>[]) {\n"
+            "    const out: Record<string, unknown> = {};\n"
+            "    for (const [key, spec] of Object.entries(schema)) {\n"
+            "      const val = (item as Record<string, string>)[key];\n"
+            "      if (spec === 'upper') {\n"
+            "        out[key] = val.toUpperCase();\n"
+            "      } else if (spec === 'lower') {\n"
+            "        out[key] = val.toLowerCase();\n"
+            "      } else if (spec === 'strip') {\n"
+            "        out[key] = val.trim();\n"
+            "      } else {\n"
+            "        out[key] = val;\n"
+            "      }\n"
+            "    }\n"
+            "    if (options.filterKey) {\n"
+            "      if (out[options.filterKey as string]) {\n"
+            "        result.push(out);\n"
+            "      }\n"
+            "    } else {\n"
+            "      result.push(out);\n"
+            "    }\n"
+            "  }\n"
+            "  return result;\n"
+            "}\n"
+            "\n"
+            "export function aggregateRecords(records: Record<string, unknown>[],\n"
+            "                                 dimensions: string[],\n"
+            "                                 funcs: string[]): Record<string, unknown>[] {\n"
+            "  const groups = new Map<string, Record<string, unknown>[]>();\n"
+            "  for (const r of records) {\n"
+            "    const key = dimensions.map(d => String(r[d])).join('|');\n"
+            "    if (!groups.has(key)) groups.set(key, []);\n"
+            "    groups.get(key)!.push(r);\n"
+            "  }\n"
+            "  const out: Record<string, unknown>[] = [];\n"
+            "  for (const [key, rows] of groups.entries()) {\n"
+            "    const parts = key.split('|');\n"
+            "    const entry: Record<string, unknown> = {};\n"
+            "    dimensions.forEach((d, i) => entry[d] = parts[i]);\n"
+            "    for (const fn of funcs) {\n"
+            "      const vals = rows.map(r => Number(r[fn]) || 0);\n"
+            "      if (vals.length > 0) {\n"
+            "        entry[fn] = vals.reduce((a, b) => a + b, 0) / vals.length;\n"
+            "      }\n"
+            "    }\n"
+            "    out.push(entry);\n"
+            "  }\n"
+            "  return out;\n"
+            "}\n"
+            "\n"
+            "export function exportReport(data: Record<string, unknown>[],\n"
+            "                             columns: string[],\n"
+            "                             fmt: string): string {\n"
+            "  const lines: string[] = [];\n"
+            "  const header = columns.map(c => String(c));\n"
+            "  lines.push(header.join(','));\n"
+            "  for (const row of data) {\n"
+            "    const cells: string[] = [];\n"
+            "    for (const col of columns) {\n"
+            "      const val = row[col] ?? '';\n"
+            "      if (fmt === 'quoted') {\n"
+            "        cells.push(`\"${val}\"`);\n"
+            "      } else if (fmt === 'raw') {\n"
+            "        cells.push(String(val));\n"
+            "      } else {\n"
+            "        cells.push(String(val).trim());\n"
+            "      }\n"
+            "    }\n"
+            "    lines.push(cells.join(','));\n"
+            "  }\n"
+            "  return lines.join('\\n');\n"
+            "}\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.GUARD_CLAUSE_DEFICIT,
+            file_path="src/",
+            should_detect=True,
+            description="3 public TS functions with >=2 params, no guards",
+        ),
+    ],
+)
+
+GCD_TS_TRUE_NEGATIVE = GroundTruthFixture(
+    name="gcd_ts_tn",
+    description="TS module with properly guarded functions → should NOT fire GCD",
+    files={
+        "src/guarded.ts": (
+            "// Well-guarded TypeScript module\n"
+            "\n"
+            "export function processUser(user: unknown, id: string): string {\n"
+            "  if (!user) throw new Error('User is required');\n"
+            "  if (!id) return '';\n"
+            "  return String(user) + id;\n"
+            "}\n"
+            "\n"
+            "export function formatDate(date: Date, locale: string): string {\n"
+            "  if (!date) throw new Error('Date is required');\n"
+            "  if (!locale) return date.toISOString();\n"
+            "  return date.toLocaleDateString(locale);\n"
+            "}\n"
+            "\n"
+            "export function mergeConfigs(base: Record<string, unknown>,\n"
+            "                             override: Record<string, unknown>): "
+            "Record<string, unknown> {\n"
+            "  if (!base) throw new Error('Base config required');\n"
+            "  if (!override) return { ...base };\n"
+            "  return { ...base, ...override };\n"
+            "}\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.GUARD_CLAUSE_DEFICIT,
+            file_path="src/",
+            should_detect=False,
+            description="All functions have early-return/throw guards",
+        ),
+    ],
+)
+
+# TS_ARCHITECTURE — circular import cycle
+
+TSA_CIRCULAR_TP = GroundTruthFixture(
+    name="tsa_circular_tp",
+    description="Circular TS import cycle (A → B → C → A) → should fire TSA",
+    files={
+        "src/a.ts": (
+            "import { helperB } from './b';\n"
+            "\n"
+            "export function serviceA(): string {\n"
+            "  return 'A:' + helperB();\n"
+            "}\n"
+        ),
+        "src/b.ts": (
+            "import { helperC } from './c';\n"
+            "\n"
+            "export function helperB(): string {\n"
+            "  return 'B:' + helperC();\n"
+            "}\n"
+        ),
+        "src/c.ts": (
+            "import { serviceA } from './a';\n"
+            "\n"
+            "export function helperC(): string {\n"
+            "  return 'C:' + serviceA();\n"
+            "}\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TS_ARCHITECTURE,
+            file_path="src/a.ts",
+            should_detect=True,
+            description="Circular import cycle: a → b → c → a",
+        ),
+    ],
+)
+
+TSA_CLEAN_TN = GroundTruthFixture(
+    name="tsa_clean_tn",
+    description="TS files with acyclic imports → should NOT fire TSA",
+    files={
+        "src/types.ts": (
+            "export interface Config {\n"
+            "  host: string;\n"
+            "  port: number;\n"
+            "}\n"
+        ),
+        "src/utils.ts": (
+            "import { Config } from './types';\n"
+            "\n"
+            "export function formatConfig(cfg: Config): string {\n"
+            "  return `${cfg.host}:${cfg.port}`;\n"
+            "}\n"
+        ),
+        "src/main.ts": (
+            "import { Config } from './types';\n"
+            "import { formatConfig } from './utils';\n"
+            "\n"
+            "const config: Config = { host: 'localhost', port: 8080 };\n"
+            "console.log(formatConfig(config));\n"
+        ),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.TS_ARCHITECTURE,
+            file_path="src/",
+            should_detect=False,
+            description="Acyclic import structure — no circular dependencies",
+        ),
+    ],
+)
+
+
 # Append NBV + BAT + PHR fixtures to ALL_FIXTURES
 ALL_FIXTURES.extend(
     [
@@ -6430,6 +6849,8 @@ ALL_FIXTURES.extend(
         NBV_TRY_TP,
         NBV_TRUE_NEGATIVE,
         NBV_STUB_TN,
+        NBV_TS_ASYNC_BOOL_TN,
+        NBV_TS_ENSURE_UPSERT_TN,
         BAT_TRUE_POSITIVE,
         BAT_HIGH_DENSITY_TP,
         BAT_TRUE_NEGATIVE,
@@ -6556,6 +6977,15 @@ ALL_FIXTURES.extend(
         ISD_SECURE_DJANGO_TN,
         ISD_VERIFY_FALSE_LOCALHOST_TN,
         ISD_IGNORE_DIRECTIVE_TN,
+        # ── TypeScript ground-truth fixtures (Phase 1 — TS Parity) ──
+        TSB_TS_TRUE_POSITIVE,
+        TSB_TS_TRUE_NEGATIVE,
+        NBV_TS_VALIDATE_TP,
+        NBV_TS_TRUE_NEGATIVE,
+        GCD_TS_TRUE_POSITIVE,
+        GCD_TS_TRUE_NEGATIVE,
+        TSA_CIRCULAR_TP,
+        TSA_CLEAN_TN,
     ]
 )
 

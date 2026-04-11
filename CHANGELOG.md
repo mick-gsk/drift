@@ -2,6 +2,46 @@
 
 ### Added
 
+- **MAZ security tier (ADR-047):** Missing authorization findings now emit at `CRITICAL` severity (score 0.85) instead of HIGH; fix text includes an A2A/agent-card public-endpoint exemption note. Rich terminal output (`drift analyze`) renders MAZ, HSC, and ISD findings in a dedicated red "Security Findings" panel before the main findings table.
+- **EDS private-function recall guard (ADR-048):** Private functions now require a weighted score ≥ 0.45 (vs 0.30 for public) before being reported. Files tagged as `defect_correlated` in git history override the threshold back down to 0.30, preserving recall on historically buggy helpers.
+- **PFS canonical code snippet (ADR-049):** Pattern fragmentation findings now embed up to 8 source lines of the canonical exemplar in `metadata["canonical_snippet"]`. Severity is downgraded (HIGH→MEDIUM or MEDIUM→LOW) when the canonical pattern covers < 10 % of instances, and HIGH→MEDIUM when it covers < 15 % (`canonical_ratio` in metadata).
+- **AVS blast-radius churn guard (ADR-050):** `_check_blast_radius` now accepts `file_histories` and skips modules with `change_frequency_30d ≤ 1.0` AND `blast_radius ≤ 50` — reducing noise from stable, rarely-touched modules. `churn_per_week` is added to finding metadata.
+- **CCC commit-context test template (ADR-051):** Co-change coupling findings now store up to 3 truncated commit messages in `metadata["commit_messages"]`. Fix text presents an intentional vs accidental coupling branch: the intentional path shows a test scaffold (`def test_<a>_<b>_sync()`), the accidental path recommends extracting shared logic.
+
+- `--format pr-comment` output for `drift analyze` — compact Markdown block suitable for GitHub PR comments, Slack posts, and issue updates (ADR-052). Shows score, severity, trend, and top 5 findings with human-readable signal names and actionable fix text.
+- SARIF rule `help` field now populated from `generate_recommendation()` for signals with registered recommenders — Code Scanning annotations show structured remediation guidance (ADR-052).
+- `analysis_to_markdown()` gains `include_modules` and `include_signal_coverage` params; `--compact` flag now also applies to `--format markdown` (max 5 findings, no module scores, no signal coverage) (ADR-052).
+- CSV output (`--format csv`) gains `signal_label` column with human-readable signal name for non-Drift consumers (ADR-052).
+
+### Changed
+
+- SARIF `message.text` extended with `generate_recommendation()` title when available, capped at 400 chars (ADR-052).
+
+### Breaking Changes
+
+- **CSV**: The `signal_label` column is inserted after `signal` — all column indices ≥ 2 shift by 1. Parsers using positional column access must be updated.
+
+- `drift completions [bash|zsh|fish]` command for shell tab-completion script generation.
+- `--format junit` output for `drift analyze` and `drift check` — JUnit XML for Jenkins, GitLab, Azure DevOps CI integration.
+- `--format llm` output for `drift analyze` and `drift check` — token-efficient single-line-per-finding format for AI agents and LLMs.
+- `drift ci` zero-config CI command with auto-detection of GitHub Actions, GitLab CI, CircleCI, and Azure Pipelines; auto-selects diff-ref, output format, and exit-code behavior.
+- `drift gate` alias for `drift check` — positions quality gate branding for CI documentation.
+- `drift analyze` now accepts an optional positional `[REPO]` argument so `drift analyze .` and `drift analyze /path/to/repo` work without the `--repo` flag, matching README examples.
+- `drift start` output expanded with a tool description, "What to expect" block for each command, and a hint to use `drift explain <SIGNAL>`.
+- `drift check` shows a scope-clarification panel when no findings are returned on the default `HEAD~1` diff, pointing users to `drift analyze --repo .` for a full scan.
+- `drift status` shows a `Location: file:line` reference above each copy-paste prompt for direct navigation (prompt text itself stays path-free per PRD F-06).
+- `drift fix-plan` gets a `--format [auto|rich|json]` option (default `auto`): in a terminal, output is now a Rich table (header panel with score and task count, numbered task list with Signal/Severity/File/Fit columns, footer hint). In pipes and CI the default remains JSON. `--format json` forces JSON unconditionally; `--output <file>` always writes JSON (ADR-047).
+
+### Changed
+
+- Score headline panel in `drift analyze` output now shows "Typical first-run range: 0.30–0.65" as a dim hint for first-time score context.
+- `drift status` all output strings translated from German to English (short_help, docstring, found/not-found messages, "Next step:", "Tip:", and calibration hint).
+- Inline code snippets in rich output are now hard-capped at 8 lines per finding; additional lines show a `… (N more lines)` marker instead of overflowing the terminal.
+- `drift.yaml` extended with an `exclude:` section to keep `benchmarks/**`, `benchmark_results/**`, `data/**`, `community_flywheel_output/**`, `work_artifacts/**`, `tagesplanung/**`, `site/**`, and `overrides/**` out of the default scan scope.
+
+### Fixed
+
+- NBV Issue #210: `ensure_*` in TypeScript/JavaScript now accepts language-conformant upsert/get-or-create semantics (throw **or** value-returning return path), reducing false positives while preserving Python `ensure_*` raise expectations.
 - Activate MAZ (missing authorization, weight 0.02) and ISD (insecure default, weight 0.01) as scoring-active signals, completing the agent-safety signal suite (ADR-039).
 - Recalibrate HSC (0.02→0.01), FOE (0.01→0.005) weights for conservative activation alongside MAZ/ISD (ADR-039).
 - Add 5 new ISD ground-truth fixtures (2 TP, 3 TN) for precision/recall coverage.
