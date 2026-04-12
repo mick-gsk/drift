@@ -1,5 +1,55 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #276: AVS Zone-of-Pain false positives on passive TS definition modules
+
+### Top Event (TE-AVS-276)
+AVS reports passive TypeScript constants/type-definition modules as high-priority Zone-of-Pain hotspots.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: passive definition module reported as actionable Zone-of-Pain finding
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Instability check used only coupling/abstraction distance and did not distinguish passive definition carriers from executable logic modules.
+  - Mitigation: add parse-result guard for passive definition modules (no imports/functions/classes/patterns).
+- **IE-2 (MCS)**: No parser-health gate for suppression criteria could risk masking parse-failed files.
+  - Mitigation: only apply passive-definition suppression when `parse_errors` is empty.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: suppressing Zone-of-Pain for passive modules may down-rank rare edge cases.
+  - Mitigation: scope suppression strictly to `avs_zone_of_pain`; all other AVS checks remain unchanged (upward-import, circular, blast-radius, unstable-dependency).
+
+## 2026-04-12 - Issue #275: CXS false positives on Zod config-schema files
+
+### Top Event (TE-CXS-275)
+CXS reports declarative TypeScript Zod config-schema modules as high cognitive complexity with actionable urgency.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: declarative config-schema module reported as high-priority complexity debt
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Inherent TS context detection did not include common `config-schema` filename convention.
+  - Mitigation: add bounded filename marker (`config-schema`) to `_is_inherent_ts_complexity_context`.
+- **IE-2 (MCS)**: Missing contextual classification let standard CXS score mapping escalate expected schema-branching structures to MEDIUM/HIGH.
+  - Mitigation: route matched files through existing context dampening path (`INFO`, `score <= 0.19`, `context_dampened=True`).
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: filename-based dampening may down-rank genuine imperative complexity in mixed-purpose `config-schema` files.
+  - Mitigation: keep findings visible (no suppression), bounded to explicit filename marker, and preserve non-context behavior elsewhere.
+
 ## 2026-04-12 - Issue #274: TSB false positives on Playwright SDK interop non-null assertions
 
 ### Top Event (TE-TSB-274)
@@ -24,6 +74,31 @@ TSB reports HIGH-severity type-safety bypass clusters in Playwright SDK interact
 
 - **IE-3 (Guard)**: broad SDK non-null dampening could down-rank genuine unsafe non-null usage in SDK-adjacent files.
   - Mitigation: bound behavior to known SDK import context and non-null assertions only; keep `as any`, `double_cast`, and directive bypass scoring unchanged.
+
+## 2026-04-12 - Issue #273: DCA false positives for published npm package exports
+
+### Top Event (TE-DCA-273)
+DCA reports exported symbols in published npm package sources under `packages/<name>/src|lib` as high-urgency dead code although consumers often exist outside the analyzed repository.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: published package export reported as actionable dead code
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: DCA import evidence is repository-local and cannot observe downstream package consumers.
+  - Mitigation: detect package-root publishing context via `packages/<name>/package.json` (`name` present, `private != true`).
+- **IE-2 (MCS)**: Existing DCA context dampening covered plugin/runtime workspaces but not generic monorepo npm package sources.
+  - Mitigation: add bounded published-package dampening for source roots (`src|lib`) and emit trace metadata (`published_package_heuristic_applied`, `published_package_name`).
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: broad package dampening could under-prioritize genuinely dead exports in internal-only packages.
+  - Mitigation: exclude `private: true` packages from dampening and keep findings visible (no suppression), only lowering severity.
 
 ## 2026-04-12 - Issue #271: DCA false positives for non-exported TS file-local declarations
 

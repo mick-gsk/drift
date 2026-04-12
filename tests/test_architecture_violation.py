@@ -469,6 +469,124 @@ def test_zone_of_pain_tiny_foundation_can_still_be_high_with_strong_evidence():
     assert finding.metadata["has_high_risk_evidence"] is True
 
 
+def test_zone_of_pain_skips_passive_typescript_constants_module_issue_276():
+    """Pure constants modules should not be classified as Zone of Pain."""
+    prs = [
+        ParseResult(
+            file_path=Path("extensions/browser/src/browser/cdp-timeouts.ts"),
+            language="typescript",
+            line_count=18,
+        ),
+        _pr(
+            "extensions/browser/src/browser/launcher.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/launcher.ts",
+                    "extensions/browser/src/browser/cdp-timeouts.ts",
+                )
+            ],
+        ),
+        _pr(
+            "extensions/browser/src/browser/client.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/client.ts",
+                    "extensions/browser/src/browser/cdp-timeouts.ts",
+                )
+            ],
+        ),
+        _pr(
+            "extensions/browser/src/browser/retry.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/retry.ts",
+                    "extensions/browser/src/browser/cdp-timeouts.ts",
+                )
+            ],
+        ),
+        _pr(
+            "extensions/browser/src/browser/main.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/main.ts",
+                    "extensions.browser.src.browser.launcher",
+                )
+            ],
+        ),
+    ]
+
+    signal = ArchitectureViolationSignal()
+    findings = signal.analyze(prs, {}, None)
+
+    zone = [
+        f
+        for f in findings
+        if f.rule_id == "avs_zone_of_pain"
+        and f.file_path
+        and f.file_path.as_posix().endswith("cdp-timeouts.ts")
+    ]
+    assert zone == []
+
+
+def test_zone_of_pain_skips_passive_typescript_type_module_issue_276():
+    """Pure TS type-definition modules should not be classified as Zone of Pain."""
+    prs = [
+        ParseResult(
+            file_path=Path("extensions/browser/src/browser/client-actions-types.ts"),
+            language="typescript",
+            line_count=16,
+        ),
+        _pr(
+            "extensions/browser/src/browser/actions.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/actions.ts",
+                    "extensions/browser/src/browser/client-actions-types.ts",
+                )
+            ],
+        ),
+        _pr(
+            "extensions/browser/src/browser/handlers.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/handlers.ts",
+                    "extensions/browser/src/browser/client-actions-types.ts",
+                )
+            ],
+        ),
+        _pr(
+            "extensions/browser/src/browser/protocol.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/protocol.ts",
+                    "extensions/browser/src/browser/client-actions-types.ts",
+                )
+            ],
+        ),
+        _pr(
+            "extensions/browser/src/browser/main.ts",
+            [
+                _imp(
+                    "extensions/browser/src/browser/main.ts",
+                    "extensions.browser.src.browser.actions",
+                )
+            ],
+        ),
+    ]
+
+    signal = ArchitectureViolationSignal()
+    findings = signal.analyze(prs, {}, None)
+
+    zone = [
+        f
+        for f in findings
+        if f.rule_id == "avs_zone_of_pain"
+        and f.file_path
+        and f.file_path.as_posix().endswith("client-actions-types.ts")
+    ]
+    assert zone == []
+
+
 # ── Co-change coupling ───────────────────────────────────────────────────
 
 

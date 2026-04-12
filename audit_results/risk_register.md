@@ -1,5 +1,56 @@
 # Risk Register
 
+## 2026-04-12 - Issue #276: AVS passive-definition Zone-of-Pain precision hardening
+
+- Risk ID: RISK-SIGNAL-2026-04-12-276
+- Component: `src/drift/signals/architecture_violation.py`, `tests/test_architecture_violation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Architecture Violation (AVS) now suppresses `avs_zone_of_pain` findings for passive TypeScript/Python definition modules that contain no imports, functions, classes, or patterns and have no parser errors. This addresses false positives on pure constants and type-definition files.
+- Trigger: `drift analyze` on extension/plugin repositories with dedicated constants or type-shape carrier files (for example `cdp-timeouts.ts`, `client-actions-types.ts`) that are widely depended upon but contain no executable logic.
+- Impact: High-positive. Reduces high-severity AVS triage noise and improves trust/actionability for architecture findings.
+- Mitigation:
+  - Added `_is_passive_definition_module()` guard in AVS instability pass.
+  - Restricted suppression to parser-healthy modules (`parse_errors` empty).
+  - Added targeted regressions for constants and type-only TS modules (Issue 276).
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_architecture_violation.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m ruff check src/drift/signals/architecture_violation.py tests/test_architecture_violation.py`
+- Residual risk: Low-Medium. Rare passive modules with hidden architectural risk may be down-ranked in Zone-of-Pain view; other AVS checks still surface coupling/pathology signals.
+
+## 2026-04-12 - Issue #275: CXS config-schema context precision hardening
+
+- Risk ID: RISK-SIGNAL-2026-04-12-275
+- Component: `src/drift/signals/cognitive_complexity.py`, `tests/test_cognitive_complexity.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Cognitive Complexity (CXS) now recognizes TypeScript/JavaScript `config-schema` filename convention as inherent schema context and caps those findings to informational severity (`INFO`, `score <= 0.19`) using the existing `context_dampened` path.
+- Trigger: `drift analyze` on TypeScript extension/plugin repositories that define large declarative Zod configuration schemas in files like `extensions/*/src/config-schema.ts`.
+- Impact: High-positive. Reduces high-urgency false positives for declarative schema definition modules and improves CXS triage credibility.
+- Mitigation:
+  - Extended `_is_inherent_ts_complexity_context()` with bounded `config-schema` filename marker.
+  - Added targeted regression coverage for path recognition and INFO-cap behavior on `extensions/feishu/src/config-schema.ts`.
+  - Preserved existing non-context CXS behavior and visibility (no suppression).
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_cognitive_complexity.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m ruff check src/drift/signals/cognitive_complexity.py tests/test_cognitive_complexity.py`
+- Residual risk: Low-Medium. Imperative complexity inside some `config-schema` files can be down-ranked; findings remain visible and scope is constrained to explicit naming.
+
+## 2026-04-12 - Issue #273: DCA false positives for published npm package exports
+
+- Risk ID: RISK-SIGNAL-2026-04-12-273
+- Component: `src/drift/signals/dead_code_accumulation.py`, `tests/test_dead_code_accumulation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Dead Code Accumulation (DCA) now recognizes published npm package context for monorepo package sources. For JS/TS files under `packages/<name>/src|lib`, DCA checks `packages/<name>/package.json`; if a package `name` exists and `private` is not `true`, findings are bounded to LOW severity to reflect likely downstream external consumption not visible to repo-local static import analysis.
+- Trigger: `drift analyze` on monorepos that publish SDK packages (for example `packages/*`) where exports are consumed by external package users.
+- Impact: High-positive. Reduces high-volume DCA false positives and improves signal credibility/actionability for package-based ecosystems.
+- Mitigation:
+  - Added package-root detection for `packages/<name>` paths and safe `package.json` parsing.
+  - Added published-package dampening path with cap (`score <= 0.39`) and explicit metadata traceability (`published_package_heuristic_applied`, `published_package_name`).
+  - Added regression tests for positive published-package behavior and negative `private: true` guard.
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_dead_code_accumulation.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m ruff check src/drift/signals/dead_code_accumulation.py tests/test_dead_code_accumulation.py`
+- Residual risk: Low-Medium. Some genuinely dead exports in published packages may be down-ranked; findings remain visible and private/internal package roots are excluded from the dampening path.
+
 ## 2026-04-12 - Issue #274: TSB Playwright SDK non-null assertion precision hardening
 
 - Risk ID: RISK-SIGNAL-2026-04-12-274

@@ -186,6 +186,27 @@ def _extension_workspace_root(path_str: str) -> str | None:
     return None
 
 
+def _is_passive_definition_module(parse_result: ParseResult | None) -> bool:
+    """Return True for files that only carry passive definitions.
+
+    These modules often contain constants/type shapes and intentionally
+    no executable logic. They should not be treated as "Zone of Pain"
+    architecture hotspots.
+    """
+    if parse_result is None:
+        return False
+    if parse_result.parse_errors:
+        return False
+
+    return (
+        not parse_result.imports
+        and not parse_result.functions
+        and not parse_result.classes
+        and not parse_result.patterns
+        and parse_result.line_count > 0
+    )
+
+
 def build_import_graph(
     parse_results: list[ParseResult],
 ) -> tuple[nx.DiGraph, list[ImportInfo]]:
@@ -890,6 +911,12 @@ class ArchitectureViolationSignal(BaseSignal):
             total_classes = len(pr.classes) if pr is not None else 0
             function_count = len(pr.functions) if pr is not None else 0
             entity_count = total_classes + function_count
+
+            # Passive constants/type-definition modules are expected to be
+            # concrete and stable; Zone-of-Pain escalation is not useful there.
+            if _is_passive_definition_module(pr):
+                continue
+
             if pr is not None and total_classes > 0:
                 abstract_count = 0
                 for c in pr.classes:
