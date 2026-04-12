@@ -25,6 +25,7 @@ def _endpoint_pattern(
     *,
     has_auth: bool = False,
     auth_mechanism: str | None = None,
+    route: str = "",
 ) -> PatternInstance:
     return PatternInstance(
         category=PatternCategory.API_ENDPOINT,
@@ -36,6 +37,7 @@ def _endpoint_pattern(
             "has_error_handling": False,
             "has_auth": has_auth,
             "auth_mechanism": auth_mechanism,
+            "route": route,
             "return_patterns": [],
             "is_async": False,
         },
@@ -384,6 +386,45 @@ class TestMAZEdgeCases:
         findings = signal.analyze([pr], {}, DriftConfig())
         assert len(findings) == 1
         assert findings[0].metadata["cwe"] == "CWE-862"
+
+    def test_deduplicates_same_endpoint_and_prefers_specific_route(self) -> None:
+        """MAZ should emit one finding per endpoint symbol and keep the best route metadata."""
+        pr = ParseResult(
+            file_path=Path("extensions/msteams/src/monitor.ts"),
+            language="typescript",
+            functions=[
+                FunctionInfo(
+                    name="monitorMSTeamsProvider",
+                    file_path=Path("extensions/msteams/src/monitor.ts"),
+                    start_line=80,
+                    end_line=140,
+                    language="typescript",
+                    parameters=["req", "res"],
+                )
+            ],
+            imports=[_imp("extensions/msteams/src/monitor.ts", "express")],
+            patterns=[
+                _endpoint_pattern(
+                    "monitorMSTeamsProvider",
+                    "extensions/msteams/src/monitor.ts",
+                    90,
+                    route="",
+                ),
+                _endpoint_pattern(
+                    "monitorMSTeamsProvider",
+                    "extensions/msteams/src/monitor.ts",
+                    120,
+                    route="/api/messages",
+                ),
+            ],
+        )
+
+        signal = MissingAuthorizationSignal()
+        findings = signal.analyze([pr], {}, DriftConfig())
+
+        assert len(findings) == 1
+        assert findings[0].symbol == "monitorMSTeamsProvider"
+        assert findings[0].metadata["route"] == "/api/messages"
 
     def test_fix_suggestion_framework_specific(self) -> None:
         pr = ParseResult(

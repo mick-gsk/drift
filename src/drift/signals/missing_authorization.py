@@ -100,6 +100,14 @@ _AUTH_PARAM_REGEXES: tuple[re.Pattern[str], ...] = (
     re.compile(r"^principal$"),
 )
 
+_SEVERITY_ORDER: dict[Severity, int] = {
+    Severity.INFO: 0,
+    Severity.LOW: 1,
+    Severity.MEDIUM: 2,
+    Severity.HIGH: 3,
+    Severity.CRITICAL: 4,
+}
+
 
 def _normalize_param_name(param: str) -> str:
     """Normalize parameter names across snake_case and camelCase variants."""
@@ -155,6 +163,36 @@ def _looks_like_http_route_path(route: str) -> bool:
     if candidate == "*":
         return True
     return candidate.startswith("/")
+
+
+def _route_specificity(route: str) -> tuple[int, int]:
+    """Rank route specificity; non-empty concrete paths win over empty routes."""
+    candidate = route.strip().strip("'\"")
+    if not candidate:
+        return (0, 0)
+    if candidate == "*":
+        return (1, 1)
+    if candidate.startswith("/"):
+        return (2, len(candidate))
+    return (1, len(candidate))
+
+
+def _prefer_route_metadata(current: Finding, candidate: Finding) -> Finding:
+    """Keep one finding and prefer richer route metadata for the same endpoint."""
+    current_route = str(current.metadata.get("route", ""))
+    candidate_route = str(candidate.metadata.get("route", ""))
+
+    current_rank = _route_specificity(current_route)
+    candidate_rank = _route_specificity(candidate_route)
+    if candidate_rank > current_rank:
+        return candidate
+
+    if _SEVERITY_ORDER[candidate.severity] > _SEVERITY_ORDER[current.severity]:
+        return candidate
+    if candidate.score > current.score:
+        return candidate
+
+    return current
 
 
 def _has_strong_unknown_ts_route_evidence(pr: ParseResult, pat: PatternInstance) -> bool:
@@ -315,6 +353,22 @@ class MissingAuthorizationSignal(BaseSignal):
 
         supported_langs = {"python", "typescript", "tsx", "javascript", "jsx"}
         for pr in parse_results:
+            endpoint_findings_by_symbol: dict[tuple[str, str], Finding] = {}
+
+            def _collect_endpoint_finding(
+                finding: Finding,
+                _findings_map: dict[tuple[str, str], Finding] = endpoint_findings_by_symbol,
+            ) -> None:
+                dedupe_key = (str(finding.file_path), finding.symbol)
+                existing = _findings_map.get(dedupe_key)
+                if existing is None:
+                    _findings_map[dedupe_key] = finding
+                    return
+                _findings_map[dedupe_key] = _prefer_route_metadata(
+                    existing,
+                    finding,
+                )
+
             if pr.language not in supported_langs:
                 continue
             path_context = classify_file_context(pr.file_path)
@@ -395,7 +449,7 @@ class MissingAuthorizationSignal(BaseSignal):
                         "key material is returned; otherwise add authorization."
                     )
 
-                findings.append(
+                _collect_endpoint_finding(
                     Finding(
                         signal_type=self.signal_type,
                         severity=severity,
@@ -424,6 +478,7 @@ class MissingAuthorizationSignal(BaseSignal):
             # Conservative fallback: if ingestion found no endpoint patterns,
             # infer obvious route handlers from decorators to recover recall.
             if saw_api_pattern:
+                findings.extend(endpoint_findings_by_symbol.values())
                 continue
 
             for fn_info in _fallback_endpoint_functions(pr):
@@ -470,7 +525,7 @@ class MissingAuthorizationSignal(BaseSignal):
                         "key material is returned; otherwise add authorization."
                     )
 
-                findings.append(
+                _collect_endpoint_finding(
                     Finding(
                         signal_type=self.signal_type,
                         severity=severity,
@@ -495,5 +550,7 @@ class MissingAuthorizationSignal(BaseSignal):
                         rule_id="missing_authz_route",
                     )
                 )
+
+            findings.extend(endpoint_findings_by_symbol.values())
 
         return findings
