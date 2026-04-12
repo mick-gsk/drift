@@ -15,7 +15,7 @@ _TEST_FILE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(^|/)[^/]+_test\.py$"),
     re.compile(r"\.(?:test|spec)\.[tj]sx?$"),
     re.compile(r"\.mock-harness\.[tj]sx?$"),
-    re.compile(r"\.test-(?:harness|helpers|support)\.[tj]sx?$"),
+    re.compile(r"\.test-(?:harness|helpers|support|utils)\.[tj]sx?$"),
     re.compile(r"\.fixture-test-(?:helpers|support)\.[tj]sx?$"),
     re.compile(r"(^|/)test-support\.[tj]sx?$"),
     re.compile(r"(^|/)test-helpers\.[tj]sx?$"),

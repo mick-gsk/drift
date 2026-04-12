@@ -680,6 +680,45 @@ class TestTypeSafetyBypassSignal:
         assert finding.metadata.get("finding_context") == "test"
         assert finding.metadata["kind_distribution"].get("double_cast", 0) == 2
 
+    def test_issue_295_test_utils_double_casts_are_treated_as_test_context(
+        self, tmp_path: Path
+    ) -> None:
+        from drift.config import DriftConfig
+        from drift.models import ParseResult, Severity
+        from drift.signals.type_safety_bypass import TypeSafetyBypassSignal
+
+        file_path = tmp_path / "extensions" / "telegram" / "src" / "bot.media.test-utils.ts"
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(
+            "const effectiveProxyFetch = options.proxyFetch ?? "
+            "(undiciFetchSpyRef as unknown as typeof fetch);\n"
+            "const runtime = harness.telegramBotRuntimeForTest "
+            "as unknown as Parameters<typeof createHarness>[0];\n",
+            encoding="utf-8",
+        )
+
+        pr = ParseResult(
+            file_path=file_path,
+            language="typescript",
+            functions=[],
+            classes=[],
+            imports=[],
+            patterns=[],
+            line_count=2,
+        )
+
+        default_findings = TypeSafetyBypassSignal().analyze([pr], {}, DriftConfig())
+        assert default_findings == []
+
+        reduced_cfg = DriftConfig(test_file_handling="reduce_severity")
+        reduced_findings = TypeSafetyBypassSignal().analyze([pr], {}, reduced_cfg)
+        assert len(reduced_findings) == 1
+
+        finding = reduced_findings[0]
+        assert finding.severity == Severity.LOW
+        assert finding.metadata.get("finding_context") == "test"
+        assert finding.metadata["kind_distribution"].get("double_cast", 0) == 2
+
     def test_issue_293_status_test_support_double_casts_are_treated_as_test_context(
         self, tmp_path: Path
     ) -> None:
