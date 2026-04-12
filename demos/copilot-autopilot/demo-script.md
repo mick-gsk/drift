@@ -1,5 +1,10 @@
 # Demo-Skript: Drift Copilot Autopilot — Live-Run gegen openclaw/openclaw
 
+> **Run-Verdict: REGRESSION** — Score +0.011 (schlechter), 10 neue Findings.
+> Dieser Run dokumentiert einen echten Protokollbruch: Tasks 3–5 wurden trotz
+> `nudge_direction: "degrading"` als completed markiert. Das verschärfte
+> Fix-Qualitäts-Gate (Prompt v1.1) verhindert diesen Fehler künftig.
+
 Dieses Skript dokumentiert den echten Ablauf des MCP-Autopilot-Testlaufs.
 Alle Zeitmarken (T+mm:ss) und Werte sind gemessen, nicht geschätzt.
 
@@ -161,18 +166,41 @@ T+15:00  # Audit-Trail assembliert aus session_end + per-task nudge data
 
 ## Zusammenfassung
 
-| Metrik | Wert | Quelle |
-|--------|------|--------|
+| Metrik | Wert | Bewertung |
+|--------|------|-----------|
 | Findings identifiziert | 9.811 | `findings_summary.total_identified` |
 | Tasks bearbeitet | 5 | `orchestration_metrics.tasks_claimed` (unique) |
 | Tasks behoben | 4 | `orchestration_metrics.tasks_completed` |
 | Tasks fehlgeschlagen | 1 | `orchestration_metrics.tasks_failed` |
 | Score vorher | 0.495 | `demo_run.score_before` |
 | Score nachher | 0.506 | `demo_run.score_after` |
-| Score-Delta | +0.011 | `demo_run.score_delta` |
+| **Score-Delta** | **+0.011** | **REGRESSION — schlechter als vorher** |
+| Neue Findings | 10 | **10 DIA/COD-Findings neu eingeführt** |
 | Gesamtdauer | 15:53 min | `demo_run.duration_seconds` |
 | Dateien geändert | 4 | `git diff --stat` |
 | Drift-Tool-Anteil | 19.7% | `timing.tool_pct` |
+| **Run-Verdict** | **regression** | **Nicht publishable** |
+
+### Protokollbruch-Analyse
+
+Dieser Run enthält einen systematischen Fehler im Agent-Protokoll:
+
+1. **Tasks 3, 4 und 5 wurden trotz `nudge_direction: "degrading"` als `completed` markiert.**
+   Die alte Entscheidungstabelle erlaubte `degrading` + `safe_to_commit: true` → "Warnung, weiter".
+   Das ist falsch: ein degradierender Fix ist kein Fix.
+
+2. **Kein Smoke-Test wurde ausgeführt.** Ob die extrahierten Funktionen semantisch korrekt sind
+   (TypeScript compiliert, Tests grün), wurde nicht geprüft.
+
+3. **Kein Session-Abbruch-Kriterium.** Als das kumulative Delta +0.011 erreichte, hätte die
+   Session abgebrochen werden müssen.
+
+### Fix-Qualitäts-Gate (ab Prompt v1.1)
+
+Das verschärfte Protokoll verhindert alle drei Fehler:
+- **Nudge-Gate:** `drift_task_complete` nur bei `improving` oder `stable` + resolved_findings > 0
+- **Smoke-Test-Gate:** typecheck + lint + tests zwischen Nudge und Complete
+- **Session-Abort:** kumulative `score_delta > +0.015` → sofortiger Abbruch
 
 ### Beobachtungen
 
@@ -184,3 +212,5 @@ T+15:00  # Audit-Trail assembliert aus session_end + per-task nudge data
   Cross-File-Signale aus.
 - **Nudge-Richtungen** spiegeln nicht nur lokale CXS-Änderungen wider, sondern
   auch Baseline-Refresh-Effekte bei großen Repos.
+- **Unter dem verschärften Gate wären Tasks 3–5 reverted worden** und der Run
+  hätte mit `score_delta: 0.0` und 1 completed Task (Task 1, stable) geendet.

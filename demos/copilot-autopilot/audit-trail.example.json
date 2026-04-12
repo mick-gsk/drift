@@ -1,5 +1,6 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
+  "run_verdict": "regression",
   "demo_run": {
     "repo": "openclaw/openclaw",
     "session_id": "b93cc066158743d28b4b8358d7e3c622",
@@ -31,6 +32,9 @@
       "batch_eligible": true,
       "nudge_direction": "stable",
       "nudge_delta": 0.0,
+      "smoke_test_status": "not_checked",
+      "typecheck_exit_code": null,
+      "lint_exit_code": null,
       "diff_stat": "1 file changed, 74 insertions(+), 74 deletions(-)"
     },
     {
@@ -42,6 +46,9 @@
       "batch_eligible": true,
       "nudge_direction": "degrading",
       "nudge_delta": 0.012,
+      "smoke_test_status": "not_checked",
+      "typecheck_exit_code": null,
+      "lint_exit_code": null,
       "diff_stat": "reverted — max_reclaim reached"
     },
     {
@@ -53,6 +60,9 @@
       "batch_eligible": true,
       "nudge_direction": "degrading",
       "nudge_delta": 0.011,
+      "smoke_test_status": "not_checked",
+      "typecheck_exit_code": null,
+      "lint_exit_code": null,
       "diff_stat": "1 file changed, 55 insertions(+), 56 deletions(-)"
     },
     {
@@ -64,6 +74,9 @@
       "batch_eligible": true,
       "nudge_direction": "degrading",
       "nudge_delta": 0.011,
+      "smoke_test_status": "not_checked",
+      "typecheck_exit_code": null,
+      "lint_exit_code": null,
       "diff_stat": "1 file changed, 57 insertions(+), 58 deletions(-)"
     },
     {
@@ -75,6 +88,9 @@
       "batch_eligible": true,
       "nudge_direction": "degrading",
       "nudge_delta": 0.011,
+      "smoke_test_status": "not_checked",
+      "typecheck_exit_code": null,
+      "lint_exit_code": null,
       "diff_stat": "1 file changed, 100 insertions(+), 84 deletions(-)"
     }
   ],

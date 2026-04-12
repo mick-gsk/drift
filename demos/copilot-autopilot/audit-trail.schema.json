@@ -4,12 +4,17 @@
   "title": "Drift MCP Autopilot Audit Trail",
   "description": "Structured audit trail produced by the drift MCP autopilot demo workflow. Captures session metadata, per-task fix details, verification results, and orchestration metrics.",
   "type": "object",
-  "required": ["schema_version", "demo_run", "findings_summary", "tasks", "verification"],
+  "required": ["schema_version", "run_verdict", "demo_run", "findings_summary", "tasks", "verification"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "1.0",
+      "const": "1.1",
       "description": "Audit trail schema version."
+    },
+    "run_verdict": {
+      "type": "string",
+      "enum": ["pass", "regression", "aborted"],
+      "description": "Overall run outcome. pass: score_delta <= 0 and new_findings == 0 and all smoke tests green. regression: score increased or new findings introduced. aborted: session_abort_reason was triggered."
     },
     "demo_run": {
       "type": "object",
@@ -62,6 +67,10 @@
           "minimum": 0,
           "maximum": 100,
           "description": "Percentage of wall-clock time spent in drift tool execution (from timing.tool_pct)."
+        },
+        "session_abort_reason": {
+          "type": "string",
+          "description": "Reason for early session abort (e.g. score_regression_threshold). Omitted when session ran to completion."
         }
       }
     },
@@ -154,6 +163,19 @@
           "nudge_delta": {
             "type": "number",
             "description": "Score delta from drift_nudge (negative = improvement)."
+          },
+          "smoke_test_status": {
+            "type": "string",
+            "enum": ["passed", "failed", "not_checked", "no_tests"],
+            "description": "Result of the smoke-test gate (typecheck + lint + tests). not_checked if gate was not enforced."
+          },
+          "typecheck_exit_code": {
+            "type": ["integer", "null"],
+            "description": "Exit code of typecheck command. null if not run."
+          },
+          "lint_exit_code": {
+            "type": ["integer", "null"],
+            "description": "Exit code of lint command. null if not run."
           },
           "diff_stat": {
             "type": "string",

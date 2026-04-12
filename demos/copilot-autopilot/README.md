@@ -4,7 +4,7 @@ Reproduzierbares Demo: drift MCP-Server analysiert ein externes Repository,
 Copilot Agent Mode behebt priorisierte Findings über die Task-Queue,
 `drift_diff` verifiziert, `drift_session_end` exportiert einen strukturierten Audit-Trail.
 
-**Live-Run:** openclaw/openclaw, drift-analyzer 2.9.14, Score 0.495 → 0.506 (+0.011), 4/5 CXS-Tasks behoben, 16 min.
+**Live-Run:** openclaw/openclaw, drift-analyzer 2.9.14, Score 0.495 → 0.506 (+0.011), **Verdict: regression** — 4 CXS resolved aber 10 neue DIA/COD-Findings, Protokollbruch behoben in Prompt v1.1.
 
 ## Dateien
 
@@ -54,6 +54,12 @@ code .
 
 Aus `drift-audit.json` direkt ablesbar:
 
-1. **Score-Delta** → `demo_run.score_delta`
-2. **Fix-Rate** → `findings_summary.total_fixed / total_identified`
-3. **Dauer** → `demo_run.duration_seconds` (< 1800s)
+1. **Run-Verdict** → `run_verdict` (pass / regression / aborted)
+2. **Score-Delta** → `demo_run.score_delta` (negativ = Verbesserung)
+3. **Fix-Rate** → `findings_summary.total_fixed / total_identified`
+4. **Dauer** → `demo_run.duration_seconds` (< 1800s)
+5. **Smoke-Tests** → `tasks[].smoke_test_status` (alle `passed` erforderlich)
+
+> **Achtung:** Nur Runs mit `run_verdict: "pass"` sind publishable.
+> Der aktuelle Example-Run ist `regression` — er dokumentiert den Protokollbruch,
+> der zum verschärften Fix-Qualitäts-Gate (Prompt v1.1) geführt hat.

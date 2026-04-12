@@ -36,7 +36,11 @@ Bestimme, ob der drift MCP-Autopilot-Workflow ein externes Repository innerhalb 
 
 Die Aufgabe ist erst abgeschlossen, wenn:
 - `drift_session_start(autopilot=true)` erfolgreich N Tasks identifiziert hat
-- Alle Tasks via `drift_task_claim` → Fix → `drift_nudge` → `drift_task_complete` durchlaufen wurden
+- Alle Tasks via `drift_task_claim` → Fix → `drift_nudge` → Gate → `drift_task_complete` durchlaufen wurden
+- **Kein Task mit `nudge_direction == "degrading"` als `completed` markiert wurde**
+- **`score_delta <= 0`** (kein Netto-Rueckschritt)
+- **`new_findings == 0`** (keine neuen Findings eingefuehrt)
+- **Smoke-Tests (typecheck + lint) fuer jede geaenderte Datei gruen sind**
 - `drift_diff(uncommitted=true)` keine neuen HIGH/CRITICAL-Findings zeigt
 - `drift_session_end` ein Score-Delta zurueckgibt
 - `drift-audit.json` als strukturiertes Artefakt vorliegt
@@ -161,18 +165,49 @@ drift_nudge(
 )
 ```
 
-**Entscheidungslogik:**
+**FIX-QUALITAETS-GATE (verbindlich):**
 
-| `direction` | `safe_to_commit` | Aktion |
-|---|---|---|
-| `improving` | `true` | Weiter zu 2.4 |
-| `stable` | `true` | Weiter zu 2.4 |
-| `degrading` | `false` | Aenderungen reverten, alternativen Fix versuchen (max. 1 Retry) |
-| `degrading` | `true` | Warnung in `session-log.md`, weiter zu 2.4 |
+`drift_task_complete` darf **NUR** aufgerufen werden wenn:
+- `nudge_direction == "improving"`, **ODER**
+- `nudge_direction == "stable"` **UND** `resolved_findings > 0`
 
-**Abbruchkriterium:** 2× hintereinander `degrading` fuer denselben Task → Task ueberspringen, `drift_task_release` aufrufen.
+| `direction` | Aktion |
+|---|---|
+| `improving` | Weiter zu 2.4 (Smoke-Test) |
+| `stable` + `resolved_findings > 0` | Weiter zu 2.4 (Smoke-Test) |
+| `stable` + `resolved_findings == 0` | Revert, alternativen Fix versuchen (max. 1 Retry) |
+| `degrading` | **IMMER** revert + `drift_task_release` — **NIEMALS** `drift_task_complete` aufrufen |
 
-### 2.4 Task abschliessen
+**Abbruchkriterium:** Bei `degrading` sofort reverten und releasen. Nach `max_reclaim` (3×): Task als `failed` dokumentieren.
+
+### 2.4 Smoke-Test-Gate (nach Nudge, vor Task-Complete)
+
+Fuehre fuer jede geaenderte Datei aus (Reihenfolge):
+
+```bash
+# 1. Typecheck
+npm run typecheck              # exit code 0 erforderlich
+# ODER: npx tsc --noEmit       # falls kein typecheck-Script
+
+# 2. Lint
+npm run lint -- <changed_file> # exit code 0 erforderlich
+
+# 3. Unit-Tests (falls vorhanden)
+npm test -- --testPathPattern=<changed_file_stem>
+# Falls Tests vorhanden: exit code 0 erforderlich
+# Falls keine Tests: notiere "no_tests" im Task-Eintrag
+```
+
+**Bei Fehler in Schritt 1 oder 2:**
+- `git checkout -- <changed_file>`
+- `drift_task_release(session_id, "copilot", task_id)`
+- Audit-Eintrag: `smoke_test_status: "failed"`, `smoke_test_reason: "<output>"`
+
+**Anpassung fuer nicht-TS/JS-Repos:** Ersetze `npm run typecheck` / `lint` / `test` durch die aequivalenten Repo-Befehle (z.B. `mypy`, `ruff check`, `pytest`).
+
+### 2.5 Task abschliessen
+
+Nur wenn Nudge-Gate (2.3) **UND** Smoke-Test-Gate (2.4) bestanden:
 
 ```
 drift_task_complete(
@@ -182,7 +217,14 @@ drift_task_complete(
 )
 ```
 
-### 2.5 Per-Task Audit-Daten sammeln
+### 2.6 Session-Abbruch-Kriterium
+
+Falls nach einem Fix das kumulative `score_delta > +0.015`:
+- `drift_session_end` aufrufen
+- Audit-Feld: `session_abort_reason: "score_regression_threshold"`
+- Kein Commit, kein Publish mit diesen Daten
+
+### 2.7 Per-Task Audit-Daten sammeln
 
 Nach jedem abgeschlossenen Task die folgenden Daten fuer `drift-audit.json` festhalten:
 
@@ -195,7 +237,10 @@ Nach jedem abgeschlossenen Task die folgenden Daten fuer `drift-audit.json` fest
   "affected_files": ["<aus task.file oder affected_files_for_pattern>"],
   "batch_eligible": false,
   "nudge_direction": "<aus nudge.direction>",
-  "nudge_delta": 0.0
+  "nudge_delta": 0.0,
+  "smoke_test_status": "passed|failed|no_tests",
+  "typecheck_exit_code": 0,
+  "lint_exit_code": 0
 }
 ```
 
@@ -275,6 +320,8 @@ git commit -m "fix: resolve N drift findings (autopilot demo)"
 | Kein `session_id` weitergeben | Kontext-Verlust | Immer `session_id` uebergeben |
 | Auto-Commit ohne Review | Blindes Vertrauen | `git diff --stat` zeigen, User-Approval abwarten |
 | Mehrere Tasks parallel | Unklar welche Aenderung wirkt | Ein Task pro Iteration |
+| `task_complete` nach `degrading` | Netto-Regression wird committet | Immer revert + release bei `degrading` |
+| Kein Smoke-Test nach Fix | Semantische Korrektheit ungeprüft | typecheck + lint + test zwischen Nudge und Complete |
 
 ## Verhalten bei `agent_instruction` in Responses
 
