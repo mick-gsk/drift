@@ -1,6 +1,5 @@
 ---
-applyTo: "**"
-description: "Drift Quality Workflow — Verbindlicher Dual-Agent-Qualitätsstandard für alle nicht-trivialen Änderungen. MUSS vor Implementierung, Review und Merge gelesen werden."
+description: "Nutze diese Instruction bei nicht-trivialen Aenderungen, Reviews oder Fix-Loops im Drift-Repo. Fokus: adversarialer Gegenreview, iterativer Fix-Loop, expliziter Freigabestatus und Human-in-the-Loop vor Merge."
 ---
 
 # Drift Quality Workflow — Verbindlicher Arbeitsstandard
@@ -11,13 +10,13 @@ Dieser Standard gilt workspace-weit für alle nicht-trivialen Änderungen an Cod
 
 ## Geltungsbereich
 
-**Dieser Workflow ist Pflicht bei:**
-- neuen Features
-- Refactorings
-- Bugfixes mit nicht-trivialem Impact
-- Architekturänderungen
-- Änderungen an Tests oder CI-relevantem Verhalten
-- Änderungen an Prompt-, Agenten- oder Automationslogik
+**Dieser Workflow ist Pflicht, wenn mindestens einer dieser Punkte zutrifft:**
+- neues Feature oder neue Benutzerwirkung
+- Refactoring mit möglichem Verhaltenseinfluss
+- Bugfix mit nicht-trivialem Impact
+- Architektur-, Integrations- oder I/O-Änderung
+- Änderung an Tests, CI oder Release-/Packaging-Pfaden
+- Änderung an Prompt-, Agenten-, Skill- oder Automationslogik
 
 **Dieser Workflow kann reduziert werden bei:**
 - kleinen Textkorrekturen
@@ -60,6 +59,8 @@ Keine „quick hacks" ohne Begründungsstruktur.
 ### Stufe 4 — BugBot-Phase nach pushbarem Stand
 
 Nach jedem pushbaren Zwischenstand wird ein separater BugBot-Review-Schritt ausgeführt.
+
+**Voraussetzung:** Lade auch `.github/prompts/_partials/review-checkliste.md`, bevor der strukturierte Review gestartet wird.
 
 **Strukturierte Review-Checkliste verwenden:** Der Reviewer arbeitet die Checkliste unter `.github/prompts/_partials/review-checkliste.md` Punkt für Punkt ab und dokumentiert pro Punkt Ja / Nein / N/A mit Kurzbegründung. Kein Punkt darf übersprungen werden.
 
@@ -123,12 +124,14 @@ Ein Mensch trifft die letzte Entscheidung.
 5. **Unsicherheit, Trade-offs, fehlende Validierung, hohes Risiko** werden sichtbar an den Menschen eskaliert
 6. **Freigabestatus vor Abschluss** immer explizit ausgeben
 
-### Batch-Repair-Ausnahme (ADR-020)
+### Batch-Repair-Ausnahme
 
 Beim **Batch-Fix-Modus** (mehrere gleichartige Findings in einem Zug) darf der Review-Loop vereinfacht werden:
 - Wenn `batch_eligible=true` in der fix_plan-Antwort gesetzt ist, können alle `affected_files_for_pattern` mit dem gleichen Fix-Template bearbeitet werden, bevor ein `drift_diff` zur Verifikation läuft.
 - Der adversariale Review reduziert sich auf Stichproben (≥ 1 Datei pro Batch), nicht auf jede Einzeldatei.
 - Die übrigen Qualitätsregeln (Stufen 5–7) gelten unverändert.
+
+Die Ausnahme ist nur fuer gleichartige Reparaturen gedacht. Unterschiedliche Ursachen oder Vertragsaenderungen gehoeren nicht in denselben Batch.
 
 ---
 
@@ -158,4 +161,5 @@ Merge / Abschluss
 
 Dieser Workflow **ergänzt** die Drift Policy (`POLICY.md`). Er ersetzt sie nicht.
 Das PFLICHT-GATE aus der Drift Policy (`drift-policy.instructions.md`) läuft **vor** diesem Workflow.
+Bei Zweifel, ob eine Änderung als trivial gilt, entscheidet die Trivialtask-Regel aus `drift-policy.instructions.md`.
 Bei Widerspruch gilt: Drift Policy hat Vorrang.

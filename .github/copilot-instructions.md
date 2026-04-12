@@ -27,145 +27,119 @@ Die Policy ist ein Vertrag — keine Empfehlung, kein Vorschlag.
 
 **Bei Entscheidung ABBRUCH:** Keine weitere Umsetzung. Stattdessen: kurze Erklärung, welches Kriterium verletzt wird und was stattdessen priorisiert werden sollte.
 
-**Das Gate darf nicht übersprungen werden.** Auch nicht bei kleinen Änderungen, Refactorings oder scheinbar offensichtlichen Aufgaben.
+**Korrektheitsregel:** Eine `ZULÄSSIG`-Entscheidung ist nur gültig, wenn das erfüllte Zulassungskriterium konkret zur Aufgabe passt. Generische Platzhalter wie "Signalqualität" oder "Einführbarkeit" ohne Bezug zur Aufgabe sind ungültig.
 
----
-
-## Risk-Audit-Pflicht bei Signalarbeit (POLICY §18)
-
-Wenn eine Aufgabe Dateien unter `src/drift/signals/`, `src/drift/ingestion/` oder `src/drift/output/` ändert, MUSS der Agent die betroffenen Audit-Artefakte aktualisieren:
-
-| Änderung | Pflicht-Aktualisierung |
-|----------|------------------------|
-| Neues/geändertes Signal | `audit_results/fmea_matrix.md` (FP + FN) + `audit_results/fault_trees.md` (FT-Pfade) + `audit_results/risk_register.md` |
-| Neuer Input-/Output-Pfad | `audit_results/stride_threat_model.md` (Trust Boundary) + `audit_results/risk_register.md` |
-| Precision/Recall Δ > 5% | `audit_results/fmea_matrix.md` (RPNs) + `audit_results/risk_register.md` (Messwerte) |
-
-**Schutzmechanismus:** Pre-Push-Hook und CI blockieren automatisch Pushes mit Signal-Änderungen ohne zugehörige Audit-Updates. Der Agent muss kein separates Gate ausgeben — die Zeile "Betrifft Signal/Architektur" im PFLICHT-GATE genügt.
-
----
-
-## Nicht verhandelbare Grundregeln
-
-### Was Drift ist
-Drift ist ein statischer Analyzer zur Erkennung architektonischer Kohärenzprobleme.
-Zweck: strukturelle Erosion erkennen, benennen, priorisieren, über Zeit vergleichbar machen.
-
-### Was Drift nicht ist
-- Drift ist kein Tool, das lediglich Probleme auflistet.
-- Drift erzeugt keine dekorativen Ergebnisse.
-- Drift priorisiert keine Ergebnisse ohne realen Zusammenhang mit struktureller Kohärenz.
-
----
-
-## Absolute Ausschlusskriterien für neue Arbeit
-
-**Keine Aufgabe darf begonnen werden**, die ausschließlich folgendes erzeugt:
-- mehr Ausgabe ohne besseren Erkenntniswert
-- mehr Komplexität ohne klaren Nutzen
-- mehr Oberfläche ohne bessere Analyse
-- mehr Analyse ohne Validierung des Ergebnisses
-- mehr technische Ausarbeitung ohne Beitrag zur Produktwirkung
-- einen Nutzen, der nicht eindeutig benennbar ist
-
----
-
-## Priorisierungsformel (Policy §6)
+**Kompaktformat für strikt triviale Mechanikaufgaben:** Für rein mechanische, verhaltensneutrale Änderungen wie `fix: typo`, `docs: wording`, `chore: lockfile refresh` oder `test: fixture rename` ist statt des Vollformats dieses Kurzformat zulässig:
 
 ```
-Priorität = (Unsicherheit × Schaden × Nutzbarkeit) / Aufwand
+### Drift Policy Gate
+- Trivialtask: JA
+- Zulässig: JA → rein mechanisch, ohne Verhaltens-, Policy-, Architektur- oder Signaleffekt
 ```
 
-Bei konkurrierenden Vorhaben gilt diese feste Reihenfolge:
-1. Glaubwürdigkeit erhalten
-2. Signalpräzision verbessern
-3. Verständlichkeit der Befunde verbessern
-4. False Positives / False Negatives reduzieren
-5. Einführbarkeit verbessern
-6. Trendanalyse verbessern
-7. Zusätzliche Features, Formate, Komfortmerkmale
-
-**Eine niedrigere Stufe verdrängt niemals eine höhere.**
+**Nicht trivial** sind insbesondere Änderungen an Policy, Instructions, Prompts, Skills, Agents, Signalen, Output-Formaten, CLI-Verhalten, Tests mit Verhaltensabsicherung oder Architekturgrenzen.
 
 ---
 
-## Qualitätsanforderungen an jeden Befund (Policy §13)
+## Primärmodus bei Prompt-Engineering
 
-Jeder Befund muss besitzen:
-- technische Nachvollziehbarkeit
-- Reproduzierbarkeit
-- eindeutige Zuordnung zu einer Ursache
-- klare Benennung der betroffenen Stelle
-- nachvollziehbare Begründung
-- erkennbare nächste Maßnahme
+Wenn eine Aufgabe Prompts, Instructions, Skills, Agents oder diese Datei selbst betrifft,
+arbeitet der Agent im **Prompt-Engineering-Modus**. Ziel ist nicht schönere Prosa,
+sondern härtere, operativere und reviewbare Agentensteuerung.
 
-Ein Befund ohne klare Begründung ist **unzulässig**.
-Ein Befund ohne mögliche nächste Maßnahme ist **unvollständig**.
+**Betroffene Pfade:**
+- `.github/prompts/**`
+- `.github/instructions/**`
+- `.github/skills/**`
+- `.github/agents/**`
+- `.github/AGENTS.md`
+- `.github/copilot-instructions.md`
+
+**Detaillierte Zusatzregeln:**
+- Routing: `.github/instructions/drift-context-routing.instructions.md`
+- Prompt-Engineering: `.github/instructions/drift-prompt-engineering.instructions.md`
+- Workflow-Skill: `.github/skills/drift-agent-prompt-authoring/SKILL.md`
+
+### Zuerst das richtige Primitive wählen
+
+| Bedarf | Richtiges Primitive |
+|--------|---------------------|
+| Repo-weite, immer geltende Regeln | `copilot-instructions.md` |
+| Datei- oder Ordner-spezifische Regeln | `*.instructions.md` |
+| Wiederverwendbarer Operator-Workflow | `SKILL.md` |
+| Konkreter mehrphasiger Ablauf mit Ziel und Artefakten | `*.prompt.md` |
+| Isolierter Spezialmodus mit eigener Tool-/Kontextgrenze | `*.agent.md` |
+
+**Falsches Primitive = schwacher Prompt.**
+Eine Datei darf nur das regeln, wofür ihr Primitive gedacht ist.
+
+### Nicht verhandelbare Schärferegeln
+
+1. **Deutsch und modellunabhängig.** Keine Modellnamen, keine vendor-spezifischen Prompt-Tricks.
+2. **Description ist Discovery-Oberfläche.** Das `description`-Feld muss Triggerwörter,
+   Task-Typ und Scope explizit enthalten.
+3. **`applyTo` so eng wie möglich.** `applyTo: "**"` nur für wirklich universelle Regeln.
+4. **Ein Problem pro Datei.** Keine Mischdateien für Policy, Testing, Release und Prompt-Stil.
+5. **Keine Parallel-Policy.** Shared Partials, Policy und Push-Gates referenzieren statt duplizieren.
+6. **Keine weichen Verben ohne Vertrag.** Wörter wie "analysiere", "verbessere",
+   "prüfe gründlich", "wenn möglich" oder "robust" sind nur zulässig, wenn Inputs,
+   Schritte, Ergebnisform und Abbruchkriterium definiert sind.
+7. **Keine Halluzinationsflächen.** Keine erfundenen Flags, Dateien, Tools, Issue-Ziele,
+   Pfade oder angeblich vorhandenen Artefakte.
+8. **Prompts erzeugen Evidenz.** Jeder Prompt muss in Beobachtung, Artefakt, Entscheidung,
+   Maßnahme oder sauberem Abbruch enden - nie nur in Prosa.
+
+### Mindestvertrag für jeden guten Prompt
+
+Jeder neue oder geänderte Prompt, Skill oder jede Instruction muss explizit benennen:
+
+- Ziel und Scope
+- Eingaben, Voraussetzungen und relevante Umgebungsannahmen
+- welches Tool oder welcher Befehl wofür eingesetzt wird
+- erwartete Artefakte oder das Ausgabeformat
+- Bewertungslogik oder Entscheidungskriterien
+- Fehlerpfad, Fallback oder Eskalation
+- klare Stop-Bedingung
+- referenzierte Single Sources of Truth
+
+Fehlt einer dieser Punkte, ist die Anweisung zu weich.
+
+### Single Sources of Truth für Prompt-Arbeit
+
+Diese Dateien werden wiederverwendet statt kopiert:
+
+- `.github/prompts/_partials/konventionen.md`
+- `.github/prompts/_partials/bewertungs-taxonomie.md`
+- `.github/prompts/_partials/issue-filing.md`
+- `.github/prompts/_partials/issue-filing-external.md`
+- `.github/skills/drift-agent-prompt-authoring/SKILL.md`
+- `.github/instructions/drift-policy.instructions.md`
+- `.github/instructions/drift-context-routing.instructions.md`
+- `.github/instructions/drift-prompt-engineering.instructions.md`
+
+### Repo-spezifische Prompt-Regeln
+
+- Interne Drift-Prompts arbeiten gegen den Workspace und referenzieren die Dev-Version.
+- Field-Test-Prompts arbeiten gegen externe Repositories und reichen Issues immer an
+  `mick-gsk/drift`, nie an das Ziel-Repository.
+- Prompt-Arbeit ist nur zulässig, wenn sie Erkenntnis, Vergleichbarkeit, Einführbarkeit
+  oder Signalqualität verbessert - nicht wenn sie nur mehr Text produziert.
 
 ---
 
-## Zulassungskriterien für neue Arbeit (Policy §8)
+## Policy als Single Source of Truth
 
-Eine Aufgabe darf nur begonnen werden, wenn sie mindestens eines erfüllt:
-- reduziert eine zentrale Unsicherheit
-- verbessert die Signalqualität
-- erhöht die Glaubwürdigkeit
-- erhöht die Handlungsfähigkeit
-- verbessert die Trendfähigkeit
-- erleichtert die Einführbarkeit
+`POLICY.md` ist die alleinige Quelle fuer Produkt- und Priorisierungsregeln. Diese Datei dupliziert **nicht** mehr die Inhalte aus Policy §6, §8, §13, §14, §16 oder §18.
 
----
+Fuer Agentenarbeit gilt deshalb:
 
-## Roadmap-Phasen-Hierarchie (Policy §14)
+- Policy und Gate-Logik: `POLICY.md` und `.github/instructions/drift-policy.instructions.md`
+- Risk-Audit-Pflichten: `.github/instructions/drift-policy.instructions.md`
+- Push-Vorbereitung: `.github/instructions/drift-push-gates.instructions.md`
+- Release-Automation: `.github/instructions/drift-release-automation.instructions.md` und `.github/instructions/drift-release-mandatory.instructions.md`
+- MCP-Fix-Loop: `.github/prompts/drift-fix-loop.prompt.md`
 
-**Phase 1 — Vertrauen** (Vorrang vor allem anderen):
-Nachvollziehbarkeit → Reproduzierbarkeit → Fehlalarmreduktion → Erklärbarkeit
-
-**Phase 2 — Relevanz** → **Phase 3 — Einführbarkeit** → **Phase 4 — Skalierung**
-
-Phase 4 verdrängt niemals Phase 1.
-Skalierungsmaßnahmen ohne gesichertes Vertrauen sind **nachrangig**.
-
----
-
-## Automatisierte Release-Pipeline (python-semantic-release)
-
-Releases werden vollständig automatisiert durch `python-semantic-release` (PSR) in CI verwaltet.
-Der CI-Workflow `.github/workflows/release.yml` läuft bei jedem Push auf `main`.
-
-**Agenten müssen KEINEN manuellen Release-Befehl mehr ausführen.**
-
-### Was Agenten tun müssen
-
-1. **Conventional Commits verwenden** — PSR leitet die Versionierung aus Commit-Messages ab:
-   - `feat: ...` → MINOR Versions-Bump (0.x.0)
-   - `fix: ...` → PATCH Versions-Bump (0.0.x)
-   - `BREAKING CHANGE: ...` oder `BREAKING: ...` → MAJOR Versions-Bump (x.0.0)
-2. **Tests lokal ausführen** vor dem Commit
-3. **Committen** — PSR übernimmt alles weitere nach Push
-
-### Was PSR automatisch macht (in CI)
-
-1. Analysiert Commits seit letztem Tag
-2. Berechnet nächste Version (SemVer)
-3. Aktualisiert `pyproject.toml` + `CHANGELOG.md`
-4. Erstellt Release-Commit (`chore: Release X.Y.Z`)
-5. Erstellt Git Tag (`vX.Y.Z`)
-6. Erstellt GitHub Release
-7. Baut + publiziert zu PyPI
-
-**Lokaler Fallback** (nur bei CI-Ausfall):
-```bash
-python scripts/release_automation.py --full-release
-```
-
----
-
-## Entscheidungsregel bei Unklarheit (Policy §16)
-
-> Wähle die Option, die die größte Unsicherheit reduziert.
-> Sind mehrere gleich gut: höchsten Erkenntniswert pro Aufwandseinheit.
-> Ist keine Option hinreichend begründet: **keine Umsetzung**.
+Wenn diese Datei und eine Single Source of Truth kollidieren, gilt immer die Single Source of Truth.
 
 ---
 
@@ -195,106 +169,19 @@ python scripts/release_automation.py --full-release
 
 ## MCP Fix-Loop — Optimierter Workflow für Finding-Behebung
 
-Wenn ein Agent Drift-Findings über MCP-Tools beheben soll, **muss** dieser Ablauf verwendet werden:
-
-1. **`drift_session_start(path=".", autopilot=true)`** — ein Aufruf statt vier (bündelt validate + brief + scan + fix_plan)
-2. **`drift_nudge(session_id=..., changed_files=...)`** — nach jeder Dateiänderung als schneller Inner-Loop (~0.2 s statt ~3 s für scan)
-3. **Test-Checkpoint nach `nudge`** — gezielte Tests per Pfad-Matrix ausführen (Tabelle in `.github/prompts/drift-fix-loop.prompt.md`, Schritt 3b); bei Fehlschlag Entscheidungsbaum anwenden: Test anpassen (Implementation-Details) oder Fix reverten (Vertrags-Regression) — kein Hard-Block
-4. **`drift_fix_plan(session_id=..., max_tasks=1)`** — nächsten Task holen (immer `max_tasks=1`)
-5. **`drift_diff(session_id=..., uncommitted=true)`** — nur einmal am Ende als Abschluss-Verifikation
-
-**Verboten im Fix-Loop:**
-- `drift_scan` nach jeder Dateiänderung (zu teuer, nutze `nudge`)
-- `session_start` ohne `autopilot=true` (verschenkt 4 Roundtrips)
-- `fix_plan` ohne `max_tasks=1` (unnötig große Responses)
-- Tool-Aufrufe ohne `session_id` (verliert Kontext)
-- Commit ohne Test-Checkpoint (Tests fallen sonst erst bei Gate 8 CI auf)
-
-**Immer:** `agent_instruction` und `next_tool_call` aus Responses befolgen.
-
-Vollständiger Workflow: `.github/prompts/drift-fix-loop.prompt.md`
+Wenn ein Agent Drift-Findings ueber MCP-Tools behebt, gilt ausschliesslich der Workflow in `.github/prompts/drift-fix-loop.prompt.md`. Diese Datei wiederholt den Ablauf nicht; sie verweist nur auf die verbindliche Quelle.
 
 ---
 
-## Schlussbestimmung
+## Arbeitsnavigation
 
-Diese Policy ist verbindlich (Policy §18).
-Abweichungen sind nur zulässig wenn: dokumentiert, begründet, als Ausnahme gekennzeichnet.
-Im Zweifel gilt: geringerer Interpretationsspielraum, höherer Erkenntniswert.
+Die operative Referenz liegt in den folgenden Dateien und soll von Agenten bevorzugt gelesen werden statt hier gepflegte Kurzfassungen zu erraten:
 
----
+- Developer-Workflow und verifizierte Kommandos: `DEVELOPER.md`
+- Prompt-Bibliothek: `.github/prompts/README.md`
+- Prompt-Authoring: `.github/skills/drift-agent-prompt-authoring/SKILL.md`
+- Kontext-Routing: `.github/instructions/drift-context-routing.instructions.md`
+- Push-Gates: `.github/instructions/drift-push-gates.instructions.md`
+- Release-Regeln: `.github/instructions/drift-release-automation.instructions.md` und `.github/instructions/drift-release-mandatory.instructions.md`
 
-## Schnellreferenz für Agenten
-
-Aktueller Release-Stand: **v2.5.1** (2026-04-06)
-
-Vollständiger Developer Guide: **[DEVELOPER.md](../DEVELOPER.md)**
-
-### Architektur (Datenfluss)
-
-```
-ingestion/ → signals/ → scoring/ → output/
-  AST + Git     24 Detektoren  Score+Severity   Rich/JSON/SARIF
-              (20 scoring-aktiv, 4 report-only)
-```
-
-### Wichtigste Kommandos
-
-| Aufgabe | Befehl |
-|---------|--------|
-| Dev-Setup | `make install` |
-| Alle Checks | `make check` |
-| Tests schnell (täglich, kein `@pytest.mark.slow`) | `make test-fast` |
-| Tests parallel (inkl. slow) | `make test` |
-| Coverage (sequenziell, kein xdist) | `make coverage` |
-| Lint + Autofix | `make lint-fix` |
-| CI lokal replizieren | `make ci` |
-| Selbstanalyse | `make self` |
-| **Release** | Automatisch via PSR in CI bei Push auf `main` |
-| Release: lokaler Fallback | `python scripts/release_automation.py --full-release` |
-| Release: Version prüfen | `semantic-release version --print` |
-
-### Pre-Push-Gates — PFLICHT vor jedem `git push`
-
-Der Hook `.githooks/pre-push` (aktiv via `core.hooksPath = .githooks`) blockiert jeden Push, der eine Gate-Bedingung verletzt. **Agenten müssen VOR `git push` sicherstellen, dass alle zutreffenden Gates erfüllt sind.**
-
-Vollständige Gate-Dokumentation: **`.github/instructions/drift-push-gates.instructions.md`**
-
-**Kurz-Übersicht: Was löst welches Gate aus?**
-
-| Geänderte Dateien | Erforderlich |
-|---|---|
-| `tagesplanung/**` | ❌ Immer blockiert |
-| `feat:`-Commit | Tests + `benchmark_results/vX.Y.Z_feature_evidence.json` + `docs/STUDY.md` update |
-| `feat:` oder `fix:`-Commit | `CHANGELOG.md` aktualisieren |
-| `pyproject.toml` geändert | Version größer als letzter Tag + `uv.lock` aktualisieren (`uv lock`) |
-| `src/drift/**` neu public `def` | Docstring hinzufügen |
-| `src/drift/signals/`, `ingestion/` oder `output/` | Mind. eine Audit-Datei in `audit_results/` aktualisieren (`fmea_matrix.md`, `stride_threat_model.md`, `fault_trees.md` oder `risk_register.md`) |
-| Immer | `make check` lokal bestanden (ruff + mypy + pytest + self-analysis) |
-
-**Notfall-Bypässe** (nur wenn begründet):
-```bash
-DRIFT_SKIP_RISK_AUDIT=1 git push     # Audit-Gate überspringen
-DRIFT_SKIP_CHANGELOG=1 git push      # Changelog-Gate überspringen
-DRIFT_SKIP_DOCSTRING=1 git push      # Docstring-Gate überspringen
-DRIFT_SKIP_HOOKS=1 git push          # ALLE Gates (äußerster Notfall)
-```
-> CI-Checks (ruff/mypy/pytest) können nicht per Env-Variable umgangen werden.
-
-### Konventionen
-
-- Bei ADR-Umsetzung: `Decision: ADR-NNN` Trailer im Commit-Body
-- ADR-Pflicht vor Implementierung bei Änderungen an Signalen, Scoring, Output oder Architektur-Boundaries
-- ADRs liegen unter `.internal/decisions/`, Templates (öffentlich) unter `decisions/templates/`
-- Priorisierter Backlog: `.internal/BACKLOG.md`
-
-### Verzeichnisstruktur
-
-| Pfad | Inhalt |
-|------|--------|
-| `src/drift/signals/` | 24 Signale — 20 scoring-aktiv (PFS, AVS, MDS, EDS, TVS, SMS, DIA, BEM, TPD, GCD, NBV, BAT, ECM, COD, CCC, HSC, FOE, PHR, MAZ, ISD) + 4 report-only (TSA, CXS, CIR, DCA) |
-| `src/drift/ingestion/` | AST-Parsing, Git-History, File-Discovery |
-| `src/drift/scoring/` | Composite-Score, Module-Scores, Severity |
-| `src/drift/output/` | Rich-Terminal, JSON, SARIF |
-| `src/drift/commands/` | Click-CLI-Subcommands |
-| `tests/` | 27+ Testdateien, conftest.py mit tmp_repo Fixture |
+Veraltbare Angaben wie feste Versionsstaende, statische Signallisten oder duplizierte Kommandotabellen gehoeren nicht in diese Datei.

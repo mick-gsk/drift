@@ -1,12 +1,12 @@
 ---
 applyTo: "**"
-description: "Drift Policy — Bindende Arbeitsregeln für alle Dateien. MUSS gelesen werden bevor Änderungen an Drift-Code, Analyselogik, Ergebnisformaten oder Features vorgenommen werden."
+description: "Nutze diese Instruction immer als verbindlichen Gate-Wrapper fuer Drift-Arbeit. Sie enthaelt das Pflicht-Gate, das Kompaktformat fuer Trivialaufgaben und die Verweise auf die autoritative POLICY.md."
 ---
 
 # Drift — Policy (bindend für alle Dateioperationen)
 
-Vollständige Policy: `POLICY.md` im Workspace-Root.
-Kurzfassung der Kern-Verbote und Anforderungen:
+`POLICY.md` im Workspace-Root ist die **Single Source of Truth** fuer Produkt-, Priorisierungs- und Risiko-Regeln.
+Diese Instruction wiederholt die Policy nicht, sondern liefert das operative Gate-Format fuer Agenten.
 
 ## PFLICHT-GATE: Zulässigkeitsprüfung — immer zuerst ausführen und ausgeben
 
@@ -24,55 +24,30 @@ Vor jeder Umsetzung dieses Format sichtbar ausgeben:
 ```
 
 Bei **ABBRUCH**: keine Umsetzung, stattdessen Erklärung + Gegenvorschlag.
-Das Gate darf **niemals übersprungen** werden.
+Eine `ZULÄSSIG`-Entscheidung ist nur gültig, wenn das erfüllte Kriterium konkret zur Aufgabe passt. Generische Defaults ohne Aufgabenbezug sind ungültig.
+
+Für **rein mechanische, verhaltensneutrale Trivialaufgaben** wie `fix: typo`, `docs: wording`, `chore: lockfile refresh` oder `test: fixture rename` ist dieses Kompaktformat zulässig:
+
+```
+### Drift Policy Gate
+- Trivialtask: JA
+- Zulässig: JA → rein mechanisch, ohne Verhaltens-, Policy-, Architektur- oder Signaleffekt
+```
+
+Nicht trivial sind insbesondere Änderungen an Policy, Instructions, Prompts, Skills, Agents, Signalen, Output-Formaten, CLI-Verhalten, Tests mit Verhaltensabsicherung oder Architekturgrenzen.
 
 ---
 
-## Vor jeder Änderung prüfen
+## Autoritative Verweise in POLICY.md
 
-**Ist die Aufgabe zulässig?** Sie muss mindestens eines erfüllen:
-- reduziert eine zentrale Unsicherheit
-- verbessert die Signalqualität oder Glaubwürdigkeit
-- erhöht die Handlungsfähigkeit
-- verbessert Trendfähigkeit oder Einführbarkeit
+- Zulassung und Ausschluss: `POLICY.md` §8 und §9
+- Priorisierung und Reihenfolge: `POLICY.md` §6 und §7
+- Befund-Qualität: `POLICY.md` §13
+- Unklare Entscheidungen: `POLICY.md` §16
+- Risiko-Audit-Pflichten: `POLICY.md` §18
 
-**Ist die Aufgabe unzulässig?** Sofort abbrechen, wenn sie ausschließlich erzeugt:
-- mehr Ausgabe ohne Erkenntniswert
-- mehr Komplexität ohne klaren Nutzen
-- ein Feature, dessen Beitrag nicht klar benennbar ist
+## Zusatzhinweise fuer Agenten
 
-## Pflicht bei Code-Änderungen an Analyseergebnissen
-
-Jedes Ergebnis/Befund benötigt zwingend:
-1. technische Nachvollziehbarkeit
-2. Reproduzierbarkeit  
-3. eindeutige Ursachenzuordnung
-4. nachvollziehbare Begründung
-5. erkennbare nächste Maßnahme
-
-Fehlt eines dieser fünf Elemente → Änderung ist **unzulässig**.
-
-## Prioritätsbindung
-
-Reihenfolge ist nicht verhandelbar:
-`Glaubwürdigkeit > Signalpräzision > Verständlichkeit > FP/FN-Reduktion > Einführbarkeit > Trend > Features`
-
-## Risk-Audit-Pflicht (Policy §18)
-
-Bei Änderungen an Signalen, Input-Pfaden, Output-Kanälen oder Trust Boundaries sind Audit-Aktualisierungen **vor Merge Pflicht**:
-
-| Änderung | Pflicht-Aktualisierung |
-|----------|------------------------|
-| Neues/geändertes Signal | FMEA (FP + FN Eintrag) + FTA (FT-1/FT-2 prüfen) + Risk Register |
-| Neuer Input-/Output-Pfad | STRIDE (S/T/R/I/D/E für betroffene Trust Boundary) + Risk Register |
-| Precision/Recall Δ > 5% | FMEA (RPNs neu berechnen) + Risk Register (Messwerte) |
-
-Die vier Audit-Artefakte unter `audit_results/` dürfen **nicht gelöscht** werden.
-
-## Entscheidungsdokumentation (ADR-Pflicht)
-
-Änderungen an Signalen, Scoring-Logik, Output-Formaten oder Architektur-Boundaries erfordern ein ADR unter `decisions/` **vor** Implementierung.
-Ausgenommen: Bugfixes und reine Refactorings.
-Agent-Entwürfe erhalten Status `proposed` — nur der Maintainer setzt `accepted`.
-Ein Agent, der signalrelevante Änderungen ohne Audit-Update vornimmt, **verletzt diese Policy**.
-Pre-Push-Hook und CI erzwingen die Einhaltung automatisch.
+- Bei Kollision zwischen dieser Datei und `POLICY.md` gilt immer `POLICY.md`.
+- Bei Signalarbeit oder Architekturgrenzen zusaetzlich `.github/instructions/drift-push-gates.instructions.md` und die passenden Audit-/ADR-Workflows lesen.
+- Diese Datei ist absichtlich knapp, damit das Gate immer im Kontext bleibt, ohne die gesamte Policy zu duplizieren.

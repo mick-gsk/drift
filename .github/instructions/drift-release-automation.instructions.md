@@ -1,12 +1,13 @@
 ---
-applyTo: "src/drift/**"
-description: "Release-Automatisierung via python-semantic-release (PSR) in CI. Agenten verwenden Conventional Commits — CI übernimmt Version, Changelog, Tag, Release, PyPI."
+description: "Nutze diese Instruction, wenn Release-Verhalten, Conventional Commits, PSR in CI oder der lokale Release-Fallback im Drift-Repo relevant sind. Sie beschreibt die autoritative Release-Automation via python-semantic-release."
 ---
 
 # Drift Release Automation (python-semantic-release)
 
 Releases werden vollständig durch `python-semantic-release` in CI verwaltet.
 Workflow: `.github/workflows/release.yml` — läuft bei jedem Push auf `main`.
+
+Diese Datei ist nur fuer Release-, Commit- und Push-Entscheidungen relevant. Fuer normale Implementierungsarbeit ohne Release-Frage muss sie nicht geladen werden.
 
 ## Was Agenten tun müssen
 

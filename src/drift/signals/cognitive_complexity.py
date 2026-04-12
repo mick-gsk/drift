@@ -150,6 +150,9 @@ _CONFIG_DEFAULT_FILENAME_MARKERS: tuple[str, ...] = (
     "config.defaults",
     "default-config",
 )
+_SCHEMA_FILENAME_MARKERS: tuple[str, ...] = (
+    "config-schema",
+)
 
 
 def _is_inherent_ts_complexity_context(path: Path | str) -> bool:
@@ -162,6 +165,8 @@ def _is_inherent_ts_complexity_context(path: Path | str) -> bool:
 
     filename = value.rsplit("/", 1)[-1]
     if filename.endswith(_SCHEMA_FILE_SUFFIXES):
+        return True
+    if any(marker in filename for marker in _SCHEMA_FILENAME_MARKERS):
         return True
     if "migration" in filename:
         return True

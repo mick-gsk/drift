@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - CXS/DCA follow-up hardening
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| CXS | FP: `config-schema` TS/JS files bypass context dampening and are escalated too aggressively | Inherent-context matcher did not include explicit `config-schema` filename marker | Noise inflation for declarative schema files in extension/plugin repositories | Regression coverage in `tests/test_cognitive_complexity.py` includes `extensions/feishu/src/config-schema.ts` | Add bounded marker match for `config-schema` in `_is_inherent_ts_complexity_context` | 6 | 6 | 2 | 72 | Mitigated |
+| DCA | Operational noise/perf drag from repeated package-root metadata reads | Published-package discovery iterated same package roots multiple times across many files | Redundant `package.json` parsing and avoidable variability in repeated-root handling | Direct code-path guard plus static review of root-candidate loop | Track `inspected_roots` and skip duplicate package-root inspections | 4 | 5 | 3 | 60 | Mitigated |
+
 ## 2026-04-12 - Issue #277: TVS test-file volatility false positives
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

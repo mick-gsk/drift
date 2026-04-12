@@ -185,12 +185,17 @@ def _extract_package_root_candidates(file_path: Path) -> list[Path]:
 def _discover_published_package_roots(parse_results: list[ParseResult]) -> dict[Path, str]:
     """Return package roots with non-private npm package.json name metadata."""
     package_roots: dict[Path, str] = {}
+    inspected_roots: set[Path] = set()
 
     for pr in parse_results:
         if pr.language not in _SUPPORTED_LANGUAGES:
             continue
 
         for package_root in _extract_package_root_candidates(pr.file_path):
+            if package_root in inspected_roots:
+                continue
+            inspected_roots.add(package_root)
+
             package_json = package_root / "package.json"
             if not package_json.is_file():
                 continue

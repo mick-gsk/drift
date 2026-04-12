@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - CXS/DCA follow-up hardening: schema-context marker coverage and package-root inspection dedupe
+
+- Risk ID: RISK-SIGNAL-2026-04-12-CXS-DCA-FOLLOWUP
+- Component: `src/drift/signals/cognitive_complexity.py`, `src/drift/signals/dead_code_accumulation.py`, `tests/test_cognitive_complexity.py`
+- Type: Signal precision/performance hardening
+- Description: Follow-up signal hardening adds explicit `config-schema` filename marker coverage for CXS context dampening and deduplicates package-root inspection in DCA published-package discovery to avoid repeated `package.json` parses for the same root.
+- Trigger: `drift analyze` on extension/plugin repositories with `config-schema` files and monorepos with many JS/TS files under shared `packages/<name>` roots.
+- Impact: Positive. Improves precision consistency (CXS) and reduces redundant processing/metadata churn (DCA).
+- Mitigation:
+  - Extend CXS inherent-context filename markers with `config-schema`.
+  - Track inspected package roots in DCA published-package discovery and skip repeat inspections.
+  - Add regression coverage for `extensions/feishu/src/config-schema.ts` context recognition.
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_cognitive_complexity.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m ruff check src/drift/signals/cognitive_complexity.py src/drift/signals/dead_code_accumulation.py tests/test_cognitive_complexity.py`
+- Residual risk: Low. CXS remains bounded to explicit filename markers, and DCA dedupe only skips repeated inspections of identical package roots.
+
 ## 2026-04-12 - Issue #277: TVS test-file volatility precision hardening
 
 - Risk ID: RISK-SIGNAL-2026-04-12-277

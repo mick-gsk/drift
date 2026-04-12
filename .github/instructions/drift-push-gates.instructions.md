@@ -1,6 +1,5 @@
 ---
-applyTo: "**"
-description: "Pre-Push-Gate-Checkliste — Alle Bedingungen, die erfüllt sein müssen bevor ein git push ausgeführt wird. Agenten MÜSSEN diese Datei prüfen bevor sie einen Push vorbereiten."
+description: "Nutze diese Instruction, wenn ein Commit, ein Push oder eine Release-Vorbereitung im Drift-Repo ansteht. Sie ist die autoritative Gate-Quelle fuer Pre-Push-Anforderungen, Bypaesse und lokale CI-Pflichten."
 ---
 
 # Drift Pre-Push Gates — Vollständige Checkliste für Agenten
@@ -8,9 +7,13 @@ description: "Pre-Push-Gate-Checkliste — Alle Bedingungen, die erfüllt sein m
 Der Hook in `.githooks/pre-push` blockiert jeden Push, der eine der folgenden Bedingungen verletzt.
 **Agenten müssen alle zutreffenden Gates erfüllen, bevor sie `git push` ausführen.**
 
+Diese Datei ist nur fuer Commit-/Push-Vorbereitung relevant, nicht fuer allgemeine Implementierungsarbeit.
+
 ---
 
 ## Übersicht: Welches Gate gilt bei welcher Änderung?
+
+`feat:` / `fix:` / `BREAKING:` folgen den Conventional-Commit-Regeln aus `.github/instructions/drift-release-automation.instructions.md`.
 
 | Geänderte Dateien | Erforderliches Gate |
 |-------------------|---------------------|
@@ -35,7 +38,7 @@ Der Hook in `.githooks/pre-push` blockiert jeden Push, der eine der folgenden Be
 ## Gate 2 — Feature-Evidence-Gate
 
 **Auslöser:** Push enthält mindestens einen Commit mit Prefix `feat:` (oder `feat(scope):`).  
-**Alle drei Bedingungen müssen gleichzeitig erfüllt sein:**
+**Alle vier Bedingungen müssen gleichzeitig erfüllt sein:**
 
 1. **Tests vorhanden:** Mindestens eine Datei unter `tests/` muss im Push enthalten sein.
 2. **Empirisches Artefakt vorhanden:** Mindestens eine Datei unter `benchmark_results/` oder `audit_results/` muss im Push enthalten sein.
@@ -131,7 +134,7 @@ git commit --amend --no-edit  # oder separater Commit
 
 ## Gate 8 — CI-Checks (lokal, immer)
 
-**Auslöser:** Immer — jeder Push läuft durch alle sechs Checks.
+**Auslöser:** Immer — jeder Push läuft durch die vollständige lokale Check-Kette.
 
 | Schritt | Befehl | Bypass |
 |---------|--------|--------|

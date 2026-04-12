@@ -124,6 +124,9 @@ def test_loop_with_nested_condition() -> None:
 
 def test_inherent_ts_complexity_context_matches_schema_and_migration_paths() -> None:
     assert _is_inherent_ts_complexity_context(Path("src/gateway/mcp-http.schema.ts"))
+    assert _is_inherent_ts_complexity_context(
+        Path("extensions/feishu/src/config-schema.ts")
+    )
     assert _is_inherent_ts_complexity_context(Path("src/infra/state-migrations.ts"))
     assert _is_inherent_ts_complexity_context(
         Path("src/commands/doctor/shared/legacy-config-migrations.channels.ts")
@@ -269,6 +272,7 @@ class TestCXSTrueNegative:
     "path",
     [
         "src/gateway/mcp-http.schema.ts",
+        "extensions/feishu/src/config-schema.ts",
         "extensions/anthropic/config-defaults.ts",
     ],
 )

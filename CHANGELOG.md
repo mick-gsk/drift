@@ -42,6 +42,8 @@
 
 ### Fixed
 
+- CXS follow-up hardening: treat TypeScript/JavaScript files containing `config-schema` in the filename as inherent schema context in `_is_inherent_ts_complexity_context`, reducing false-positive urgency for declarative schema modules.
+- DCA follow-up hardening: avoid duplicate package-root `package.json` inspections in published-package detection by tracking already inspected roots, improving deterministic metadata derivation for monorepo package scans.
 - TVS Issue #277: exclude clear test-code paths (`tests/**`, `__tests__`, `test_*`, `*_test.py`, `*.test.*`, `*.spec.*`) from temporal-volatility finding emission to prevent non-actionable HIGH volatility false positives on test files.
 - DCA Issue #272: reduce false positives for TypeScript/JavaScript test contract harness modules (`*.testkit.ts/js/...`) by applying bounded severity dampening with explicit metadata traceability (`testkit_contract_heuristic_applied`), preventing high-severity dead-code escalation for downstream-consumed testkit APIs.
 - DCA Issue #271: in TypeScript/JavaScript, only class-like declarations marked as exported are treated as DCA export candidates; file-local `type`/`interface`/`class` declarations are no longer misreported as unused exports.

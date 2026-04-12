@@ -1,14 +1,15 @@
 ---
-applyTo: "src/drift/**"
-description: "Releases are automated via python-semantic-release in CI. Agents must use conventional commits (feat:/fix:/BREAKING:) — no manual release command needed."
+description: "Nutze diese Kurz-Instruction, wenn schnell geklaert werden muss, ob im Drift-Repo ein manueller Release-Befehl noetig ist. Kurzregel: Conventional Commits verwenden, Release macht CI."
 ---
 
 # Release Automation
 
 > **Vollständige Dokumentation:** siehe `drift-release-automation.instructions.md` (gleicher Scope).
 
-**Kurzregel:** Conventional Commits (`feat:`, `fix:`, `BREAKING:`) verwenden — CI übernimmt Version, Tag, Release, PyPI.
-Kein manueller Release-Befehl nötig. Fallback: `python scripts/release_automation.py --full-release`.
+Diese Datei ist absichtlich knapp und dient nur als Reminder.
+
+**Kurzregel:** Conventional Commits (`feat:`, `fix:`, `BREAKING:`) verwenden — CI übernimmt Version, Tag, Release und PyPI.
+Kein manueller Release-Befehl nötig. Lokaler Fallback nur bei CI-Ausfall: `python scripts/release_automation.py --full-release`.
 
 ## See Also
 

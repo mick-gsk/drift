@@ -1,5 +1,40 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - CXS/DCA follow-up hardening
+
+### Top Event (TE-CXS-DCA-FOLLOWUP)
+Precision/performance follow-up gaps in CXS and DCA create avoidable triage noise and redundant signal preprocessing work.
+
+### FT-1: CXS false-priority branch
+
+```
+          TE-CXS: declarative config-schema modules escalated as high-priority complexity debt
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: CXS context matcher covered schema/migration/default-config patterns but missed explicit `config-schema` naming.
+  - Mitigation: add bounded filename marker `config-schema` to inherent-context detection.
+- **IE-2 (Guard)**: missing explicit marker reduced consistency for extension/plugin schema modules.
+  - Mitigation: verify marker coverage with targeted regression path in CXS tests.
+
+### FT-2: DCA repeated-root processing branch
+
+```
+          TE-DCA: repeated package-root inspection during published-package discovery
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: package-root candidates can repeat for many files in the same package.
+  - Mitigation: maintain `inspected_roots` set and skip already-seen roots.
+- **IE-2 (Guard)**: repeated `package.json` reads increase redundant work and can obscure deterministic reasoning in code review.
+  - Mitigation: perform at-most-once package metadata inspection per package root.
+
 ## 2026-04-12 - Issue #277: TVS false positives on test files
 
 ### Top Event (TE-TVS-277)
