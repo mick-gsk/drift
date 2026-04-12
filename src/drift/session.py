@@ -719,7 +719,7 @@ class DriftSession:
                 "reclaim_count": reclaim_count,
             }
 
-    def _find_task(self, task_id: str) -> "dict[str, Any] | None":
+    def _find_task(self, task_id: str) -> dict[str, Any] | None:
         """Return the task dict for *task_id* from ``selected_tasks``, or ``None``."""
         for t in self.selected_tasks or []:
             if t.get("id", t.get("task_id", "")) == task_id:
