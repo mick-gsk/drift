@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="drift — steer your agent before it ships" width="900">
+<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/docs/assets/banner.svg" alt="drift — steer your agent before it ships" width="900">
 
 # Drift
 
@@ -14,7 +14,7 @@ drift setup          # 3-question wizard: picks the right profile for your proje
 drift status         # traffic-light health check — your daily entry point
 ```
 
-<img src="demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
+<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
 
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![Drift Score](https://img.shields.io/badge/drift%20score-0.50-yellow?style=flat)](benchmark_results/drift_self.json)
