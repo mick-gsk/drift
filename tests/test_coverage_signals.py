@@ -574,6 +574,134 @@ class TestSystemMisalignmentCoverage:
         assert len(findings) == 1
         assert findings[0].signal_type == SignalType.SYSTEM_MISALIGNMENT
         assert findings[0].file_path == Path("extensions/otel/src")
+        assert findings[0].severity.value == "info"
+        assert findings[0].score <= 0.19
+        assert findings[0].metadata.get("workspace_scope") == "extensions/otel"
+        assert findings[0].metadata.get("workspace_scoped_novel_capped") is True
+
+    def test_sms_does_not_cap_when_novel_dep_is_shared_across_workspaces(self, tmp_path: Path):
+        """If a novel dep appears in multiple extension workspaces, keep normal severity."""
+        from drift.signals.system_misalignment import SystemMisalignmentSignal
+
+        signal = SystemMisalignmentSignal()
+        signal._repo_path = tmp_path
+        signal._commits = []
+
+        prs = []
+        histories = {}
+
+        for i in range(8):
+            core_file = Path(f"core/file{i}.py")
+            prs.append(
+                ParseResult(
+                    file_path=core_file,
+                    language="python",
+                    imports=[
+                        ImportInfo(
+                            source_file=core_file,
+                            imported_module="requests",
+                            imported_names=["get"],
+                            line_number=1,
+                        )
+                    ],
+                )
+            )
+            histories[core_file.as_posix()] = FileHistory(
+                path=core_file,
+                total_commits=12,
+                unique_authors=3,
+                last_modified=_days_ago(60),
+                first_seen=_days_ago(120),
+            )
+
+        otel_legacy = Path("extensions/otel/src/legacy.ts")
+        prs.append(
+            ParseResult(
+                file_path=otel_legacy,
+                language="typescript",
+                imports=[
+                    ImportInfo(
+                        source_file=otel_legacy,
+                        imported_module="@opentelemetry/api",
+                        imported_names=["x"],
+                        line_number=1,
+                    )
+                ],
+            )
+        )
+        histories[otel_legacy.as_posix()] = FileHistory(
+            path=otel_legacy,
+            total_commits=10,
+            unique_authors=2,
+            last_modified=_days_ago(80),
+            first_seen=_days_ago(120),
+        )
+
+        discord_legacy = Path("extensions/discord/src/legacy.ts")
+        prs.append(
+            ParseResult(
+                file_path=discord_legacy,
+                language="typescript",
+                imports=[
+                    ImportInfo(
+                        source_file=discord_legacy,
+                        imported_module="@sentry/node",
+                        imported_names=["x"],
+                        line_number=1,
+                    )
+                ],
+            )
+        )
+        histories[discord_legacy.as_posix()] = FileHistory(
+            path=discord_legacy,
+            total_commits=10,
+            unique_authors=2,
+            last_modified=_days_ago(80),
+            first_seen=_days_ago(120),
+        )
+
+        otel_new = Path("extensions/otel/src/new.ts")
+        prs.append(
+            ParseResult(
+                file_path=otel_new,
+                language="typescript",
+                imports=[
+                    ImportInfo(
+                        source_file=otel_new,
+                        imported_module="@sentry/node",
+                        imported_names=["x"],
+                        line_number=1,
+                    ),
+                    ImportInfo(
+                        source_file=otel_new,
+                        imported_module="pkg-a",
+                        imported_names=["x"],
+                        line_number=2,
+                    ),
+                    ImportInfo(
+                        source_file=otel_new,
+                        imported_module="pkg-b",
+                        imported_names=["x"],
+                        line_number=3,
+                    ),
+                ],
+            )
+        )
+        histories[otel_new.as_posix()] = FileHistory(
+            path=otel_new,
+            total_commits=1,
+            unique_authors=1,
+            last_modified=_days_ago(1),
+            first_seen=_days_ago(1),
+        )
+
+        findings = signal.analyze(prs, histories, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].signal_type == SignalType.SYSTEM_MISALIGNMENT
+        assert findings[0].file_path == Path("extensions/otel/src")
+        assert findings[0].severity.value == "medium"
+        assert findings[0].score >= 0.6
+        assert findings[0].metadata.get("workspace_scoped_novel_capped") is None
 
 
 # ---------------------------------------------------------------------------

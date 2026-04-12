@@ -1,5 +1,80 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #267: SMS extension-local dependencies over-prioritized in established workspaces
+
+### Top Event (TE-SMS-267)
+SMS reports extension/plugin-local novel dependencies with inflated urgency in established runtime workspaces, even when the dependencies are intentionally isolated to one workspace.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: expected workspace-local dependency novelty reported as MEDIUM drift
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: SMS novelty assessment was module-local and did not include package-to-workspace scope evidence for established runtime plugin layouts.
+  - Mitigation: build runtime package scope index (`package -> {workspace}`) for `extensions/<name>` and `plugins/<name>` paths.
+- **IE-2 (MCS)**: Existing suppression guarded only newly introduced workspaces and did not address mature extension packages with intentional local dependency stacks.
+  - Mitigation: add bounded severity cap (`INFO`, `score <= 0.19`) when all novel packages are isolated to the same runtime workspace and annotate findings with `workspace_scoped_novel_capped` + `workspace_scope`.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Over-broad workspace cap could hide genuine cross-workspace novelty drift.
+  - Mitigation: cap is applied only when all novel packages resolve to exactly one workspace; if any package is shared across workspaces, normal SMS severity logic remains active.
+
+## 2026-04-12 - Issue #266: PFS inter-extension boundary variation flagged as fragmentation
+
+### Top Event (TE-PFS-266)
+PFS reports high-urgency pattern fragmentation for API/error variants in extension monorepos where variation is expected across plugin boundaries.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: intentional extension-boundary pattern diversity reported as actionable drift
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: PFS variant scoring prioritizes count dispersion but lacks a dedicated cap for expected plugin-boundary API/error heterogeneity.
+  - Mitigation: classify API/error categories in multi-plugin layouts as expected inter-plugin variation and apply informational severity cap.
+- **IE-2 (MCS)**: Existing plugin dampener reduced urgency to LOW in many cases but still surfaced non-actionable fix pressure in large extension trees.
+  - Mitigation: add explicit `plugin_boundary_variation_expected` metadata and cap these findings to INFO for traceable triage.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Aggressive context dampening may hide true intra-extension fragmentation that is actionable.
+  - Mitigation: bound heuristic to plugin layouts with at least three workspaces and keep findings visible with metadata for manual re-prioritization.
+
+## 2026-04-12 - Issue #264: MDS absolute-path workspace detection gap
+
+### Top Event (TE-MDS-264)
+MDS reports cross-extension vendored duplicates as actionable high-severity clones because workspace isolation dampening does not activate for absolute file paths.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: intentional cross-extension duplicate reported as HIGH/MEDIUM
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Workspace-scope helper required `extensions`/`plugins` as the first path segment and failed for absolute paths.
+  - Mitigation: resolve workspace scope by scanning normalized path segments and extracting `extensions/<name>` or `plugins/<name>` anywhere in path.
+- **IE-2 (MCS)**: Pair/group dampening depended on this scope helper, so cross-workspace caps were skipped in real repository layouts.
+  - Mitigation: keep existing INFO cap logic but feed it robust scope resolution for both exact-group and near-duplicate pair paths.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Segment-scan matching may accidentally classify unrelated paths that contain `extensions`/`plugins` as plain folder names.
+  - Mitigation: require exact segment match plus immediate workspace name segment; preserve same-workspace and non-plugin negative-path regressions.
+
 ## 2026-04-12 - Issue #263: AVS unstable-dependency FP in intra-extension imports
 
 ### Top Event (TE-AVS-263)
@@ -224,6 +299,31 @@ NBV reports `ensure_*` TypeScript class methods as contract violations although 
 
 - **IE-3 (Guard)**: Wrapped method parsing could make malformed snippets appear valid.
   - Mitigation: Scope wrapper fallback strictly to dotted method names and keep negative ensure regression (`ensure_*` without throw/return/side-effect is still flagged).
+
+## 2026-04-12 - Issue #265: NBV false positives on TS predicate and assertion contracts
+
+### Top Event (TE-NBV-265)
+NBV reports TypeScript `is*`/`has*` predicate helpers and `ensure*` assertion-signature functions as naming-contract violations although language-conformant contracts are fulfilled.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: valid TS predicate/assertion contracts reported as NBV violations
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Inferred TS predicate returns (for example delegated call results) are treated as non-bool when explicit return annotations are absent.
+  - Mitigation: In `_ts_has_bool_return`, fail only on clear non-bool return evidence and treat unknown inferred-return expressions conservatively.
+- **IE-2 (MCS)**: `ensure*` TS assertion signatures (`asserts ...`) are not recognized as valid ensure contracts when no local `throw`/value-return side effect is visible.
+  - Mitigation: Accept assertion-signature return contracts explicitly in `_ts_check_rule` for `ensure_`.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Conservative inferred-bool acceptance may hide some real predicate naming violations.
+  - Mitigation: Keep explicit non-bool returns/signatures reportable and enforce negative regression tests for string/non-bool return scenarios.
 
 ## 2026-04-12 - Issue #253: TVS false positives in active extension/plugin workspaces
 

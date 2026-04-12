@@ -134,6 +134,40 @@ def _is_stdlib_import(module_spec: str, language: str) -> bool:
     return top in _STDLIB_MODULES
 
 
+def _top_level_import(module_spec: str, language: str) -> str:
+    """Extract top-level package name from an import specifier."""
+    if language in ("typescript", "tsx", "javascript", "jsx"):
+        spec = module_spec
+        if spec.startswith("@"):
+            parts = spec.split("/")
+            return "/".join(parts[:2]) if len(parts) >= 2 else spec
+        return spec.split("/")[0]
+    return module_spec.split(".")[0]
+
+
+def _runtime_workspace_import_scopes(
+    parse_results: list[ParseResult],
+) -> dict[str, set[str]]:
+    """Map imported package -> runtime workspaces where it appears."""
+    scopes: dict[str, set[str]] = defaultdict(set)
+    for pr in parse_results:
+        if is_test_file(pr.file_path):
+            continue
+        workspace = _runtime_plugin_workspace_key(pr.file_path)
+        if workspace is None:
+            continue
+        for imp in pr.imports:
+            if imp.is_relative:
+                continue
+            if _is_stdlib_import(imp.imported_module, pr.language):
+                continue
+            top = _top_level_import(imp.imported_module, pr.language)
+            if top in _ALL_STDLIB:
+                continue
+            scopes[top].add(workspace)
+    return scopes
+
+
 def _module_imports(
     parse_results: list[ParseResult],
     file_histories: dict[str, FileHistory],
@@ -163,16 +197,7 @@ def _module_imports(
             if not imp.is_relative:
                 if _is_stdlib_import(imp.imported_module, pr.language):
                     continue
-                # TS/JS: extract top-level package name
-                if pr.language in ("typescript", "tsx", "javascript", "jsx"):
-                    spec = imp.imported_module
-                    if spec.startswith("@"):
-                        parts = spec.split("/")
-                        top = "/".join(parts[:2]) if len(parts) >= 2 else spec
-                    else:
-                        top = spec.split("/")[0]
-                else:
-                    top = imp.imported_module.split(".")[0]
+                top = _top_level_import(imp.imported_module, pr.language)
                 module_imports[module].add(top)
     return module_imports
 
@@ -216,16 +241,7 @@ def _find_novel_imports(
                 continue
             if _is_stdlib_import(imp.imported_module, pr.language):
                 continue
-            # TS/JS: extract top-level package name
-            if pr.language in ("typescript", "tsx", "javascript", "jsx"):
-                spec = imp.imported_module
-                if spec.startswith("@"):
-                    parts = spec.split("/")
-                    top = "/".join(parts[:2]) if len(parts) >= 2 else spec
-                else:
-                    top = spec.split("/")[0]
-            else:
-                top = imp.imported_module.split(".")[0]
+            top = _top_level_import(imp.imported_module, pr.language)
             if top in _STDLIB_MODULES:
                 continue
             if top not in baseline:
@@ -291,6 +307,7 @@ class SystemMisalignmentSignal(BaseSignal):
             file_histories,
             cutoff,
         )
+        workspace_import_scopes = _runtime_workspace_import_scopes(candidate_parse_results)
         novel = _find_novel_imports(
             candidate_parse_results,
             baseline,
@@ -318,6 +335,23 @@ class SystemMisalignmentSignal(BaseSignal):
             elif score >= 0.3:
                 severity = Severity.LOW
 
+            module_workspace = _runtime_plugin_workspace_key(module)
+            metadata: dict[str, object] = {
+                "novel_packages": sorted(unique_packages),
+                "novel_imports": sorted(unique_packages),
+                "import_count": len(imports),
+            }
+
+            # In extension/plugin monorepos, workspace-local packages are expected.
+            if module_workspace and all(
+                workspace_import_scopes.get(pkg, set()) == {module_workspace}
+                for pkg in unique_packages
+            ):
+                score = min(score, 0.19)
+                severity = Severity.INFO
+                metadata["workspace_scope"] = module_workspace
+                metadata["workspace_scoped_novel_capped"] = True
+
             pkg_list = ", ".join(sorted(unique_packages))
             imp_details = [
                 f"  - {imp.source_file}:{imp.line_number} imports '{pkg}'"
@@ -343,11 +377,7 @@ class SystemMisalignmentSignal(BaseSignal):
                     ),
                     file_path=module,
                     fix=fix,
-                    metadata={
-                        "novel_packages": sorted(unique_packages),
-                        "novel_imports": sorted(unique_packages),
-                        "import_count": len(imports),
-                    },
+                    metadata=metadata,
                 )
             )
 

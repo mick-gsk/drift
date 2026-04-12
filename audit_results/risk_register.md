@@ -1,5 +1,54 @@
 # Risk Register
 
+## 2026-04-12 - Issue #267: SMS extension workspace novelty severity inflation
+
+- Risk ID: RISK-SIGNAL-2026-04-12-267
+- Component: `src/drift/signals/system_misalignment.py`, `tests/test_coverage_signals.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: System Misalignment (SMS) now applies a bounded cap for extension/plugin-local novel dependencies when all newly introduced packages are only observed inside one runtime workspace (`extensions/<name>` or `plugins/<name>`). Findings remain visible but are downgraded to `INFO` (`score <= 0.19`) and marked with `workspace_scoped_novel_capped` metadata.
+- Trigger: `drift analyze` on large extension monorepos where established extension packages introduce domain-specific dependencies that are intentionally unique per workspace.
+- Impact: High-positive. Reduces medium-severity false-positive clusters and improves SMS credibility/actionability for plugin-style architectures.
+- Mitigation:
+  - Added workspace package-scope index across runtime plugin paths.
+  - Added bounded cap only when all novel packages are isolated to one workspace.
+  - Preserved normal severity when at least one novel package is shared across workspaces.
+  - Added targeted regressions for capped and non-capped paths.
+- Verification:
+  - `.\\.venv\\Scripts\\python.exe -m pytest tests/test_coverage_signals.py -q -k "sms_" --tb=short`
+- Residual risk: Low-Medium. Some genuine in-workspace dependency drift may be down-ranked; findings remain emitted with metadata for manual escalation.
+
+## 2026-04-12 - Issue #266: PFS multi-extension boundary precision hardening
+
+- Risk ID: RISK-SIGNAL-2026-04-12-266
+- Component: `src/drift/signals/pattern_fragmentation.py`, `tests/test_pattern_fragmentation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Pattern Fragmentation Signal (PFS) now treats API-endpoint and error-handling heterogeneity in multi-plugin extension layouts as expected inter-plugin boundary variation and caps urgency to INFO with explicit metadata marker `plugin_boundary_variation_expected`.
+- Trigger: `drift analyze` on large monorepos with many `extensions/*` or `plugins/*` packages where each plugin intentionally owns distinct endpoint and provider-specific error behavior.
+- Impact: High-positive. Reduces non-actionable PFS urgency inflation and improves triage credibility in extension/plugin ecosystems.
+- Mitigation:
+  - Added category-bounded inter-plugin variation heuristic for PFS (`api_endpoint`, `error_handling`).
+  - Applied INFO severity cap only when plugin-layout evidence is strong (`plugin_count >= 3`).
+  - Added targeted Issue-266 regressions for API and error-handling contexts plus non-plugin guard.
+- Verification:
+  - `python -m pytest tests/test_pattern_fragmentation.py -q --tb=short`
+- Residual risk: Low-Medium. Some genuine intra-extension fragmentation can be down-ranked in large plugin layouts; findings remain visible with metadata for reviewer override.
+
+## 2026-04-12 - Issue #264: MDS absolute-path workspace isolation precision fix
+
+- Risk ID: RISK-SIGNAL-2026-04-12-264
+- Component: `src/drift/signals/mutant_duplicates.py`, `tests/test_mutant_duplicates_edge_cases.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Mutant Duplicate Signal (MDS) now resolves extension/plugin workspace scope from path segments across full normalized paths, so cross-workspace dampening also applies when parse results carry absolute file paths.
+- Trigger: `drift analyze` on large monorepos where findings use absolute file paths (for example cloned temp directories or Windows absolute paths), especially under `extensions/*` and `plugins/*`.
+- Impact: High-positive. Reduces high-severity false positives for intentional vendored utility duplicates across isolated extension workspaces.
+- Mitigation:
+  - Hardened `_workspace_plugin_scope()` to detect `extensions/<name>` and `plugins/<name>` in any path segment position.
+  - Kept existing pair/group INFO cap behavior and added explicit metadata marker `cross_extension_vendored`.
+  - Added Issue-264 regressions for absolute-path scope detection and end-to-end exact-duplicate severity capping.
+- Verification:
+  - `python -m pytest tests/test_mutant_duplicates_edge_cases.py -q --tb=short`
+- Residual risk: Low-Medium. Path-segment scanning may still classify edge-case folder naming collisions; matching remains bounded to exact marker segments and findings stay visible (no suppression).
+
 ## 2026-04-12 - Issue #263: AVS intra-extension unstable-dependency suppression
 
 - Risk ID: RISK-SIGNAL-2026-04-12-263
@@ -154,6 +203,22 @@
   - `python -m pytest tests/test_naming_contract_violation.py -q --tb=short`
   - `python -m pytest tests/test_nbv_helpers_coverage.py -q --tb=short`
 - Residual risk: Low-Medium. Synthetic wrapping is a heuristic and may mask malformed method snippets in edge cases; scope is limited to dotted method names and guarded by negative regression tests.
+
+## 2026-04-12 - Issue #265: NBV TS predicate and assertion-contract false-positive reduction
+
+- Risk ID: RISK-SIGNAL-2026-04-12-265
+- Component: `src/drift/signals/naming_contract_violation.py`, `tests/test_naming_contract_violation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Naming Contract Violation (NBV) now treats TypeScript `is*`/`has*` functions without explicit return annotation conservatively: violations are emitted only when return expressions provide clear non-boolean evidence. Additionally, `ensure*` functions with TS assertion signatures (`asserts ...`) are accepted as valid ensure contracts.
+- Trigger: `drift analyze` on TypeScript extension/runtime repositories where predicate helpers delegate to boolean-producing calls without explicit annotations and ensure-style guards use assertion signatures.
+- Impact: High-positive. Reduces dominant NBV false positives in TS-heavy codebases and improves signal credibility/actionability.
+- Mitigation:
+  - Refined `_ts_has_bool_return()` classification into `bool` / `non_bool` / `unknown`, with conservative handling for unknown inferred returns.
+  - Added `_ts_is_assertion_return_contract()` and integrated it into `ensure_` TS contract checks.
+  - Added Issue-265 regressions for inferred-bool call returns, assertion-signature ensure contracts, and explicit non-bool negative control.
+- Verification:
+  - `python -m pytest tests/test_naming_contract_violation.py -q --tb=short`
+- Residual risk: Low-Medium. Conservative unknown-return handling may down-rank a subset of true violations; explicit non-bool return evidence remains strictly reportable.
 
 ## 2026-04-12 - Issue #253: TVS dampening for active extension/plugin development bursts
 
