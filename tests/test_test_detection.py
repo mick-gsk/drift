@@ -15,6 +15,8 @@ def test_is_test_file_patterns() -> None:
     assert is_test_file(Path("src/test-support/mocks.ts"))
     assert is_test_file(Path("src/test-helpers/factories.ts"))
     assert is_test_file(Path("extensions/whatsapp/src/test-helpers.ts"))
+    assert is_test_file(Path("extensions/msteams/src/message-handler.test-support.ts"))
+    assert is_test_file(Path("extensions/msteams/src/test-support.ts"))
     assert is_test_file(Path("src/gateway/test-http-response.ts"))
     assert is_test_file(Path("tests/conftest.py"))
     assert not is_test_file(Path("src/app.py"))
