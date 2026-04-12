@@ -6,119 +6,17 @@ Short version: Harden copilot-autopilot risky-edit completion with fix-intent co
 
 ### Added
 
-- **Shadow-Verify fuer cross-file-risky edit_kinds (ADR-064):** Tasks mit `fix_intent.edit_kind` in `{remove_import, relocate_import, reduce_dependencies, extract_module, decouple_modules, delete_symbol, rename_symbol}` erhalten jetzt `shadow_verify=true` und `completion_evidence.tool="drift_shadow_verify"`. Der neue MCP-Tool `drift_shadow_verify` fuehrt einen vollen, nicht-inkrementellen `analyze_repo()`-Lauf durch, filtert auf `scope_files` (Union aus `allowed_files`, `related_files` und Task-Graph-Nachbarn) und vergleicht mit der aktuellen Baseline. Gibt `shadow_clean`, `safe_to_merge`, `new_findings_in_scope` und `agent_instruction` zurueck. Verhindert falsch-positive `safe_to_commit`-Ergebnisse von `drift_nudge` nach Import-Graph- und Symbol-Sichtbarkeits-Edits.
-
-- **EDS private-function recall guard (ADR-048):** Private functions now require a weighted score ≥ 0.45 (vs 0.30 for public) before being reported. Files tagged as `defect_correlated` in git history override the threshold back down to 0.30, preserving recall on historically buggy helpers.
-- **PFS canonical code snippet (ADR-049):** Pattern fragmentation findings now embed up to 8 source lines of the canonical exemplar in `metadata["canonical_snippet"]`. Severity is downgraded (HIGH→MEDIUM or MEDIUM→LOW) when the canonical pattern covers < 10 % of instances, and HIGH→MEDIUM when it covers < 15 % (`canonical_ratio` in metadata).
-- DCA Issue #260: reduce false positives for plugin/extension workspace exports by applying a bounded workspace-aware dampening (`extensions/*`, `plugins/*`, including nested paths like `.pi/extensions/*`) with LOW severity cap (`score <= 0.39`) and metadata traceability (`runtime_plugin_workspace_heuristic_applied`).
-- **AVS blast-radius churn guard (ADR-050):** `_check_blast_radius` now accepts `file_histories` and skips modules with `change_frequency_30d ≤ 1.0` AND `blast_radius ≤ 50` — reducing noise from stable, rarely-touched modules. `churn_per_week` is added to finding metadata.
-- **CCC commit-context test template (ADR-051):** Co-change coupling findings now store up to 3 truncated commit messages in `metadata["commit_messages"]`. Fix text presents an intentional vs accidental coupling branch: the intentional path shows a test scaffold (`def test_<a>_<b>_sync()`), the accidental path recommends extracting shared logic.
-
-- `--format pr-comment` output for `drift analyze` — compact Markdown block suitable for GitHub PR comments, Slack posts, and issue updates (ADR-052). Shows score, severity, trend, and top 5 findings with human-readable signal names and actionable fix text.
-- SARIF rule `help` field now populated from `generate_recommendation()` for signals with registered recommenders — Code Scanning annotations show structured remediation guidance (ADR-052).
-- `analysis_to_markdown()` gains `include_modules` and `include_signal_coverage` params; `--compact` flag now also applies to `--format markdown` (max 5 findings, no module scores, no signal coverage) (ADR-052).
-- CSV output (`--format csv`) gains `signal_label` column with human-readable signal name for non-Drift consumers (ADR-052).
-- MCP Autopilot Demo assets under `demos/copilot-autopilot/` plus a runnable prompt at `.github/prompts/drift-mcp-autopilot-demo.prompt.md` for a reproducible external-repo fix-loop demonstration.
+- Add `fix_intent` normalization plus serialized task contracts for deterministic risky-edit handling (ADR-063).
+- Add `drift_shadow_verify` and shadow-verify task metadata/evidence for cross-file-risky edit kinds (ADR-064).
+- Add repair-template registry seed data and coverage matrix generation for template confidence and regression guidance (ADR-065).
 
 ### Changed
 
-- SARIF `message.text` extended with `generate_recommendation()` title when available, capped at 400 chars (ADR-052).
-
-### Breaking Changes
-
-- **CSV**: The `signal_label` column is inserted after `signal` — all column indices ≥ 2 shift by 1. Parsers using positional column access must be updated.
-
-- `drift completions [bash|zsh|fish]` command for shell tab-completion script generation.
-- `--format junit` output for `drift analyze` and `drift check` — JUnit XML for Jenkins, GitLab, Azure DevOps CI integration.
-- `--format llm` output for `drift analyze` and `drift check` — token-efficient single-line-per-finding format for AI agents and LLMs.
-- `drift ci` zero-config CI command with auto-detection of GitHub Actions, GitLab CI, CircleCI, and Azure Pipelines; auto-selects diff-ref, output format, and exit-code behavior.
-- `drift gate` alias for `drift check` — positions quality gate branding for CI documentation.
-- `drift analyze` now accepts an optional positional `[REPO]` argument so `drift analyze .` and `drift analyze /path/to/repo` work without the `--repo` flag, matching README examples.
-- `drift start` output expanded with a tool description, "What to expect" block for each command, and a hint to use `drift explain <SIGNAL>`.
-- `drift check` shows a scope-clarification panel when no findings are returned on the default `HEAD~1` diff, pointing users to `drift analyze --repo .` for a full scan.
-- `drift status` shows a `Location: file:line` reference above each copy-paste prompt for direct navigation (prompt text itself stays path-free per PRD F-06).
-- `drift fix-plan` gets a `--format [auto|rich|json]` option (default `auto`): in a terminal, output is now a Rich table (header panel with score and task count, numbered task list with Signal/Severity/File/Fit columns, footer hint). In pipes and CI the default remains JSON. `--format json` forces JSON unconditionally; `--output <file>` always writes JSON (ADR-047).
-
-### Changed
-
-- Score headline panel in `drift analyze` output now shows "Typical first-run range: 0.30–0.65" as a dim hint for first-time score context.
-- `drift status` all output strings translated from German to English (short_help, docstring, found/not-found messages, "Next step:", "Tip:", and calibration hint).
-- Inline code snippets in rich output are now hard-capped at 8 lines per finding; additional lines show a `… (N more lines)` marker instead of overflowing the terminal.
-- `drift.yaml` extended with an `exclude:` section to keep `benchmarks/**`, `benchmark_results/**`, `data/**`, `community_flywheel_output/**`, `work_artifacts/**`, `tagesplanung/**`, `site/**`, and `overrides/**` out of the default scan scope.
-- Built-in default exclude list now includes `**/benchmarks/**` and `**/benchmark_results/**` so benchmark corpora are excluded out-of-the-box even without a `drift.yaml` (config.py + file_discovery fallback).
+- Agent-task payloads now carry shadow-verify scope, completion-evidence wiring, and richer verify plans for risky edits.
 
 ### Fixed
 
-- DCA follow-up hardening: classify additional TypeScript/JavaScript test utility directory/file conventions (including `test-utils/`) as test context to reduce production-context false positives in shared harness modules.
-- Cache compatibility hardening: signal cache entries are now invalidated when the stored drift version does not match the running version, preventing stale cross-version cache reuse.
-- Fix-plan payload consistency: remove duplicate compatibility aliases (`signal_abbrev`, `automation_fitness`) and obsolete task-contract fields in favor of the canonical contract payload.
-- MCP enrichment UX: expose phase-scoped `next_tools` (top 4) instead of the full unbounded tool list for cleaner session guidance.
-
-- EDS Issue #302: classify `extensions/qa-lab/src/mock-openai-server.ts` as test context so this QA mock infrastructure file is no longer treated as production explainability debt by default triage.
-- TSB Issue #297: classify TypeScript/JavaScript `*-test-support.*` filenames as test context so intentional test-fixture double-casts in files like `bot-native-commands.menu-test-support.ts` are no longer flagged as production type-safety bypasses by default.
-- TSB Issue #295: classify TypeScript/JavaScript `*.test-utils.*` files as test context so intentional test-fixture double-casts (`as unknown as T`) in files like `bot.media.test-utils.ts` are no longer flagged as production type-safety bypasses by default.
-- AVS Issue #288: suppress architecture-violation findings for header-marked generated files without `.generated.*` filename suffix by adding bounded auto-generated header detection (`auto-generated`, `autogenerated`, `generated by ... do not edit`) in AVS input filtering.
-- AVS Issue #287: suppress architecture-violation findings for generated source files (for example `*.generated.ts`) by excluding generated-file paths from AVS analysis input, reducing non-actionable coupling findings on codegen artifacts.
-- TVS Issue #285: suppress temporal-volatility findings for explicit generated source files (`*.generated.ts/js/tsx/jsx`) and files with auto-generated header markers (`Auto-generated`, `generated by ... do not edit`), reducing non-actionable volatility false positives in codegen workflows.
-- COD Issue #283: classify explicit shared test utility filename conventions (`*.test-harness.*`, `*.test-helpers.*`, `*.test-support.*` and basename variants) as test context in COD so intentional harness aggregation files are not flagged as cohesion deficits.
-- TSB Issue #280: classify TypeScript/JavaScript `*.test-support.*` and `test-support.*` files as test context in shared test detection so canonical test-double double-casts (`as unknown as T`) are no longer flagged as production type-safety bypasses by default.
-- TSB Issue #278: treat `playwright-core` imports as SDK context for EventEmitter non-null assertions (`page.on!`/`page.off!`/`page.once!`) so Playwright-core interop patterns are classified as `non_null_assertion_sdk` and no longer inflate severity.
-- CXS follow-up hardening: treat TypeScript/JavaScript files containing `config-schema` in the filename as inherent schema context in `_is_inherent_ts_complexity_context`, reducing false-positive urgency for declarative schema modules.
-- DCA follow-up hardening: avoid duplicate package-root `package.json` inspections in published-package detection by tracking already inspected roots, improving deterministic metadata derivation for monorepo package scans.
-- TVS Issue #277: exclude clear test-code paths (`tests/**`, `__tests__`, `test_*`, `*_test.py`, `*.test.*`, `*.spec.*`) from temporal-volatility finding emission to prevent non-actionable HIGH volatility false positives on test files.
-- DCA Issue #272: reduce false positives for TypeScript/JavaScript test contract harness modules (`*.testkit.ts/js/...`) by applying bounded severity dampening with explicit metadata traceability (`testkit_contract_heuristic_applied`), preventing high-severity dead-code escalation for downstream-consumed testkit APIs.
-- DCA Issue #271: in TypeScript/JavaScript, only class-like declarations marked as exported are treated as DCA export candidates; file-local `type`/`interface`/`class` declarations are no longer misreported as unused exports.
-- MAZ Issue #270: suppress missing-authorization findings for TypeScript API endpoints extracted from files that bind server listeners explicitly to loopback hosts (`127.0.0.1`, `localhost`, `::1`), preventing CRITICAL false positives for localhost-only media/dev servers.
-- MAZ Issue #269: recognize unscoped Express/Fastify app-level auth middleware (`app.use(...)`) as endpoint auth evidence in TypeScript parsing, preventing false-positive missing-authorization findings for routes protected by global Bearer/JWT middleware chains.
-- TPD Issue #268: cap happy-path-only findings in early-stage runtime extension/plugin workspaces (`extensions/*`, `plugins/*`) to LOW (`score <= 0.39`) when workspace history is recent and module test-file coverage is small (`<= 3`), with metadata traceability (`early_stage_extension`, `runtime_plugin_workspace`, `test_file_count`).
-- SMS Issue #267: cap extension/plugin workspace-local novel dependency findings to `INFO` (`score <= 0.19`) when the introduced packages are isolated to a single runtime workspace (`extensions/<name>` or `plugins/<name>`), with explicit metadata traceability (`workspace_scoped_novel_capped`, `workspace_scope`) to reduce non-actionable severity inflation in established extension monorepos while preserving findings.
-- PFS Issue #266: treat extension/plugin monorepo API/error pattern heterogeneity as inter-plugin boundary variation in multi-plugin layouts (`extensions/*`, `plugins/*`) and cap urgency to `INFO` with explicit metadata traceability (`plugin_boundary_variation_expected`) to reduce non-actionable fragmentation false positives.
-- NBV Issue #265: reduce TypeScript naming-contract false positives for `is*`/`has*` predicates with inferred boolean returns by failing only on clear non-boolean return evidence when annotations are absent; additionally treat TS assertion signatures (`asserts ...`) as valid `ensure*` contracts.
-- MDS Issue #264: make cross-extension/plugin workspace detection robust for absolute paths (e.g. `/tmp/.../extensions/<name>/...`, `C:/.../plugins/<name>/...`) so intentional vendored utility duplicates are capped to `INFO` as intended; add explicit metadata flag `cross_extension_vendored` and regression coverage for absolute-path scenarios.
-- AVS Issue #263: suppress `avs_unstable_dep` findings for intra-extension imports within the same `extensions/<name>` workspace to reduce non-actionable unstable-dependency false positives in monorepo extension architectures, while preserving cross-extension detection.
-- TVS Issue #261: improve `workspace_burst_dampened` activation for mature extension/plugin workspaces by combining active-file and recent-modification density in burst detection, reducing high-severity false positives in large mixed-age monorepos.
-- CXS Issue #259: extend inherent TS/JS complexity-context detection to config-default patterns (`config-defaults.*`, `config.defaults.*`, `default-config.*`) and cap those findings to `INFO` (`score <= 0.19`) with `context_dampened` metadata to reduce false-positive urgency in configuration-default resolver modules.
-- EDS Issue #256: add TypeScript/JavaScript file-based test evidence mapping (`*.test.*`, `*.spec.*`, `__tests__/*`, plus `src/... -> tests/...`) and treat unknown test status neutrally (`has_test=None`) to prevent explainability score inflation when test discovery is incomplete.
-- CXS Issue #255: cap TypeScript/JavaScript schema and migration file findings (`*.schema.ts/js`, `*migration*`, `*/migrations/*`) to `INFO` severity with bounded score (`<= 0.19`) and explicit `context_dampened` metadata, reducing false-positive urgency inflation for inherently branch-heavy validation/migration code.
-- FOE Issue #254: count JS/TS SDK sub-path imports by dependency identity (`vendor/pkg`, `@scope/pkg`) instead of raw import specifiers so `openclaw/plugin-sdk/*` no longer inflates fan-out findings; add targeted regressions for unscoped/scoped package sub-path patterns.
-- TVS Issue #253: dampen temporal-volatility severity for coordinated active-development bursts in runtime plugin workspaces (`extensions/*`, `plugins/*`) by applying bounded workspace-aware score capping with explicit metadata traceability.
-- NBV Issue #252: re-parse TypeScript dotted class-method snippets in a synthetic class wrapper before contract checks so delegated `ensure_*` methods preserve return/throw AST evidence; add OpenClaw-derived regressions for `isPortFree` Promise<boolean>, delegated `ensureSession`, and throw-based `validate*` contracts.
-- MAZ Issue #250: reduce false positives for outbound TypeScript API client helpers in unknown-framework contexts by requiring inbound handler-like parameters (`req/request/res/response/reply/ctx/context/next`) in addition to route-like path evidence.
-- TSB/BAT Issue #251: classify `src`-co-located TS/JS test helper filenames (`test-helpers.*`, `test-*.ts/js/tsx/jsx`) as test context and dampen SDK-idiomatic EventEmitter non-null assertions (`on!/off!/once!`) for known Playwright/Discord import contexts, reducing false-positive severity in plugin/SDK-heavy repositories.
-- GCD Issue #247: reduce false positives for TypeScript declarative wrappers by treating one-statement delegation call-through functions and strongly typed non-imperative functions as guarded; add targeted regressions for delegation and typed patterns.
-- EDS Issue #248: treat typed TypeScript/TSX signatures as explainability evidence (including inferred return scenarios) so missing JSDoc/explicit return annotations are no longer over-penalized; add targeted TS and JS guard regressions.
-- COD Issue #249: reduce false positives for plugin registration and typed utility module patterns by adding bounded dampening for dominant action-prefix families (`register*`, `format*`, `create*`), filename-domain cohesion, and plugin workspace context under `extensions/*/src`.
-- PFS Issue #245: cap findings to `INFO` when both `framework_context_dampened` and `plugin_context_dampened` are true, reducing residual false positives for intentional cross-extension plugin diversity while preserving metadata traceability.
-- MDS Issue #244: cap deliberate cross-plugin workspace duplicates (`extensions/*`/`plugins/*` across different package scopes) to INFO with low score and explicit workspace-isolation metadata, reducing false positives in isolated plugin monorepos.
-- AVS Issue #241: resolve TypeScript ESM relative imports with explicit runtime extensions (`.js`, `.jsx`, `.mjs`, `.cjs`) to internal source files (`.ts`, `.tsx`, `.mts`, `.cts`) in `build_import_graph`, preventing false hidden-coupling findings when static import edges exist.
-- DCA Issue #237: reduce false positives for runtime-loaded plugin/extension config modules (`extensions/*` / `plugins/*`, `config*`) by dampening score and capping severity to MEDIUM, with explicit metadata marker for heuristic application.
-- DCA Issue #242: extend plugin-runtime dampening to plugin entrypoint modules (`components`/`plugin-sdk` under `extensions/*` and `plugins/*`) and add metadata marker `runtime_plugin_entrypoint_heuristic_applied` to reduce false positives in registry/dynamic-rendered plugin architectures.
-- HSC Issue #236: suppress test-fixture secret constants with prefixes (`TEST_`, `MOCK_`, `FAKE_`, `DUMMY_`, `STUB_`), expand `test-helpers` path handling, and add defensive test-context score dampening metadata to reduce false positives.
-- HSC Issue #238: suppress false positives for interpolated TypeScript/JavaScript template literals (for example `qa-suite-${randomUUID()}`, `${entry.label}:${entry.value}`, `${signingInput}.${toBase64UrlBytes(signature)}`) by treating them as runtime-generated values before entropy checks.
-- Test-context detection Issue #234: classify `*.test-harness.{ts,js,tsx,jsx}`, `*.test-helpers.{ts,js,tsx,jsx}`, and `test-support/` / `test-helpers/` directories as test files to reduce cross-signal false positives in monorepos.
-- SMS Issue #232: exclude test files from novel-import baseline and detection so test-only framework imports (for example vitest in .test.ts/.spec.ts) are no longer reported as production novel dependencies.
-- SMS Issue #246: suppress novel-dependency findings inside newly introduced plugin/extension workspaces (`extensions/*`, `plugins/*`) while preserving detection for established workspaces, reducing false positives in provider-style monorepos.
-- DCA Issue #231: in TypeScript/JavaScript, only actually exported functions are treated as DCA export candidates; module-internal helpers used by `export default` facades are no longer flagged as dead exports.
-- PFS Issue #229: dampen plugin-/extension-boundary fragmentation findings (`extensions`/`plugins`/`packages`) and cap severity to LOW for multi-plugin API surfaces, reducing false positives in deliberate plugin architectures.
-- NBV Issue #214: TypeScript/JavaScript `ensure_*` now also accepts idempotent ensure-by-side-effect patterns (for example `mkdir*`, registry `set`, and property/index assignments), reducing false positives for initialization helpers that intentionally use `void` contracts.
-- NBV Issue #240: treat TypeScript `try*` nullable getter signatures (`T | undefined` / `T | null`) as valid attempt contracts, and add OpenClaw-derived regressions for `tryGet*`, `ensureSession` lazy-init, and `is*` boolean OR expressions.
-- HSC Issue #212: suppress false positives for env-var name constants (`*_ENV`, `*_VAR`) and marker/sentinel constants (`MARKER`, `PREFIX`, `ALPHABET`, `MESSAGE`, `ERROR_CODE`) while preserving known-prefix true positives.
-- NBV Issue #210: `ensure_*` in TypeScript/JavaScript now accepts language-conformant upsert/get-or-create semantics (throw **or** value-returning return path), reducing false positives while preserving Python `ensure_*` raise expectations.
-- Activate MAZ (missing authorization, weight 0.02) and ISD (insecure default, weight 0.01) as scoring-active signals, completing the agent-safety signal suite (ADR-039).
-- Recalibrate HSC (0.02→0.01), FOE (0.01→0.005) weights for conservative activation alongside MAZ/ISD (ADR-039).
-- Add 5 new ISD ground-truth fixtures (2 TP, 3 TN) for precision/recall coverage.
-- Add FMEA, fault tree, and risk register entries for 5-signal activation (ADR-039).
-- Extend PHR signal with third-party import validation via `importlib.util.find_spec` — detects AI-hallucinated package imports that are not installed (ADR-040).
-- Add 5 new PHR ground-truth fixtures for third-party import resolver (1 TP missing-package, 4 TN for optional-dep/stdlib/TYPE_CHECKING/ModuleNotFoundError guards).
-- Add FMEA, fault tree, and risk register entries for PHR import resolver (ADR-040).
-- Activate HSC (hardcoded secret, weight 0.02), FOE (fan-out explosion, weight 0.01), and PHR (phantom reference, weight 0.02) as scoring-active signals for agent-safety use cases (ADR-040).
-- Add 9 new ground-truth fixtures for HSC (4), FOE (3), and PHR (2) scoring-promotion coverage.
-- Add PHR to signal abbreviation mapping for drift_nudge/diff resolution.
-- Add `min_confidence` parameter to `generate_guardrails()` for filtering low-confidence negative-context items from agent guidance.
-- Add dedicated PHANTOM_REFERENCE generator in negative context pipeline, replacing generic fallback with signal-specific anti-pattern guidance (confidence ≥ 0.6).
-- Add opt-in PHR runtime attribute validation via `importlib.import_module()` + `hasattr()` — verifies that `from X import Y` targets an existing attribute on installed packages (ADR-041). Enable with `thresholds.phr_runtime_validation: true`.
-- Add 3 new PHR runtime ground-truth fixtures (1 TP missing-attribute, 2 TN for valid-attribute and try/except-guarded imports).
-- Add FMEA, fault tree, STRIDE threat model, and risk register entries for PHR runtime validation (ADR-041).
+- Prevent false-safe completion verdicts by requiring shadow verification for risky cross-file edit kinds before merge decisions.
 
 ### Changed
 
