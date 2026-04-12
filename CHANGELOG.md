@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- TSB Issue #278: treat `playwright-core` imports as SDK context for EventEmitter non-null assertions (`page.on!`/`page.off!`/`page.once!`) so Playwright-core interop patterns are classified as `non_null_assertion_sdk` and no longer inflate severity.
 - CXS follow-up hardening: treat TypeScript/JavaScript files containing `config-schema` in the filename as inherent schema context in `_is_inherent_ts_complexity_context`, reducing false-positive urgency for declarative schema modules.
 - DCA follow-up hardening: avoid duplicate package-root `package.json` inspections in published-package detection by tracking already inspected roots, improving deterministic metadata derivation for monorepo package scans.
 - TVS Issue #277: exclude clear test-code paths (`tests/**`, `__tests__`, `test_*`, `*_test.py`, `*.test.*`, `*.spec.*`) from temporal-volatility finding emission to prevent non-actionable HIGH volatility false positives on test files.
@@ -128,6 +129,7 @@ Short version: Introduce output format expansion (pr-comment, junit, llm, ci, ga
 
 ### Fixed
 - Actionability hardening across CXS, TVS, AVS, DCA, MAZ, TSB, and PHR to reduce false positives on test files, passive definition modules, and published-package exports.
+- Convert all relative `docs-site/` and `docs/` links in README.md to absolute URLs so banner image, GIF, and documentation links render correctly on PyPI.
 
 ## [2.9.8] - 2026-04-12
 
