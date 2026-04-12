@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- EDS Issue #256: add TypeScript/JavaScript file-based test evidence mapping (`*.test.*`, `*.spec.*`, `__tests__/*`, plus `src/... -> tests/...`) and treat unknown test status neutrally (`has_test=None`) to prevent explainability score inflation when test discovery is incomplete.
 - CXS Issue #255: cap TypeScript/JavaScript schema and migration file findings (`*.schema.ts/js`, `*migration*`, `*/migrations/*`) to `INFO` severity with bounded score (`<= 0.19`) and explicit `context_dampened` metadata, reducing false-positive urgency inflation for inherently branch-heavy validation/migration code.
 - FOE Issue #254: count JS/TS SDK sub-path imports by dependency identity (`vendor/pkg`, `@scope/pkg`) instead of raw import specifiers so `openclaw/plugin-sdk/*` no longer inflates fan-out findings; add targeted regressions for unscoped/scoped package sub-path patterns.
 - TVS Issue #253: dampen temporal-volatility severity for coordinated active-development bursts in runtime plugin workspaces (`extensions/*`, `plugins/*`) by applying bounded workspace-aware score capping with explicit metadata traceability.

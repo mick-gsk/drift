@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #256: EDS TypeScript test coverage mapping hardening
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| EDS | FP: TS/JS Funktionen werden als unzureichend erklaert priorisiert, obwohl passende Tests existieren (`foo.ts` neben `foo.test.ts`/`foo.spec.ts` oder `__tests__/`) | EDS leitete `has_test` primär aus geparsten Testfunktionen ab; durch Discovery-Excludes fuer `**/tests/**` fehlte diese Evidenz oft systematisch | Severity-Inflation bei TS/JS-Repos, sinkende Signal-Glaubwuerdigkeit und hohe Triage-Last | Neue Regressionen in `tests/test_coverage_boost_15_signals_misc.py` (`test_exd_typescript_colocated_test_file_counts_as_test`, `test_exd_typescript_dunder_tests_mapping_counts_as_test`) | Dateibasierte TS/JS-Testzuordnung in EDS: Mapping `source -> {*.test.*, *.spec.*, __tests__/*}` inkl. `src/... -> tests/...`-Variante; bestehende Funktionsziel-Heuristik bleibt erhalten | 7 | 8 | 2 | 112 | Mitigated |
+| EDS | FP: Unbekannter Teststatus wird als „kein Test“ behandelt und erhoeht Defizitscore | Bisheriges Scoring benutzte festen Evidenz-Nenner inkl. Testanteil, auch wenn Teststatus nicht verifizierbar war | Unnoetige Priorisierung in Kontexten ohne verlaessliche Test-Detektion | Neue Regression `test_exd_typescript_unknown_test_status_is_neutral_without_repo_path` | Tri-State `has_test` (`True/False/None`) und neutrales Scoring bei `None` (Testanteil aus Nenner entfernt); Beschreibung/Metadata kennzeichnen Unknown-Zustand explizit | 6 | 6 | 2 | 72 | Mitigated |
+
 ## 2026-04-12 - Issue #255: CXS false positives for schema and migration files
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

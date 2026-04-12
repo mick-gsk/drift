@@ -7,6 +7,8 @@ AI-attributed, indicating "accepted without understanding."
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from drift.config import DriftConfig
 from drift.ingestion.test_detection import classify_file_context
 from drift.models import (
@@ -29,15 +31,73 @@ def _has_self_documenting_ts_signature(func: FunctionInfo) -> bool:
     return func.language in ("typescript", "tsx") and bool(func.parameters)
 
 
+def _is_ts_js_family(language: str) -> bool:
+    return language in ("typescript", "tsx", "javascript", "jsx")
+
+
+def _ts_test_file_candidates(file_path: Path) -> set[Path]:
+    """Return common colocated test file candidates for TS/JS source files."""
+    suffix = file_path.suffix
+    stem = file_path.stem
+    parent = file_path.parent
+
+    candidates = {
+        parent / f"{stem}.test{suffix}",
+        parent / f"{stem}.spec{suffix}",
+        parent / "__tests__" / f"{stem}.test{suffix}",
+        parent / "__tests__" / f"{stem}.spec{suffix}",
+    }
+
+    parts = file_path.parts
+    if "src" in parts:
+        src_index = parts.index("src")
+        rel_after_src = Path(*parts[src_index + 1 :]) if src_index + 1 < len(parts) else Path()
+        tests_root = Path(*parts[:src_index], "tests")
+        tests_base = tests_root / rel_after_src.parent
+        candidates.update(
+            {
+                tests_base / f"{stem}.test{suffix}",
+                tests_base / f"{stem}.spec{suffix}",
+                tests_base / "__tests__" / f"{stem}.test{suffix}",
+                tests_base / "__tests__" / f"{stem}.spec{suffix}",
+            }
+        )
+
+    return candidates
+
+
+def _has_mapped_ts_test_file(
+    file_path: Path,
+    repo_path: Path | None,
+    known_test_paths: set[str],
+) -> bool | None:
+    """Return TS/JS test evidence from path mapping.
+
+    Returns:
+    - True: matching test file was found
+    - False: mapping checked with filesystem access and no test file exists
+    - None: mapping could not be verified (e.g. missing repo_path)
+    """
+    candidates = _ts_test_file_candidates(file_path)
+    candidate_posix = {candidate.as_posix().lower() for candidate in candidates}
+    if any(candidate in known_test_paths for candidate in candidate_posix):
+        return True
+
+    if repo_path is None:
+        return None
+
+    return any((repo_path / candidate).is_file() for candidate in candidates)
+
+
 def _explanation_score(
     func: FunctionInfo,
-    has_test: bool,
+    has_test: bool | None,
     *,
     self_documenting_signature: bool = False,
 ) -> float:
     """Calculate how well-explained a function is (0.0=unexplained, 1.0=well-explained)."""
     evidence = 0.0
-    max_evidence = 4.0
+    max_evidence = 4.0 if has_test is not None else 2.5
 
     if func.has_docstring:
         evidence += 1.0
@@ -45,7 +105,7 @@ def _explanation_score(
         # In TS/TSX, typed signatures often provide the core API explanation.
         evidence += 1.0
 
-    if has_test:
+    if has_test is True:
         evidence += 1.5
 
     # Decorators suggest framework integration (router, property, etc.)
@@ -89,8 +149,12 @@ class ExplainabilityDeficitSignal(BaseSignal):
         """
         all_functions: dict[str, FunctionInfo] = {}
         test_targets: set[str] = set()
+        known_test_paths: set[str] = set()
+        ts_test_mapping_cache: dict[str, bool | None] = {}
 
         for pr in parse_results:
+            if classify_file_context(pr.file_path) == "test":
+                known_test_paths.add(pr.file_path.as_posix().lower())
             for fn in pr.functions:
                 all_functions[f"{fn.file_path}:{fn.name}"] = fn
 
@@ -174,7 +238,24 @@ class ExplainabilityDeficitSignal(BaseSignal):
                 continue
 
             # Check if there's a corresponding test
-            has_test = base_name in test_targets
+            has_test: bool | None = base_name in test_targets
+            if not has_test and _is_ts_js_family(func.language):
+                file_key = func.file_path.as_posix().lower()
+                mapped_has_test = ts_test_mapping_cache.get(file_key)
+                if mapped_has_test is None and file_key not in ts_test_mapping_cache:
+                    mapped_has_test = _has_mapped_ts_test_file(
+                        func.file_path,
+                        self.repo_path,
+                        known_test_paths,
+                    )
+                    ts_test_mapping_cache[file_key] = mapped_has_test
+                else:
+                    mapped_has_test = ts_test_mapping_cache.get(file_key)
+
+                if mapped_has_test is True:
+                    has_test = True
+                elif mapped_has_test is None:
+                    has_test = None
             self_documenting_signature = _has_self_documenting_ts_signature(func)
 
             explanation = _explanation_score(
@@ -233,8 +314,10 @@ class ExplainabilityDeficitSignal(BaseSignal):
             ]
             if not func.has_docstring and not self_documenting_signature:
                 desc_parts.append("No docstring.")
-            if not has_test:
+            if has_test is False:
                 desc_parts.append("No corresponding test found.")
+            elif has_test is None:
+                desc_parts.append("Test coverage status unknown.")
             if not func.return_type and not self_documenting_signature:
                 desc_parts.append("No return type annotation.")
             if ai_related:
@@ -243,7 +326,7 @@ class ExplainabilityDeficitSignal(BaseSignal):
             missing = []
             if not func.has_docstring and not self_documenting_signature:
                 missing.append("Docstring")
-            if not has_test:
+            if has_test is False:
                 missing.append("Tests")
             if not func.return_type and not self_documenting_signature:
                 missing.append("Return-Type")
@@ -274,6 +357,7 @@ class ExplainabilityDeficitSignal(BaseSignal):
                         "loc": func.loc,
                         "has_docstring": func.has_docstring,
                         "has_test": has_test,
+                        "has_test_unknown": has_test is None,
                         "has_return_type": func.return_type is not None,
                         "self_documenting_signature": self_documenting_signature,
                         "explanation_score": round(explanation, 3),

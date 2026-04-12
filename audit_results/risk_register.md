@@ -1,5 +1,23 @@
 # Risk Register
 
+## 2026-04-12 - Issue #256: EDS TS/JS test evidence mapping and unknown-status neutral scoring
+
+- Risk ID: RISK-SIGNAL-2026-04-12-256
+- Component: `src/drift/signals/explainability_deficit.py`, `tests/test_coverage_boost_15_signals_misc.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Explainability Deficit (EDS) verwendet fuer TS/JS jetzt zusaetzliche dateibasierte Test-Evidenz (`*.test.*`, `*.spec.*`, `__tests__/*`, `src/... -> tests/...`) und behandelt nicht verifizierbaren Teststatus (`has_test=None`) neutral statt negativ.
+- Trigger: `drift analyze` auf TypeScript/JavaScript-Repositories mit ko-lokierten Tests und/oder default-Discovery-Excludes fuer Testpfade.
+- Impact: High-positive. Reduziert systematische EDS-Score-Inflation und verbessert Glaubwuerdigkeit/Actionability in TS/JS-Projekten.
+- Mitigation:
+  - Neue TS/JS-Testdatei-Zuordnung in EDS, wenn keine Funktionsziel-Evidenz vorhanden ist.
+  - Tri-State `has_test` mit neutralem Scoring bei unbekanntem Status.
+  - Erweiterte Finding-Metadata (`has_test_unknown`) und differenzierte Description-Hinweise.
+  - Neue Regressionstests fuer colocated/test-dir Mapping und neutralen Unknown-Fall.
+- Verification:
+  - `python -m pytest tests/test_coverage_boost_15_signals_misc.py -q --maxfail=1`
+  - `python -m ruff check src/drift/signals/explainability_deficit.py tests/test_coverage_boost_15_signals_misc.py`
+- Residual risk: Low-Medium. Datei-Namens-Mapping kann in Randfaellen Tests als Evidenz annehmen, ohne funktionale Abdeckung zu garantieren; die Heuristik bleibt auf konventionelle Muster begrenzt.
+
 ## 2026-04-12 - Issue #255: CXS context cap for schema and migration files
 
 - Risk ID: RISK-SIGNAL-2026-04-12-255

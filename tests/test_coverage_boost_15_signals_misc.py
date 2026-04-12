@@ -221,6 +221,85 @@ def test_exd_typescript_inferred_return_not_penalized(tmp_path: Path) -> None:
     assert findings == []
 
 
+def test_exd_typescript_colocated_test_file_counts_as_test(tmp_path: Path) -> None:
+    """Issue #256: foo.ts should map to colocated foo.test.ts test evidence."""
+    source_rel = Path("extensions/msteams/src/attachments/graph.ts")
+    test_rel = Path("extensions/msteams/src/attachments/graph.test.ts")
+    (tmp_path / source_rel).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / source_rel).write_text(
+        "export function buildGraph() { return 1; }\n",
+        encoding="utf-8",
+    )
+    (tmp_path / test_rel).write_text("test('buildGraph', () => {});\n", encoding="utf-8")
+
+    fn = _make_fn(
+        "buildGraph",
+        file_path=source_rel.as_posix(),
+        language="typescript",
+        complexity=12,
+        loc=30,
+        has_docstring=False,
+        parameters=["input: GraphInput"],
+        return_type="GraphResult",
+    )
+    pr = ParseResult(file_path=source_rel, language="typescript", functions=[fn])
+
+    signal = ExplainabilityDeficitSignal(repo_path=tmp_path)
+    findings = signal.analyze([pr], {}, DriftConfig())
+    assert findings == []
+
+
+def test_exd_typescript_dunder_tests_mapping_counts_as_test(tmp_path: Path) -> None:
+    """Issue #256: foo.ts should map to __tests__/foo.spec.ts test evidence."""
+    source_rel = Path("extensions/discord/src/format.ts")
+    test_rel = Path("extensions/discord/src/__tests__/format.spec.ts")
+    (tmp_path / test_rel).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / source_rel).write_text(
+        "export function formatDiscordEmbed() { return {}; }\n",
+        encoding="utf-8",
+    )
+    (tmp_path / test_rel).write_text("it('formats embed', () => {});\n", encoding="utf-8")
+
+    fn = _make_fn(
+        "formatDiscordEmbed",
+        file_path=source_rel.as_posix(),
+        language="typescript",
+        complexity=12,
+        loc=30,
+        has_docstring=False,
+        parameters=["data: EmbedData"],
+        return_type="EmbedResult",
+    )
+    pr = ParseResult(file_path=source_rel, language="typescript", functions=[fn])
+
+    signal = ExplainabilityDeficitSignal(repo_path=tmp_path)
+    findings = signal.analyze([pr], {}, DriftConfig())
+    assert findings == []
+
+
+def test_exd_typescript_unknown_test_status_is_neutral_without_repo_path() -> None:
+    """Issue #256: unknown test status should not inflate TS/TSX severity."""
+    fn = _make_fn(
+        "mapPayload",
+        file_path="extensions/browser/src/mapper.ts",
+        language="typescript",
+        complexity=12,
+        loc=30,
+        has_docstring=False,
+        parameters=["payload: Payload"],
+        return_type="MappedPayload",
+    )
+    pr = ParseResult(
+        file_path=Path("extensions/browser/src/mapper.ts"),
+        language="typescript",
+        functions=[fn],
+    )
+
+    signal = ExplainabilityDeficitSignal(repo_path=None)
+    findings = signal.analyze([pr], {}, DriftConfig())
+    assert findings == []
+
+
 def test_exd_javascript_still_requires_explainability_evidence(tmp_path: Path) -> None:
     """Ensure Issue #248 hardening stays TS/TSX-specific and does not mute JS findings."""
     fn = _make_fn(

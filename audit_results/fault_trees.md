@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #256: EDS TypeScript test-evidence false positives
+
+### Top Event (TE-EDS-256)
+EDS priorisiert TypeScript/JavaScript Funktionen als unzureichend erklaert, obwohl passende Tests vorhanden sind oder der Teststatus nicht verifizierbar ist.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: TS/JS function reported with inflated explainability deficit
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: EDS erhielt in TS/JS-Haeufungen keine Testfunktion-Evidenz aus `parse_results`, weil Discovery standardmaessig Testverzeichnisse ausnimmt.
+  - Mitigation: dateibasiertes Test-Mapping in EDS (`*.test.*`, `*.spec.*`, `__tests__/*`, `src/... -> tests/...`).
+- **IE-2 (MCS)**: Nicht verifizierbarer Teststatus wurde faktisch wie „kein Test“ behandelt und verschlechterte den Score.
+  - Mitigation: Tri-State-Teststatus (`True/False/None`) mit neutraler Behandlung bei `None`.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Zu breite Test-Mappings koennten echte Defizite in ungetesteten Dateien abschwaechen.
+  - Mitigation: Mapping ist auf enge Namenskonventionen begrenzt und wirkt nur als positive Evidenz (keine Suppression, nur reduzierter Defizitscore).
+
 ## 2026-04-12 - Issue #255: CXS false positives in schema and migration code
 
 ### Top Event (TE-CXS-255)
