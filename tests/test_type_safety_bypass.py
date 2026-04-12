@@ -755,3 +755,47 @@ class TestTypeSafetyBypassSignal:
         assert finding.severity == Severity.LOW
         assert finding.metadata.get("finding_context") == "test"
         assert finding.metadata["kind_distribution"].get("double_cast", 0) == 2
+
+    def test_issue_296_spawn_workspace_test_support_double_casts_are_treated_as_test_context(
+        self, tmp_path: Path
+    ) -> None:
+        from drift.config import DriftConfig
+        from drift.models import ParseResult, Severity
+        from drift.signals.type_safety_bypass import TypeSafetyBypassSignal
+
+        file_path = (
+            tmp_path
+            / "src"
+            / "agents"
+            / "pi-embedded-runner"
+            / "run"
+            / "attempt.spawn-workspace.test-support.ts"
+        )
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(
+            "const modelA = {} as unknown as Model;\n"
+            "const modelB = {} as unknown as Model;\n",
+            encoding="utf-8",
+        )
+
+        pr = ParseResult(
+            file_path=file_path,
+            language="typescript",
+            functions=[],
+            classes=[],
+            imports=[],
+            patterns=[],
+            line_count=2,
+        )
+
+        default_findings = TypeSafetyBypassSignal().analyze([pr], {}, DriftConfig())
+        assert default_findings == []
+
+        reduced_cfg = DriftConfig(test_file_handling="reduce_severity")
+        reduced_findings = TypeSafetyBypassSignal().analyze([pr], {}, reduced_cfg)
+        assert len(reduced_findings) == 1
+
+        finding = reduced_findings[0]
+        assert finding.severity == Severity.LOW
+        assert finding.metadata.get("finding_context") == "test"
+        assert finding.metadata["kind_distribution"].get("double_cast", 0) == 2
