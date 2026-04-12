@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #288: AVS generated-header precision hardening
+
+- Risk ID: RISK-SIGNAL-2026-04-12-288
+- Component: `src/drift/signals/architecture_violation.py`, `tests/test_architecture_violation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Architecture Violation (AVS) now suppresses files that carry explicit auto-generated header markers even when the filename does not include `.generated.*`. This addresses false positives for generated outputs with regular naming.
+- Trigger: `drift analyze` on repositories where code generators produce files like `schema_base.ts` with explicit headers such as `Auto-generated ... Do not edit directly.`.
+- Impact: High-positive. Reduces non-actionable AVS findings and improves architecture-finding credibility in codegen workflows that do not use generated filename suffixes.
+- Mitigation:
+  - Added AVS header-marker guard in parse-result filtering before import-graph construction.
+  - Added targeted regression `test_generated_header_file_without_generated_suffix_is_ignored_for_avs_findings`.
+  - Preserved existing filename/path-based generated suppression and normal AVS behavior for non-marked files.
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_architecture_violation.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m ruff check src/drift/signals/architecture_violation.py tests/test_architecture_violation.py`
+- Residual risk: Low-Medium. Hand-written files that intentionally include generated markers can be suppressed; marker matching is intentionally narrow and only checks early header lines.
+
 ## 2026-04-12 - Issue #287: AVS generated-file precision hardening
 
 - Risk ID: RISK-SIGNAL-2026-04-12-287
