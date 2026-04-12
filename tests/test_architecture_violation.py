@@ -700,3 +700,184 @@ def test_unstable_dependency_detected_with_churn_history():
     unstable = [f for f in findings if "Unstable dependency" in f.title]
     assert len(unstable) >= 1
     assert unstable[0].metadata["dst_churn_week"] >= 1.0
+
+
+def test_unstable_dependency_suppressed_for_intra_extension_imports():
+    """Intra-extension wiring in monorepos should not trigger unstable-dep AVS."""
+    prs = [
+        ParseResult(
+            file_path=Path("extensions/qa-lab/src/suite-launch.runtime.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/qa-lab/src/suite-launch.runtime.ts"),
+                    imported_module="./suite.ts",
+                    imported_names=[],
+                    line_number=1,
+                    is_relative=True,
+                )
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/qa-lab/src/register.runtime.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/qa-lab/src/register.runtime.ts"),
+                    imported_module="./suite-launch.runtime.ts",
+                    imported_names=[],
+                    line_number=1,
+                    is_relative=True,
+                )
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/qa-lab/src/main.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/qa-lab/src/main.ts"),
+                    imported_module="./suite-launch.runtime.ts",
+                    imported_names=[],
+                    line_number=1,
+                    is_relative=True,
+                )
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/qa-lab/src/suite.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/qa-lab/src/suite.ts"),
+                    imported_module="./dep-a.ts",
+                    imported_names=[],
+                    line_number=1,
+                    is_relative=True,
+                ),
+                ImportInfo(
+                    source_file=Path("extensions/qa-lab/src/suite.ts"),
+                    imported_module="./dep-b.ts",
+                    imported_names=[],
+                    line_number=2,
+                    is_relative=True,
+                ),
+                ImportInfo(
+                    source_file=Path("extensions/qa-lab/src/suite.ts"),
+                    imported_module="./dep-c.ts",
+                    imported_names=[],
+                    line_number=3,
+                    is_relative=True,
+                ),
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/qa-lab/src/dep-a.ts"),
+            language="typescript",
+            imports=[],
+        ),
+        ParseResult(
+            file_path=Path("extensions/qa-lab/src/dep-b.ts"),
+            language="typescript",
+            imports=[],
+        ),
+        ParseResult(
+            file_path=Path("extensions/qa-lab/src/dep-c.ts"),
+            language="typescript",
+            imports=[],
+        ),
+    ]
+
+    signal = ArchitectureViolationSignal()
+    findings = signal.analyze(prs, {}, None)
+
+    unstable = [f for f in findings if f.rule_id == "avs_unstable_dep"]
+    assert unstable == []
+
+
+def test_unstable_dependency_still_detected_for_cross_extension_imports():
+    """Cross-extension unstable dependencies should remain detectable."""
+    prs = [
+        ParseResult(
+            file_path=Path("extensions/alpha/src/core.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/alpha/src/core.ts"),
+                    imported_module="extensions/beta/src/volatile.ts",
+                    imported_names=[],
+                    line_number=1,
+                )
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/alpha/src/api.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/alpha/src/api.ts"),
+                    imported_module="extensions/alpha/src/core.ts",
+                    imported_names=[],
+                    line_number=1,
+                )
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/alpha/src/register.runtime.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/alpha/src/register.runtime.ts"),
+                    imported_module="extensions/alpha/src/core.ts",
+                    imported_names=[],
+                    line_number=1,
+                )
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/beta/src/volatile.ts"),
+            language="typescript",
+            imports=[
+                ImportInfo(
+                    source_file=Path("extensions/beta/src/volatile.ts"),
+                    imported_module="extensions/beta/src/dep-a.ts",
+                    imported_names=[],
+                    line_number=1,
+                ),
+                ImportInfo(
+                    source_file=Path("extensions/beta/src/volatile.ts"),
+                    imported_module="extensions/beta/src/dep-b.ts",
+                    imported_names=[],
+                    line_number=2,
+                ),
+                ImportInfo(
+                    source_file=Path("extensions/beta/src/volatile.ts"),
+                    imported_module="extensions/beta/src/dep-c.ts",
+                    imported_names=[],
+                    line_number=3,
+                ),
+            ],
+        ),
+        ParseResult(
+            file_path=Path("extensions/beta/src/dep-a.ts"),
+            language="typescript",
+            imports=[],
+        ),
+        ParseResult(
+            file_path=Path("extensions/beta/src/dep-b.ts"),
+            language="typescript",
+            imports=[],
+        ),
+        ParseResult(
+            file_path=Path("extensions/beta/src/dep-c.ts"),
+            language="typescript",
+            imports=[],
+        ),
+    ]
+
+    signal = ArchitectureViolationSignal()
+    findings = signal.analyze(prs, {}, None)
+
+    unstable = [f for f in findings if f.rule_id == "avs_unstable_dep"]
+    assert len(unstable) >= 1
+    assert unstable[0].metadata["dst_instability"] >= 0.7

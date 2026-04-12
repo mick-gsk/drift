@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #263: AVS unstable-dependency FP in intra-extension imports
+
+### Top Event (TE-AVS-263)
+AVS reports unstable-dependency findings for same-extension imports in monorepo extension workspaces where local wiring is expected.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: intra-extension edge reported as unstable dependency smell
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: AVS unstable-dependency check used file-level coupling and churn without considering extension package boundaries.
+  - Mitigation: derive `extensions/<name>` workspace root for each edge and suppress same-workspace edges for `avs_unstable_dep`.
+- **IE-2 (MCS)**: Composition-root/register/runtime files inside one extension naturally create high local instability signatures that are not cross-boundary architecture violations.
+  - Mitigation: treat intra-extension edges as expected implementation detail; keep rule active for cross-extension edges.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Suppression may hide real unstable dependency smells within one extension workspace.
+  - Mitigation: bound suppression strictly to same `extensions/<name>` edges and retain cross-extension detection with dedicated regression coverage.
+
 ## 2026-04-12 - Issue #261: TVS mature extension workspace burst false positives
 
 ### Top Event (TE-TVS-261)

@@ -1,5 +1,21 @@
 # Risk Register
 
+## 2026-04-12 - Issue #263: AVS intra-extension unstable-dependency suppression
+
+- Risk ID: RISK-SIGNAL-2026-04-12-263
+- Component: `src/drift/signals/architecture_violation.py`, `tests/test_architecture_violation.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Architecture Violation (AVS) now suppresses `avs_unstable_dep` findings when source and target are both inside the same extension workspace (`extensions/<name>/...`). This avoids unstable-dependency escalation for expected intra-extension wiring in monorepos.
+- Trigger: `drift analyze` on extension-heavy TypeScript monorepos where composition-root/runtime/config files import local extension modules.
+- Impact: High-positive. Reduces large clusters of non-actionable AVS findings and improves signal credibility/actionability.
+- Mitigation:
+  - Added `_extension_workspace_root()` helper in AVS.
+  - Added same-workspace edge suppression in `_check_unstable_dependencies()` for `extensions/<name>` scope.
+  - Added regressions for suppression and cross-extension guard behavior.
+- Verification:
+  - `python -m pytest tests/test_architecture_violation.py -q --tb=short`
+- Residual risk: Low-Medium. Genuine unstable dependencies within one extension workspace may be down-ranked; cross-extension detection remains intact.
+
 ## 2026-04-12 - Issue #261: TVS mature extension workspace burst precision hardening
 
 - Risk ID: RISK-SIGNAL-2026-04-12-261

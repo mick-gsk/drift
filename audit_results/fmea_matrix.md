@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #263: AVS unstable-dependency false positives for intra-extension imports
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| AVS | FP: intra-extension imports under `extensions/<name>/` are reported as `avs_unstable_dep` (often HIGH) although they are expected internal wiring | Unstable-dependency logic evaluated file-level instability without extension-boundary context and treated same-extension edges as architecture-smell candidates | Severity inflation and non-actionable AVS noise in extension-heavy monorepos; reduced trust in fix-first ordering | New regressions in `tests/test_architecture_violation.py` (`test_unstable_dependency_suppressed_for_intra_extension_imports`, `test_unstable_dependency_still_detected_for_cross_extension_imports`) | Suppress `avs_unstable_dep` for edges where source and target share the same `extensions/<name>` workspace root; preserve detection for cross-extension edges | 7 | 8 | 2 | 112 | Mitigated |
+| AVS | FN-risk: genuine unstable dependencies inside one extension workspace may be down-ranked | Same-extension suppression trades precision against potential intra-extension actionability | Potential delayed remediation of real unstable design inside a single extension package | Cross-extension guard regression remains active (`test_unstable_dependency_still_detected_for_cross_extension_imports`) | Scope is tightly bounded to `extensions/<name>` intra-workspace edges; no suppression outside that boundary | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-12 - Issue #261: TVS burst dampening for mature extension workspaces
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

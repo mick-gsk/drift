@@ -178,6 +178,14 @@ def _relative_path_candidates(source_file: Path, module_spec: str) -> list[str]:
     return unique
 
 
+def _extension_workspace_root(path_str: str) -> str | None:
+    """Return extensions/<name> workspace root for a repo path, if present."""
+    parts = PurePosixPath(path_str).parts
+    if len(parts) >= 2 and parts[0] == "extensions":
+        return f"extensions/{parts[1]}"
+    return None
+
+
 def build_import_graph(
     parse_results: list[ParseResult],
 ) -> tuple[nx.DiGraph, list[ImportInfo]]:
@@ -1056,6 +1064,13 @@ class ArchitectureViolationSignal(BaseSignal):
             if src not in instability or dst not in instability:
                 continue
             if graph.nodes.get(dst, {}).get("external"):
+                continue
+
+            src_extension = _extension_workspace_root(src)
+            dst_extension = _extension_workspace_root(dst)
+            # In extension-based monorepos, intra-extension imports are expected
+            # implementation detail wiring and should not be treated as AVS smell.
+            if src_extension is not None and src_extension == dst_extension:
                 continue
 
             src_ca = graph.in_degree(src)
