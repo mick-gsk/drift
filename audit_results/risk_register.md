@@ -1951,18 +1951,22 @@
 - Verification: `pytest tests/test_precision_recall.py -v` (all signals P=1.00 R=1.00), `make check` (full CI suite).
 - Residual risk: Medium; real-world FP rates for scoring-active HSC/FOE/PHR not yet validated on external repos. Weight can be reverted to 0.0 without code changes if FP rate is unacceptable.
 
-## 2026-04-12 - Signal type-safety hardening (TVS/SMS/COD)
+## 2026-04-12 - Signal type-safety and regression hardening (TVS/SMS/COD/CCC/EDS)
 
 - Risk ID: RISK-SIG-2026-04-12-TYPE
-- Component: src/drift/signals/temporal_volatility.py, src/drift/signals/system_misalignment.py, src/drift/signals/cohesion_deficit.py
-- Type: Signal implementation robustness / static type safety
-- Description: Optional datetime normalization and helper return typing caused CI mypy failures (`union-attr`, `no-any-return`) in signal execution paths.
+- Component: src/drift/signals/temporal_volatility.py, src/drift/signals/system_misalignment.py, src/drift/signals/cohesion_deficit.py, src/drift/signals/co_change_coupling.py, src/drift/signals/explainability_deficit.py
+- Type: Signal implementation robustness / static type safety / regression control
+- Description: Optional datetime normalization and helper return typing caused CI mypy failures (`union-attr`, `no-any-return`); additional CI regressions surfaced around CCC helper call compatibility and EDS TS true-positive recall.
 - Trigger examples:
   - `history.first_seen` or `history.last_modified` is `None` and timezone conversion is attempted.
   - Token extraction helper returns regex element inferred as `Any` despite `-> str` contract.
+  - CCC helper `_resolve_relative_targets()` invoked without newly added `known_files` argument.
+  - EDS TS signature dampening suppresses complex functions with explicitly missing tests.
 - Impact: Pre-push and CI gate failures; reduced confidence in deterministic signal preprocessing.
 - Mitigation:
   - Explicit `isinstance(datetime.datetime)` narrowing before calling `astimezone()`.
   - Explicit `str(...)` coercion in `_leading_token()` to satisfy return contract.
-- Verification: `.venv\\Scripts\\python.exe -m mypy src/drift` (green), `.venv\\Scripts\\python.exe -m ruff check src/ tests/` (green).
+  - Backward-compatible optional `known_files` parameter in `_resolve_relative_targets()`.
+  - Evidence-aware TS dampening in EDS (strong dampening only when tests exist, mild when unknown, none when tests missing).
+- Verification: `.venv\\Scripts\\python.exe -m mypy src/drift` (green), `.venv\\Scripts\\python.exe -m ruff check src/ tests/` (green), targeted pytest regressions for CCC helper + EDS fixture (green).
 - Residual risk: Low; changes are type-safety hardening with no intended heuristic/scoring behavior change.

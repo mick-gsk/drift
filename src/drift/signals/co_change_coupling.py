@@ -191,7 +191,7 @@ def _candidate_targets_from_relative_module(module_path: Path, source_ext: str) 
 def _resolve_relative_targets(
     source_file: Path,
     imp: ImportInfo,
-    known_files: set[str],
+    known_files: set[str] | None = None,
 ) -> set[str]:
     """Resolve relative imports with conservative local path heuristics."""
     targets: set[str] = set()
@@ -207,6 +207,9 @@ def _resolve_relative_targets(
         imported_path = imported_name.replace(".", "/")
         named_base = imported_name_base / imported_path
         targets.update(_candidate_targets_from_relative_module(named_base, source_ext))
+
+    if known_files is None:
+        return targets
 
     return {t for t in targets if t in known_files}
 

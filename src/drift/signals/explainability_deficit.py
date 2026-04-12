@@ -28,7 +28,19 @@ MEDIUM_COMPLEXITY = 5
 
 def _has_self_documenting_ts_signature(func: FunctionInfo) -> bool:
     """Return True when TS/TSX signatures already communicate intent well."""
-    return func.language in ("typescript", "tsx") and bool(func.parameters)
+    if func.language not in ("typescript", "tsx") or not func.parameters:
+        return False
+
+    # Treat signatures as self-documenting only when parameter types are
+    # explicitly declared and not dominated by generic `any` annotations.
+    for parameter in func.parameters:
+        lowered = parameter.lower()
+        if ":" not in parameter:
+            return False
+        if "any" in lowered:
+            return False
+
+    return True
 
 
 def _is_ts_js_family(language: str) -> bool:

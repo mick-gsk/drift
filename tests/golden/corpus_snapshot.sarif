@@ -1503,7 +1503,7 @@
             }
           ],
           "message": {
-            "text": "Guard clause deficit in src/myapp/processors/\n3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 38.7).\nFIX: Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 38.7): isinstance checks, None guards, or assert statements."
+            "text": "Guard clause deficit in src/myapp/processors/\n3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 19.3).\nFIX: Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 19.3): isinstance checks, None guards, or assert statements."
           },
           "properties": {
             "drift:findingId": "4e93fa3fcbeaf86d"

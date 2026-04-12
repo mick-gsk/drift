@@ -74,7 +74,9 @@
           }
         ],
         "group_size": 2,
-        "similarity": 1.0
+        "similarity": 1.0,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scopes": []
       },
       "related_files": [
         "src/myapp/service_b.py"
@@ -135,7 +137,9 @@
           }
         ],
         "group_size": 2,
-        "similarity": 1.0
+        "similarity": 1.0,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scopes": []
       },
       "related_files": [
         "src/myapp/service_b.py"
@@ -186,7 +190,10 @@
         "finding_context": "production",
         "function_a": "connect_postgres",
         "function_b": "connect_redis",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -237,7 +244,10 @@
         "finding_context": "production",
         "function_a": "connect_postgres",
         "function_b": "connect_mongodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -288,7 +298,10 @@
         "finding_context": "production",
         "function_a": "connect_postgres",
         "function_b": "connect_elasticsearch",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -339,7 +352,10 @@
         "finding_context": "production",
         "function_a": "connect_postgres",
         "function_b": "connect_rabbitmq",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -390,7 +406,10 @@
         "finding_context": "production",
         "function_a": "connect_postgres",
         "function_b": "connect_kafka",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -441,7 +460,10 @@
         "finding_context": "production",
         "function_a": "connect_postgres",
         "function_b": "connect_memcached",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -492,7 +514,10 @@
         "finding_context": "production",
         "function_a": "connect_postgres",
         "function_b": "connect_dynamodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -543,7 +568,10 @@
         "finding_context": "production",
         "function_a": "connect_redis",
         "function_b": "connect_mongodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -594,7 +622,10 @@
         "finding_context": "production",
         "function_a": "connect_redis",
         "function_b": "connect_elasticsearch",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -645,7 +676,10 @@
         "finding_context": "production",
         "function_a": "connect_redis",
         "function_b": "connect_rabbitmq",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -696,7 +730,10 @@
         "finding_context": "production",
         "function_a": "connect_redis",
         "function_b": "connect_kafka",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -747,7 +784,10 @@
         "finding_context": "production",
         "function_a": "connect_redis",
         "function_b": "connect_memcached",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -798,7 +838,10 @@
         "finding_context": "production",
         "function_a": "connect_redis",
         "function_b": "connect_dynamodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -849,7 +892,10 @@
         "finding_context": "production",
         "function_a": "connect_mongodb",
         "function_b": "connect_elasticsearch",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -900,7 +946,10 @@
         "finding_context": "production",
         "function_a": "connect_mongodb",
         "function_b": "connect_rabbitmq",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -951,7 +1000,10 @@
         "finding_context": "production",
         "function_a": "connect_mongodb",
         "function_b": "connect_kafka",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1002,7 +1054,10 @@
         "finding_context": "production",
         "function_a": "connect_mongodb",
         "function_b": "connect_memcached",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1053,7 +1108,10 @@
         "finding_context": "production",
         "function_a": "connect_mongodb",
         "function_b": "connect_dynamodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1104,7 +1162,10 @@
         "finding_context": "production",
         "function_a": "connect_elasticsearch",
         "function_b": "connect_rabbitmq",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1155,7 +1216,10 @@
         "finding_context": "production",
         "function_a": "connect_elasticsearch",
         "function_b": "connect_kafka",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1206,7 +1270,10 @@
         "finding_context": "production",
         "function_a": "connect_elasticsearch",
         "function_b": "connect_memcached",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1257,7 +1324,10 @@
         "finding_context": "production",
         "function_a": "connect_elasticsearch",
         "function_b": "connect_dynamodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1308,7 +1378,10 @@
         "finding_context": "production",
         "function_a": "connect_rabbitmq",
         "function_b": "connect_kafka",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1359,7 +1432,10 @@
         "finding_context": "production",
         "function_a": "connect_rabbitmq",
         "function_b": "connect_memcached",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1410,7 +1486,10 @@
         "finding_context": "production",
         "function_a": "connect_rabbitmq",
         "function_b": "connect_dynamodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1461,7 +1540,10 @@
         "finding_context": "production",
         "function_a": "connect_kafka",
         "function_b": "connect_memcached",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1512,7 +1594,10 @@
         "finding_context": "production",
         "function_a": "connect_kafka",
         "function_b": "connect_dynamodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1563,7 +1648,10 @@
         "finding_context": "production",
         "function_a": "connect_memcached",
         "function_b": "connect_dynamodb",
-        "similarity": 0.9
+        "similarity": 0.9,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/connectors/db.py"
@@ -1614,7 +1702,10 @@
         "finding_context": "production",
         "function_a": "fetch_user_data",
         "function_b": "get_customer_info",
-        "similarity": 0.85
+        "similarity": 0.85,
+        "workspace_isolation_heuristic_applied": false,
+        "workspace_scope_a": null,
+        "workspace_scope_b": null
       },
       "related_files": [
         "src/myapp/handler_v2.py"
@@ -1665,6 +1756,7 @@
         "canonical_snippet": "",
         "canonical_variant": "{\"strategies\": [\"return_none\", \"return_value\"]}",
         "category": "return_pattern",
+        "combined_plugin_framework_cap": false,
         "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes.",
         "finding_context": "production",
         "framework_context_dampened": false,
@@ -1726,7 +1818,9 @@
         "has_docstring": false,
         "has_return_type": false,
         "has_test": false,
-        "loc": 60
+        "has_test_unknown": false,
+        "loc": 60,
+        "self_documenting_signature": false
       },
       "related_files": [],
       "remediation": {
@@ -1776,7 +1870,9 @@
         "has_docstring": false,
         "has_return_type": false,
         "has_test": false,
-        "loc": 49
+        "has_test_unknown": false,
+        "loc": 49,
+        "self_documenting_signature": false
       },
       "related_files": [],
       "remediation": {
@@ -1826,7 +1922,9 @@
         "has_docstring": false,
         "has_return_type": false,
         "has_test": false,
-        "loc": 25
+        "has_test_unknown": false,
+        "loc": 25,
+        "self_documenting_signature": false
       },
       "related_files": [],
       "remediation": {
@@ -1852,13 +1950,13 @@
       "ai_attributed": false,
       "attribution": null,
       "deferred": false,
-      "description": "3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 38.7).",
+      "description": "3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 19.3).",
       "end_line": null,
       "file": "src/myapp/processors",
       "finding_context": "production",
       "finding_id": "4e93fa3fcbeaf86d",
-      "fix": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 38.7): isinstance checks, None guards, or assert statements.",
-      "impact": 0.0304,
+      "fix": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 19.3): isinstance checks, None guards, or assert statements.",
+      "impact": 0.0294,
       "impact_rank": 36,
       "language": null,
       "logical_location": {
@@ -1872,14 +1970,14 @@
         "finding_context": "production",
         "guarded_count": 0,
         "guarded_ratio": 0.0,
-        "mean_unguarded_complexity": 38.666666666666664,
+        "mean_unguarded_complexity": 19.333333333333332,
         "total_qualifying": 3
       },
       "related_files": [],
       "remediation": null,
       "rule_id": "guard_clause_deficit",
-      "score": 1.0,
-      "score_contribution": 0.032,
+      "score": 0.967,
+      "score_contribution": 0.0309,
       "severity": "high",
       "signal": "guard_clause_deficit",
       "signal_abbrev": "GCD",
@@ -2448,6 +2546,7 @@
       "metadata": {
         "body_lines": 49,
         "cognitive_complexity": 52,
+        "context_dampened": false,
         "finding_context": "production",
         "function_name": "calculate_pricing",
         "threshold": 15
@@ -2490,6 +2589,7 @@
       "metadata": {
         "body_lines": 60,
         "cognitive_complexity": 108,
+        "context_dampened": false,
         "finding_context": "production",
         "function_name": "transform_dataset",
         "threshold": 15
@@ -2532,6 +2632,7 @@
       "metadata": {
         "body_lines": 25,
         "cognitive_complexity": 27,
+        "context_dampened": false,
         "finding_context": "production",
         "function_name": "process_registration",
         "threshold": 15
@@ -2619,6 +2720,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 8
       },
       "related_files": [],
@@ -2674,6 +2776,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 3
       },
       "related_files": [],
@@ -2729,6 +2832,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 2
       },
       "related_files": [],
@@ -2819,6 +2923,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 9
       },
       "related_files": [],
@@ -2874,6 +2979,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 3
       },
       "related_files": [],
@@ -2934,6 +3040,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 3
       },
       "related_files": [],
@@ -2989,6 +3096,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 2
       },
       "related_files": [],
@@ -3044,6 +3152,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 2
       },
       "related_files": [],
@@ -3099,6 +3208,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 2
       },
       "related_files": [],
@@ -3154,6 +3264,7 @@
         "finding_context": "production",
         "library_context_candidate": true,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 2
       },
       "related_files": [],
@@ -3229,6 +3340,7 @@
         "finding_context": "test",
         "library_context_candidate": false,
         "runtime_plugin_config_heuristic_applied": false,
+        "runtime_plugin_entrypoint_heuristic_applied": false,
         "total_exports": 6
       },
       "related_files": [],
@@ -3883,12 +3995,12 @@
       "file": "src/myapp/processors",
       "finding_context": "production",
       "finding_id": "4e93fa3fcbeaf86d",
-      "impact": 0.0304,
+      "impact": 0.0294,
       "language": null,
-      "next_step": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 38.7): isinstance checks, None guards, or assert statements.",
+      "next_step": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 19.3): isinstance checks, None guards, or assert statements.",
       "rank": 36,
       "rule_id": "guard_clause_deficit",
-      "score_contribution": 0.032,
+      "score_contribution": 0.0309,
       "severity": "high",
       "signal": "guard_clause_deficit",
       "signal_abbrev": "GCD",
@@ -4644,14 +4756,14 @@
     },
     {
       "ai_ratio": 0.0,
-      "drift_score": 0.369,
+      "drift_score": 0.367,
       "finding_count": 10,
       "path": "src/myapp/processors",
       "severity": "low",
       "signal_scores": {
         "cognitive_complexity": 0.4219,
         "explainability_deficit": 0.3681,
-        "guard_clause_deficit": 0.37
+        "guard_clause_deficit": 0.3657
       }
     },
     {
@@ -5061,14 +5173,6 @@
   "summary": {
     "ai_attributed_ratio": 0.0,
     "ai_tools_detected": [],
-    "phase_timing": {
-      "discover_seconds": 0.031,
-      "git_seconds": 0.093,
-      "output_seconds": 0.0,
-      "parse_seconds": 0.125,
-      "signals_seconds": 0.094,
-      "total_seconds": 0.28
-    },
     "skipped_languages": null,
     "total_files": 26,
     "total_functions": 45

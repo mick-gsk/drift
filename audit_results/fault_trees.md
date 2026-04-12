@@ -2173,4 +2173,12 @@ Weil kein `PatternInstance` mit `category=PatternCategory.RETURN_PATTERN` erzeug
 - Top event: Behavioral drift in findings due to defensive typing changes.
 - Branch A: Overly strict type guard could skip valid datetime normalization.
 - Branch B: String-cast could alter prefix extraction semantics.
+- Branch C: Helper signature change without compatibility default causes invocation failures.
+- Branch D: TS signature dampening suppresses valid no-test findings.
 - Mitigation implemented: Logic remains semantically equivalent (only type narrowing and coercion); verified by local `ruff` and `mypy` green runs.
+
+### FT-3: Regression control for newly observed CI failures
+- Top event: Post-fix CI remains red due newly surfaced regression tests.
+- Branch A: `_resolve_relative_targets()` callsites/tests still use legacy 2-arg invocation.
+- Branch B: EDS TS dampening reduces score below detection threshold despite explicit missing tests.
+- Mitigation implemented: Backward-compatible optional parameter in CCC helper and conditional dampening in EDS based on test evidence state.
