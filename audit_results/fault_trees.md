@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #259: CXS false positives in config-default resolver files
+
+### Top Event (TE-CXS-259)
+CXS reports expected branching in TypeScript/JavaScript config-default resolver modules as actionable complexity debt.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: inherent config-default branching reported as urgent complexity debt
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: CXS context dampening classified only schema/migration patterns; config-default files were scored with the global severity map.
+  - Mitigation: Extend inherent TS/JS context classification to bounded config-default filename markers (`config-defaults`, `config.defaults`, `default-config`).
+- **IE-2 (MCS)**: Configuration default resolution code contains intentional fallback/merge/validation branching but was interpreted as generic business-logic complexity.
+  - Mitigation: Reuse existing context cap path (`INFO`, `score <= 0.19`) and metadata trace (`context_dampened=True`) for those config-default contexts.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: Context cap may down-rank real maintainability debt in exceptional config-default files.
+  - Mitigation: Keep findings visible (no suppression), limit heuristic scope to explicit filename conventions, and preserve standard scoring for non-matching files.
+
 ## 2026-04-12 - Issue #258: EDS high-severity inflation for TS internal/UI implementation functions
 
 ### Top Event (TE-EDS-258)

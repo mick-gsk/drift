@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #259: CXS false positives for config-default files
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| CXS | FP: TypeScript/JavaScript config-default resolver modules are reported with medium/high urgency although multi-branch fallback logic is expected in these files | CXS context dampening only recognized schema/migration patterns and did not include config-default filename conventions | Triage noise and urgency inflation in plugin/config-heavy repos; reduced trust in CXS prioritization | New regressions in `tests/test_cognitive_complexity.py` (`test_inherent_ts_complexity_context_matches_schema_and_migration_paths`, `test_cxs_dampens_schema_migration_and_config_defaults_context_to_info`) | Extend `_is_inherent_ts_complexity_context` with bounded config-default filename markers (`config-defaults`, `config.defaults`, `default-config`) and keep context findings capped to `INFO` (`score <= 0.19`) via `context_dampened` metadata | 7 | 8 | 2 | 112 | Mitigated |
+| CXS | FN-risk: genuine complexity debt in config-default files may be down-ranked after context cap | Config-default context cap applies severity/score dampening for a broader set of TS/JS config files | Potential delayed remediation for truly problematic config-default control flow | Negative-path guard regression remains active (`test_inherent_ts_complexity_context_ignores_regular_files`) and findings are still emitted | Scope stays narrow to explicit config-default naming conventions; no finding suppression, only severity cap | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-12 - Issue #258: EDS TypeScript internal/UI high-severity cap
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

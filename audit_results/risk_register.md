@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #259: CXS context cap for TS/JS config-default files
+
+- Risk ID: RISK-SIGNAL-2026-04-12-259
+- Component: `src/drift/signals/cognitive_complexity.py`, `tests/test_cognitive_complexity.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Cognitive Complexity (CXS) now recognizes TS/JS config-default resolver file conventions (`config-defaults.*`, `config.defaults.*`, `default-config.*`) as inherent complexity context and caps those findings to informational severity (`INFO`, `score <= 0.19`).
+- Trigger: `drift analyze` on TypeScript/JavaScript plugin/config repositories with fallback-heavy configuration default resolvers.
+- Impact: High-positive. Reduces urgency inflation for structurally branch-heavy config-default code and improves CXS credibility/actionability.
+- Mitigation:
+  - Extended `_is_inherent_ts_complexity_context()` with bounded config-default filename markers.
+  - Reused existing context dampening severity cap path with explicit metadata (`context_dampened`).
+  - Added targeted regressions for config-default positive matching, negative regular-file guard, and context-cap severity behavior.
+- Verification:
+  - `python -m pytest tests/test_cognitive_complexity.py -q --tb=short`
+  - `python -m ruff check src/drift/signals/cognitive_complexity.py tests/test_cognitive_complexity.py`
+- Residual risk: Low-Medium. Some real complexity debt in config-default files may be down-ranked; scope is constrained to explicit naming patterns and findings remain visible.
+
 ## 2026-04-12 - Issue #258: EDS TS/TSX internal UI high-severity cap
 
 - Risk ID: RISK-SIGNAL-2026-04-12-258

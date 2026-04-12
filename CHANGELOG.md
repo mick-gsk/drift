@@ -2,9 +2,9 @@
 
 ### Added
 
-- **MAZ security tier (ADR-047):** Missing authorization findings now emit at `CRITICAL` severity (score 0.85) instead of HIGH; fix text includes an A2A/agent-card public-endpoint exemption note. Rich terminal output (`drift analyze`) renders MAZ, HSC, and ISD findings in a dedicated red "Security Findings" panel before the main findings table.
 - **EDS private-function recall guard (ADR-048):** Private functions now require a weighted score ≥ 0.45 (vs 0.30 for public) before being reported. Files tagged as `defect_correlated` in git history override the threshold back down to 0.30, preserving recall on historically buggy helpers.
 - **PFS canonical code snippet (ADR-049):** Pattern fragmentation findings now embed up to 8 source lines of the canonical exemplar in `metadata["canonical_snippet"]`. Severity is downgraded (HIGH→MEDIUM or MEDIUM→LOW) when the canonical pattern covers < 10 % of instances, and HIGH→MEDIUM when it covers < 15 % (`canonical_ratio` in metadata).
+- DCA Issue #260: reduce false positives for plugin/extension workspace exports by applying a bounded workspace-aware dampening (`extensions/*`, `plugins/*`, including nested paths like `.pi/extensions/*`) with LOW severity cap (`score <= 0.39`) and metadata traceability (`runtime_plugin_workspace_heuristic_applied`).
 - **AVS blast-radius churn guard (ADR-050):** `_check_blast_radius` now accepts `file_histories` and skips modules with `change_frequency_30d ≤ 1.0` AND `blast_radius ≤ 50` — reducing noise from stable, rarely-touched modules. `churn_per_week` is added to finding metadata.
 - **CCC commit-context test template (ADR-051):** Co-change coupling findings now store up to 3 truncated commit messages in `metadata["commit_messages"]`. Fix text presents an intentional vs accidental coupling branch: the intentional path shows a test scaffold (`def test_<a>_<b>_sync()`), the accidental path recommends extracting shared logic.
 
@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- CXS Issue #259: extend inherent TS/JS complexity-context detection to config-default patterns (`config-defaults.*`, `config.defaults.*`, `default-config.*`) and cap those findings to `INFO` (`score <= 0.19`) with `context_dampened` metadata to reduce false-positive urgency in configuration-default resolver modules.
 - EDS Issue #256: add TypeScript/JavaScript file-based test evidence mapping (`*.test.*`, `*.spec.*`, `__tests__/*`, plus `src/... -> tests/...`) and treat unknown test status neutrally (`has_test=None`) to prevent explainability score inflation when test discovery is incomplete.
 - CXS Issue #255: cap TypeScript/JavaScript schema and migration file findings (`*.schema.ts/js`, `*migration*`, `*/migrations/*`) to `INFO` severity with bounded score (`<= 0.19`) and explicit `context_dampened` metadata, reducing false-positive urgency inflation for inherently branch-heavy validation/migration code.
 - FOE Issue #254: count JS/TS SDK sub-path imports by dependency identity (`vendor/pkg`, `@scope/pkg`) instead of raw import specifiers so `openclaw/plugin-sdk/*` no longer inflates fan-out findings; add targeted regressions for unscoped/scoped package sub-path patterns.

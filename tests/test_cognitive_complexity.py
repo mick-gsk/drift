@@ -128,11 +128,23 @@ def test_inherent_ts_complexity_context_matches_schema_and_migration_paths() -> 
     assert _is_inherent_ts_complexity_context(
         Path("src/commands/doctor/shared/legacy-config-migrations.channels.ts")
     )
+    assert _is_inherent_ts_complexity_context(
+        Path("extensions/anthropic/config-defaults.ts")
+    )
+    assert _is_inherent_ts_complexity_context(
+        Path("extensions/anthropic/config.defaults.js")
+    )
+    assert _is_inherent_ts_complexity_context(
+        Path("extensions/anthropic/default-config.ts")
+    )
 
 
 def test_inherent_ts_complexity_context_ignores_regular_files() -> None:
     assert not _is_inherent_ts_complexity_context(Path("src/services/payment.ts"))
     assert not _is_inherent_ts_complexity_context(Path("src/services/payment.py"))
+    assert not _is_inherent_ts_complexity_context(
+        Path("src/configuration/defaults.ts")
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -253,10 +265,19 @@ class TestCXSTrueNegative:
         assert len(findings) == 0
 
 
-def test_cxs_dampens_schema_and_migration_context_to_info() -> None:
+@pytest.mark.parametrize(
+    "path",
+    [
+        "src/gateway/mcp-http.schema.ts",
+        "extensions/anthropic/config-defaults.ts",
+    ],
+)
+def test_cxs_dampens_schema_migration_and_config_defaults_context_to_info(
+    path: str,
+) -> None:
     signal = CognitiveComplexitySignal()
     pr = ParseResult(
-        file_path=Path("src/gateway/mcp-http.schema.ts"),
+        file_path=Path(path),
         language="typescript",
         functions=[],
     )

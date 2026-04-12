@@ -145,10 +145,15 @@ _SCHEMA_FILE_SUFFIXES: tuple[str, ...] = (
     ".schema.js",
     ".schema.jsx",
 )
+_CONFIG_DEFAULT_FILENAME_MARKERS: tuple[str, ...] = (
+    "config-defaults",
+    "config.defaults",
+    "default-config",
+)
 
 
 def _is_inherent_ts_complexity_context(path: Path | str) -> bool:
-    """Return True for TS/JS schema or migration files with expected branching."""
+    """Return True for TS/JS files where high branching is often structural."""
     value = path.as_posix() if isinstance(path, Path) else path.replace("\\", "/")
     value = value.lower()
 
@@ -159,6 +164,8 @@ def _is_inherent_ts_complexity_context(path: Path | str) -> bool:
     if filename.endswith(_SCHEMA_FILE_SUFFIXES):
         return True
     if "migration" in filename:
+        return True
+    if any(marker in filename for marker in _CONFIG_DEFAULT_FILENAME_MARKERS):
         return True
 
     return "/migrations/" in value or "/migration/" in value
