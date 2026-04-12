@@ -353,11 +353,11 @@ class MissingAuthorizationSignal(BaseSignal):
 
         supported_langs = {"python", "typescript", "tsx", "javascript", "jsx"}
         for pr in parse_results:
-            endpoint_findings_by_symbol: dict[tuple[str, str], Finding] = {}
+            endpoint_findings_by_symbol: dict[tuple[str, str | None], Finding] = {}
 
             def _collect_endpoint_finding(
                 finding: Finding,
-                _findings_map: dict[tuple[str, str], Finding] = endpoint_findings_by_symbol,
+                _findings_map: dict[tuple[str, str | None], Finding] = endpoint_findings_by_symbol,
             ) -> None:
                 dedupe_key = (str(finding.file_path), finding.symbol)
                 existing = _findings_map.get(dedupe_key)
