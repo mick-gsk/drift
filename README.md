@@ -26,7 +26,7 @@ drift status         # traffic-light health check — your daily entry point
 [![License](https://img.shields.io/github/license/mick-gsk/drift)](LICENSE)
 [![Discussions](https://img.shields.io/github/discussions/mick-gsk/drift)](https://github.com/mick-gsk/drift/discussions)
 
-[Docs](https://mick-gsk.github.io/drift/) · [Quick Start](docs-site/getting-started/quickstart.md) · [Benchmarking](docs-site/benchmarking.md) · [Trust & Limitations](docs-site/trust-evidence.md)
+[Docs](https://mick-gsk.github.io/drift/) · [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Benchmarking](https://mick-gsk.github.io/drift/benchmarking/) · [Trust & Limitations](https://mick-gsk.github.io/drift/trust-evidence/)
 
 </div>
 
@@ -42,14 +42,14 @@ uvx drift-analyzer analyze --repo .
 
 🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/)
 
-**Permanent install:** `pip install drift-analyzer` · Python 3.11+ · also via [pipx, Homebrew, Docker, GitHub Action, pre-commit →](docs-site/getting-started/installation.md)
+**Permanent install:** `pip install drift-analyzer` · Python 3.11+ · also via [pipx, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/)
 
 | Metric | Value | Evidence |
 |---|---|---|
 | Ground-truth precision | **100 %** (47 TP, 0 FP) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
 | Ground-truth recall | **100 %** (0 FN, 114 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
 | Mutation recall | **100 %** (25/25 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
-| Wild-repo precision | **77–95 %** (5 repos) | [study §5](docs/STUDY.md) |
+| Wild-repo precision | **77–95 %** (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
 
 > [!NOTE]
 > **Drift eats its own dog food.** Every release runs `drift self` on its own source — same pipeline, same rules, no exceptions. Results: [drift_self.json](benchmark_results/drift_self.json)
@@ -106,7 +106,7 @@ drift check --fail-on none         # pre-commit hook (advisory, report-only)
 drift analyze --repo . --format json  # full report
 ```
 
-📖 [Full workflow guide →](docs-site/getting-started/quickstart.md)
+📖 [Full workflow guide →](https://mick-gsk.github.io/drift/getting-started/quickstart/)
 
 > [!TIP]
 > **Best fit:** Python repos with 20+ files and active AI-assisted development.  
@@ -205,11 +205,11 @@ Cursor, Claude Code, and Copilot call drift directly via MCP server — the agen
 
 Or auto-generate: `pip install drift-analyzer[mcp] && drift init --mcp`
 
-📖 [MCP setup guide →](docs-site/integrations.md)
+📖 [MCP setup guide →](https://mick-gsk.github.io/drift/integrations/)
 
 **pre-commit:** Add `drift diff --staged-only` as a hook — findings block the commit before they reach CI.
 
-📖 [Full integration guide →](docs-site/integrations.md)
+📖 [Full integration guide →](https://mick-gsk.github.io/drift/integrations/)
 
 ---
 
@@ -229,7 +229,7 @@ Pick a profile that matches your project — or start with `default` and calibra
 
 > **Team workflow:** Commit `drift.yaml` to your repo → CI enforces the same thresholds → team inherits calibrated weights.
 
-📖 [Profile gallery with full details →](docs-site/guides/configuration-profiles.md) · [Configuration reference →](docs-site/getting-started/configuration.md)
+📖 [Profile gallery with full details →](https://mick-gsk.github.io/drift/guides/configuration-profiles/) · [Configuration reference →](https://mick-gsk.github.io/drift/getting-started/configuration/)
 
 ---
 
@@ -300,7 +300,7 @@ If your team ships most changes via AI coding tools (Copilot, Cursor, Claude), d
 
 ¹ Via `drift-analyzer[typescript]`. 17/24 signals supported via tree-sitter. Python is the primary analysis target.
 
-Comparison reflects primary design scope per [STUDY.md §9](docs/STUDY.md).
+Comparison reflects primary design scope per [STUDY.md §9](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md).
 
 ---
 
@@ -327,15 +327,15 @@ Paste the Markdown output into your README:
 
 | Topic | Description |
 |---|---|
-| [Quick Start](docs-site/getting-started/quickstart.md) | Install → first findings in 2 minutes |
-| [Brief & Guardrails](docs-site/integrations.md) | Pre-task agent workflow |
-| [CI Integration](docs-site/getting-started/team-rollout.md) | GitHub Action, SARIF, pre-commit, progressive rollout |
-| [Signal Reference](docs-site/algorithms/signals.md) | All 25 signals with detection logic |
-| [Benchmarking & Trust](docs-site/benchmarking.md) | Precision/Recall, methodology, artifacts |
-| [MCP & AI Tools](docs-site/integrations.md) | Cursor, Claude Code, Copilot, HTTP API |
-| [Configuration](docs-site/getting-started/configuration.md) | drift.yaml, layer boundaries, signal weights |
-| [Configuration Levels](docs-site/guides/configuration-levels.md) | Zero-Config → Preset → YAML → Calibration → MCP → CI |
-| [Calibration & Feedback](docs-site/algorithms/scoring.md) | Bayesian signal reweighting, feedback workflow |
+| [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) | Install → first findings in 2 minutes |
+| [Brief & Guardrails](https://mick-gsk.github.io/drift/integrations/) | Pre-task agent workflow |
+| [CI Integration](https://mick-gsk.github.io/drift/getting-started/team-rollout/) | GitHub Action, SARIF, pre-commit, progressive rollout |
+| [Signal Reference](https://mick-gsk.github.io/drift/algorithms/signals/) | All 25 signals with detection logic |
+| [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchmarking/) | Precision/Recall, methodology, artifacts |
+| [MCP & AI Tools](https://mick-gsk.github.io/drift/integrations/) | Cursor, Claude Code, Copilot, HTTP API |
+| [Configuration](https://mick-gsk.github.io/drift/getting-started/configuration/) | drift.yaml, layer boundaries, signal weights |
+| [Configuration Levels](https://mick-gsk.github.io/drift/guides/configuration-levels/) | Zero-Config → Preset → YAML → Calibration → MCP → CI |
+| [Calibration & Feedback](https://mick-gsk.github.io/drift/algorithms/scoring/) | Bayesian signal reweighting, feedback workflow |
 | [Vibe-coding Playbook](examples/vibe-coding/README.md) | 30-day rollout guide for AI-heavy teams |
 | [Contributing](CONTRIBUTING.md) | Dev setup, FP/FN reporting, signal development |
 
@@ -378,7 +378,7 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 | Ground-truth precision | 100 % (47 TP, 0 FP) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
 | Ground-truth recall | 100 % (0 FN across 114 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
 | Mutation recall | 100 % (25/25 injected patterns) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
-| Wild-repo precision | 77 % strict / 95 % lenient (5 repos) | [study §5](docs/STUDY.md) |
+| Wild-repo precision | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
 
 - **No LLM in detection.** Same input, same output. Reproducible in CI and auditable.
 - **Single-rater caveat:** ground-truth classification is not yet independently replicated.
@@ -386,7 +386,7 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 - **Temporal signals** depend on clone depth and git history quality.
 - **The composite score is orientation, not a verdict.** Interpret deltas via `drift trend`, not isolated snapshots.
 
-Full methodology: [Benchmarking & Trust](docs-site/benchmarking.md) · [Full Study](docs/STUDY.md)
+Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchmarking/) · [Full Study](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md)
 
 ---
 
