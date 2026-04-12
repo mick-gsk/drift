@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #302: EDS false positives on qa-lab mock server test infrastructure
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| EDS | FP: `extensions/qa-lab/src/mock-openai-server.ts` is treated as production and escalated for missing docstring/return type | Test-context classifier missed this non-standard test-infrastructure filename; previous broad fallback risked over-suppressing unrelated qa-lab files | Non-actionable EDS findings and trust erosion in QA helper modules | Regression tests in `tests/test_test_detection.py` and `tests/test_issue_302_eds_qa_lab_mock_server.py` | Add bounded test-context rule for exact file path `extensions/qa-lab/src/mock-openai-server.ts`; keep other qa-lab files in normal classification | 7 | 7 | 2 | 98 | Mitigated |
+| EDS | FN-risk: overly broad qa-lab suppression could hide real production findings | Directory-wide matching would classify all `extensions/qa-lab/**` as test context | Delayed prioritization of real explainability debt in qa-lab production files | Negative guard assertion in issue regression (`extensions/qa-lab/src/index.ts` stays non-test) | Use exact-file matcher instead of directory matcher; retain existing generic test patterns for all other files | 4 | 2 | 4 | 32 | Mitigated |
+
 ## 2026-04-12 - Issue #288: AVS false positives on header-marked generated files without generated suffix
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

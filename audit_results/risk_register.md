@@ -1,20 +1,20 @@
 # Risk Register
 
-## 2026-04-12 - Issue #300: EDS QA-lab test-context precision hardening
+## 2026-04-12 - Issue #301: EDS QA-lab mock-server test-context precision hardening
 
-- Risk ID: RISK-SIGNAL-2026-04-12-300
-- Component: `src/drift/ingestion/test_detection.py`, `tests/test_test_detection.py`, `tests/test_issue_300_eds_qa_lab_mock_server.py`
+- Risk ID: RISK-SIGNAL-2026-04-12-301
+- Component: `src/drift/ingestion/test_detection.py`, `tests/test_test_detection.py`, `tests/test_issue_301_eds_qa_lab_mock_server.py`
 - Type: Signal precision hardening (false-positive reduction)
-- Description: Shared test detection now classifies `extensions/qa-lab/**` as test context. This prevents Explainability Deficit (EDS) from treating QA-lab mock infrastructure (for example `extensions/qa-lab/src/mock-openai-server.ts`) as production complexity debt.
-- Trigger: `drift analyze` on repositories with QA-lab style extension workspaces that host mock servers and scenario-runner support code under `extensions/qa-lab/`.
+- Description: Shared test detection now classifies `extensions/qa-lab/src/mock-openai-server.ts` as test context. This prevents Explainability Deficit (EDS) from treating this QA-lab mock infrastructure file as production complexity debt.
+- Trigger: `drift analyze` on repositories that contain QA mock infrastructure at `extensions/qa-lab/src/mock-openai-server.ts`.
 - Impact: High-positive. Reduces non-actionable EDS findings and improves trust in default production-vs-test triage.
 - Mitigation:
-  - Added bounded test-context rule for `extensions/qa-lab/**` in shared test detection.
+  - Added bounded test-context rule for exact file path `extensions/qa-lab/src/mock-openai-server.ts` in shared test detection.
   - Added regression coverage in shared classifier tests.
   - Added EDS-focused regression to verify `finding_context=test` and LOW severity under `reduce_severity` handling.
 - Verification:
-  - `\.venv\Scripts\python.exe -m pytest tests/test_test_detection.py tests/test_issue_300_eds_qa_lab_mock_server.py -q --tb=short`
-- Residual risk: Low-Medium. Hand-written production code inside a path named `extensions/qa-lab/` will be triaged as test context; scope is intentionally narrow to explicit QA-lab workspace naming.
+  - `\.venv\Scripts\python.exe -m pytest tests/test_test_detection.py tests/test_issue_301_eds_qa_lab_mock_server.py -q --tb=short`
+- Residual risk: Low-Medium. The rule is an exact-file matcher and may miss similarly purposed QA files with different names until explicit evidence justifies extension.
 
 ## 2026-04-12 - Issue #288: AVS generated-header precision hardening
 

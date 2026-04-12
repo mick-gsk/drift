@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #302: EDS false positives on qa-lab mock server test infrastructure
+
+### Top Event (TE-EDS-302)
+EDS reports `extensions/qa-lab/src/mock-openai-server.ts` as actionable production explainability debt.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: qa-lab mock server reported as production EDS finding
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Shared test-file patterns did not include this non-standard QA mock-server filename.
+  - Mitigation: add bounded exact-path matcher for `extensions/qa-lab/src/mock-openai-server.ts`.
+- **IE-2 (MCS)**: Broad directory-level suppression (`extensions/qa-lab/**`) can hide real production findings.
+  - Mitigation: replace broad matcher with exact-file matcher and add negative guard assertion.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: exact-file suppression may miss future similarly named QA mock files.
+  - Mitigation: keep regression test focused on reported path and expand only with explicit evidence from future reports.
+
 ## 2026-04-12 - Issue #288: AVS false positives on header-marked generated files without generated suffix
 
 ### Top Event (TE-AVS-288)
