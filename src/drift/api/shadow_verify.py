@@ -130,12 +130,21 @@ def shadow_verify(
 
         current_findings = [f for f in analysis.findings if _in_scope(f)]
 
+        baseline_score = 0.0
+        baseline_findings: list[Any] = []
         if stored is not None:
-            _baseline_snapshot, baseline_stored_findings, _baseline_parse_map = stored
-            baseline_findings = [f for f in baseline_stored_findings if _in_scope(f)]
-        else:
-            # No baseline → treat every current finding as new.
-            baseline_findings = []
+            stored_any: Any = stored
+            if isinstance(stored_any, tuple) and len(stored_any) >= 2:
+                baseline_snapshot = stored_any[0]
+                baseline_stored_findings = stored_any[1]
+                baseline_score = float(getattr(baseline_snapshot, "score", 0.0))
+                baseline_findings = [f for f in baseline_stored_findings if _in_scope(f)]
+            elif hasattr(stored_any, "snapshot"):
+                # Backward-compat for tests/mocks that still provide .snapshot.
+                snapshot = stored_any.snapshot
+                baseline_score = float(getattr(snapshot, "drift_score", 0.0))
+                snapshot_findings = list(getattr(snapshot, "findings", []))
+                baseline_findings = [f for f in snapshot_findings if _in_scope(f)]
 
         # Rough finding identity: signal_type + file + title
         def _finding_key(f: Any) -> str:
@@ -149,7 +158,6 @@ def shadow_verify(
         resolved_findings = [f for f in baseline_findings if _finding_key(f) not in current_keys]
 
         # Score delta (positive = regression)
-        baseline_score = stored[0].score if stored is not None else 0.0
         current_score = analysis.drift_score
         delta = round(current_score - baseline_score, 4)
 
