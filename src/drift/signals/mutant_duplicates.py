@@ -90,8 +90,9 @@ def _workspace_plugin_scope(file_path: Path) -> str | None:
     - plugins/foo/main.py -> plugins/foo
     """
     parts = [p for p in file_path.as_posix().lstrip("./").split("/") if p]
-    if len(parts) >= 2 and parts[0] in {"extensions", "plugins"}:
-        return f"{parts[0]}/{parts[1]}"
+    for idx, part in enumerate(parts):
+        if part in {"extensions", "plugins"} and idx + 1 < len(parts):
+            return f"{part}/{parts[idx + 1]}"
     return None
 
 
@@ -442,6 +443,7 @@ class MutantDuplicateSignal(BaseSignal):
                                 "(Strategy, Adapter, Plugin). Verify intent before consolidating."
                             ),
                             "workspace_isolation_heuristic_applied": is_cross_workspace_group,
+                            "cross_extension_vendored": is_cross_workspace_group,
                             "workspace_scopes": workspace_scopes,
                         },
                     )
@@ -562,6 +564,7 @@ class MutantDuplicateSignal(BaseSignal):
                             "(Strategy, Adapter, Plugin). Verify intent before consolidating."
                         ),
                         "workspace_isolation_heuristic_applied": is_cross_workspace_pair,
+                        "cross_extension_vendored": is_cross_workspace_pair,
                         "workspace_scope_a": _workspace_plugin_scope(a.file_path),
                         "workspace_scope_b": _workspace_plugin_scope(b.file_path),
                     }

@@ -143,6 +143,43 @@ _RUNTIME_PLUGIN_ENTRYPOINT_BASENAMES: frozenset[str] = frozenset({
     "components.jsx",
 })
 
+_RUNTIME_PLUGIN_WORKSPACE_SOURCE_SUFFIXES: frozenset[str] = frozenset({
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mts",
+    ".cts",
+    ".mjs",
+    ".cjs",
+})
+
+
+def _is_runtime_plugin_workspace_path(file_path: Path) -> bool:
+    """Return True for files inside extension/plugin workspaces.
+
+    In monorepos, these exports are often consumed by host runtime loaders
+    across package boundaries and can appear dead in static import-only views.
+    """
+    tokens = _path_tokens(file_path)
+    if len(tokens) < 3:
+        return False
+
+    for idx, token in enumerate(tokens[:-1]):
+        if token not in _RUNTIME_PLUGIN_CONFIG_ROOT_TOKENS:
+            continue
+        # Require at least one path segment after extensions/plugins.
+        if idx + 1 < len(tokens):
+            return True
+    return False
+
+
+def _is_runtime_plugin_workspace_source_file(file_path: Path) -> bool:
+    """Return True for JS/TS source files inside runtime plugin workspaces."""
+    if file_path.suffix.lower() not in _RUNTIME_PLUGIN_WORKSPACE_SOURCE_SUFFIXES:
+        return False
+    return _is_runtime_plugin_workspace_path(file_path)
+
 
 def _is_script_context_path(file_path: Path) -> bool:
     """Return True for path contexts that are likely executable scripts."""
@@ -409,6 +446,7 @@ class DeadCodeAccumulationSignal(BaseSignal):
 
             runtime_plugin_config_heuristic_applied = False
             runtime_plugin_entrypoint_heuristic_applied = False
+            runtime_plugin_workspace_heuristic_applied = False
             if (
                 path_context != "test"
                 and _is_runtime_plugin_config_path(file_path)
@@ -427,6 +465,15 @@ class DeadCodeAccumulationSignal(BaseSignal):
                 score = round(min(0.69, score * 0.6), 3)
                 severity = Severity.MEDIUM
                 runtime_plugin_entrypoint_heuristic_applied = True
+            elif (
+                path_context != "test"
+                and _is_runtime_plugin_workspace_source_file(file_path)
+            ):
+                # Workspace exports are commonly consumed via host runtime/plugin
+                # loader boundaries that static import graphs do not resolve.
+                score = round(min(0.39, score * 0.45), 3)
+                severity = Severity.LOW
+                runtime_plugin_workspace_heuristic_applied = True
 
             dead_names = [s[0] for s in dead_symbols[:10]]
 
@@ -467,16 +514,24 @@ class DeadCodeAccumulationSignal(BaseSignal):
                         "dead_count": dead_count,
                         "total_exports": total_exports,
                         "dead_ratio": round(dead_ratio, 3),
-                        "library_context_candidate": library_repo
-                        and (
-                            is_library_finding_path(file_path)
-                            or _is_public_api_package_path(file_path, package_roots)
-                        ),
+                        "library_context_candidate": (
+                            library_repo
+                            and (
+                                is_library_finding_path(file_path)
+                                or _is_public_api_package_path(
+                                    file_path, package_roots
+                                )
+                            )
+                        )
+                        or runtime_plugin_workspace_heuristic_applied,
                         "runtime_plugin_config_heuristic_applied": (
                             runtime_plugin_config_heuristic_applied
                         ),
                         "runtime_plugin_entrypoint_heuristic_applied": (
                             runtime_plugin_entrypoint_heuristic_applied
+                        ),
+                        "runtime_plugin_workspace_heuristic_applied": (
+                            runtime_plugin_workspace_heuristic_applied
                         ),
                         "finding_context": path_context,
                     },

@@ -150,6 +150,11 @@ def _is_bool_like_return_type(return_type: str | None) -> bool:
     if lowered in {"bool", "builtins.bool", "boolean"}:
         return True
 
+    # TS assertion signatures (for example: "asserts x is AuthenticatedContext")
+    # are valid ensure-style contracts.
+    if lowered.startswith("asserts"):
+        return True
+
     wrapper_names = {"promise", "promiselike", "observable"}
     current = lowered
     max_unwrap = 6
@@ -414,36 +419,62 @@ def _ts_has_bool_return(root: Any, src: bytes, fn_info: FunctionInfo) -> bool:
             break
         return current
 
-    def _is_bool_like_ts_expression(node: Any) -> bool:
-        """Heuristic for bool-returning TS expressions when return type is absent."""
+    def _classify_ts_bool_expression(node: Any) -> str:
+        """Classify TS expression as bool-like, non-bool, or unknown."""
         n = _unwrap_expression(node)
         if n is None:
-            return False
+            return "unknown"
 
         if n.type in {"true", "false"}:
-            return True
+            return "bool"
+
+        if n.type in {
+            "string",
+            "template_string",
+            "number",
+            "bigint",
+            "object",
+            "array",
+            "new_expression",
+            "function",
+            "arrow_function",
+            "class",
+        }:
+            return "non_bool"
 
         if n.type == "unary_expression":
             txt = ts_node_text(n, src).lstrip()
             # !x and !!x are always boolean in JS/TS.
-            return bool(txt.startswith("!"))
+            return "bool" if txt.startswith("!") else "unknown"
 
         if n.type == "binary_expression":
             expr_text = ts_node_text(n, src)
             comparison_ops = ("===", "!==", "==", "!=", "<=", ">=", "<", ">", "instanceof")
             if any(op in expr_text for op in comparison_ops):
-                return True
-            return bool(re.search(r"\bin\b", expr_text))
+                return "bool"
+            if re.search(r"\bin\b", expr_text):
+                return "bool"
+            return "unknown"
 
         if n.type == "call_expression":
             callee = n.child_by_field_name("function")
             if callee is not None:
                 callee_text = ts_node_text(callee, src).strip()
                 if callee_text == "Boolean":
-                    return True
-            return False
+                    return "bool"
+            # Unknown call result: in TS this is often inferred boolean for
+            # predicate helpers; treat as unknown, not non-bool.
+            return "unknown"
 
-        return False
+        if n.type in {
+            "identifier",
+            "member_expression",
+            "subscript_expression",
+            "await_expression",
+        }:
+            return "unknown"
+
+        return "unknown"
 
     if _is_bool_like_return_type(fn_info.return_type):
         return True
@@ -452,13 +483,22 @@ def _ts_has_bool_return(root: Any, src: bytes, fn_info: FunctionInfo) -> bool:
     if not returns:
         return False
 
+    # Without explicit type annotations, be conservative for TS predicates:
+    # only fail when there is clear non-boolean evidence in returns.
     for ret in returns:
         value_children = [c for c in ret.children if c.type not in ("return", ";")]
         if not value_children:
             return False  # bare return
-        if not _is_bool_like_ts_expression(value_children[0]):
+        classification = _classify_ts_bool_expression(value_children[0])
+        if classification == "non_bool":
             return False
     return True
+
+
+def _ts_is_assertion_return_contract(fn_info: FunctionInfo) -> bool:
+    """Return True if TS return type is an assertion signature."""
+    return_type = " ".join((fn_info.return_type or "").strip().split()).lower()
+    return bool(return_type) and return_type.startswith("asserts ")
 
 
 def _ts_has_try_except(root: Any, src: bytes) -> bool:
@@ -627,6 +667,8 @@ def _ts_check_rule(
 
     # TS/JS convention: ensure_* often means get-or-create/upsert.
     if matched_prefix == "ensure_":
+        if _ts_is_assertion_return_contract(fn):
+            return True
         return _ts_has_ensure_contract(root, src)
 
     # TS/JS convention: try_* can be a nullable getter contract.

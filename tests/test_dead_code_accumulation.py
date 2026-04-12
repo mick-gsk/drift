@@ -316,7 +316,7 @@ class TestDCARuntimePluginConfigHeuristic:
         assert findings[0].score <= 0.69
         assert findings[0].metadata.get("runtime_plugin_config_heuristic_applied") is True
 
-    def test_extensions_non_config_file_is_not_dampened(self) -> None:
+    def test_extensions_non_config_file_is_dampened_to_low(self) -> None:
         pr_helpers = ParseResult(
             file_path=Path("extensions/acpx/src/helpers.ts"),
             language="typescript",
@@ -335,8 +335,34 @@ class TestDCARuntimePluginConfigHeuristic:
             DriftConfig(),
         )
         assert len(findings) == 1
-        assert findings[0].severity == Severity.HIGH
+        assert findings[0].severity == Severity.LOW
+        assert findings[0].score <= 0.39
         assert findings[0].metadata.get("runtime_plugin_config_heuristic_applied") is False
+        assert (
+            findings[0].metadata.get("runtime_plugin_workspace_heuristic_applied")
+            is True
+        )
+
+    def test_non_plugin_file_keeps_high_without_workspace_heuristic(self) -> None:
+        pr_helpers = ParseResult(
+            file_path=Path("packages/acpx/src/helpers.ts"),
+            language="typescript",
+            functions=[
+                _ts_exported_func("unusedA", "packages/acpx/src/helpers.ts", 10),
+                _ts_exported_func("unusedB", "packages/acpx/src/helpers.ts", 20),
+                _ts_exported_func("unusedC", "packages/acpx/src/helpers.ts", 30),
+                _ts_exported_func("unusedD", "packages/acpx/src/helpers.ts", 40),
+            ],
+            imports=[],
+        )
+
+        findings = DeadCodeAccumulationSignal().analyze([pr_helpers], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.HIGH
+        assert (
+            findings[0].metadata.get("runtime_plugin_workspace_heuristic_applied")
+            is False
+        )
 
 
 class TestDCARuntimePluginEntrypointHeuristic:
@@ -366,6 +392,31 @@ class TestDCARuntimePluginEntrypointHeuristic:
             findings[0].metadata.get("runtime_plugin_entrypoint_heuristic_applied")
             is True
         )
+
+
+class TestDCARuntimePluginWorkspaceHeuristic:
+    def test_nested_dotpi_extensions_file_is_dampened_to_low(self) -> None:
+        pr_nested = ParseResult(
+            file_path=Path(".pi/extensions/files.ts"),
+            language="typescript",
+            functions=[
+                _ts_exported_func("FileEntry", ".pi/extensions/files.ts", 10),
+                _ts_exported_func("FileToolName", ".pi/extensions/files.ts", 20),
+                _ts_exported_func("FileToolMeta", ".pi/extensions/files.ts", 30),
+                _ts_exported_func("FileHandle", ".pi/extensions/files.ts", 40),
+            ],
+            imports=[],
+        )
+
+        findings = DeadCodeAccumulationSignal().analyze([pr_nested], {}, DriftConfig())
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.LOW
+        assert findings[0].score <= 0.39
+        assert (
+            findings[0].metadata.get("runtime_plugin_workspace_heuristic_applied")
+            is True
+        )
+        assert findings[0].metadata.get("library_context_candidate") is True
 
     def test_extensions_plugin_sdk_entrypoint_is_dampened_to_medium(self) -> None:
         pr_sdk = ParseResult(

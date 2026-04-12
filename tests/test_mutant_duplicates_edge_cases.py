@@ -463,6 +463,17 @@ def test_workspace_plugin_scope_detection():
     assert _workspace_plugin_scope(Path("src/core/utils.py")) is None
 
 
+def test_workspace_plugin_scope_detection_absolute_paths_issue_264():
+    assert (
+        _workspace_plugin_scope(Path("/tmp/openclaw/extensions/discord/src/utils.ts"))
+        == "extensions/discord"
+    )
+    assert (
+        _workspace_plugin_scope(Path("C:/repos/openclaw/plugins/foo/main.py"))
+        == "plugins/foo"
+    )
+
+
 def test_cross_workspace_plugin_pair_detection():
     assert _is_cross_workspace_plugin_pair(
         Path("extensions/sglang/src/utils.ts"),
@@ -476,6 +487,13 @@ def test_cross_workspace_plugin_pair_detection():
         Path("extensions/sglang/src/utils.ts"),
         Path("src/shared/utils.ts"),
     ) is False
+
+
+def test_cross_workspace_plugin_pair_detection_absolute_paths_issue_264():
+    assert _is_cross_workspace_plugin_pair(
+        Path("/tmp/openclaw/extensions/discord/src/utils.ts"),
+        Path("/tmp/openclaw/extensions/bluebubbles/src/utils.ts"),
+    ) is True
 
 
 def test_analyze_caps_cross_plugin_exact_duplicates_to_info_issue_244():
@@ -515,7 +533,52 @@ def test_analyze_caps_cross_plugin_exact_duplicates_to_info_issue_244():
     assert finding.severity.value == "info"
     assert finding.score <= 0.2
     assert finding.metadata.get("workspace_isolation_heuristic_applied") is True
+    assert finding.metadata.get("cross_extension_vendored") is True
     assert finding.metadata.get("workspace_scopes") == ["extensions/sglang", "extensions/vllm"]
+
+
+def test_analyze_caps_cross_plugin_exact_duplicates_to_info_absolute_paths_issue_264():
+    signal = MutantDuplicateSignal()
+    config = DriftConfig()
+    ngrams = [["Name", "Load"], ["Call", "Return"], ["If", "Return"]]
+
+    pr_a = ParseResult(
+        file_path=Path("/tmp/openclaw/extensions/discord/src/normalize.ts"),
+        language="typescript",
+        functions=[
+            _make_fn(
+                name="normalizeOptionalText",
+                file_path="/tmp/openclaw/extensions/discord/src/normalize.ts",
+                body_hash="normalize_hash",
+                ngrams=ngrams,
+            )
+        ],
+    )
+    pr_b = ParseResult(
+        file_path=Path("/tmp/openclaw/extensions/bluebubbles/src/normalize.ts"),
+        language="typescript",
+        functions=[
+            _make_fn(
+                name="normalizeOptionalText",
+                file_path="/tmp/openclaw/extensions/bluebubbles/src/normalize.ts",
+                body_hash="normalize_hash",
+                ngrams=ngrams,
+            )
+        ],
+    )
+
+    findings = signal.analyze([pr_a, pr_b], {}, config)
+
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.severity.value == "info"
+    assert finding.score <= 0.2
+    assert finding.metadata.get("workspace_isolation_heuristic_applied") is True
+    assert finding.metadata.get("cross_extension_vendored") is True
+    assert finding.metadata.get("workspace_scopes") == [
+        "extensions/bluebubbles",
+        "extensions/discord",
+    ]
 
 
 def test_analyze_keeps_same_workspace_exact_duplicates_actionable_issue_244():

@@ -430,6 +430,30 @@ export class Runtime {
         ]
         assert nbv_findings == []
 
+    @needs_tree_sitter
+    def test_ensure_ts_assertion_signature_no_finding(self, tmp_path: Path):
+        pr = _write_and_parse_ts(
+                tmp_path,
+                "extensions/browser/src/browser/assertions.ts",
+                """\
+type BrowserCtx = { connected: boolean };
+
+export function ensureBrowserContext(ctx: BrowserCtx | null): asserts ctx is BrowserCtx {
+    if (!ctx?.connected) {
+        assertBrowserContext(ctx);
+    }
+}
+
+declare function assertBrowserContext(ctx: BrowserCtx | null): asserts ctx is BrowserCtx;
+""",
+        )
+
+        findings = _run([pr], repo_path=tmp_path)
+        nbv_findings = [
+            f for f in findings if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+        ]
+        assert nbv_findings == []
+
 
 # ===================================================================
 # is_* / has_* — expects bool return
@@ -817,6 +841,49 @@ export function isUsableTimestamp(input: unknown) {
                     if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
                 ]
                 assert nbv_findings == []
+
+        def test_issue_265_is_prefix_inferred_bool_call_no_finding(self, tmp_path: Path):
+                pr = _write_and_parse_ts(
+                        tmp_path,
+                        "extensions/browser/src/browser/server-context.availability.ts",
+                        """\
+type Target = { url: string };
+
+declare function probeReachability(target: Target): Promise<boolean>;
+
+export async function isHttpReachable(target: Target) {
+    return probeReachability(target);
+}
+""",
+                )
+
+                findings = _run([pr], repo_path=tmp_path)
+                nbv_findings = [
+                    f
+                    for f in findings
+                    if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+                ]
+                assert nbv_findings == []
+
+        def test_issue_265_is_prefix_explicit_non_bool_still_flagged(self, tmp_path: Path):
+                pr = _write_and_parse_ts(
+                        tmp_path,
+                        "src/checks.ts",
+                        """\
+export function isServerLabel(name: string) {
+    return `${name}-prod`;
+}
+""",
+                )
+
+                findings = _run([pr], repo_path=tmp_path)
+                nbv_findings = [
+                    f
+                    for f in findings
+                    if f.signal_type == SignalType.NAMING_CONTRACT_VIOLATION
+                ]
+                assert len(nbv_findings) == 1
+                assert nbv_findings[0].metadata.get("prefix_rule") == "is_"
 
         def test_typed_arrow_declarator_return_type_no_finding(self, tmp_path: Path):
                 pr = _write_and_parse_ts(
