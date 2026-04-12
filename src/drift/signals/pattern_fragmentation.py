@@ -269,10 +269,8 @@ class PatternFragmentationSignal(BaseSignal):
                         ]
                         if category in _PLUGIN_VARIATION_EXPECTED_CATEGORIES:
                             plugin_hints.append(
-                                (
-                                    "inter-plugin-pattern-variation-expected:"
-                                    f"{plugin_root}/{plugin_name}:{category.value}"
-                                )
+                                "inter-plugin-pattern-variation-expected:"
+                                f"{plugin_root}/{plugin_name}:{category.value}"
                             )
                             plugin_boundary_variation_expected = True
                         # Distinct plugin boundaries often represent intentional
