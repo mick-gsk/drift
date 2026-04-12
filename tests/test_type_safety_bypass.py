@@ -321,3 +321,53 @@ class TestTypeSafetyBypassSignal:
         assert sdk_finding.score < plain_finding.score
         assert sdk_finding.metadata["kind_distribution"].get("non_null_assertion_sdk", 0) == 3
         assert plain_finding.metadata["kind_distribution"].get("non_null_assertion", 0) == 3
+
+    def test_issue_274_playwright_sdk_non_null_patterns_do_not_escalate_to_high(
+        self, tmp_path: Path
+    ) -> None:
+        from drift.config import DriftConfig
+        from drift.models import ParseResult, Severity
+        from drift.signals.type_safety_bypass import TypeSafetyBypassSignal
+
+        file_path = (
+            tmp_path
+            / "extensions"
+            / "browser"
+            / "src"
+            / "browser"
+            / "pw-tools-core.interactions.ts"
+        )
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(
+            "import { Page } from '@playwright/test';\n"
+            "type Loc = { selector: string };\n"
+            "export function wire(page: Page, resolved: Loc): void {\n"
+            "  page.off!(\"framenavigated\", () => {});\n"
+            "  page.on!(\"framenavigated\", () => {});\n"
+            "  page.once!(\"framenavigated\", () => {});\n"
+            "  page.locator(resolved.selector!);\n"
+            "  page.locator(resolved.selector!);\n"
+            "}\n"
+            "const payload = value as unknown as Record<string, string>;\n"
+            "const payload2 = value as unknown as Record<string, number>;\n",
+            encoding="utf-8",
+        )
+
+        pr = ParseResult(
+            file_path=file_path,
+            language="typescript",
+            functions=[],
+            classes=[],
+            imports=[],
+            patterns=[],
+            line_count=11,
+        )
+
+        findings = TypeSafetyBypassSignal().analyze([pr], {}, DriftConfig())
+        assert len(findings) == 1
+        finding = findings[0]
+
+        assert finding.severity == Severity.MEDIUM
+        assert finding.score < 0.7
+        assert finding.metadata["kind_distribution"].get("non_null_assertion_sdk", 0) == 5
+        assert finding.metadata["kind_distribution"].get("double_cast", 0) == 2

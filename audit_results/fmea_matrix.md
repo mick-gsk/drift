@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #274: TSB Playwright SDK idiomatic non-null assertions over-prioritized
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| TSB | FP: Playwright SDK idiomatic non-null assertions (`page.on!`, `page.off!`, `page.once!`, `locator(resolved.selector!)`) were escalated to HIGH when combined with a few real bypasses | TSB applied only partial SDK dampening and did not classify `locator(...!)` Playwright SDK interop pattern; existing SDK-weight remained too high for large idiomatic clusters | Over-prioritized findings (score near 1.0) and reduced Type Safety Bypass credibility in browser automation codebases | New regression `test_issue_274_playwright_sdk_non_null_patterns_do_not_escalate_to_high` in `tests/test_type_safety_bypass.py` | Extend SDK-interop classification to Playwright locator-argument non-null assertions and reduce SDK non-null contribution to severity scoring (`non_null_assertion_sdk` weight 0.0) while keeping explicit bypasses (`as any`, directives, double cast) fully weighted | 7 | 8 | 2 | 112 | Mitigated |
+| TSB | FN-risk: genuine unsafe non-null assertions in SDK-adjacent files may be under-prioritized | Broader SDK non-null down-weighting can lower urgency for some real defects in files importing supported SDKs | Potential delayed triage for true unsafe `!` usage in SDK-heavy modules | Existing non-SDK regression (`test_sdk_event_emitter_non_null_assertions_are_dampened`) still contrasts SDK vs plain behavior | Scope remains bounded to known SDK import context and only non-null assertions; high-signal bypass kinds (`as any`, double cast, `@ts-ignore`) remain unchanged | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-12 - Issue #271: DCA flags non-exported TS file-local types/classes as unused exports
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #274: TSB false positives on Playwright SDK interop non-null assertions
+
+### Top Event (TE-TSB-274)
+TSB reports HIGH-severity type-safety bypass clusters in Playwright SDK interaction files where most non-null assertions are idiomatic interop patterns.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: Playwright SDK interop non-null usage reported as high-risk bypass cluster
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: SDK-aware non-null classification only covered event-emitter method forms and missed Playwright locator-argument non-null patterns (`locator(resolved.selector!)`).
+  - Mitigation: classify Playwright locator-argument non-null assertions under SDK interop kind.
+- **IE-2 (MCS)**: SDK non-null score weight remained high enough that large idiomatic clusters still crossed HIGH thresholds.
+  - Mitigation: set SDK-interop non-null weight to zero while preserving visibility and preserving full weight for direct bypass types.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: broad SDK non-null dampening could down-rank genuine unsafe non-null usage in SDK-adjacent files.
+  - Mitigation: bound behavior to known SDK import context and non-null assertions only; keep `as any`, `double_cast`, and directive bypass scoring unchanged.
+
 ## 2026-04-12 - Issue #271: DCA false positives for non-exported TS file-local declarations
 
 ### Top Event (TE-DCA-271)

@@ -36,6 +36,10 @@ _EVENT_EMITTER_NON_NULL_RE = re.compile(
     r"\.(?:on|off|once|addlistener|removelistener)!\s*$",
     re.IGNORECASE,
 )
+_PLAYWRIGHT_LOCATOR_NON_NULL_RE = re.compile(
+    r"\.locator\s*\(.*!\s*\)",
+    re.IGNORECASE,
+)
 
 _DEFAULT_THRESHOLD = 5
 
@@ -50,6 +54,7 @@ def _count_bypasses(source: str, language: str) -> list[dict[str, str | int]]:
         return []
 
     root, source_bytes = tree
+    source_lines = source.splitlines()
     bypasses: list[dict[str, str | int]] = []
     has_sdk_import = bool(_SDK_IMPORT_RE.search(source))
 
@@ -87,22 +92,27 @@ def _count_bypasses(source: str, language: str) -> list[dict[str, str | int]]:
         # Non-null assertion (postfix !)
         elif node.type == "non_null_expression":
             node_text = ts_node_text(node, source_bytes).strip()
+            line_no = node.start_point[0] + 1
+            line_text = source_lines[line_no - 1] if 0 <= line_no - 1 < len(source_lines) else ""
             is_sdk_event_emitter = bool(
                 has_sdk_import and _EVENT_EMITTER_NON_NULL_RE.search(node_text)
             )
+            is_sdk_locator_arg = bool(
+                has_sdk_import and _PLAYWRIGHT_LOCATOR_NON_NULL_RE.search(line_text)
+            )
+            kind = "non_null_assertion"
+            detail = "non-null assertion (!)"
+            if is_sdk_event_emitter:
+                kind = "non_null_assertion_sdk"
+                detail = "non-null assertion (!), SDK event-emitter pattern"
+            elif is_sdk_locator_arg:
+                kind = "non_null_assertion_sdk"
+                detail = "non-null assertion (!), SDK locator-argument pattern"
             bypasses.append(
                 {
-                    "kind": (
-                        "non_null_assertion_sdk"
-                        if is_sdk_event_emitter
-                        else "non_null_assertion"
-                    ),
-                    "line": node.start_point[0] + 1,
-                    "detail": (
-                        "non-null assertion (!), SDK event-emitter pattern"
-                        if is_sdk_event_emitter
-                        else "non-null assertion (!)"
-                    ),
+                    "kind": kind,
+                    "line": line_no,
+                    "detail": detail,
                 }
             )
 
@@ -132,7 +142,7 @@ def _effective_bypass_count(bypasses: list[dict[str, str | int]]) -> float:
     """
 
     weight_by_kind: dict[str, float] = {
-        "non_null_assertion_sdk": 0.2,
+        "non_null_assertion_sdk": 0.0,
     }
 
     effective = 0.0

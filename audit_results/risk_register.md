@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #274: TSB Playwright SDK non-null assertion precision hardening
+
+- Risk ID: RISK-SIGNAL-2026-04-12-274
+- Component: `src/drift/signals/type_safety_bypass.py`, `tests/test_type_safety_bypass.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Type Safety Bypass (TSB) now treats Playwright SDK idiomatic non-null assertions more conservatively. In addition to existing SDK event-emitter forms (`page.on!`, `page.off!`, `page.once!`), locator-argument non-null assertions (`page.locator(resolved.selector!)`) are classified as SDK interop patterns and no longer contribute to severity score inflation.
+- Trigger: `drift analyze` on Playwright-heavy TypeScript interaction modules with many SDK-idiomatic non-null assertions plus a small number of true bypasses.
+- Impact: High-positive. Reduces HIGH-severity false positives and improves trust/actionability of TSB findings.
+- Mitigation:
+  - Extended SDK interop pattern detection to Playwright `locator(...!)` call context.
+  - Kept SDK interop non-null assertions visible in metadata (`non_null_assertion_sdk`) while setting their effective score contribution to zero.
+  - Added targeted Issue-274 regression test to prevent future high-severity inflation for this pattern class.
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_type_safety_bypass.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m ruff check src/drift/signals/type_safety_bypass.py tests/test_type_safety_bypass.py`
+- Residual risk: Low-Medium. Some genuine unsafe non-null assertions in SDK-importing files may be down-ranked; direct bypass indicators (`as any`, double casts, `@ts-ignore`) remain fully weighted.
+
 ## 2026-04-12 - Issue #271: DCA false positives for non-exported TS file-local declarations
 
 - Risk ID: RISK-SIGNAL-2026-04-12-271
