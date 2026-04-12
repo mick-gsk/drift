@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #283: COD false positives on explicit shared test-harness utility files
+
+### Top Event (TE-COD-283)
+COD reports shared test-harness helper/support modules as actionable cohesion deficits.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: shared test-harness utility file reported as actionable cohesion deficit
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: COD test-context suppression modeled test/spec paths but did not include explicit filename conventions used for shared harness files (`*.test-harness.*`, `*.test-helpers.*`, `*.test-support.*`).
+  - Mitigation: add bounded filename matcher for explicit harness/helper/support conventions.
+- **IE-2 (MCS)**: Harness modules intentionally aggregate mixed mocks/factories/utilities, which creates low lexical cohesion by design and inflates COD scoring when not test-classified.
+  - Mitigation: classify these conventions as test context and skip COD emission for them.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: naming-based suppression can hide a real production module if it intentionally adopts a test-harness-style filename.
+  - Mitigation: keep suppression narrowly scoped to explicit filename conventions only; preserve default COD behavior for all other files.
+
 ## 2026-04-12 - Issue #279: TSB false positives for Playwright runtime-guarded duck-typing double casts
 
 ### Top Event (TE-TSB-279)

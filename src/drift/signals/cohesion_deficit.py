@@ -84,10 +84,46 @@ _COHESIVE_ACTION_PREFIXES: frozenset[str] = frozenset(
     {"register", "format", "create"}
 )
 
+_TEST_HARNESS_SUFFIXES: tuple[str, ...] = (
+    ".test-harness.ts",
+    ".test-harness.tsx",
+    ".test-harness.js",
+    ".test-harness.jsx",
+    ".test-helpers.ts",
+    ".test-helpers.tsx",
+    ".test-helpers.js",
+    ".test-helpers.jsx",
+    ".test-support.ts",
+    ".test-support.tsx",
+    ".test-support.js",
+    ".test-support.jsx",
+)
+
+_TEST_HARNESS_BASENAMES: frozenset[str] = frozenset(
+    {
+        "test-harness.ts",
+        "test-harness.tsx",
+        "test-harness.js",
+        "test-harness.jsx",
+        "test-helpers.ts",
+        "test-helpers.tsx",
+        "test-helpers.js",
+        "test-helpers.jsx",
+        "test-support.ts",
+        "test-support.tsx",
+        "test-support.js",
+        "test-support.jsx",
+    }
+)
+
 
 def _is_test_like(path: Path) -> bool:
     p = path.as_posix().lower()
     name = path.name.lower()
+    if name in _TEST_HARNESS_BASENAMES or any(
+        name.endswith(suffix) for suffix in _TEST_HARNESS_SUFFIXES
+    ):
+        return True
     return (
         "/tests/" in p
         or p.startswith("tests/")

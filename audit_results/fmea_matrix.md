@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #283: COD false positives on explicit shared test-harness utility files
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| COD | FP: shared TypeScript test-harness aggregators (`*.test-harness.*`, `*.test-helpers.*`, `*.test-support.*`) are escalated as cohesion deficits despite intentional mixed utility content | COD test-file suppression covered standard test specs/paths but missed explicit harness/helper/support filename conventions used for shared test setup modules | Non-actionable COD findings in test infrastructure files and reduced signal credibility/actionability in TS/Vitest-heavy repositories | New regression in `tests/test_cohesion_deficit.py` (`test_issue_283_test_harness_file_is_ignored`) | Extend COD test-context classifier to skip explicit harness/helper/support filename conventions (`.test-harness`, `.test-helpers`, `.test-support` and basename variants) across TS/JS suffixes | 7 | 8 | 2 | 112 | Mitigated |
+| COD | FN-risk: broad filename suppression can hide genuinely incoherent production modules with misleading `test-harness` style names | Added filename-level suppression introduces bounded naming-based skip path | Potential delayed prioritization for rare production files intentionally or accidentally using test-harness naming | Existing COD behavior for non-matching files remains unchanged and issue regression keeps scope explicit | Keep suppression strictly bounded to explicit harness/helper/support filename conventions only; do not widen directory-level suppression | 4 | 2 | 4 | 32 | Mitigated |
+
 ## 2026-04-12 - Issue #279: TSB false positives for Playwright runtime-guarded duck-typing double casts
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

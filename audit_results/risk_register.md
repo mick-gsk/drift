@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #283: COD test-harness filename precision hardening
+
+- Risk ID: RISK-SIGNAL-2026-04-12-283
+- Component: `src/drift/signals/cohesion_deficit.py`, `tests/test_cohesion_deficit.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Cohesion Deficit (COD) now classifies explicit shared test utility filename conventions (`*.test-harness.*`, `*.test-helpers.*`, `*.test-support.*` plus basename variants) as test context and skips finding emission for those files.
+- Trigger: `drift analyze` on TS/Vitest repositories that store mixed mock/factory helpers in shared harness files like `dispatch-from-config.shared.test-harness.ts`.
+- Impact: High-positive. Removes non-actionable COD findings for intentional test infrastructure aggregation modules and improves signal credibility/actionability.
+- Mitigation:
+  - Added bounded harness/helper/support filename matching in COD `_is_test_like(...)`.
+  - Added targeted regression `test_issue_283_test_harness_file_is_ignored`.
+  - Preserved existing COD behavior for non-matching production files.
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_cohesion_deficit.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m ruff check src/drift/signals/cohesion_deficit.py tests/test_cohesion_deficit.py`
+- Residual risk: Low. Rare production files intentionally named with test-harness conventions could be suppressed; scope is tightly constrained to explicit naming patterns.
+
 ## 2026-04-12 - Issue #279: TSB Playwright runtime-guarded duck-typing double-cast precision hardening
 
 - Risk ID: RISK-SIGNAL-2026-04-12-279

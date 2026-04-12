@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- COD Issue #283: classify explicit shared test utility filename conventions (`*.test-harness.*`, `*.test-helpers.*`, `*.test-support.*` and basename variants) as test context in COD so intentional harness aggregation files are not flagged as cohesion deficits.
 - TSB Issue #280: classify TypeScript/JavaScript `*.test-support.*` and `test-support.*` files as test context in shared test detection so canonical test-double double-casts (`as unknown as T`) are no longer flagged as production type-safety bypasses by default.
 - TSB Issue #278: treat `playwright-core` imports as SDK context for EventEmitter non-null assertions (`page.on!`/`page.off!`/`page.once!`) so Playwright-core interop patterns are classified as `non_null_assertion_sdk` and no longer inflate severity.
 - CXS follow-up hardening: treat TypeScript/JavaScript files containing `config-schema` in the filename as inherent schema context in `_is_inherent_ts_complexity_context`, reducing false-positive urgency for declarative schema modules.
