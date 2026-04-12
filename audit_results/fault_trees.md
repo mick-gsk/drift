@@ -2159,3 +2159,18 @@ Weil kein `PatternInstance` mit `category=PatternCategory.RETURN_PATTERN` erzeug
   - Mitigation: Low weight + `__init__.py` exclusion + test-file guard.
 - Branch C: PHR false positive (weight 0.02) adds ≤0.02 to module score.
   - Mitigation: Existing PHR FP mitigations (star-import skip, __getattr__ skip, framework allowlist).
+
+## 2026-04-12 - Type-safety hardening for TVS/SMS/COD
+
+### FT-1: CI/type-gate failure in signal preprocessing paths
+- Top event: Typecheck fails on optional datetime normalization and helper return contracts.
+- Branch A: `first_seen` can be `None`, yet `astimezone()` is invoked through loose attribute probing.
+- Branch B: `last_modified` can be `None`, yet timezone conversion is attempted without strict narrowing.
+- Branch C: Helper function with `-> str` returns a value inferred as `Any` from regex capture list.
+- Mitigation implemented: Replace dynamic attribute checks with `isinstance(datetime.datetime)` guards and cast regex token output to `str` before normalization.
+
+### FT-2: Residual FN/FP impact after hardening
+- Top event: Behavioral drift in findings due to defensive typing changes.
+- Branch A: Overly strict type guard could skip valid datetime normalization.
+- Branch B: String-cast could alter prefix extraction semantics.
+- Mitigation implemented: Logic remains semantically equivalent (only type narrowing and coercion); verified by local `ruff` and `mypy` green runs.

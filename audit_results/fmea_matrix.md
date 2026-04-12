@@ -671,3 +671,11 @@
 | FOE | FN: high fan-out via dynamic imports | `importlib.import_module()` or `__import__()` used to load modules | Under-reporting for dynamically assembled modules | N/A — static analysis limitation | Accept: dynamic imports are invisible to AST-based import counting | 3 | 2 | 8 | 48 | Accepted |
 | FOE | FP: test file with many test-helper imports | Test files often import many fixtures, helpers, and mocks | False finding on standard test organization | `is_test_file()` guard | Test files excluded via file-discovery filter | 3 | 3 | 2 | 18 | **Mitigated** |
 | PHR | Scoring promotion: FP in composite score | PHR false positive now affects composite drift score (weight 0.02) instead of being report-only | Slightly inflated drift score for affected modules | Precision/recall suite + `phr_conditional_import_tn`, `phr_framework_decorator_tn` fixtures | Low weight (0.02) limits score impact; existing FP mitigations remain active | 5 | 3 | 3 | 45 | **Mitigated** |
+
+## 2026-04-12 - Type-safety hardening for TVS/SMS/COD execution paths
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN |
+|---|---|---|---|---|---|---:|---:|---:|---:|
+| TVS | Runtime/type mismatch when `first_seen` is null-like | Optional datetime values were timezone-normalized via dynamic attribute checks | CI mypy failures and potential brittle timezone normalization path | CI mypy (`union-attr`) and local reproduction | Replace dynamic attribute probing with explicit `isinstance(datetime.datetime)` guards before `astimezone()` | 3 | 4 | 2 | 24 |
+| SMS | Runtime/type mismatch for `first_seen` / `last_modified` normalization | Optional datetime values converted without strict type narrowing | CI mypy failures and reduced confidence in static safety | CI mypy (`union-attr`) and local reproduction | Add explicit datetime type checks before timezone conversion in workspace recency logic | 3 | 4 | 2 | 24 |
+| COD | Implicit `Any` return in token extraction helper | Regex match list element propagated as `Any` to a `-> str` function | CI mypy failure (`no-any-return`) and weaker contract guarantees | CI mypy and local reproduction | Enforce concrete `str(...)` conversion in `_leading_token()` before normalization | 2 | 3 | 2 | 12 |

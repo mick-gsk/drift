@@ -212,7 +212,7 @@ def _leading_token(name: str) -> str:
     tokens = _CAMEL_PART_RE.findall(name.split(".")[-1])
     if not tokens:
         return ""
-    return tokens[0].lower()
+    return str(tokens[0]).lower()
 
 
 def _shared_action_prefix_ratio(units: list[_SemanticUnit]) -> float:

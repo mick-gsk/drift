@@ -80,7 +80,7 @@ def _workspace_burst_profiles(
         active_count = 0
         for history in ws_histories:
             first_seen = history.first_seen
-            if hasattr(first_seen, "astimezone"):
+            if isinstance(first_seen, datetime.datetime):
                 first_seen = first_seen.astimezone(datetime.UTC)
 
             # Workspace age is determined by introduction time, not by whether

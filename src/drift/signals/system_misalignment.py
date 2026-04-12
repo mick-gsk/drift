@@ -104,10 +104,10 @@ def _new_runtime_plugin_workspaces(
         candidates.add(workspace)
 
         first_seen = history.first_seen
-        if hasattr(first_seen, "astimezone"):
+        if isinstance(first_seen, datetime.datetime):
             first_seen = first_seen.astimezone(datetime.UTC)
         last_modified = history.last_modified
-        if hasattr(last_modified, "astimezone"):
+        if isinstance(last_modified, datetime.datetime):
             last_modified = last_modified.astimezone(datetime.UTC)
 
         if (first_seen and first_seen < cutoff) or (last_modified and last_modified < cutoff):

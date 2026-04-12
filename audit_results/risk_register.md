@@ -1950,3 +1950,19 @@
   - PHR abbreviation mapping fix ensures drift_nudge/diff correctly reference PHR findings.
 - Verification: `pytest tests/test_precision_recall.py -v` (all signals P=1.00 R=1.00), `make check` (full CI suite).
 - Residual risk: Medium; real-world FP rates for scoring-active HSC/FOE/PHR not yet validated on external repos. Weight can be reverted to 0.0 without code changes if FP rate is unacceptable.
+
+## 2026-04-12 - Signal type-safety hardening (TVS/SMS/COD)
+
+- Risk ID: RISK-SIG-2026-04-12-TYPE
+- Component: src/drift/signals/temporal_volatility.py, src/drift/signals/system_misalignment.py, src/drift/signals/cohesion_deficit.py
+- Type: Signal implementation robustness / static type safety
+- Description: Optional datetime normalization and helper return typing caused CI mypy failures (`union-attr`, `no-any-return`) in signal execution paths.
+- Trigger examples:
+  - `history.first_seen` or `history.last_modified` is `None` and timezone conversion is attempted.
+  - Token extraction helper returns regex element inferred as `Any` despite `-> str` contract.
+- Impact: Pre-push and CI gate failures; reduced confidence in deterministic signal preprocessing.
+- Mitigation:
+  - Explicit `isinstance(datetime.datetime)` narrowing before calling `astimezone()`.
+  - Explicit `str(...)` coercion in `_leading_token()` to satisfy return contract.
+- Verification: `.venv\\Scripts\\python.exe -m mypy src/drift` (green), `.venv\\Scripts\\python.exe -m ruff check src/ tests/` (green).
+- Residual risk: Low; changes are type-safety hardening with no intended heuristic/scoring behavior change.
