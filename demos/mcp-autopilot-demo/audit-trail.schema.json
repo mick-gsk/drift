@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mick-gsk/drift/demos/mcp-autopilot-demo/audit-trail.schema.json",
+  "title": "Drift MCP Autopilot Audit Trail",
+  "description": "Structured audit trail produced by the drift MCP autopilot demo workflow. Captures session metadata, per-task fix details, verification results, and orchestration metrics.",
+  "type": "object",
+  "required": ["schema_version", "demo_run", "findings_summary", "tasks", "verification"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "description": "Audit trail schema version."
+    },
+    "demo_run": {
+      "type": "object",
+      "description": "Session-level metadata from drift_session_start and drift_session_end.",
+      "required": ["repo", "session_id", "started_at", "ended_at", "duration_seconds", "score_before", "score_after", "score_delta"],
+      "additionalProperties": false,
+      "properties": {
+        "repo": {
+          "type": "string",
+          "description": "Repository identifier (owner/name or local path)."
+        },
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID from drift_session_start."
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when the session started."
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when the session ended."
+        },
+        "duration_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total wall-clock duration from drift_session_end."
+        },
+        "score_before": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Drift score at session start (from autopilot.drift_score)."
+        },
+        "score_after": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Drift score at session end (from session_end.score_end)."
+        },
+        "score_delta": {
+          "type": "number",
+          "description": "Score change (negative = improvement). Equals score_after - score_before."
+        },
+        "tool_time_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of wall-clock time spent in drift tool execution (from timing.tool_pct)."
+        }
+      }
+    },
+    "findings_summary": {
+      "type": "object",
+      "description": "Aggregated finding statistics.",
+      "required": ["total_identified", "total_fixed", "total_skipped", "top_signals"],
+      "additionalProperties": false,
+      "properties": {
+        "total_identified": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total tasks identified by fix_plan in autopilot."
+        },
+        "total_fixed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Tasks successfully completed via drift_task_complete."
+        },
+        "total_skipped": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Tasks released or failed (degrading reverts, max_reclaim exceeded)."
+        },
+        "top_signals": {
+          "type": "array",
+          "description": "Top signals by finding count.",
+          "items": {
+            "type": "object",
+            "required": ["signal", "count"],
+            "additionalProperties": false,
+            "properties": {
+              "signal": {
+                "type": "string",
+                "description": "Signal abbreviation (e.g. PFS, AVS, DCA)."
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable signal name."
+              }
+            }
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Per-task fix details collected during the fix-loop.",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "signal", "severity", "fix_description", "affected_files", "nudge_direction"],
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Task ID from drift_task_claim."
+          },
+          "signal": {
+            "type": "string",
+            "description": "Signal abbreviation."
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "info"],
+            "description": "Finding severity."
+          },
+          "fix_description": {
+            "type": "string",
+            "description": "One-sentence description of what was fixed (from task.action)."
+          },
+          "affected_files": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "Files modified for this task."
+          },
+          "batch_eligible": {
+            "type": "boolean",
+            "description": "Whether this task was part of a batch fix."
+          },
+          "nudge_direction": {
+            "type": "string",
+            "enum": ["improving", "stable", "degrading"],
+            "description": "Direction reported by drift_nudge after the fix."
+          },
+          "nudge_delta": {
+            "type": "number",
+            "description": "Score delta from drift_nudge (negative = improvement)."
+          },
+          "diff_stat": {
+            "type": "string",
+            "description": "Output of git diff --stat for this task's files (optional, collected by agent)."
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "Final verification results from drift_diff(uncommitted=true).",
+      "required": ["accept_change", "new_findings", "tool"],
+      "additionalProperties": false,
+      "properties": {
+        "accept_change": {
+          "type": "boolean",
+          "description": "Whether drift_diff accepted the combined changes."
+        },
+        "drift_detected": {
+          "type": "boolean",
+          "description": "Whether any drift regression was detected."
+        },
+        "new_findings": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of new findings introduced by the changes."
+        },
+        "new_high_or_critical": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "New HIGH or CRITICAL severity findings."
+        },
+        "blocking_reasons": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Reasons for rejection if accept_change is false."
+        },
+        "tool": {
+          "const": "drift_diff",
+          "description": "Verification tool used."
+        }
+      }
+    },
+    "orchestration_metrics": {
+      "type": "object",
+      "description": "Full orchestration metrics from drift_session_end. Passed through verbatim.",
+      "additionalProperties": true
+    },
+    "timing": {
+      "type": "object",
+      "description": "Timing decomposition from drift_session_end.",
+      "properties": {
+        "total_tool_ms": { "type": "number" },
+        "total_inter_call_ms": { "type": "number" },
+        "total_wall_ms": { "type": "number" },
+        "tool_pct": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "environment": {
+      "type": "object",
+      "description": "Runtime environment metadata.",
+      "properties": {
+        "drift_version": { "type": "string" },
+        "copilot_mode": { "type": "string" },
+        "api_key_required": { "type": "boolean" },
+        "transport": { "type": "string", "enum": ["stdio"] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

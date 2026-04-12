@@ -1,0 +1,10 @@
+{
+  "_comment": "Template for external repositories. Copy this file to .vscode/mcp.json in the target repo. Requires: pip install drift-analyzer[mcp]",
+  "servers": {
+    "drift": {
+      "type": "stdio",
+      "command": "drift",
+      "args": ["mcp", "--serve"]
+    }
+  }
+}
