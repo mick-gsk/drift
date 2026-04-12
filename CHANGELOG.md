@@ -115,6 +115,20 @@
 - Stabilize `tests/test_golden_snapshot.py` under Windows/xdist by using per-run cache directories and treating SARIF trend data as volatile for golden comparisons.
 - Fix malformed fixture payload in `tests/test_low_modules_boost3.py` so cross-package allowlist parsing works deterministically in CI.
 
+## [2.9.9] - 2026-04-12
+
+Short version: Introduce output format expansion (pr-comment, junit, llm, ci, gate, completions), signal clarity hardening, and actionability improvements across 24 signals.
+
+### Added
+- Six new output formats: `--format pr-comment`, `--format junit`, `--format llm`, `drift ci`, `drift gate` alias, and `drift completions` for shell tab-completion.
+- Signal clarity improvements via ADR-048–ADR-052: EDS private-function recall guard, PFS canonical code snippet, AVS blast-radius churn guard, and CCC commit-context test template.
+
+### Changed
+- SARIF rule `help` field populated from `generate_recommendation()`; CSV gains `signal_label` column (breaking: column indices ≥ 2 shift by 1).
+
+### Fixed
+- Actionability hardening across CXS, TVS, AVS, DCA, MAZ, TSB, and PHR to reduce false positives on test files, passive definition modules, and published-package exports.
+
 ## [2.9.8] - 2026-04-12
 
 Short version: Introduce calibration hardening and signal quality improvements for AVS, DIA, and MDS.
