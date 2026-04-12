@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #317-332 follow-up: test-context + CCC precision hardening
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| DCA/TSB/EDS | FP: shared TS/JS test utility modules (including `test-utils/`) are classified as production context and escalated | Shared test-context matching did not include all observed path conventions (`test-utils` directory family) across external-repo absolute path runs | Non-actionable medium/high findings in test infrastructure files; trust erosion in cross-signal triage | Issue-specific regressions plus `tests/test_test_detection.py` classifier assertions | Extend bounded test-context directory matcher to include `test-utils` while preserving explicit naming scope | 7 | 7 | 2 | 98 | Mitigated |
+| CCC | FP: stem-shadowed TS ESM import (`run.ts` importing `./types.js`) is treated as missing dependency edge to `run/types.ts` | Import resolution did not robustly map runtime `.js` relative import to TypeScript sibling in stem-shadowed layout | False-positive co-change coupling finding on intentional local dependency structure | Regression in `tests/test_co_change_coupling.py` for stem-shadowed import pattern | Normalize relative ESM import resolution for TS sibling targets in stem-shadowed directory layouts | 6 | 6 | 2 | 72 | Mitigated |
+
 ## 2026-04-12 - Issue #302: EDS false positives on qa-lab mock server test infrastructure
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

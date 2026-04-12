@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #317-332 follow-up: test-context and co-change precision hardening
+
+- Risk ID: RISK-SIGNAL-2026-04-12-317-332-FOLLOWUP
+- Component: `src/drift/ingestion/test_detection.py`, `src/drift/signals/co_change_coupling.py`, issue regressions `tests/test_issue_317_*.py` ... `tests/test_issue_332_*.py`, `tests/test_co_change_coupling.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Follow-up hardening consolidates two recurring false-positive families found in external TypeScript repositories: (1) shared test/support utility path classification including `test-utils` conventions, and (2) CCC dependency mapping for stem-shadowed relative ESM imports (`./types.js` to TS sibling targets).
+- Trigger: `drift analyze` on TypeScript repos with shared test utility folders and stem-shadowed file/directory layouts.
+- Impact: High-positive. Reduces non-actionable production-context findings across DCA/TSB/EDS and avoids erroneous CCC coupling escalation.
+- Mitigation:
+  - Extend shared test-context path matcher with bounded `test-utils` directory handling.
+  - Harden CCC relative-import target normalization for stem-shadowed TS layouts.
+  - Preserve bounded scope via dedicated issue regressions and negative guards.
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_test_detection.py tests/test_co_change_coupling.py -q --tb=short`
+  - `\.venv\Scripts\python.exe -m pytest tests/test_issue_317_*.py tests/test_issue_332_*.py -q --tb=short`
+- Residual risk: Low-Medium. Naming/path heuristics remain pattern-based; atypical repository layouts may still require targeted follow-up regressions.
+
 ## 2026-04-12 - Issue #301: EDS QA-lab mock-server test-context precision hardening
 
 - Risk ID: RISK-SIGNAL-2026-04-12-301

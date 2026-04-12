@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #317-332 follow-up: test-context + CCC precision hardening
+
+### Top Event (TE-DCA-CCC-317-332)
+DCA/TSB/EDS and CCC report actionable production findings for known test/support and stem-shadowed TS dependency patterns.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: test/support modules and stem-shadowed imports reported as production drift
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: Shared test detection missed `test-utils` directory conventions used by TS/JS helper modules.
+  - Mitigation: extend bounded directory matcher to include `test-utils` and keep explicit naming constraints.
+- **IE-2 (MCS)**: CCC relative ESM import mapping did not fully account for stem-shadowed TS layouts (`./types.js` -> `run/types.ts`).
+  - Mitigation: normalize import-target resolution for TS sibling paths in stem-shadowed directory structures.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: broader path/import heuristics can over-suppress real production findings.
+  - Mitigation: keep rules bounded to explicit test-utils naming and stem-shadowed relative import resolution patterns validated by dedicated regressions.
+
 ## 2026-04-12 - Issue #302: EDS false positives on qa-lab mock server test infrastructure
 
 ### Top Event (TE-EDS-302)
