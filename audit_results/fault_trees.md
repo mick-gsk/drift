@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #270: MAZ false positives on localhost-only TypeScript servers
+
+### Top Event (TE-MAZ-270)
+MAZ reports loopback-only TypeScript endpoints as missing authorization with CRITICAL severity.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: localhost-only route reported as missing authorization
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: TS endpoint extraction emitted API patterns without listener host context, so local-only serving topology was invisible to MAZ.
+  - Mitigation: detect explicit loopback `*.listen(...)` host literals and propagate `loopback_only` endpoint metadata.
+- **IE-2 (MCS)**: MAZ treated all unauthenticated API endpoint patterns as network-exposed by default and escalated to CRITICAL.
+  - Mitigation: suppress findings for endpoint patterns explicitly marked `loopback_only=True`.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: broad host heuristics could suppress real findings if non-loopback binds were misclassified.
+  - Mitigation: only accept explicit loopback literals (`127.0.0.1`, `localhost`, `::1`) and keep non-loopback behavior unchanged.
+
 ## 2026-04-12 - Issue #269: MAZ false positives for app-level auth middleware in Express TS files
 
 ### Top Event (TE-MAZ-269)

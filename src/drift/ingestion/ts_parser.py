@@ -682,6 +682,12 @@ _TS_AUTH_GUARD_CONDITION_MARKERS: frozenset[str] = frozenset({
     "session",
 })
 
+_TS_LOOPBACK_HOST_LITERALS: frozenset[str] = frozenset({
+    "127.0.0.1",
+    "localhost",
+    "::1",
+})
+
 _TS_FUNCTION_NODE_TYPES: frozenset[str] = frozenset({
     "function_declaration",
     "function_expression",
@@ -694,6 +700,37 @@ def _looks_like_ts_auth(text: str) -> bool:
     """Return True if *text* looks like an auth middleware/guard reference."""
     normalized = text.lower().replace("_", "").replace("-", "")
     return any(marker in normalized for marker in _TS_AUTH_MARKERS)
+
+
+def _is_loopback_host_text(raw_text: str) -> bool:
+    """Return True when a host literal targets loopback-only interfaces."""
+    candidate = raw_text.strip().strip("'\"`").lower()
+    if candidate.startswith("[") and candidate.endswith("]"):
+        candidate = candidate[1:-1]
+    return candidate in _TS_LOOPBACK_HOST_LITERALS
+
+
+def _object_literal_has_loopback_host(node: Any, source: bytes) -> bool:
+    """Return True when an object literal contains host: <loopback>."""
+    if node.type != "object":
+        return False
+
+    for child in node.children:
+        if child.type != "pair":
+            continue
+        key = _child_by_field(child, "key")
+        value = _child_by_field(child, "value")
+        if key is None or value is None:
+            continue
+        key_text = _node_text(key, source).strip().strip("'\"`").lower()
+        if key_text != "host":
+            continue
+        if value.type in ("string", "template_string") and _is_loopback_host_text(
+            _node_text(value, source)
+        ):
+            return True
+
+    return False
 
 
 def _looks_like_ts_route_registration_call(fn_node: Any, source: bytes) -> bool:
@@ -807,6 +844,38 @@ def _has_file_level_auth_middleware(root: Any, source: bytes) -> bool:
     return False
 
 
+def _has_file_level_loopback_listen_binding(root: Any, source: bytes) -> bool:
+    """Detect loopback-only host bindings from ``*.listen(...)`` calls."""
+    for node in _walk(root):
+        if node.type != "call_expression":
+            continue
+
+        fn_node = _child_by_field(node, "function")
+        if fn_node is None or fn_node.type != "member_expression":
+            continue
+
+        prop_node = _child_by_field(fn_node, "property")
+        if prop_node is None or _node_text(prop_node, source) != "listen":
+            continue
+        if not _looks_like_ts_route_registration_call(fn_node, source):
+            continue
+
+        args_node = _child_by_field(node, "arguments")
+        if args_node is None:
+            continue
+        args = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+
+        for arg in args:
+            if arg.type in ("string", "template_string") and _is_loopback_host_text(
+                _node_text(arg, source)
+            ):
+                return True
+            if _object_literal_has_loopback_host(arg, source):
+                return True
+
+    return False
+
+
 def _looks_like_ts_auth_guard_condition(text: str) -> bool:
     """Return True when a condition resembles an auth-presence guard."""
     normalized = re.sub(r"[^a-z0-9]", "", text.lower())
@@ -888,6 +957,7 @@ def _extract_api_patterns(
     """Extract API endpoint patterns from Express/Fastify/NestJS-style routes."""
     patterns: list[PatternInstance] = []
     file_has_global_auth_middleware = _has_file_level_auth_middleware(root, source)
+    file_has_loopback_listen_binding = _has_file_level_loopback_listen_binding(root, source)
 
     for node in _walk(root):
         is_route = False
@@ -957,6 +1027,7 @@ def _extract_api_patterns(
                     "route": route_path,
                     "framework": "express",  # generic label
                     "has_auth": has_auth,
+                    "loopback_only": file_has_loopback_listen_binding,
                 },
             )
         )

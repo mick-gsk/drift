@@ -254,6 +254,48 @@ class TestTypeScriptParser:
         assert len(endpoint_patterns) == 1
         assert endpoint_patterns[0].fingerprint.get("has_auth") is True
 
+    def test_loopback_listen_marks_routes_as_loopback_only(self, tmp_path: Path) -> None:
+        from drift.ingestion.ts_parser import parse_typescript_file
+
+        ts_code = textwrap.dedent("""\
+            import express from "express";
+
+            const app = express();
+
+            app.get("/media/:id", (_req, res) => {
+                res.status(200).send("ok");
+            });
+
+            app.listen(4100, "127.0.0.1");
+        """)
+        (tmp_path / "media-server.ts").write_text(ts_code, encoding="utf-8")
+        result = parse_typescript_file(Path("media-server.ts"), tmp_path, "typescript")
+
+        endpoint_patterns = [p for p in result.patterns if p.category.value == "api_endpoint"]
+        assert len(endpoint_patterns) == 1
+        assert endpoint_patterns[0].fingerprint.get("loopback_only") is True
+
+    def test_non_loopback_listen_does_not_mark_loopback_only(self, tmp_path: Path) -> None:
+        from drift.ingestion.ts_parser import parse_typescript_file
+
+        ts_code = textwrap.dedent("""\
+            import express from "express";
+
+            const app = express();
+
+            app.get("/media/:id", (_req, res) => {
+                res.status(200).send("ok");
+            });
+
+            app.listen(4100, "0.0.0.0");
+        """)
+        (tmp_path / "public-media-server.ts").write_text(ts_code, encoding="utf-8")
+        result = parse_typescript_file(Path("public-media-server.ts"), tmp_path, "typescript")
+
+        endpoint_patterns = [p for p in result.patterns if p.category.value == "api_endpoint"]
+        assert len(endpoint_patterns) == 1
+        assert endpoint_patterns[0].fingerprint.get("loopback_only") is False
+
     def test_parse_tsx(self, tmp_path: Path) -> None:
         from drift.ingestion.ts_parser import parse_typescript_file
 

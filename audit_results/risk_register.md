@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #270: MAZ false positive on localhost-only TS media server routes
+
+- Risk ID: RISK-SIGNAL-2026-04-12-270
+- Component: `src/drift/ingestion/ts_parser.py`, `src/drift/signals/missing_authorization.py`, `tests/test_typescript_parser.py`, `tests/test_missing_authorization.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: TypeScript ingestion now detects explicit loopback-only listener host bindings (`127.0.0.1`, `localhost`, `::1`) from `*.listen(...)` calls and annotates extracted API endpoints with `loopback_only`. MAZ suppresses findings for those loopback-only endpoint patterns.
+- Trigger: `drift analyze` on TS/JS projects that expose helper/media routes only on localhost but without route-level auth checks.
+- Impact: High-positive. Prevents CRITICAL false positives for local-only endpoints and improves MAZ security finding credibility.
+- Mitigation:
+  - Added file-level loopback listener detector for TS AST ingestion.
+  - Added endpoint metadata propagation (`loopback_only`) into API endpoint pattern fingerprints.
+  - Added MAZ suppression logic for loopback-only endpoint patterns.
+  - Added parser and signal regressions for positive/negative cases.
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/test_typescript_parser.py tests/test_missing_authorization.py -q --tb=short`
+- Residual risk: Low-Medium. Loopback inference is currently file-level; unusual mixed-listener files may need future app-instance-level host association.
+
 ## 2026-04-12 - Issue #269: MAZ false positive on Express app-level auth middleware
 
 - Risk ID: RISK-SIGNAL-2026-04-12-269

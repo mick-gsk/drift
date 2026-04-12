@@ -538,6 +538,44 @@ class TestMAZEdgeCases:
         findings = signal.analyze([pr], {}, DriftConfig())
         assert len(findings) == 1
 
+    def test_typescript_loopback_only_endpoint_is_suppressed(self) -> None:
+        """Loopback-only bound TS endpoints should not be flagged as missing auth."""
+        pr = ParseResult(
+            file_path=Path("src/media/server.ts"),
+            language="typescript",
+            functions=[
+                FunctionInfo(
+                    name="attachMediaRoutes",
+                    file_path=Path("src/media/server.ts"),
+                    start_line=10,
+                    end_line=120,
+                    language="typescript",
+                    parameters=["app"],
+                )
+            ],
+            imports=[_imp("src/media/server.ts", "express")],
+            patterns=[
+                PatternInstance(
+                    category=PatternCategory.API_ENDPOINT,
+                    file_path=Path("src/media/server.ts"),
+                    function_name="attachMediaRoutes",
+                    start_line=40,
+                    end_line=100,
+                    fingerprint={
+                        "method": "GET",
+                        "route": "/media/:id",
+                        "framework": "express",
+                        "has_auth": False,
+                        "loopback_only": True,
+                    },
+                )
+            ],
+        )
+
+        signal = MissingAuthorizationSignal()
+        findings = signal.analyze([pr], {}, DriftConfig())
+        assert findings == []
+
     def test_serving_path_without_cli_still_flagged(self) -> None:
         """Serving modules outside CLI context should still be flagged."""
         pr = ParseResult(

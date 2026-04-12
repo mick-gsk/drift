@@ -42,6 +42,7 @@
 
 ### Fixed
 
+- MAZ Issue #270: suppress missing-authorization findings for TypeScript API endpoints extracted from files that bind server listeners explicitly to loopback hosts (`127.0.0.1`, `localhost`, `::1`), preventing CRITICAL false positives for localhost-only media/dev servers.
 - MAZ Issue #269: recognize unscoped Express/Fastify app-level auth middleware (`app.use(...)`) as endpoint auth evidence in TypeScript parsing, preventing false-positive missing-authorization findings for routes protected by global Bearer/JWT middleware chains.
 - TPD Issue #268: cap happy-path-only findings in early-stage runtime extension/plugin workspaces (`extensions/*`, `plugins/*`) to LOW (`score <= 0.39`) when workspace history is recent and module test-file coverage is small (`<= 3`), with metadata traceability (`early_stage_extension`, `runtime_plugin_workspace`, `test_file_count`).
 - SMS Issue #267: cap extension/plugin workspace-local novel dependency findings to `INFO` (`score <= 0.19`) when the introduced packages are isolated to a single runtime workspace (`extensions/<name>` or `plugins/<name>`), with explicit metadata traceability (`workspace_scoped_novel_capped`, `workspace_scope`) to reduce non-actionable severity inflation in established extension monorepos while preserving findings.

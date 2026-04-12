@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #270: MAZ false positives for localhost-only TypeScript media servers
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| MAZ | FP: localhost-only TS endpoint is flagged as missing authorization | TS API endpoint extraction did not include listener host binding context (`app.listen(..., "127.0.0.1")` / `localhost` / `::1`) | CRITICAL security false positives for local-only helper/media endpoints; reviewer trust erosion | Regressions in `tests/test_typescript_parser.py` (`test_loopback_listen_marks_routes_as_loopback_only`) and `tests/test_missing_authorization.py` (`test_typescript_loopback_only_endpoint_is_suppressed`) | Detect loopback-only `*.listen(...)` host literals in TS ingestion and mark endpoint fingerprints with `loopback_only`; MAZ suppresses those findings | 7 | 6 | 2 | 84 | Mitigated |
+| MAZ | FN-risk: broad listen-heuristics may over-suppress endpoints in mixed-bind files | File-level loopback inference is coarse and does not yet map listen host to specific app/router instances | Potentially missed unauthorized findings in unusual files combining local-only and public listeners | Negative regression in `tests/test_typescript_parser.py` (`test_non_loopback_listen_does_not_mark_loopback_only`) plus conservative host literal allowlist | Restrict detection to explicit loopback host literals and keep default behavior for non-loopback binds | 4 | 2 | 4 | 32 | Mitigated |
+
 ## 2026-04-12 - Issue #269: MAZ misses app-level auth middleware in TS Express routes
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

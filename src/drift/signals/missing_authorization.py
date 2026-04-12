@@ -397,6 +397,8 @@ class MissingAuthorizationSignal(BaseSignal):
                     continue
                 saw_api_pattern = True
                 fp = pat.fingerprint
+                if bool(fp.get("loopback_only", False)):
+                    continue
                 if fp.get("has_auth", False):
                     continue
 
