@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #268: TPD early-stage extension severity inflation
+
+### Top Event (TE-TPD-268)
+TPD reports prototype-stage extension/plugin test suites as high-severity happy-path deficits without lifecycle context.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: early-stage extension happy-path coverage reported as HIGH drift
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: TPD polarity scoring lacked runtime workspace lifecycle awareness (`extensions/<name>`, `plugins/<name>`).
+  - Mitigation: derive runtime workspace keys from normalized path segments and identify newly introduced workspaces via file-history recency.
+- **IE-2 (MCS)**: TPD did not distinguish small, early-stage module test suites from mature modules.
+  - Mitigation: apply bounded cap when module test-file count is small (`<= 3`) inside newly introduced runtime workspaces; cap to LOW (`score <= 0.39`) with metadata traceability.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: broad dampening could under-prioritize genuine deficits in established extensions.
+  - Mitigation: require both conditions (new workspace and small test-file count); keep established workspace behavior unchanged and covered by regression tests.
+
 ## 2026-04-12 - Issue #267: SMS extension-local dependencies over-prioritized in established workspaces
 
 ### Top Event (TE-SMS-267)

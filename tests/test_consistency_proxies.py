@@ -7,14 +7,17 @@ GCD — Guard Clause Deficit
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
 
 from drift.config import DriftConfig
 from drift.ingestion.ast_parser import PythonFileParser
 from drift.models import (
+    FileHistory,
     ParseResult,
     PatternCategory,
     PatternInstance,
+    Severity,
     SignalType,
 )
 from drift.signals.broad_exception_monoculture import BroadExceptionMonocultureSignal
@@ -189,9 +192,14 @@ class TestBEM:
 class TestTPD:
     """Tests for TestPolarityDeficitSignal."""
 
-    def _run(self, parse_results: list[ParseResult], **kw: object):
+    def _run(
+        self,
+        parse_results: list[ParseResult],
+        file_histories: dict[str, FileHistory] | None = None,
+        **kw: object,
+    ):
         sig = TestPolarityDeficitSignal()
-        return sig.analyze(parse_results, {}, _cfg(**kw))
+        return sig.analyze(parse_results, file_histories or {}, _cfg(**kw))
 
     def test_no_test_files_no_findings(self):
         pr = _parse_result(Path("src/mod/service.py"))
@@ -308,6 +316,55 @@ class TestTPD:
         pr = _parse_result(Path("tests/test_foo.spec.ts"), language="typescript")
         # TS test files are identified but can't be AST-parsed → no crash
         assert self._run([pr]) == []
+
+    def test_early_stage_extension_workspace_is_capped_to_low(self, tmp_path: Path):
+        source = "import unittest\nclass TestBig(unittest.TestCase):\n" + "".join(
+            f"    def test_{i}(self):\n"
+            f"        self.assertEqual({i}, {i})\n"
+            f"        self.assertTrue(True)\n"
+            for i in range(8)
+        )
+        pr = _write_module(tmp_path, "extensions/comfy/tests/test_happy.py", source)
+        recent = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
+        histories = {
+            pr.file_path.as_posix(): FileHistory(
+                path=pr.file_path,
+                first_seen=recent,
+                last_modified=recent,
+                total_commits=1,
+            )
+        }
+
+        findings = self._run([pr], file_histories=histories)
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.LOW
+        assert findings[0].score <= 0.39
+        assert findings[0].metadata["early_stage_extension"] is True
+        assert findings[0].metadata["runtime_plugin_workspace"] == "extensions/comfy"
+
+    def test_established_extension_workspace_keeps_high_severity(self, tmp_path: Path):
+        source = "import unittest\nclass TestBig(unittest.TestCase):\n" + "".join(
+            f"    def test_{i}(self):\n"
+            f"        self.assertEqual({i}, {i})\n"
+            f"        self.assertTrue(True)\n"
+            for i in range(8)
+        )
+        pr = _write_module(tmp_path, "extensions/legacy/tests/test_happy.py", source)
+        now = datetime.datetime.now(tz=datetime.UTC)
+        histories = {
+            pr.file_path.as_posix(): FileHistory(
+                path=pr.file_path,
+                first_seen=now - datetime.timedelta(days=45),
+                last_modified=now - datetime.timedelta(days=1),
+                total_commits=12,
+            )
+        }
+
+        findings = self._run([pr], file_histories=histories)
+        assert len(findings) == 1
+        assert findings[0].severity == Severity.HIGH
+        assert findings[0].score >= 0.7
+        assert findings[0].metadata["early_stage_extension"] is False
 
 
 # ===================================================================

@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #268: TPD early-stage extension severity cap
+
+- Risk ID: RISK-SIGNAL-2026-04-12-268
+- Component: `src/drift/signals/test_polarity_deficit.py`, `tests/test_consistency_proxies.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: Test Polarity Deficit (TPD) now applies a bounded lifecycle-aware dampening for runtime plugin workspaces (`extensions/<name>`, `plugins/<name>`): findings in newly introduced workspaces with very small module test-file coverage (`<= 3` files) are capped to LOW severity (`score <= 0.39`) and annotated with traceability metadata (`early_stage_extension`, `runtime_plugin_workspace`, `test_file_count`).
+- Trigger: `drift analyze` on extension-heavy monorepos where prototype-stage plugins currently contain mostly happy-path tests.
+- Impact: High-positive. Reduces non-actionable high-severity TPD clusters while preserving finding visibility.
+- Mitigation:
+  - Added runtime workspace key extraction for nested/absolute paths.
+  - Added new-workspace detection from file history recency.
+  - Added bounded severity cap only when both conditions hold: new workspace and module test-file count <= 3.
+  - Added targeted regressions for capped and non-capped behavior.
+- Verification:
+  - `.\\.venv\\Scripts\\python.exe -m pytest tests/test_consistency_proxies.py -q -k "early_stage_extension or established_extension" --tb=short`
+- Residual risk: Low-Medium. Some true early-stage deficits may be down-ranked; findings remain emitted with explicit metadata for reviewer override.
+
 ## 2026-04-12 - Issue #267: SMS extension workspace novelty severity inflation
 
 - Risk ID: RISK-SIGNAL-2026-04-12-267

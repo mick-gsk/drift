@@ -12,6 +12,7 @@ the test suite provides a false sense of correctness.
 from __future__ import annotations
 
 import ast
+import datetime
 import fnmatch
 import logging
 import re
@@ -103,6 +104,50 @@ _TPD_FALLBACK_DIR_EXCLUDES: frozenset[str] = frozenset({
     "site-packages",
     ".pixi",
 })
+
+_RUNTIME_PLUGIN_ROOTS: frozenset[str] = frozenset({"extensions", "plugins"})
+_EARLY_STAGE_TPD_MAX_TEST_FILES = 3
+_EARLY_STAGE_TPD_SCORE_CAP = 0.39
+
+
+def _runtime_plugin_workspace_key(path: str) -> str | None:
+    """Return runtime workspace key for extensions/plugins paths."""
+    parts = [part for part in path.replace("\\", "/").split("/") if part]
+    if len(parts) < 2:
+        return None
+
+    for idx, part in enumerate(parts[:-1]):
+        if part in _RUNTIME_PLUGIN_ROOTS and parts[idx + 1]:
+            return f"{part}/{parts[idx + 1]}"
+    return None
+
+
+def _new_runtime_plugin_workspaces(
+    file_histories: dict[str, FileHistory],
+    cutoff: datetime.datetime,
+) -> set[str]:
+    """Return plugin workspaces whose tracked files are all recent."""
+    candidates: set[str] = set()
+    established: set[str] = set()
+
+    for history in file_histories.values():
+        workspace = _runtime_plugin_workspace_key(history.path.as_posix())
+        if workspace is None:
+            continue
+
+        candidates.add(workspace)
+
+        first_seen = history.first_seen
+        if isinstance(first_seen, datetime.datetime):
+            first_seen = first_seen.astimezone(datetime.UTC)
+        last_modified = history.last_modified
+        if isinstance(last_modified, datetime.datetime):
+            last_modified = last_modified.astimezone(datetime.UTC)
+
+        if (first_seen and first_seen < cutoff) or (last_modified and last_modified < cutoff):
+            established.add(workspace)
+
+    return candidates - established
 
 
 class _AssertionCounter(ast.NodeVisitor):
@@ -364,12 +409,15 @@ class TestPolarityDeficitSignal(BaseSignal):
         file_histories: dict[str, FileHistory],
         config: DriftConfig,
     ) -> list[Finding]:
-        del file_histories
         min_test_functions = config.thresholds.tpd_min_test_functions
+        recency_days = config.thresholds.recency_days
+        cutoff = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=recency_days)
+        new_runtime_workspaces = _new_runtime_plugin_workspaces(file_histories, cutoff)
         logger = logging.getLogger("drift")
 
         # Group test files by module directory
         module_counters: dict[str, _AssertionCounter] = {}
+        module_test_files: dict[str, set[str]] = {}
 
         def _consume_parse_result(pr: ParseResult) -> None:
             if pr.language not in _SUPPORTED_LANGUAGES:
@@ -382,6 +430,7 @@ class TestPolarityDeficitSignal(BaseSignal):
                 return
 
             module_key = PurePosixPath(pr.file_path.parent).as_posix()
+            module_test_files.setdefault(module_key, set()).add(pr.file_path.as_posix())
 
             if pr.language in _TS_LANGUAGES:
                 ts_result = _ts_count_assertions(source, pr.language)
@@ -446,6 +495,15 @@ class TestPolarityDeficitSignal(BaseSignal):
             )
 
             severity = Severity.HIGH if score >= 0.7 else Severity.MEDIUM
+            workspace = _runtime_plugin_workspace_key(module_key)
+            module_test_file_count = len(module_test_files.get(module_key, set()))
+            early_stage_extension = (
+                workspace in new_runtime_workspaces
+                and module_test_file_count <= _EARLY_STAGE_TPD_MAX_TEST_FILES
+            )
+            if early_stage_extension:
+                score = min(score, _EARLY_STAGE_TPD_SCORE_CAP)
+                severity = Severity.LOW if score >= 0.2 else Severity.INFO
 
             findings.append(
                 Finding(
@@ -473,6 +531,9 @@ class TestPolarityDeficitSignal(BaseSignal):
                         "negative_assertions": c.negative,
                         "negative_ratio": negative_ratio,
                         "boundary_functions": c.boundary_functions,
+                        "test_file_count": module_test_file_count,
+                        "early_stage_extension": early_stage_extension,
+                        "runtime_plugin_workspace": workspace,
                     },
                 )
             )

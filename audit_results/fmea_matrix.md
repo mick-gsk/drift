@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #268: TPD early-stage extension happy-path severity inflation
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| TPD | FP: early-stage extension/plugin test suites are escalated to HIGH (`score` often near 1.0) although limited happy-path coverage is expected in prototype phases | TPD scored assertion polarity without workspace lifecycle context and without a small-suite workspace cap for `extensions/*` / `plugins/*` modules | Non-actionable high-priority clusters in extension-heavy monorepos and reduced TPD trust/actionability | New regressions in `tests/test_consistency_proxies.py` (`test_early_stage_extension_workspace_is_capped_to_low`, `test_established_extension_workspace_keeps_high_severity`) | Add runtime workspace lifecycle dampening: when workspace is newly introduced and module has <= 3 test files, cap TPD severity to LOW (`score <= 0.39`) and emit metadata (`early_stage_extension`, `runtime_plugin_workspace`, `test_file_count`) | 7 | 8 | 2 | 112 | Mitigated |
+| TPD | FN-risk: true polarity deficits in new extension workspaces may be under-prioritized | Early-stage dampening lowers urgency for bounded workspace contexts | Potential delayed hardening for some real deficits during early extension development | Established-workspace guard regression keeps HIGH behavior for mature workspaces | Scope is bounded to newly introduced runtime workspaces plus small test-file count; findings remain visible with metadata for manual escalation | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-12 - Issue #267: SMS extension workspace-local novel dependency severity inflation
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
