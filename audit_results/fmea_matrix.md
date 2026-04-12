@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-12 - Issue #269: MAZ misses app-level auth middleware in TS Express routes
+
+| Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| MAZ | FP: Express route is flagged as missing auth although auth is enforced via unscoped app-level middleware (`app.use(...)`) | TS endpoint auth extraction focused on route args/decorators/enclosing guards and did not account for global middleware chains | CRITICAL false positives for secured endpoints; reduced MAZ trust and triage efficiency | New regression in `tests/test_typescript_parser.py` (`test_app_use_auth_middleware_marks_routes_as_authed`) and MAZ suite pass in `tests/test_missing_authorization.py` | Add file-level auth middleware detection for unscoped `*.use(...)` registrations and propagate as auth evidence to extracted API endpoint patterns | 8 | 7 | 2 | 112 | Mitigated |
+| MAZ | FN-risk: true unauthenticated routes behind prefix-scoped middleware can be under- or over-attributed if treated globally | Route-prefix applicability for scoped middleware (`app.use('/prefix', ...)`) is not modeled in current extraction | Potential mis-prioritization for mixed public/private route trees with scoped middleware chains | Scoped middleware guard in parser logic plus targeted unscoped regression | Keep scoped middleware intentionally excluded from global-auth credit until route-prefix matching is explicitly modeled | 4 | 3 | 4 | 48 | Mitigated |
+
 ## 2026-04-12 - Issue #268: TPD early-stage extension happy-path severity inflation
 
 | Signal | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

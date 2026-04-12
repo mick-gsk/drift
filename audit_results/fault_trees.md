@@ -1,5 +1,30 @@
 # Fault Tree Analysis
 
+## 2026-04-12 - Issue #269: MAZ false positives for app-level auth middleware in Express TS files
+
+### Top Event (TE-MAZ-269)
+MAZ reports secured Express endpoints as missing authorization because auth is implemented via app-level middleware rather than route-level middleware parameters.
+
+### FT-1: false-positive branch
+
+```
+          TE-FP: route behind global auth middleware reported as missing authorization
+                         |
+                      OR-Gate
+               +---------+---------+
+              IE-1      IE-2
+```
+
+- **IE-1 (MCS)**: TS route extraction only considered route call args/decorators/inline handler guards and ignored file-level unscoped `*.use(...)` middleware chains.
+  - Mitigation: add unscoped app/router-level middleware scan and treat auth-like middleware as route auth evidence.
+- **IE-2 (MCS)**: MAZ consumed endpoint pattern `has_auth=False` values emitted by ingestion, so parser blind spots propagated into CRITICAL security findings.
+  - Mitigation: propagate file-level middleware auth flag into per-endpoint `has_auth` fingerprinting before MAZ evaluation.
+
+### FT-2: false-negative guard
+
+- **IE-3 (Guard)**: treating scoped middleware (`app.use('/prefix', ...)`) as global would over-credit auth and hide real unauthenticated routes.
+  - Mitigation: keep scoped middleware excluded until route-prefix matching is modeled explicitly; limit fix to unscoped middleware only.
+
 ## 2026-04-12 - Issue #268: TPD early-stage extension severity inflation
 
 ### Top Event (TE-TPD-268)

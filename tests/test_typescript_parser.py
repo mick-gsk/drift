@@ -226,6 +226,34 @@ class TestTypeScriptParser:
         assert endpoint_patterns[0].function_name == "startBrowserBridgeServer"
         assert endpoint_patterns[0].fingerprint.get("has_auth") is True
 
+    def test_app_use_auth_middleware_marks_routes_as_authed(self, tmp_path: Path) -> None:
+        from drift.ingestion.ts_parser import parse_typescript_file
+
+        ts_code = textwrap.dedent("""\
+            import express from "express";
+
+            const app = express();
+
+            app.use((req, res, next) => {
+                const auth = req.headers.authorization;
+                if (!auth || !auth.startsWith("Bearer ")) {
+                    res.status(401).json({ error: "Unauthorized" });
+                    return;
+                }
+                next();
+            });
+
+            app.post("/api/messages", (_req, res) => {
+                res.status(200).json({ ok: true });
+            });
+        """)
+        (tmp_path / "monitor.ts").write_text(ts_code, encoding="utf-8")
+        result = parse_typescript_file(Path("monitor.ts"), tmp_path, "typescript")
+
+        endpoint_patterns = [p for p in result.patterns if p.category.value == "api_endpoint"]
+        assert len(endpoint_patterns) == 1
+        assert endpoint_patterns[0].fingerprint.get("has_auth") is True
+
     def test_parse_tsx(self, tmp_path: Path) -> None:
         from drift.ingestion.ts_parser import parse_typescript_file
 

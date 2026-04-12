@@ -1,5 +1,22 @@
 # Risk Register
 
+## 2026-04-12 - Issue #269: MAZ false positive on Express app-level auth middleware
+
+- Risk ID: RISK-SIGNAL-2026-04-12-269
+- Component: `src/drift/ingestion/ts_parser.py`, `tests/test_typescript_parser.py`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: TypeScript endpoint extraction now treats unscoped Express/Fastify-style app/router `use(...)` middleware as auth evidence when middleware references auth markers or contains inline auth+reject guards. This prevents MAZ from flagging protected routes that rely on global middleware chains.
+- Trigger: `drift analyze` on Express codebases where routes use app-level JWT/Bearer auth middleware (`app.use(...)`) instead of per-route middleware arguments.
+- Impact: High-positive. Reduces CRITICAL false positives for MAZ in common Express security patterns and improves security finding credibility.
+- Mitigation:
+  - Added file-level middleware auth detector for unscoped `*.use(...)` calls.
+  - Reused existing inline-handler auth/body heuristics to identify guard+reject middleware bodies.
+  - Intentionally ignored scoped `app.use('/prefix', ...)` middleware to avoid over-crediting auth for unrelated routes.
+  - Added targeted parser regression for Bearer-header guard middleware.
+- Verification:
+  - `.\.venv\Scripts\python.exe -m pytest tests/test_typescript_parser.py tests/test_missing_authorization.py -q --tb=short`
+- Residual risk: Low-Medium. Prefix-scoped middleware is still treated conservatively and may require future route-prefix modeling; this change only credits unscoped global middleware.
+
 ## 2026-04-12 - Issue #268: TPD early-stage extension severity cap
 
 - Risk ID: RISK-SIGNAL-2026-04-12-268

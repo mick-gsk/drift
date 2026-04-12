@@ -762,6 +762,51 @@ def _has_auth_in_handler_body(handler_node: Any, source: bytes) -> bool:
     return has_auth_symbol and has_reject_hint
 
 
+def _has_file_level_auth_middleware(root: Any, source: bytes) -> bool:
+    """Detect unscoped app/router-level auth middleware via ``*.use(...)``.
+
+    This intentionally ignores scoped ``app.use('/prefix', ...)`` chains to avoid
+    over-crediting auth for unrelated routes.
+    """
+    for node in _walk(root):
+        if node.type != "call_expression":
+            continue
+
+        fn_node = _child_by_field(node, "function")
+        if fn_node is None or fn_node.type != "member_expression":
+            continue
+
+        prop_node = _child_by_field(fn_node, "property")
+        if prop_node is None or _node_text(prop_node, source) != "use":
+            continue
+        if not _looks_like_ts_route_registration_call(fn_node, source):
+            continue
+
+        args_node = _child_by_field(node, "arguments")
+        if args_node is None:
+            continue
+
+        args = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+        if not args:
+            continue
+        if args[0].type in ("string", "template_string"):
+            # Scoped middleware; route-prefix matching is not modeled here.
+            continue
+
+        for arg in args:
+            text = _node_text(arg, source)
+            if _looks_like_ts_auth(text):
+                return True
+            if arg.type in (
+                "arrow_function",
+                "function",
+                "function_expression",
+            ) and _has_auth_in_handler_body(arg, source):
+                return True
+
+    return False
+
+
 def _looks_like_ts_auth_guard_condition(text: str) -> bool:
     """Return True when a condition resembles an auth-presence guard."""
     normalized = re.sub(r"[^a-z0-9]", "", text.lower())
@@ -842,6 +887,7 @@ def _extract_api_patterns(
 ) -> list[PatternInstance]:
     """Extract API endpoint patterns from Express/Fastify/NestJS-style routes."""
     patterns: list[PatternInstance] = []
+    file_has_global_auth_middleware = _has_file_level_auth_middleware(root, source)
 
     for node in _walk(root):
         is_route = False
@@ -886,10 +932,10 @@ def _extract_api_patterns(
                     route_path = _node_text(arg, source).strip("'\"`")
                     break
 
-        has_auth = (
-            _has_auth_in_call_args(node, source)
-            or _has_auth_decorator_ts(node, source, root)
-        )
+        has_auth = file_has_global_auth_middleware or _has_auth_in_call_args(
+            node,
+            source,
+        ) or _has_auth_decorator_ts(node, source, root)
         if not has_auth:
             has_auth = _has_auth_throw_guard_in_enclosing_function(node, source)
         if not has_auth and args_node is not None:
