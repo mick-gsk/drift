@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/mick-gsk/drift/demos/mcp-autopilot-demo/audit-trail.schema.json",
+  "$id": "https://github.com/mick-gsk/drift/demos/copilot-autopilot/audit-trail.schema.json",
   "title": "Drift MCP Autopilot Audit Trail",
   "description": "Structured audit trail produced by the drift MCP autopilot demo workflow. Captures session metadata, per-task fix details, verification results, and orchestration metrics.",
   "type": "object",

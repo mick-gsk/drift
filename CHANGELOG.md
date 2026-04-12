@@ -12,7 +12,7 @@
 - SARIF rule `help` field now populated from `generate_recommendation()` for signals with registered recommenders — Code Scanning annotations show structured remediation guidance (ADR-052).
 - `analysis_to_markdown()` gains `include_modules` and `include_signal_coverage` params; `--compact` flag now also applies to `--format markdown` (max 5 findings, no module scores, no signal coverage) (ADR-052).
 - CSV output (`--format csv`) gains `signal_label` column with human-readable signal name for non-Drift consumers (ADR-052).
-- MCP Autopilot Demo assets under `demos/mcp-autopilot-demo/` plus a runnable prompt at `.github/prompts/drift-mcp-autopilot-demo.prompt.md` for a reproducible 30-minute external-repo fix-loop demonstration.
+- MCP Autopilot Demo assets under `demos/copilot-autopilot/` plus a runnable prompt at `.github/prompts/drift-mcp-autopilot-demo.prompt.md` for a reproducible external-repo fix-loop demonstration.
 
 ### Changed
 

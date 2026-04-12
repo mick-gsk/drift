@@ -1,8 +1,10 @@
-# Drift MCP Autopilot Demo
+# Drift Copilot Autopilot Demo
 
-Reproduzierbares 30-Minuten-Demo: drift MCP-Server analysiert ein externes Repository,
-Copilot Agent Mode behebt alle priorisierten Findings über die Task-Queue,
+Reproduzierbares Demo: drift MCP-Server analysiert ein externes Repository,
+Copilot Agent Mode behebt priorisierte Findings über die Task-Queue,
 `drift_diff` verifiziert, `drift_session_end` exportiert einen strukturierten Audit-Trail.
+
+**Live-Run:** openclaw/openclaw, drift-analyzer 2.9.14, Score 0.495 → 0.506 (+0.011), 4/5 CXS-Tasks behoben, 16 min.
 
 ## Dateien
 
@@ -29,11 +31,11 @@ pip install drift-analyzer[mcp]
 
 # 3. MCP-Konfiguration kopieren
 mkdir -p .vscode
-cp /path/to/drift/demos/mcp-autopilot-demo/mcp.template.json .vscode/mcp.json
+cp /path/to/drift/demos/copilot-autopilot/mcp.template.json .vscode/mcp.json
 
 # 4. Agent-Instructions kopieren (optional)
 mkdir -p .github
-cp /path/to/drift/demos/mcp-autopilot-demo/copilot-instructions.template.md .github/copilot-instructions.md
+cp /path/to/drift/demos/copilot-autopilot/copilot-instructions.template.md .github/copilot-instructions.md
 
 # 5. VS Code öffnen, Agent Mode starten
 code .

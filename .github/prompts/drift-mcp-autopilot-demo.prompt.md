@@ -18,7 +18,7 @@ Vollstaendig ausfuehrbares Demo-Szenario: drift analysiert ein externes Reposito
 - **Skill:** `.github/skills/drift-commit-push/SKILL.md`
 - **MCP-Server:** `src/drift/mcp_server.py`
 - **Session-Management:** `src/drift/session.py`
-- **Audit-Schema:** `demos/mcp-autopilot-demo/audit-trail.schema.json`
+- **Audit-Schema:** `demos/copilot-autopilot/audit-trail.schema.json`
 
 ## Voraussetzungen
 
@@ -52,7 +52,7 @@ Die Aufgabe ist erst abgeschlossen, wenn:
 
 Erstelle Artefakte unter `work_artifacts/mcp_demo_<YYYY-MM-DD>/`:
 
-1. `drift-audit.json` — Strukturierter Audit-Trail (Schema: `demos/mcp-autopilot-demo/audit-trail.schema.json`)
+1. `drift-audit.json` — Strukturierter Audit-Trail (Schema: `demos/copilot-autopilot/audit-trail.schema.json`)
 2. `session-log.md` — Chronologisches Protokoll aller MCP-Tool-Aufrufe mit Zeitstempeln
 3. `summary.md` — Kompaktbericht mit 3 HN-belegbaren Metriken
 
