@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Changed
+
+- Decompose legacy `config`, `errors`, and `models` monolith modules into package-scoped submodules and align recommendation/adaptation flow wiring across CLI, calibration, and docs.
+
+### Fixed
+
+- Resolve mypy typing in adaptive recommendation refinement within `analyze` command outcome/reward processing.
+
 ## [2.9.14] - 2026-04-12
 
 Short version: Harden copilot-autopilot risky-edit completion with fix-intent contracts, shadow-verify, and repair-template registry evidence.
