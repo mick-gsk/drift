@@ -91,7 +91,7 @@ def _extract_functions_from_source(source: str) -> dict[str, dict]:
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        return {}
+        return dict()
 
     functions: dict[str, dict] = {}
     for node in ast.iter_child_nodes(tree):
@@ -166,7 +166,8 @@ def _ts_extract_functions_from_source(
     """Parse TS/JS source via tree-sitter and return {func_name: {param_count, profile}}."""
     result = ts_parse_source(source, language)
     if result is None:
-        return {}
+        _out: dict[str, dict] = {}
+        return _out
 
     root, src = result
     functions: dict[str, dict] = {}
@@ -268,7 +269,8 @@ def _git_show_files_batch(
     of O(n)).  Falls back per-file on parse error.
     """
     if not file_posix_list:
-        return {}
+        _out: dict[str, str | None] = {}
+        return _out
 
     results: dict[str, str | None] = {}
     queries = [f"{ref}:{fp}" for fp in file_posix_list]

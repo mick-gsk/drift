@@ -118,6 +118,7 @@ _TEST_HARNESS_BASENAMES: frozenset[str] = frozenset(
 
 
 def _is_test_like(path: Path) -> bool:
+    """Return *True* if *path* is likely a test or test-support file."""
     p = path.as_posix().lower()
     name = path.name.lower()
     if name in _TEST_HARNESS_BASENAMES or any(
@@ -303,6 +304,7 @@ class CohesionDeficitSignal(BaseSignal):
         file_histories: dict[str, FileHistory],
         config: DriftConfig,
     ) -> list[Finding]:
+        """Detect cohesion deficits across all supported *parse_results*."""
         del file_histories  # Not required for this structural signal.
 
         repo_files = [

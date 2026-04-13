@@ -201,6 +201,19 @@
           "title": "Min Samples",
           "type": "integer"
         },
+        "shared_feedback_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional team-shared feedback JSONL path (relative to repo root). When set, mark/calibrate commands read and write this path instead of calibration.feedback_path.",
+          "title": "Shared Feedback Path"
+        },
         "threshold_adaptation_enabled": {
           "default": false,
           "description": "Enable adaptive threshold adjustment per signal based on feedback metrics.  Experimental \u2014 disabled by default.",
@@ -1064,6 +1077,16 @@
     },
     "languages": {
       "$ref": "#/$defs/LanguagesConfig"
+    },
+    "output_mode": {
+      "default": "full",
+      "description": "Controls how much prescriptive guidance drift includes in API responses. 'full' (default): all repair instructions, constraints, verify plans, and tool choreography. 'mirror': diagnostic facts only \u2014 structural observations, scores, and deltas without prescribing what the agent should do.",
+      "enum": [
+        "full",
+        "mirror"
+      ],
+      "title": "Output Mode",
+      "type": "string"
     },
     "path_overrides": {
       "additionalProperties": {

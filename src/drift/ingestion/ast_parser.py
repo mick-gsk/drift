@@ -255,13 +255,14 @@ def _fingerprint_endpoint(
             elif isinstance(func, ast.Attribute):
                 return_patterns.append(func.attr)
 
-    return {
+    result = {
         "has_error_handling": has_try,
         "has_auth": has_auth_check,
         "auth_mechanism": auth_mechanism,
         "return_patterns": return_patterns,
         "is_async": isinstance(node, ast.AsyncFunctionDef),
     }
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -311,7 +312,8 @@ def _fingerprint_return_strategy(
     if len(strategies) < 2:
         return None
 
-    return {"strategies": sorted(strategies)}
+    result = {"strategies": sorted(strategies)}
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -413,6 +415,7 @@ class PythonFileParser(ast.NodeVisitor):
     # -- Functions ----------------------------------------------------------
 
     def _process_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Visit a function or method AST node and collect its metadata into the parse output."""
         decorators = []
         for dec in node.decorator_list:
             if isinstance(dec, ast.Name):
@@ -538,6 +541,7 @@ class PythonFileParser(ast.NodeVisitor):
     # -- Classes ------------------------------------------------------------
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Visit a class definition node and record class metadata in the parse output."""
         self._scope_depth += 1
         try:
             bases = []

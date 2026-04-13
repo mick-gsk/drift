@@ -154,3 +154,79 @@ def shape_for_profile(
     shaped = {k: v for k, v in result.items() if k in keep}
     shaped["response_profile"] = profile
     return shaped
+
+
+# ---------------------------------------------------------------------------
+# Output mode: mirror — diagnostic facts only, no prescriptive guidance
+# ---------------------------------------------------------------------------
+
+# Top-level response keys that carry prescriptive guidance (tool choreography,
+# repair instructions, workflow orchestration).  Stripped in mirror mode.
+_PRESCRIPTIVE_TOP_KEYS = frozenset(
+    {
+        "agent_instruction",
+        "next_tool_call",
+        "fallback_tool_call",
+        "done_when",
+        "workflow_plan",
+        "recommended_next_actions",
+        "guardrails",
+        "guardrails_prompt_block",
+        "negative_context",
+    }
+)
+
+# Per-task keys that prescribe how to fix rather than what is wrong.
+_PRESCRIPTIVE_TASK_KEYS = frozenset(
+    {
+        "action",
+        "constraints",
+        "success_criteria",
+        "verify_plan",
+        "expected_effect",
+        "negative_context",
+        "regression_guidance",
+        "repair_exemplar",
+        "fix_intent",
+        "fix_template_class",
+        "repair_maturity",
+    }
+)
+
+
+def apply_output_mode(
+    result: dict[str, Any],
+    mode: str,
+) -> dict[str, Any]:
+    """Apply output-mode filtering to a response dict.
+
+    In ``"full"`` mode (default) the response is returned unchanged.
+
+    In ``"mirror"`` mode all prescriptive guidance is stripped — what
+    remains are diagnostic structural facts: scores, findings, deltas,
+    related files, automation fitness, and severity classifications.
+    The agent receives a structural mirror of the codebase state and
+    decides autonomously what to do with the information.
+    """
+    if mode != "mirror":
+        result.setdefault("output_mode", "full")
+        return result
+
+    result["output_mode"] = "mirror"
+
+    # Strip top-level prescriptive keys
+    for key in _PRESCRIPTIVE_TOP_KEYS:
+        result.pop(key, None)
+
+    # Strip prescriptive fields from task dicts
+    if "tasks" in result and isinstance(result["tasks"], list):
+        for task in result["tasks"]:
+            if isinstance(task, dict):
+                for key in _PRESCRIPTIVE_TASK_KEYS:
+                    task.pop(key, None)
+
+    # Strip nudge-specific prescriptive text
+    if "nudge" in result and isinstance(result["nudge"], str):
+        result.pop("nudge", None)
+
+    return result

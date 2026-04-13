@@ -198,3 +198,23 @@ def feedback_metrics(events: list[FeedbackEvent]) -> dict[str, SignalFeedbackMet
             fn=c["fn"],
         )
     return result
+
+
+def resolve_feedback_paths(
+    repo_path: Path,
+    cfg: Any,
+) -> tuple[Path, Path, Path | None]:
+    """Resolve effective/local/shared feedback paths from config.
+
+    Returns (effective_path, local_path, shared_path). The effective path is
+    shared_path when configured, otherwise local_path.
+    """
+    calibration_cfg = getattr(cfg, "calibration", None)
+
+    local_rel = str(getattr(calibration_cfg, "feedback_path", ".drift/feedback.jsonl"))
+    local_path = repo_path / local_rel
+
+    shared_rel = getattr(calibration_cfg, "shared_feedback_path", None)
+    shared_path = (repo_path / str(shared_rel)) if shared_rel else None
+
+    return (shared_path or local_path), local_path, shared_path

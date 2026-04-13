@@ -93,12 +93,13 @@ def load_calibration(path: Path) -> dict[str, str]:
     Returns an empty dict when the file does not exist.
     """
     if not path.exists():
-        return {}
+        _out: dict[str, str] = {}
+        return _out
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         return {entry["signal_type"]: entry["effort"] for entry in data}
     except (json.JSONDecodeError, KeyError, TypeError):
-        return {}
+        return dict()
 
 
 def load_effort(signal_type: str, calibration_path: Path | None = None) -> str | None:

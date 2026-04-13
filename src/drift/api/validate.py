@@ -9,6 +9,7 @@ from drift.api._config import _emit_api_telemetry, _load_config_cached
 from drift.api_helpers import (
     _base_response,
     _error_response,
+    apply_output_mode,
     shape_for_profile,
 )
 
@@ -230,6 +231,7 @@ def validate(
             error=None,
             repo_root=repo_path,
         )
+        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
     except Exception as exc:
         _emit_api_telemetry(

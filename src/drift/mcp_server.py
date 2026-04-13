@@ -1820,6 +1820,7 @@ async def drift_session_start(
         from drift.api.fix_plan import _build_fix_plan_response_from_analysis
         from drift.api.scan import _format_scan_response
         from drift.api_helpers import (
+            apply_output_mode,
             build_drift_score_scope,
             shape_for_profile,
             signal_scope_label,
@@ -1910,10 +1911,11 @@ async def drift_session_start(
                 include_non_operational=False,
                 warnings=list(warnings),
             )
+            _om = getattr(cfg, "output_mode", "full")
             return (
-                shape_for_profile(brief_result, response_profile),
-                shape_for_profile(scan_result, response_profile),
-                shape_for_profile(fix_plan_result, response_profile),
+                shape_for_profile(apply_output_mode(brief_result, _om), response_profile),
+                shape_for_profile(apply_output_mode(scan_result, _om), response_profile),
+                shape_for_profile(apply_output_mode(fix_plan_result, _om), response_profile),
             )
 
         brief_result, scan_result, fp_result = await loop.run_in_executor(
@@ -2678,7 +2680,7 @@ async def drift_feedback(
     """
     from pathlib import Path as _Path
 
-    from drift.calibration.feedback import FeedbackEvent, record_feedback
+    from drift.calibration.feedback import FeedbackEvent, record_feedback, resolve_feedback_paths
     from drift.config import SIGNAL_ABBREV, DriftConfig
 
     session = _resolve_session(session_id)
@@ -2698,7 +2700,7 @@ async def drift_feedback(
             start_line=start_line if start_line > 0 else None,
             evidence={"reason": reason} if reason else {},
         )
-        feedback_path = repo / cfg.calibration.feedback_path
+        feedback_path, _local_feedback_path, _shared_feedback_path = resolve_feedback_paths(repo, cfg)
         record_feedback(feedback_path, event)
         return json.dumps({
             "status": "recorded",
@@ -2742,7 +2744,7 @@ async def drift_calibrate(
     """
     from pathlib import Path as _Path
 
-    from drift.calibration.feedback import load_feedback
+    from drift.calibration.feedback import load_feedback, resolve_feedback_paths
     from drift.calibration.profile_builder import build_profile
     from drift.config import DriftConfig, SignalWeights
 
@@ -2751,7 +2753,7 @@ async def drift_calibrate(
     def _sync() -> str:
         repo = _Path(path).resolve()
         cfg = DriftConfig.load(repo)
-        feedback_path = repo / cfg.calibration.feedback_path
+        feedback_path, _local_feedback_path, _shared_feedback_path = resolve_feedback_paths(repo, cfg)
         events = load_feedback(feedback_path)
 
         if not events:

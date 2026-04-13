@@ -12,6 +12,7 @@ from drift.api_helpers import (
     _base_response,
     _error_response,
     _finding_detailed,
+    apply_output_mode,
     resolve_signal,
     shape_for_profile,
     signal_abbrev,
@@ -188,6 +189,8 @@ def explain(
                     error=None,
                     repo_root=Path(repo_path).resolve() if repo_path else Path.cwd(),
                 )
+                _ecfg = _load_config_cached(Path(repo_path).resolve() if repo_path else Path.cwd())
+                finding_result = apply_output_mode(finding_result, getattr(_ecfg, "output_mode", "full"))
                 return shape_for_profile(finding_result, response_profile)
 
         # Not found — helpful error
@@ -213,6 +216,8 @@ def explain(
             error=None,
             repo_root=Path.cwd(),
         )
+        _ecfg = _load_config_cached(Path(repo_path).resolve() if repo_path else Path.cwd())
+        result = apply_output_mode(result, getattr(_ecfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
     except Exception as exc:
         _emit_api_telemetry(

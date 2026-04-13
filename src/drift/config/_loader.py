@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -143,6 +143,16 @@ class DriftConfig(BaseModel):
         description=(
             "Optional agent objective declaration. "
             "Helps drift provide targeted feedback aligned with the agent's task."
+        ),
+    )
+    output_mode: Literal["full", "mirror"] = Field(
+        default="full",
+        description=(
+            "Controls how much prescriptive guidance drift includes in API responses. "
+            "'full' (default): all repair instructions, constraints, verify plans, "
+            "and tool choreography. "
+            "'mirror': diagnostic facts only — structural observations, scores, "
+            "and deltas without prescribing what the agent should do."
         ),
     )
 

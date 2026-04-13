@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import json
 from pathlib import Path
 
@@ -28,14 +29,15 @@ def calibrate() -> None:
 @click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
 def run(repo: Path, dry_run: bool, config: Path | None, fmt: str) -> None:
     """Compute calibrated weights from all evidence sources."""
-    from drift.calibration.feedback import load_feedback
+    from drift.calibration.feedback import load_feedback, resolve_feedback_paths
     from drift.calibration.profile_builder import build_profile
+    from drift.calibration.status import write_calibration_status
     from drift.config import DriftConfig, SignalWeights
 
     cfg = DriftConfig.load(repo, config)
 
     # Collect explicit feedback
-    feedback_path = repo / cfg.calibration.feedback_path
+    feedback_path, _local_feedback_path, _shared_feedback_path = resolve_feedback_paths(repo, cfg)
     events = load_feedback(feedback_path)
 
     # Collect git-correlation evidence if history exists
@@ -65,7 +67,8 @@ def run(repo: Path, dry_run: bool, config: Path | None, fmt: str) -> None:
         min_samples=cfg.calibration.min_samples,
         fn_boost_factor=cfg.calibration.fn_boost_factor,
     )
-    diff = result.weight_diff(SignalWeights())
+    default_weights = SignalWeights()
+    diff = result.weight_diff(default_weights)
 
     if fmt == "json":
         click.echo(json.dumps({
@@ -81,27 +84,38 @@ def run(repo: Path, dry_run: bool, config: Path | None, fmt: str) -> None:
                 "[dim]No weight changes computed"
                 " (insufficient evidence or no change).[/dim]"
             )
-            return
-
-        console.print(
-            f"\n[bold]Calibration Result[/bold]"
-            f" ({result.total_events} events,"
-            f" {result.signals_with_data} signals with data)\n"
-        )
-        console.print(f"{'Signal':<30} {'Default':>8} {'Calibrated':>10} {'Delta':>8} {'Conf.':>6}")
-        console.print("-" * 65)
-        for signal_name, info in sorted(diff.items()):
-            delta_str = f"{info['delta']:+.4f}"
+        else:
             console.print(
-                f"{signal_name:<30} {info['default']:>8.4f}"
-                f" {info['calibrated']:>10.4f}"
-                f" {delta_str:>8} {info['confidence']:>5.1%}"
+                f"\n[bold]Calibration Result[/bold]"
+                f" ({result.total_events} events,"
+                f" {result.signals_with_data} signals with data)\n"
             )
+            console.print(f"{'Signal':<30} {'Default':>8} {'Calibrated':>10} {'Delta':>8} {'Conf.':>6}")
+            console.print("-" * 65)
+            for signal_name, info in sorted(diff.items()):
+                delta_str = f"{info['delta']:+.4f}"
+                console.print(
+                    f"{signal_name:<30} {info['default']:>8.4f}"
+                    f" {info['calibrated']:>10.4f}"
+                    f" {delta_str:>8} {info['confidence']:>5.1%}"
+                )
 
-    if not dry_run and diff:
-        _write_calibrated_weights(repo, config, result)
-        if fmt != "json":
-            console.print("\n[green]Calibrated weights written to drift.yaml[/green]")
+    if not dry_run:
+        signal_counts = _summarize_feedback_counts(events)
+        write_calibration_status(
+            repo,
+            {
+                "calibrated_at": datetime.now(UTC).isoformat(),
+                "total_events": len(events),
+                "signals": signal_counts,
+                "weight_changes": diff,
+            },
+        )
+
+        if diff:
+            _write_calibrated_weights(repo, config, result)
+            if fmt != "json":
+                console.print("\n[green]Calibrated weights written to drift.yaml[/green]")
 
 
 @calibrate.command()
@@ -115,12 +129,12 @@ def run(repo: Path, dry_run: bool, config: Path | None, fmt: str) -> None:
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
 def explain(repo: Path, config: Path | None) -> None:
     """Show detailed evidence per signal."""
-    from drift.calibration.feedback import load_feedback
+    from drift.calibration.feedback import load_feedback, resolve_feedback_paths
     from drift.calibration.profile_builder import build_profile
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
-    feedback_path = repo / cfg.calibration.feedback_path
+    feedback_path, _local_feedback_path, _shared_feedback_path = resolve_feedback_paths(repo, cfg)
     events = load_feedback(feedback_path)
 
     if not events:
@@ -153,7 +167,7 @@ def explain(repo: Path, config: Path | None) -> None:
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
 def status(repo: Path, config: Path | None) -> None:
     """Show calibration profile status and freshness."""
-    from drift.calibration.feedback import load_feedback
+    from drift.calibration.feedback import load_feedback, resolve_feedback_paths
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
@@ -165,10 +179,13 @@ def status(repo: Path, config: Path | None) -> None:
         )
         return
 
-    feedback_path = repo / cfg.calibration.feedback_path
+    feedback_path, local_feedback_path, shared_feedback_path = resolve_feedback_paths(repo, cfg)
     events = load_feedback(feedback_path)
     console.print(f"Feedback events: {len(events)}")
     console.print(f"Feedback path: {feedback_path}")
+    if shared_feedback_path is not None:
+        console.print(f"Local feedback path: {local_feedback_path}")
+        console.print(f"Shared feedback path: {shared_feedback_path}")
 
     history_dir = repo / cfg.calibration.history_dir
     if history_dir.exists():
@@ -296,6 +313,20 @@ def _write_calibrated_weights(
         yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
+
+
+def _summarize_feedback_counts(events: list[object]) -> dict[str, dict[str, int]]:
+    """Summarize TP/FP/FN counts while tolerating malformed test doubles."""
+    counts: dict[str, dict[str, int]] = {}
+    for event in events:
+        signal_type = getattr(event, "signal_type", None)
+        verdict = getattr(event, "verdict", None)
+        if not isinstance(signal_type, str) or verdict not in {"tp", "fp", "fn"}:
+            continue
+        if signal_type not in counts:
+            counts[signal_type] = {"tp": 0, "fp": 0, "fn": 0}
+        counts[signal_type][verdict] += 1
+    return counts
 
 
 # ---------------------------------------------------------------------------

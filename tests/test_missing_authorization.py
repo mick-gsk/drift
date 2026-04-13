@@ -857,6 +857,28 @@ class TestMAZEdgeCases:
         findings = signal.analyze([pr], {}, DriftConfig())
         assert findings == []
 
+    def test_a2a_protocol_endpoints_allowlisted_by_default(self) -> None:
+        """A2A-protocol endpoints are always intentionally public and must not be flagged (#391)."""
+        cases = [
+            # Function-name match: agent_card -> agentcard
+            ("agent_card", "src/drift/serve/app.py", 41, "/.well-known/agent-card.json"),
+            # Function-name match: a2a_endpoint -> a2aendpoint
+            ("a2a_endpoint", "src/drift/serve/app.py", 46, "/a2a/v1"),
+        ]
+        for fn_name, file_path, line, route in cases:
+            pr = ParseResult(
+                file_path=Path(file_path),
+                language="python",
+                functions=[_func(fn_name, file_path, line)],
+                imports=[_imp(file_path, "fastapi")],
+                patterns=[_endpoint_pattern(fn_name, file_path, line, route=route)],
+            )
+            signal = MissingAuthorizationSignal()
+            findings = signal.analyze([pr], {}, DriftConfig())
+            assert findings == [], (
+                f"A2A endpoint '{fn_name}' (route '{route}') should be allowlisted by default"
+            )
+
     def test_route_allowlist_skips_login_path_even_without_name_hint(self) -> None:
         """Public route allowlist should also work on route path metadata."""
         pr = ParseResult(

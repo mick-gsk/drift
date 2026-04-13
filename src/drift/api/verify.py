@@ -17,6 +17,7 @@ from typing import Any
 
 from drift.api._config import (
     _emit_api_telemetry,
+    _load_config_cached,
     _log,
 )
 from drift.api.diff import diff as diff_api
@@ -24,6 +25,7 @@ from drift.api.shadow_verify import shadow_verify
 from drift.api_helpers import (
     _base_response,
     _next_step_contract,
+    apply_output_mode,
     shape_for_profile,
 )
 from drift.next_step_contract import (
@@ -376,6 +378,8 @@ def verify(
             error=None,
             repo_root=repo_path,
         )
+        _vcfg = _load_config_cached(repo_path)
+        resp = apply_output_mode(resp, getattr(_vcfg, "output_mode", "full"))
         return shape_for_profile(resp, response_profile)
 
     except Exception as exc:  # noqa: BLE001

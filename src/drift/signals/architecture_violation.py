@@ -456,6 +456,7 @@ class ArchitectureViolationSignal(BaseSignal):
         file_histories: dict[str, FileHistory],
         config: DriftConfig,
     ) -> list[Finding]:
+        """Detect architecture-layer violations across *parse_results*."""
         filtered_prs = [
             pr
             for pr in parse_results

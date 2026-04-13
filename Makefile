@@ -14,7 +14,7 @@ MYPY     ?= $(PYTHON) -m mypy
 SRC      := src/
 TESTS    := tests/
 
-.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example clean
+.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example clean replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -118,3 +118,36 @@ clean:  ## Remove caches and build artifacts
 	rm -rf .drift-cache .pytest_cache .ruff_cache .mypy_cache htmlcov dist build
 	rm -f .coverage out.json
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+# Internal Evaluation System
+# ---------------------------------------------------------------------------
+
+replay-benchmark:  ## Baustein 1: Historical replay benchmark (dry-run)
+	$(PYTHON) scripts/replay_benchmark.py --dry-run run
+
+repair-eval:  ## Baustein 2: Repair evaluation with side-effect tracking
+	$(PYTHON) scripts/repair_eval.py run --apply
+
+ab-harness:  ## Baustein 3: A/B harness (mock mode, deterministic)
+	$(PYTHON) scripts/ab_harness.py run
+	$(PYTHON) scripts/ab_harness.py stats
+	$(PYTHON) scripts/ab_harness.py report
+
+kpi-update:  ## Baustein 4: Capture KPI snapshot
+	$(PYTHON) scripts/kpi_trend_update.py --apply
+
+kpi-report:  ## Baustein 4: Generate weekly KPI report
+	$(PYTHON) scripts/kpi_weekly_report.py --apply
+
+eval-all:  ## Run all internal evaluation building blocks
+	@echo ">>> [1/4] Replay Benchmark..."
+	@$(MAKE) --no-print-directory replay-benchmark
+	@echo ">>> [2/4] Repair Evaluation..."
+	@$(MAKE) --no-print-directory repair-eval
+	@echo ">>> [3/4] A/B Harness..."
+	@$(MAKE) --no-print-directory ab-harness
+	@echo ">>> [4/4] KPI Update..."
+	@$(MAKE) --no-print-directory kpi-update
+	@$(MAKE) --no-print-directory kpi-report
+	@echo ">>> All evaluation building blocks completed."

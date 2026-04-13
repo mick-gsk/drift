@@ -33,6 +33,7 @@ from drift.api_helpers import (
     _error_response,
     _finding_concise,
     _next_step_contract,
+    apply_output_mode,
     shape_for_profile,
 )
 from drift.incremental import BaselineManager
@@ -213,6 +214,7 @@ def shadow_verify(
             error=None,
             repo_root=repo_path,
         )
+        resp = apply_output_mode(resp, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(resp, response_profile)
 
     except Exception as exc:  # noqa: BLE001

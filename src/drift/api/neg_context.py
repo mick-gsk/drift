@@ -14,6 +14,7 @@ from drift.api_helpers import (
     DONE_NUDGE_SAFE,
     _error_response,
     _next_step_contract,
+    apply_output_mode,
     build_drift_score_scope,
     shape_for_profile,
 )
@@ -119,6 +120,7 @@ def negative_context(
             error=None,
             repo_root=repo_path,
         )
+        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
 
     except Exception as exc:

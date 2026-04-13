@@ -32,9 +32,25 @@ Durchführung eines kontrollierten Experiments mit folgendem Minimalaufbau:
 4. **Abhängige Variablen (mindestens zwei):**
    - Rate an neu eingeführten Drift-Findings im erzeugten Diff (gemessen mit `drift diff`)
    - Rate an Task-Korrektheit (unabhängige Beurteilung durch zweiten Reviewer oder automatische Test-Suite)
-5. **Blindheit:** Bewerter soll nicht wissen, welche Gruppe ein Diff erzeugt hat.
-6. **Statistik:** Minimum n=20 Tasks pro Gruppe; exakter Fisher-Test oder Mann-Whitney U bei kleiner Stichprobe; Effektgröße Cohen's d.
-7. **Ergebnis-Artefakt:** `benchmark_results/drift_brief_ab_study.json` mit rohen Task-Ergebnissen, Gruppen-Zuweisung und aggregierten Metriken.
+5. **Kostenfunktionen (erweitert):**
+   - `error_cost_default`: Σ w_sev(f) — einfache Severity-gewichtete Summe (Gewichte: critical=8, high=4, medium=2, low=1, info=0)
+   - `error_cost_robust`: Σ h(signal) × w_sev(f) × min(4.0, 1+ln(1+|related_files|)) — Signal- und Breadth-gewichteter Gesamtfehlerkosten-Index
+   - `net_cost`: Differenz von Kosten neuer Findings minus aufgelöster Findings
+6. **k-Repetitionen:** Jeder Task wird k-mal wiederholt (Standard k=1, konfigurierbar via `--repeats`); pro Repeat wird ein deterministischer Seed variiert, um Varianz-Schätzung innerhalb der Tasks zu ermöglichen.
+7. **Blindheit:** Bewerter soll nicht wissen, welche Gruppe ein Diff erzeugt hat.
+8. **Statistik:**
+   - Minimum n=20 Tasks pro Gruppe
+   - **Unpaired:** Mann-Whitney U auf `new_findings_count`, Fisher-Exact-Test auf `accept_change`
+   - **Paired (primär):** Wilcoxon Signed-Rank Test auf per-Task-Mittelwerte von `error_cost_robust` und `error_cost_default`; Rank-Biserial Korrelation r als Effektgröße
+   - Effektgröße Cohen's d ≥ 0.3 als Mindesteffekt
+   - **Confounder-Guardrail:** Wilcoxon-Test auf `patch_size_loc` (Diff-Umfang); bei signifikantem Unterschied Ergebnis als `confounded_by_patch_size` klassifiziert
+9. **Interpretation (5-stufig):**
+   - `positive_effect`: Gepaart signifikant, d≥0.3, Patch-Size-Guardrail bestanden
+   - `positive_effect_unpaired`: Nur ungepaarte Tests signifikant mit medium Effekt
+   - `null_result`: Keine Signifikanz in beiden Designs
+   - `confounded_by_patch_size`: Guardrail verletzt (Treatment produziert signifikant kürzere Patches)
+   - `inconclusive`: Gemischte Ergebnisse
+10. **Ergebnis-Artefakt:** `benchmark_results/drift_brief_ab_study.json` (Schema v2.0) mit rohen Task-Ergebnissen, Gruppen-Zuweisung, Kostenwerten, gepaarten und ungepaarten Statistiken.
 
 ### Was explizit nicht getan wird
 
@@ -64,6 +80,22 @@ Durchführung eines kontrollierten Experiments mit folgendem Minimalaufbau:
 
 Studie gilt als abgeschlossen, wenn:
 - `benchmark_results/drift_brief_ab_study.json` existiert und den Minimalaufbau (n≥20/Gruppe, zwei primäre Outcomes, statistische Kennzahlen) erfüllt
+- Schema-Version ≥ 2.0 mit gepaarter Statistik, Kostenfunktionen und Patch-Size-Guardrail
 - Ergebnis-Status in diesem ADR auf `accepted` (Wirkung nachgewiesen) oder `rejected` (kein messbarer Effekt) gesetzt wurde
 
 Policy §10 Lernzyklus-Ergebnis: **zurückgestellt** — Studie noch nicht durchgeführt.
+
+## Implementierungsstand
+
+| Komponente | Status | Artefakt |
+|---|---|---|
+| Corpus (20 Tasks, 4 Repos) | ✅ fertig | `benchmarks/brief_study_corpus.json` |
+| Pipeline-Skript (6 Subcommands) | ✅ fertig | `scripts/brief_ab_study.py` |
+| Kostenfunktionen (default + robust) | ✅ fertig | In Skript integriert |
+| k-Repetitionen (`--repeats`) | ✅ fertig | `run-mock`, `run-llm` |
+| Gepaarte Statistik (Wilcoxon) | ✅ fertig | `stats` Subcommand |
+| Confounder-Guardrail (patch_size) | ✅ fertig | `stats` Subcommand |
+| Artifact Schema v2.0 | ✅ fertig | `assemble` Subcommand |
+| Unit-Tests | ✅ fertig | `tests/test_brief_ab_study_cost.py` (33 Tests) |
+| Studie durchgeführt | ❌ ausstehend | — |
+| Ergebnis-Artefakt | ❌ ausstehend | `benchmark_results/drift_brief_ab_study.json` |

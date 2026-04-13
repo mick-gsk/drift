@@ -18,11 +18,12 @@ def _load_compiler_options(tsconfig_path: Path) -> dict[str, object]:
     try:
         data = json.loads(tsconfig_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {}
+        return dict()
 
     compiler_options = data.get("compilerOptions", {})
     if not isinstance(compiler_options, dict):
-        return {}
+        _out = {}
+        return _out
     return compiler_options
 
 

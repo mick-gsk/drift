@@ -16,6 +16,7 @@ from drift.api_helpers import (
     _base_response,
     _next_step_contract,
     _top_signals,
+    apply_output_mode,
     build_drift_score_scope,
     shape_for_profile,
     signal_abbrev,
@@ -442,6 +443,7 @@ def brief(
             error=None,
             repo_root=repo_path,
         )
+        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
 
     except Exception as exc:

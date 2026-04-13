@@ -747,6 +747,7 @@ class SignalPhase:
         sig_cache = SignalCache(repo_path / config.cache_dir)
 
         def _run_or_cache(signal: BaseSignal) -> list[Finding]:
+            """Run *signal* analysis, consulting and updating the cache when available."""
             sig_type_enum = getattr(signal, "signal_type", None)
             sig_type = sig_type_enum.value if sig_type_enum is not None else None
             if sig_type is None:

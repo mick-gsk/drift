@@ -19,6 +19,7 @@ from drift.api_helpers import (
     _error_response,
     _finding_concise,
     _next_step_contract,
+    apply_output_mode,
     shape_for_profile,
     signal_abbrev,
 )
@@ -618,6 +619,7 @@ def nudge(
             error=None,
             repo_root=repo_path,
         )
+        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
 
     except Exception as exc:

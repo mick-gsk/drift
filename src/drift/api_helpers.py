@@ -50,6 +50,7 @@ from drift.next_step_contract import (  # noqa: F401
 from drift.response_shaping import (  # noqa: F401
     _ALWAYS_KEEP,
     _PROFILE_KEEP,
+    apply_output_mode,
     build_drift_score_scope,
     shape_for_profile,
 )

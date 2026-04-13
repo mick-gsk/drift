@@ -17,6 +17,7 @@ from drift.api_helpers import (
     _error_response,
     _next_step_contract,
     _task_to_api_dict,
+    apply_output_mode,
     build_drift_score_scope,
     build_task_graph,
     build_workflow_plan,
@@ -381,7 +382,7 @@ def _build_fix_plan_response_from_analysis(
             }
         )
 
-    return result
+    return apply_output_mode(result, getattr(cfg, "output_mode", "full"))
 
 
 def fix_plan(
@@ -501,6 +502,7 @@ def fix_plan(
             error=None,
             repo_root=repo_path,
         )
+        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
     except Exception as exc:
         _emit_api_telemetry(

@@ -10,6 +10,34 @@ if TYPE_CHECKING:
     from drift.config._loader import DriftConfig
 
 
+_STATIC_ABBREV_FALLBACK: dict[str, str] = {
+    "PFS": "pattern_fragmentation",
+    "AVS": "architecture_violation",
+    "MDS": "mutant_duplicate",
+    "EDS": "explainability_deficit",
+    "TVS": "temporal_volatility",
+    "SMS": "system_misalignment",
+    "DIA": "doc_impl_drift",
+    "BEM": "broad_exception_monoculture",
+    "TPD": "test_polarity_deficit",
+    "GCD": "guard_clause_deficit",
+    "COD": "cohesion_deficit",
+    "NBV": "naming_contract_violation",
+    "BAT": "bypass_accumulation",
+    "ECM": "exception_contract_drift",
+    "CCC": "co_change_coupling",
+    "TSA": "ts_architecture",
+    "CXS": "cognitive_complexity",
+    "FOE": "fan_out_explosion",
+    "CIR": "circular_import",
+    "DCA": "dead_code_accumulation",
+    "MAZ": "missing_authorization",
+    "ISD": "insecure_default",
+    "HSC": "hardcoded_secret",
+    "PHR": "phantom_reference",
+}
+
+
 def _build_signal_abbrev() -> dict[str, str]:
     """Build abbrev→signal_id map from the central registry, with static fallback."""
     try:
@@ -19,32 +47,7 @@ def _build_signal_abbrev() -> dict[str, str]:
     except ImportError:
         pass
     # Static fallback for environments where signals haven't been imported yet
-    return {
-        "PFS": "pattern_fragmentation",
-        "AVS": "architecture_violation",
-        "MDS": "mutant_duplicate",
-        "EDS": "explainability_deficit",
-        "TVS": "temporal_volatility",
-        "SMS": "system_misalignment",
-        "DIA": "doc_impl_drift",
-        "BEM": "broad_exception_monoculture",
-        "TPD": "test_polarity_deficit",
-        "GCD": "guard_clause_deficit",
-        "COD": "cohesion_deficit",
-        "NBV": "naming_contract_violation",
-        "BAT": "bypass_accumulation",
-        "ECM": "exception_contract_drift",
-        "CCC": "co_change_coupling",
-        "TSA": "ts_architecture",
-        "CXS": "cognitive_complexity",
-        "FOE": "fan_out_explosion",
-        "CIR": "circular_import",
-        "DCA": "dead_code_accumulation",
-        "MAZ": "missing_authorization",
-        "ISD": "insecure_default",
-        "HSC": "hardcoded_secret",
-        "PHR": "phantom_reference",
-    }
+    return _STATIC_ABBREV_FALLBACK
 
 
 SIGNAL_ABBREV: dict[str, str] = _build_signal_abbrev()

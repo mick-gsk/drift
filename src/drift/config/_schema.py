@@ -128,6 +128,9 @@ class ThresholdsConfig(BaseModel):
             "logout",
             "oauth",
             "sso",
+            # A2A (Agent-to-Agent) protocol — always intentionally public (#391)
+            "a2a",
+            "agent_card",
         ]
     )
     maz_dev_tool_paths: list[str] = Field(
@@ -495,6 +498,14 @@ class CalibrationConfig(BaseModel):
     feedback_path: str = Field(
         default=".drift/feedback.jsonl",
         description="Path to the feedback JSONL file (relative to repo root).",
+    )
+    shared_feedback_path: str | None = Field(
+        default=None,
+        description=(
+            "Optional team-shared feedback JSONL path (relative to repo root). "
+            "When set, mark/calibrate commands read and write this path instead "
+            "of calibration.feedback_path."
+        ),
     )
     history_dir: str = Field(
         default=".drift/history",

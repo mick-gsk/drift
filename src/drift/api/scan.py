@@ -24,6 +24,7 @@ from drift.api_helpers import (
     _next_step_contract,
     _top_signals,
     _trend_dict,
+    apply_output_mode,
     build_drift_score_scope,
     severity_rank,
     shape_for_profile,
@@ -178,6 +179,7 @@ def scan(
             error=None,
             repo_root=repo_path,
         )
+        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
     except Exception as exc:
         _emit_api_telemetry(

@@ -771,10 +771,10 @@
       ],
       "finding_titles": [
         "Guard clause deficit in src/myapp/",
-        "Guard clause deficit in src/myapp/processors/",
         "Deep nesting in transform_dataset()",
         "Deep nesting in calculate_pricing()",
         "Deep nesting in enrich_payload()",
+        "Guard clause deficit in src/myapp/processors/",
         "Deep nesting in transform_records()"
       ]
     },
@@ -996,23 +996,24 @@
       "is_fully_reliable": true,
       "status": "complete"
     },
-    "analyzed_at": "2026-04-11T17:30:39.200240+00:00",
+    "analyzed_at": "2026-04-13T14:49:44.045433+00:00",
     "baseline": null,
     "compact_summary": {
       "critical_count": 0,
       "duplicate_findings_removed": 0,
-      "findings_deduplicated": 89,
-      "findings_total": 89,
+      "findings_deduplicated": 86,
+      "findings_total": 86,
       "fix_first_count": 10,
-      "high_count": 53,
+      "high_count": 48,
       "suppressed_total": 0
     },
     "context_tagged_count": 0,
-    "drift_score": 0.331,
+    "drift_score": 0.329,
     "drift_score_scope": "context:repo,signals:all,path:all",
     "finding_context_policy": {
       "counts": {
-        "production": 89
+        "production": 85,
+        "test": 1
       },
       "excluded_from_fix_first": 0,
       "include_non_operational_in_fix_first": false,
@@ -1037,6 +1038,7 @@
         "fix": "Consolidate to the dominant pattern (2x, exemplar: src/myapp/complex_logic.py:47). Deviations: src/myapp/auth_service.py:3 (authenticate), src/myapp/kitchen_sink.py:31 (send_email_notification).",
         "impact": 0.2239,
         "impact_rank": 1,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp",
@@ -1051,12 +1053,16 @@
           "canonical_snippet": "",
           "canonical_variant": "{\"handler_count\": 1, \"handlers\": [{\"actions\": [\"fallback_ass",
           "category": "error_handling",
+          "combined_plugin_framework_cap": false,
           "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes.",
           "finding_context": "production",
           "framework_context_dampened": false,
           "framework_context_hints": [],
           "module": "src/myapp",
           "num_variants": 3,
+          "plugin_boundary_variation_expected": false,
+          "plugin_context_dampened": false,
+          "plugin_context_hints": [],
           "total_instances": 4,
           "variant_count": 3
         },
@@ -1095,6 +1101,7 @@
         "fix": "Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "impact": 0.1981,
         "impact_rank": 2,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.service_a.process_order",
@@ -1104,6 +1111,7 @@
         },
         "metadata": {
           "body_hash": "57c71e30dc313cac",
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "finding_context": "production",
           "functions": [
@@ -1119,7 +1127,9 @@
             }
           ],
           "group_size": 2,
-          "similarity": 1.0
+          "similarity": 1.0,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scopes": []
         },
         "related_files": [
           "src/myapp/service_b.py"
@@ -1155,6 +1165,7 @@
         "fix": "Extract validate_input() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "impact": 0.1981,
         "impact_rank": 3,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.service_a.validate_input",
@@ -1164,6 +1175,7 @@
         },
         "metadata": {
           "body_hash": "4642cfc909f608c3",
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "finding_context": "production",
           "functions": [
@@ -1179,7 +1191,9 @@
             }
           ],
           "group_size": 2,
-          "similarity": 1.0
+          "similarity": 1.0,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scopes": []
         },
         "related_files": [
           "src/myapp/service_b.py"
@@ -1215,6 +1229,7 @@
         "fix": "Extract formatCurrency() into src/tsapp/utils/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "impact": 0.1981,
         "impact_rank": 4,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.utils.formatters.ts.formatCurrency",
@@ -1224,6 +1239,7 @@
         },
         "metadata": {
           "body_hash": "5f0253fe569db1c8",
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "finding_context": "production",
           "functions": [
@@ -1239,7 +1255,9 @@
             }
           ],
           "group_size": 2,
-          "similarity": 1.0
+          "similarity": 1.0,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scopes": []
         },
         "related_files": [
           "src/tsapp/utils/money.ts"
@@ -1275,6 +1293,7 @@
         "fix": "Investigate hidden coupling between settings.py and manifest.py. Extract shared logic or make the dependency explicit.",
         "impact": 0.1896,
         "impact_rank": 5,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.config.settings",
@@ -1318,6 +1337,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 6,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1326,13 +1346,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_1",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1368,6 +1392,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 7,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1376,13 +1401,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_2",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1418,6 +1447,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 8,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1426,13 +1456,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_3",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1468,6 +1502,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 9,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1476,13 +1511,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_4",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1518,6 +1557,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 10,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1526,13 +1566,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_5",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1568,6 +1612,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 11,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1576,13 +1621,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_6",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1618,6 +1667,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 12,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1626,13 +1676,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_7",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1668,6 +1722,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 13,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1676,13 +1731,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_8",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1718,6 +1777,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 14,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1726,13 +1786,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_9",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1768,6 +1832,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 15,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1776,13 +1841,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_10",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1818,6 +1887,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 16,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1826,13 +1896,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_11",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1868,6 +1942,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 17,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1876,13 +1951,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_12",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1918,6 +1997,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 18,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1926,13 +2006,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_13",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -1968,6 +2052,7 @@
         "fix": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "impact": 0.1731,
         "impact_rank": 19,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -1976,13 +2061,17 @@
           "namespace": "src.myapp.legacy.compat"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/legacy/compat.py",
           "file_b": "src/myapp/legacy/compat.py",
           "finding_context": "production",
           "function_a": "legacy_handler_0",
           "function_b": "legacy_handler_14",
-          "similarity": 0.925
+          "similarity": 0.925,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/legacy/compat.py"
@@ -2018,6 +2107,7 @@
         "fix": "Consolidate to the dominant pattern (2x, exemplar: src/myapp/auth_service.py:1). Deviations: src/myapp/service_a.py:1 (process_order), src/myapp/service_b.py:1 (process_order).",
         "impact": 0.1679,
         "impact_rank": 20,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp",
@@ -2032,12 +2122,16 @@
           "canonical_snippet": "",
           "canonical_variant": "{\"strategies\": [\"raise\", \"return_dict\"]}",
           "category": "return_pattern",
+          "combined_plugin_framework_cap": false,
           "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes.",
           "finding_context": "production",
           "framework_context_dampened": false,
           "framework_context_hints": [],
           "module": "src/myapp",
           "num_variants": 2,
+          "plugin_boundary_variation_expected": false,
+          "plugin_context_dampened": false,
+          "plugin_context_hints": [],
           "total_instances": 4,
           "variant_count": 2
         },
@@ -2076,6 +2170,7 @@
         "fix": "Extract download_file() into src/myapp/connectors/shared.py. Similarity: 85%. Effort: S.",
         "impact": 0.159,
         "impact_rank": 21,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.connectors.aws_s3.download_file",
@@ -2084,13 +2179,17 @@
           "namespace": "src.myapp.connectors.aws_s3"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/connectors/aws_s3.py",
           "file_b": "src/myapp/connectors/slack_api.py",
           "finding_context": "production",
           "function_a": "download_file",
           "function_b": "send_message",
-          "similarity": 0.85
+          "similarity": 0.85,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/connectors/slack_api.py"
@@ -2126,6 +2225,7 @@
         "fix": "Extract fetch_user_data() into src/myapp/shared.py. Similarity: 85%. Effort: S.",
         "impact": 0.159,
         "impact_rank": 22,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.handler_v1.fetch_user_data",
@@ -2134,13 +2234,17 @@
           "namespace": "src.myapp.handler_v1"
         },
         "metadata": {
+          "cross_extension_vendored": false,
           "deliberate_pattern_risk": "May reflect deliberate polymorphism (Strategy, Adapter, Plugin). Verify intent before consolidating.",
           "file_a": "src/myapp/handler_v1.py",
           "file_b": "src/myapp/handler_v2.py",
           "finding_context": "production",
           "function_a": "fetch_user_data",
           "function_b": "get_customer_info",
-          "similarity": 0.85
+          "similarity": 0.85,
+          "workspace_isolation_heuristic_applied": false,
+          "workspace_scope_a": null,
+          "workspace_scope_b": null
         },
         "related_files": [
           "src/myapp/handler_v2.py"
@@ -2176,6 +2280,7 @@
         "fix": "Consolidate to the dominant pattern (1x, exemplar: src/tsapp/services/handler_a.ts:2). Deviations: src/tsapp/services/handler_b.ts:2 (handleB), src/tsapp/services/handler_c.ts:2 (handleC).",
         "impact": 0.1455,
         "impact_rank": 23,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.services",
@@ -2190,6 +2295,7 @@
           "canonical_snippet": "",
           "canonical_variant": "{\"handler_count\": 1, \"handlers\": [{\"actions\": [\"throw\", \"thr",
           "category": "error_handling",
+          "combined_plugin_framework_cap": false,
           "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes.",
           "finding_context": "production",
           "framework_context_dampened": true,
@@ -2198,6 +2304,9 @@
           ],
           "module": "src/tsapp/services",
           "num_variants": 3,
+          "plugin_boundary_variation_expected": false,
+          "plugin_context_dampened": false,
+          "plugin_context_hints": [],
           "total_instances": 3,
           "variant_count": 3
         },
@@ -2236,6 +2345,7 @@
         "fix": "Consolidate to the dominant pattern (1x, exemplar: src/myapp/models/user.py:1). Deviations: src/myapp/models/user.py:7 (get_user_or_raise).",
         "impact": 0.1355,
         "impact_rank": 24,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.models",
@@ -2250,12 +2360,16 @@
           "canonical_snippet": "",
           "canonical_variant": "{\"strategies\": [\"return_dict\", \"return_none\"]}",
           "category": "return_pattern",
+          "combined_plugin_framework_cap": false,
           "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes.",
           "finding_context": "production",
           "framework_context_dampened": false,
           "framework_context_hints": [],
           "module": "src/myapp/models",
           "num_variants": 2,
+          "plugin_boundary_variation_expected": false,
+          "plugin_context_dampened": false,
+          "plugin_context_hints": [],
           "total_instances": 2,
           "variant_count": 2
         },
@@ -2293,6 +2407,7 @@
         "fix": "Differentiate exception handlers: catch specific exception types and re-raise or convert unknown errors.",
         "impact": 0.1044,
         "impact_rank": 25,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.connectors",
@@ -2340,6 +2455,7 @@
         "fix": "Replace type safety bypasses with proper type guards, narrowing, or explicit type definitions. Found: 1\u00d7 as_any, 1\u00d7 double_cast, 1\u00d7 non_null_assertion, 2\u00d7 ts_ignore.",
         "impact": 0.1,
         "impact_rank": 26,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.legacy.adapter.ts",
@@ -2376,6 +2492,7 @@
               "line": 8
             }
           ],
+          "effective_bypass_count": 5.0,
           "finding_context": "production",
           "kind_distribution": {
             "as_any": 1,
@@ -2411,6 +2528,7 @@
         "fix": "Differentiate exception handlers: catch specific exception types and re-raise or convert unknown errors.",
         "impact": 0.0955,
         "impact_rank": 27,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.connectors",
@@ -2457,6 +2575,7 @@
         "fix": "Function transform_dataset (complexity 30): add Docstring, Tests, Return-Type.",
         "impact": 0.09,
         "impact_rank": 28,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.complex_logic.transform_dataset",
@@ -2472,7 +2591,10 @@
           "has_docstring": false,
           "has_return_type": false,
           "has_test": false,
-          "loc": 54
+          "has_test_unknown": false,
+          "loc": 54,
+          "self_documenting_signature": false,
+          "ts_ui_high_cap_applied": false
         },
         "related_files": [],
         "remediation": {
@@ -2506,6 +2628,7 @@
         "fix": "Consolidate to the dominant pattern (1x, exemplar: src/myapp/handlers/auth.py:5). Deviations: src/myapp/handlers/orders.py:7 (create_order).",
         "impact": 0.088,
         "impact_rank": 29,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.handlers",
@@ -2520,6 +2643,7 @@
           "canonical_snippet": "",
           "canonical_variant": "{\"handler_count\": 2, \"handlers\": [{\"actions\": [\"log\", \"raise",
           "category": "error_handling",
+          "combined_plugin_framework_cap": false,
           "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes.",
           "finding_context": "production",
           "framework_context_dampened": true,
@@ -2528,6 +2652,9 @@
           ],
           "module": "src/myapp/handlers",
           "num_variants": 2,
+          "plugin_boundary_variation_expected": false,
+          "plugin_context_dampened": false,
+          "plugin_context_hints": [],
           "total_instances": 2,
           "variant_count": 2
         },
@@ -2565,6 +2692,7 @@
         "fix": "Function calculate_pricing (complexity 19): add Docstring, Tests, Return-Type.",
         "impact": 0.0855,
         "impact_rank": 30,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.complex_logic.calculate_pricing",
@@ -2580,7 +2708,10 @@
           "has_docstring": false,
           "has_return_type": false,
           "has_test": false,
-          "loc": 36
+          "has_test_unknown": false,
+          "loc": 36,
+          "self_documenting_signature": false,
+          "ts_ui_high_cap_applied": false
         },
         "related_files": [],
         "remediation": {
@@ -2614,6 +2745,7 @@
         "fix": "Verify whether cffi, msgpack, numpy was intentionally introduced in src/myapp/. If yes, add it to drift configuration under allowed_imports. If not, remove the dependency.",
         "impact": 0.06,
         "impact_rank": 31,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp",
@@ -2667,6 +2799,7 @@
         "fix": "Review exception handling changes in authenticate, process_refund. If the change is intentional, update callers and documentation. If accidental, restore the original exception contract.",
         "impact": 0.0508,
         "impact_rank": 32,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.auth_service.authenticate",
@@ -2713,6 +2846,7 @@
         "fix": "Function processBatch (complexity 14): add Docstring, Tests.",
         "impact": 0.0473,
         "impact_rank": 33,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.core.processor.ts.processBatch",
@@ -2728,7 +2862,10 @@
           "has_docstring": false,
           "has_return_type": true,
           "has_test": false,
-          "loc": 32
+          "has_test_unknown": false,
+          "loc": 32,
+          "self_documenting_signature": false,
+          "ts_ui_high_cap_applied": false
         },
         "related_files": [],
         "remediation": {
@@ -2762,6 +2899,7 @@
         "fix": "Function enrich_payload (complexity 10): add Docstring, Tests, Return-Type.",
         "impact": 0.0405,
         "impact_rank": 34,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.enrich_payload",
@@ -2777,7 +2915,10 @@
           "has_docstring": false,
           "has_return_type": false,
           "has_test": false,
-          "loc": 20
+          "has_test_unknown": false,
+          "loc": 20,
+          "self_documenting_signature": false,
+          "ts_ui_high_cap_applied": false
         },
         "related_files": [],
         "remediation": {
@@ -2811,6 +2952,7 @@
         "fix": "Function transform_records (complexity 9): add Docstring, Tests, Return-Type.",
         "impact": 0.0376,
         "impact_rank": 35,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.transform_records",
@@ -2826,7 +2968,10 @@
           "has_docstring": false,
           "has_return_type": false,
           "has_test": false,
-          "loc": 23
+          "has_test_unknown": false,
+          "loc": 23,
+          "self_documenting_signature": false,
+          "ts_ui_high_cap_applied": false
         },
         "related_files": [],
         "remediation": {
@@ -2860,6 +3005,7 @@
         "fix": "Function processOrder (complexity 10): add Docstring, Tests.",
         "impact": 0.033,
         "impact_rank": 36,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.handlers.order.ts.processOrder",
@@ -2875,7 +3021,10 @@
           "has_docstring": false,
           "has_return_type": true,
           "has_test": false,
-          "loc": 28
+          "has_test_unknown": false,
+          "loc": 28,
+          "self_documenting_signature": false,
+          "ts_ui_high_cap_applied": false
         },
         "related_files": [],
         "remediation": {
@@ -2909,6 +3058,7 @@
         "fix": "Function aggregate_metrics (complexity 8): add Docstring, Tests, Return-Type.",
         "impact": 0.0324,
         "impact_rank": 37,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.aggregate_metrics",
@@ -2924,7 +3074,10 @@
           "has_docstring": false,
           "has_return_type": false,
           "has_test": false,
-          "loc": 20
+          "has_test_unknown": false,
+          "loc": 20,
+          "self_documenting_signature": false,
+          "ts_ui_high_cap_applied": false
         },
         "related_files": [],
         "remediation": {
@@ -2958,6 +3111,7 @@
         "fix": "Remove or document each bypass marker in 'compat.py': replace Any with concrete types and add explicit ignores only where the root cause is resolved.",
         "impact": 0.03,
         "impact_rank": 38,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat",
@@ -2997,61 +3151,21 @@
         "ai_attributed": false,
         "attribution": null,
         "deferred": false,
-        "description": "3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 36.0).",
+        "description": "3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 18.0).",
         "end_line": null,
         "file": "src/myapp",
         "finding_context": "production",
         "finding_id": "659c6cb0145724f8",
-        "fix": "Add guard clauses to 3/3 unguarded functions in src/myapp/ (mean complexity 36.0): isinstance checks, None guards, or assert statements.",
-        "impact": 0.03,
+        "fix": "Add guard clauses to 3/3 unguarded functions in src/myapp/ (mean complexity 18.0): isinstance checks, None guards, or assert statements.",
+        "impact": 0.027,
         "impact_rank": 39,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp",
           "kind": "module",
           "name": "myapp",
           "namespace": "src.myapp"
-        },
-        "metadata": {
-          "finding_context": "production",
-          "guarded_count": 0,
-          "guarded_ratio": 0.0,
-          "mean_unguarded_complexity": 36.0,
-          "total_qualifying": 3
-        },
-        "related_files": [],
-        "remediation": null,
-        "rule_id": "guard_clause_deficit",
-        "score": 1.0,
-        "score_contribution": 0.0316,
-        "severity": "high",
-        "signal": "guard_clause_deficit",
-        "signal_abbrev": "GCD",
-        "start_line": 1,
-        "status": "active",
-        "status_reason": null,
-        "status_set_by": null,
-        "symbol": null,
-        "title": "Guard clause deficit in src/myapp/"
-      },
-      {
-        "ai_attributed": false,
-        "attribution": null,
-        "deferred": false,
-        "description": "3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 18.0).",
-        "end_line": null,
-        "file": "src/myapp/processors",
-        "finding_context": "production",
-        "finding_id": "4e93fa3fcbeaf86d",
-        "fix": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 18.0): isinstance checks, None guards, or assert statements.",
-        "impact": 0.027,
-        "impact_rank": 40,
-        "logical_location": {
-          "class_name": null,
-          "fully_qualified_name": "src.myapp.processors",
-          "kind": "module",
-          "name": "processors",
-          "namespace": "src.myapp.processors"
         },
         "metadata": {
           "finding_context": "production",
@@ -3073,7 +3187,7 @@
         "status_reason": null,
         "status_set_by": null,
         "symbol": null,
-        "title": "Guard clause deficit in src/myapp/processors/"
+        "title": "Guard clause deficit in src/myapp/"
       },
       {
         "ai_attributed": false,
@@ -3086,7 +3200,8 @@
         "finding_id": "ce0e547fd17cad4e",
         "fix": "'validate_email()' at src/myapp/validators/checks.py:1 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
         "impact": 0.024,
-        "impact_rank": 41,
+        "impact_rank": 40,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.validators.checks.validate_email",
@@ -3128,7 +3243,8 @@
         "finding_id": "300d896e37a5f10d",
         "fix": "'validate_age()' at src/myapp/validators/checks.py:8 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
         "impact": 0.024,
-        "impact_rank": 42,
+        "impact_rank": 41,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.validators.checks.validate_age",
@@ -3170,7 +3286,8 @@
         "finding_id": "56e13a8b354e0baf",
         "fix": "'is_premium_user()' at src/myapp/validators/checks.py:14 does not satisfy 'is_' naming contract. Suggestion: return a bool-compatible result (annotation and runtime returns).",
         "impact": 0.024,
-        "impact_rank": 43,
+        "impact_rank": 42,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.validators.checks.is_premium_user",
@@ -3212,7 +3329,8 @@
         "finding_id": "d4d8379764797516",
         "fix": "'ensure_database_connection()' at src/myapp/validators/checks.py:23 does not satisfy 'ensure_' naming contract. Suggestion: add at least one raise path that enforces the ensured precondition.",
         "impact": 0.024,
-        "impact_rank": 44,
+        "impact_rank": 43,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.validators.checks.ensure_database_connection",
@@ -3254,7 +3372,8 @@
         "finding_id": "55305fb5b68ba5b9",
         "fix": "'validateEmail()' at src/tsapp/validators/checks.ts:1 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
         "impact": 0.024,
-        "impact_rank": 45,
+        "impact_rank": 44,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.validators.checks.ts.validateEmail",
@@ -3296,7 +3415,8 @@
         "finding_id": "37826c2265b917ba",
         "fix": "'validateAge()' at src/tsapp/validators/checks.ts:6 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
         "impact": 0.024,
-        "impact_rank": 46,
+        "impact_rank": 45,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.validators.checks.ts.validateAge",
@@ -3338,7 +3458,8 @@
         "finding_id": "1a236e0c7a81d245",
         "fix": "'isPremiumUser()' at src/tsapp/validators/checks.ts:11 does not satisfy 'is_' naming contract. Suggestion: return a bool-compatible result (annotation and runtime returns).",
         "impact": 0.024,
-        "impact_rank": 47,
+        "impact_rank": 46,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.validators.checks.ts.isPremiumUser",
@@ -3376,11 +3497,12 @@
         "description": "6 test functions with 11 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
         "end_line": null,
         "file": "tests/api",
-        "finding_context": "production",
+        "finding_context": "test",
         "finding_id": "adbe38c3e7d898e4",
         "fix": "Add negative tests to tests/api/ (6 test functions, only 0 negative assertions): use pytest.raises for expected exceptions, test edge cases (empty, None, invalid input).",
         "impact": 0.024,
-        "impact_rank": 48,
+        "impact_rank": 47,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "tests.api",
@@ -3390,10 +3512,13 @@
         },
         "metadata": {
           "boundary_functions": 0,
-          "finding_context": "production",
+          "early_stage_extension": false,
+          "finding_context": "test",
           "negative_assertions": 0,
           "negative_ratio": 0.0,
           "positive_assertions": 11,
+          "runtime_plugin_workspace": null,
+          "test_file_count": 2,
           "test_functions": 6
         },
         "related_files": [],
@@ -3422,7 +3547,8 @@
         "finding_id": "b9dcfac904ab10cd",
         "fix": "Reduce nesting in 'transform_dataset' (depth 7, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
         "impact": 0.0225,
-        "impact_rank": 49,
+        "impact_rank": 48,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.complex_logic.transform_dataset",
@@ -3462,7 +3588,8 @@
         "finding_id": "0e136eeac3df5ad3",
         "fix": "Reduce nesting in 'calculate_pricing' (depth 6, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
         "impact": 0.018,
-        "impact_rank": 50,
+        "impact_rank": 49,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.complex_logic.calculate_pricing",
@@ -3502,7 +3629,8 @@
         "finding_id": "63b6ce32845c5723",
         "fix": "Reduce nesting in 'enrich_payload' (depth 6, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
         "impact": 0.018,
-        "impact_rank": 51,
+        "impact_rank": 50,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.enrich_payload",
@@ -3535,6 +3663,48 @@
         "ai_attributed": false,
         "attribution": null,
         "deferred": false,
+        "description": "3/3 public functions lack guard clauses (guarded ratio 0.0%, mean unguarded complexity 9.0).",
+        "end_line": null,
+        "file": "src/myapp/processors",
+        "finding_context": "production",
+        "finding_id": "4e93fa3fcbeaf86d",
+        "fix": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 9.0): isinstance checks, None guards, or assert statements.",
+        "impact": 0.0135,
+        "impact_rank": 51,
+        "language": null,
+        "logical_location": {
+          "class_name": null,
+          "fully_qualified_name": "src.myapp.processors",
+          "kind": "module",
+          "name": "processors",
+          "namespace": "src.myapp.processors"
+        },
+        "metadata": {
+          "finding_context": "production",
+          "guarded_count": 0,
+          "guarded_ratio": 0.0,
+          "mean_unguarded_complexity": 9.0,
+          "total_qualifying": 3
+        },
+        "related_files": [],
+        "remediation": null,
+        "rule_id": "guard_clause_deficit",
+        "score": 0.45,
+        "score_contribution": 0.0142,
+        "severity": "medium",
+        "signal": "guard_clause_deficit",
+        "signal_abbrev": "GCD",
+        "start_line": 1,
+        "status": "active",
+        "status_reason": null,
+        "status_set_by": null,
+        "symbol": null,
+        "title": "Guard clause deficit in src/myapp/processors/"
+      },
+      {
+        "ai_attributed": false,
+        "attribution": null,
+        "deferred": false,
         "description": "Function 'transform_records' in src\\myapp\\processors\\data_pipeline.py has nesting depth 5 (threshold: 4). Deep nesting makes control flow hard to follow.",
         "end_line": 23,
         "file": "src/myapp/processors/data_pipeline.py",
@@ -3543,6 +3713,7 @@
         "fix": "Reduce nesting in 'transform_records' (depth 5, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
         "impact": 0.0135,
         "impact_rank": 52,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.transform_records",
@@ -3583,6 +3754,7 @@
         "fix": "Split 6 isolated units into focused modules. Start with: parse_csv_line, send_email_notification, compute_file_checksum, extract_urls, calculate_compound_interest (+1 more). Move each cohesive group into its own module.",
         "impact": 0.0134,
         "impact_rank": 53,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.kitchen_sink",
@@ -3591,6 +3763,7 @@
           "namespace": "src.myapp.kitchen_sink"
         },
         "metadata": {
+          "filename_token_cohesion_ratio": 0.0,
           "finding_context": "production",
           "isolated_count": 6,
           "isolated_units": [
@@ -3602,10 +3775,15 @@
             "serialize_to_jsonl"
           ],
           "isolation_ratio": 1.0,
+          "logger_like_module": false,
           "mean_best_similarity": 0.0,
           "member_scale": 1.0,
+          "module_pattern_dampening": 1.0,
+          "plugin_workspace_source": false,
           "repo_dampening": 1.0,
-          "unit_count": 6
+          "shared_action_prefix_ratio": 0.0,
+          "unit_count": 6,
+          "utility_filename_hint": false
         },
         "related_files": [
           "src/myapp/kitchen_sink.py"
@@ -3641,6 +3819,7 @@
         "fix": "Remove 'handlers/' from README.md or create the directory.",
         "impact": 0.012,
         "impact_rank": 54,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "README.md",
@@ -3680,6 +3859,7 @@
         "fix": "Remove 'middleware/' from README.md or create the directory.",
         "impact": 0.012,
         "impact_rank": 55,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "README.md",
@@ -3719,6 +3899,7 @@
         "fix": "Remove 'models/' from README.md or create the directory.",
         "impact": 0.012,
         "impact_rank": 56,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "README.md",
@@ -3758,6 +3939,7 @@
         "fix": "Remove 'plugins/' from README.md or create the directory.",
         "impact": 0.012,
         "impact_rank": 57,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "README.md",
@@ -3797,6 +3979,7 @@
         "fix": "Remove 'utils/' from README.md or create the directory.",
         "impact": 0.012,
         "impact_rank": 58,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "README.md",
@@ -3836,6 +4019,7 @@
         "fix": "Remove 'views/' from README.md or create the directory.",
         "impact": 0.012,
         "impact_rank": 59,
+        "language": null,
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "README.md",
@@ -3875,6 +4059,7 @@
         "fix": "Split 3 isolated units into focused modules. Start with: processBatch, fastProcess, slowProcess. Move each cohesive group into its own module.",
         "impact": 0.0105,
         "impact_rank": 60,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.core.processor.ts.processBatch",
@@ -3883,6 +4068,7 @@
           "namespace": "src.tsapp.core.processor.ts"
         },
         "metadata": {
+          "filename_token_cohesion_ratio": 0.0,
           "finding_context": "production",
           "isolated_count": 3,
           "isolated_units": [
@@ -3891,10 +4077,15 @@
             "slowProcess"
           ],
           "isolation_ratio": 0.5,
+          "logger_like_module": false,
           "mean_best_similarity": 0.153,
           "member_scale": 1.0,
+          "module_pattern_dampening": 1.0,
+          "plugin_workspace_source": false,
           "repo_dampening": 1.0,
-          "unit_count": 6
+          "shared_action_prefix_ratio": 0.0,
+          "unit_count": 6,
+          "utility_filename_hint": false
         },
         "related_files": [
           "src/tsapp/core/processor.ts"
@@ -3930,6 +4121,7 @@
         "fix": "Verify that msgpack exists in the project or add the missing import. If these functions were suggested by an AI assistant, they may need to be implemented first.",
         "impact": 0.009,
         "impact_rank": 61,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.outlier_module",
@@ -3954,7 +4146,7 @@
         "score_contribution": 0.0095,
         "severity": "medium",
         "signal": "phantom_reference",
-        "signal_abbrev": "PHA",
+        "signal_abbrev": "PHR",
         "start_line": 3,
         "status": "active",
         "status_reason": null,
@@ -3974,6 +4166,7 @@
         "fix": "Co-change coupling: settings.py \u2194 manifest.py.\nRecent context:\n  - \"Update config and deploy v5\"\n  - \"Update config and deploy v4\"\n  - \"Update config and deploy v3\"\n\nIf intentional (shared boundary):\n  \u2192 Add integration test: def test_settings_manifest_sync():\n        # Verify consistent contracts between both modules\n\nIf accidental (layering issue):\n  \u2192 Extract shared logic into src/<domain>/shared.py",
         "impact": 0.0067,
         "impact_rank": 62,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.config.settings",
@@ -3990,11 +4183,11 @@
             "Update config and deploy v3"
           ],
           "commit_samples": [
-            "082b0f6f4aa2",
-            "160320400dae",
-            "189ab060c797",
-            "1b52643f115c",
-            "90f5822d26d4"
+            "3f40a1d3d31e",
+            "52041124ecc0",
+            "7ba118341d39",
+            "7c13b73a2c53",
+            "bdec36bae9aa"
           ],
           "confidence": 1.0,
           "explicit_dependency": false,
@@ -4038,6 +4231,7 @@
         "fix": "Reduce cognitive complexity of 'calculate_pricing' (currently 57, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "impact": 0.0,
         "impact_rank": 63,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.complex_logic.calculate_pricing",
@@ -4048,6 +4242,7 @@
         "metadata": {
           "body_lines": 36,
           "cognitive_complexity": 57,
+          "context_dampened": false,
           "finding_context": "production",
           "function_name": "calculate_pricing",
           "threshold": 15
@@ -4079,6 +4274,7 @@
         "fix": "Reduce cognitive complexity of 'transform_dataset' (currently 113, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "impact": 0.0,
         "impact_rank": 64,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.complex_logic.transform_dataset",
@@ -4089,6 +4285,7 @@
         "metadata": {
           "body_lines": 54,
           "cognitive_complexity": 113,
+          "context_dampened": false,
           "finding_context": "production",
           "function_name": "transform_dataset",
           "threshold": 15
@@ -4120,6 +4317,7 @@
         "fix": "Reduce cognitive complexity of 'transform_records' (currently 24, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "impact": 0.0,
         "impact_rank": 65,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.transform_records",
@@ -4130,6 +4328,7 @@
         "metadata": {
           "body_lines": 23,
           "cognitive_complexity": 24,
+          "context_dampened": false,
           "finding_context": "production",
           "function_name": "transform_records",
           "threshold": 15
@@ -4161,6 +4360,7 @@
         "fix": "Reduce cognitive complexity of 'enrich_payload' (currently 28, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "impact": 0.0,
         "impact_rank": 66,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.enrich_payload",
@@ -4171,6 +4371,7 @@
         "metadata": {
           "body_lines": 20,
           "cognitive_complexity": 28,
+          "context_dampened": false,
           "finding_context": "production",
           "function_name": "enrich_payload",
           "threshold": 15
@@ -4194,6 +4395,49 @@
         "ai_attributed": false,
         "attribution": null,
         "deferred": false,
+        "description": "Function 'processBatch' in src\\tsapp\\core\\processor.ts has cognitive complexity 21 (threshold: 15). Complex control flow makes this function hard to understand and maintain.",
+        "end_line": 32,
+        "file": "src/tsapp/core/processor.ts",
+        "finding_context": "production",
+        "finding_id": "5d7bc8192414ba9c",
+        "fix": "Reduce cognitive complexity of 'processBatch' (currently 21, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
+        "impact": 0.0,
+        "impact_rank": 67,
+        "language": "typescript",
+        "logical_location": {
+          "class_name": null,
+          "fully_qualified_name": "src.tsapp.core.processor.ts.processBatch",
+          "kind": "function",
+          "name": "processBatch",
+          "namespace": "src.tsapp.core.processor.ts"
+        },
+        "metadata": {
+          "body_lines": 32,
+          "cognitive_complexity": 21,
+          "context_dampened": false,
+          "finding_context": "production",
+          "function_name": "processBatch",
+          "threshold": 15
+        },
+        "related_files": [],
+        "remediation": null,
+        "rule_id": "cognitive_complexity",
+        "score": 0.54,
+        "score_contribution": 0.0,
+        "severity": "medium",
+        "signal": "cognitive_complexity",
+        "signal_abbrev": "CXS",
+        "start_line": 1,
+        "status": "active",
+        "status_reason": null,
+        "status_set_by": null,
+        "symbol": "processBatch",
+        "title": "High cognitive complexity in processBatch()"
+      },
+      {
+        "ai_attributed": false,
+        "attribution": null,
+        "deferred": false,
         "description": "src\\myapp\\complex_logic.py exports 2/2 public symbols that are never imported elsewhere: calculate_pricing, transform_dataset. Dead code increases maintenance cost and confuses contributors.",
         "end_line": null,
         "file": "src/myapp/complex_logic.py",
@@ -4201,7 +4445,8 @@
         "finding_id": "dade14c37b06490c",
         "fix": "Review and remove 2 unused exports in complex_logic.py: calculate_pricing, transform_dataset. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 67,
+        "impact_rank": 68,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.complex_logic.calculate_pricing",
@@ -4226,6 +4471,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4254,7 +4505,8 @@
         "finding_id": "a958b082027bd8c7",
         "fix": "Review and remove 2 unused exports in aws_s3.py: upload_file, download_file. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 68,
+        "impact_rank": 69,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.connectors.aws_s3.upload_file",
@@ -4279,6 +4531,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4307,7 +4565,8 @@
         "finding_id": "db4fd9baca7b6a8b",
         "fix": "Review and remove 2 unused exports in google_api.py: fetch_calendar, sync_contacts. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 69,
+        "impact_rank": 70,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.connectors.google_api.fetch_calendar",
@@ -4332,6 +4591,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4360,7 +4625,8 @@
         "finding_id": "61ea9f6aa5507b39",
         "fix": "Review and remove 2 unused exports in slack_api.py: send_message, list_channels. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 70,
+        "impact_rank": 71,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.connectors.slack_api.send_message",
@@ -4385,6 +4651,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4413,7 +4685,8 @@
         "finding_id": "0d6cb829f8bba261",
         "fix": "Review and remove 2 unused exports in stripe_api.py: charge_card, refund. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 71,
+        "impact_rank": 72,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.connectors.stripe_api.charge_card",
@@ -4438,6 +4711,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4466,7 +4745,8 @@
         "finding_id": "daad38dea5f5e7a0",
         "fix": "Review and remove 2 unused exports in hotspot.py: unstable_function, also_changes. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 72,
+        "impact_rank": 73,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.hotspot.unstable_function",
@@ -4491,6 +4771,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4519,7 +4805,8 @@
         "finding_id": "3a6d85f71a96e945",
         "fix": "Review and remove 6 unused exports in kitchen_sink.py: parse_csv_line, send_email_notification, compute_file_checksum, extract_urls, calculate_compound_interest, serialize_to_jsonl. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 73,
+        "impact_rank": 74,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.kitchen_sink.parse_csv_line",
@@ -4564,6 +4851,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 6
         },
         "related_files": [],
@@ -4592,7 +4885,8 @@
         "finding_id": "92b931bf1e8a4a75",
         "fix": "Review and remove 15 unused exports in compat.py: legacy_handler_0, legacy_handler_1, legacy_handler_2, legacy_handler_3, legacy_handler_4, legacy_handler_5, legacy_handler_6, legacy_handler_7, legacy_handler_8, legacy_handler_9. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 74,
+        "impact_rank": 75,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.legacy.compat.legacy_handler_0",
@@ -4682,6 +4976,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 15
         },
         "related_files": [],
@@ -4710,7 +5010,8 @@
         "finding_id": "30510193da543792",
         "fix": "Review and remove 3 unused exports in user.py: get_user, get_user_or_raise, get_user_result. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 75,
+        "impact_rank": 76,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.models.user.get_user",
@@ -4740,6 +5041,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 3
         },
         "related_files": [],
@@ -4768,7 +5075,8 @@
         "finding_id": "3bad91602c5a579b",
         "fix": "Review and remove 3 unused exports in data_pipeline.py: transform_records, aggregate_metrics, enrich_payload. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 76,
+        "impact_rank": 77,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.processors.data_pipeline.transform_records",
@@ -4798,6 +5106,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 3
         },
         "related_files": [],
@@ -4826,7 +5140,8 @@
         "finding_id": "5fa57d35c1463017",
         "fix": "Review and remove 2 unused exports in service_a.py: process_order, validate_input. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 77,
+        "impact_rank": 78,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.service_a.process_order",
@@ -4851,6 +5166,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4879,7 +5200,8 @@
         "finding_id": "867849b3fde894ba",
         "fix": "Review and remove 2 unused exports in service_b.py: process_order, validate_input. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 78,
+        "impact_rank": 79,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.service_b.process_order",
@@ -4904,6 +5226,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 2
         },
         "related_files": [],
@@ -4932,7 +5260,8 @@
         "finding_id": "adca8dd2c73bcc1f",
         "fix": "Review and remove 4 unused exports in checks.py: validate_email, validate_age, is_premium_user, ensure_database_connection. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 79,
+        "impact_rank": 80,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.validators.checks.validate_email",
@@ -4967,6 +5296,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 4
         },
         "related_files": [],
@@ -4988,243 +5323,6 @@
         "ai_attributed": false,
         "attribution": null,
         "deferred": false,
-        "description": "src\\tsapp\\core\\processor.ts exports 6/6 public symbols that are never imported elsewhere: processBatch, handleHighPriority, handlePending, handleDefault, fastProcess, slowProcess. Dead code increases maintenance cost and confuses contributors.",
-        "end_line": null,
-        "file": "src/tsapp/core/processor.ts",
-        "finding_context": "production",
-        "finding_id": "99088d63d43a6839",
-        "fix": "Review and remove 6 unused exports in processor.ts: processBatch, handleHighPriority, handlePending, handleDefault, fastProcess, slowProcess. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "impact": 0.0,
-        "impact_rank": 80,
-        "logical_location": {
-          "class_name": null,
-          "fully_qualified_name": "src.tsapp.core.processor.ts.processBatch",
-          "kind": "function",
-          "name": "processBatch",
-          "namespace": "src.tsapp.core.processor.ts"
-        },
-        "metadata": {
-          "dead_count": 6,
-          "dead_ratio": 1.0,
-          "dead_symbols": [
-            {
-              "kind": "function",
-              "line": 1,
-              "name": "processBatch"
-            },
-            {
-              "kind": "function",
-              "line": 33,
-              "name": "handleHighPriority"
-            },
-            {
-              "kind": "function",
-              "line": 34,
-              "name": "handlePending"
-            },
-            {
-              "kind": "function",
-              "line": 35,
-              "name": "handleDefault"
-            },
-            {
-              "kind": "function",
-              "line": 36,
-              "name": "fastProcess"
-            },
-            {
-              "kind": "function",
-              "line": 37,
-              "name": "slowProcess"
-            }
-          ],
-          "finding_context": "production",
-          "library_context_candidate": false,
-          "total_exports": 6
-        },
-        "related_files": [],
-        "remediation": null,
-        "rule_id": "dead_code_accumulation",
-        "score": 0.92,
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 1,
-        "status": "active",
-        "status_reason": null,
-        "status_set_by": null,
-        "symbol": "processBatch",
-        "title": "6 potentially unused exports in processor.ts"
-      },
-      {
-        "ai_attributed": false,
-        "attribution": null,
-        "deferred": false,
-        "description": "src\\tsapp\\services\\handler_a.ts exports 3/3 public symbols that are never imported elsewhere: handleA, process, AppError. Dead code increases maintenance cost and confuses contributors.",
-        "end_line": null,
-        "file": "src/tsapp/services/handler_a.ts",
-        "finding_context": "production",
-        "finding_id": "fb305a060e86b3a2",
-        "fix": "Review and remove 3 unused exports in handler_a.ts: handleA, process, AppError. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "impact": 0.0,
-        "impact_rank": 81,
-        "logical_location": {
-          "class_name": null,
-          "fully_qualified_name": "src.tsapp.services.handler_a.ts.handleA",
-          "kind": "function",
-          "name": "handleA",
-          "namespace": "src.tsapp.services.handler_a.ts"
-        },
-        "metadata": {
-          "dead_count": 3,
-          "dead_ratio": 1.0,
-          "dead_symbols": [
-            {
-              "kind": "function",
-              "line": 1,
-              "name": "handleA"
-            },
-            {
-              "kind": "function",
-              "line": 11,
-              "name": "process"
-            },
-            {
-              "kind": "class",
-              "line": 12,
-              "name": "AppError"
-            }
-          ],
-          "finding_context": "production",
-          "library_context_candidate": false,
-          "total_exports": 3
-        },
-        "related_files": [],
-        "remediation": null,
-        "rule_id": "dead_code_accumulation",
-        "score": 0.86,
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 1,
-        "status": "active",
-        "status_reason": null,
-        "status_set_by": null,
-        "symbol": "handleA",
-        "title": "3 potentially unused exports in handler_a.ts"
-      },
-      {
-        "ai_attributed": false,
-        "attribution": null,
-        "deferred": false,
-        "description": "src\\tsapp\\services\\handler_b.ts exports 2/2 public symbols that are never imported elsewhere: process, handleB. Dead code increases maintenance cost and confuses contributors.",
-        "end_line": null,
-        "file": "src/tsapp/services/handler_b.ts",
-        "finding_context": "production",
-        "finding_id": "ad1f74c58c9e88e2",
-        "fix": "Review and remove 2 unused exports in handler_b.ts: process, handleB. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "impact": 0.0,
-        "impact_rank": 82,
-        "logical_location": {
-          "class_name": null,
-          "fully_qualified_name": "src.tsapp.services.handler_b.ts.process",
-          "kind": "function",
-          "name": "process",
-          "namespace": "src.tsapp.services.handler_b.ts"
-        },
-        "metadata": {
-          "dead_count": 2,
-          "dead_ratio": 1.0,
-          "dead_symbols": [
-            {
-              "kind": "function",
-              "line": 9,
-              "name": "process"
-            },
-            {
-              "kind": "function",
-              "line": 1,
-              "name": "handleB"
-            }
-          ],
-          "finding_context": "production",
-          "library_context_candidate": false,
-          "total_exports": 2
-        },
-        "related_files": [],
-        "remediation": null,
-        "rule_id": "dead_code_accumulation",
-        "score": 0.84,
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 9,
-        "status": "active",
-        "status_reason": null,
-        "status_set_by": null,
-        "symbol": "process",
-        "title": "2 potentially unused exports in handler_b.ts"
-      },
-      {
-        "ai_attributed": false,
-        "attribution": null,
-        "deferred": false,
-        "description": "src\\tsapp\\services\\handler_c.ts exports 2/2 public symbols that are never imported elsewhere: process, handleC. Dead code increases maintenance cost and confuses contributors.",
-        "end_line": null,
-        "file": "src/tsapp/services/handler_c.ts",
-        "finding_context": "production",
-        "finding_id": "47b6132179bb7509",
-        "fix": "Review and remove 2 unused exports in handler_c.ts: process, handleC. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "impact": 0.0,
-        "impact_rank": 83,
-        "logical_location": {
-          "class_name": null,
-          "fully_qualified_name": "src.tsapp.services.handler_c.ts.process",
-          "kind": "function",
-          "name": "process",
-          "namespace": "src.tsapp.services.handler_c.ts"
-        },
-        "metadata": {
-          "dead_count": 2,
-          "dead_ratio": 1.0,
-          "dead_symbols": [
-            {
-              "kind": "function",
-              "line": 9,
-              "name": "process"
-            },
-            {
-              "kind": "function",
-              "line": 1,
-              "name": "handleC"
-            }
-          ],
-          "finding_context": "production",
-          "library_context_candidate": false,
-          "total_exports": 2
-        },
-        "related_files": [],
-        "remediation": null,
-        "rule_id": "dead_code_accumulation",
-        "score": 0.84,
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 9,
-        "status": "active",
-        "status_reason": null,
-        "status_set_by": null,
-        "symbol": "process",
-        "title": "2 potentially unused exports in handler_c.ts"
-      },
-      {
-        "ai_attributed": false,
-        "attribution": null,
-        "deferred": false,
         "description": "src\\tsapp\\validators\\checks.ts exports 3/3 public symbols that are never imported elsewhere: validateEmail, validateAge, isPremiumUser. Dead code increases maintenance cost and confuses contributors.",
         "end_line": null,
         "file": "src/tsapp/validators/checks.ts",
@@ -5232,7 +5330,8 @@
         "finding_id": "3b195f946473c1c6",
         "fix": "Review and remove 3 unused exports in checks.ts: validateEmail, validateAge, isPremiumUser. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
         "impact": 0.0,
-        "impact_rank": 84,
+        "impact_rank": 81,
+        "language": "typescript",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.tsapp.validators.checks.ts.validateEmail",
@@ -5262,6 +5361,12 @@
           ],
           "finding_context": "production",
           "library_context_candidate": false,
+          "published_package_heuristic_applied": false,
+          "published_package_name": null,
+          "runtime_plugin_config_heuristic_applied": false,
+          "runtime_plugin_entrypoint_heuristic_applied": false,
+          "runtime_plugin_workspace_heuristic_applied": false,
+          "testkit_contract_heuristic_applied": false,
           "total_exports": 3
         },
         "related_files": [],
@@ -5290,7 +5395,8 @@
         "finding_id": "96a1675538a8abf7",
         "fix": "1 defect-correlated commits \u2014 stabilize with tests and code review.",
         "impact": 0.0,
-        "impact_rank": 85,
+        "impact_rank": 82,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.auth_service.authenticate",
@@ -5305,8 +5411,9 @@
           "defect_correlated": 1,
           "defect_z": 3.81,
           "finding_context": "production",
-          "freq_z": 0.66,
-          "unique_authors": 1
+          "freq_z": 0.77,
+          "unique_authors": 1,
+          "workspace_burst_dampened": false
         },
         "related_files": [],
         "remediation": {
@@ -5316,9 +5423,9 @@
           "title": "Stabilize src\\myapp\\auth_service.py"
         },
         "rule_id": "temporal_volatility",
-        "score": 0.497,
+        "score": 0.509,
         "score_contribution": 0.0,
-        "severity": "low",
+        "severity": "medium",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -5332,14 +5439,15 @@
         "ai_attributed": false,
         "attribution": null,
         "deferred": false,
-        "description": "Change frequency: 1.4/week (2.8\u03c3 above mean).",
+        "description": "Change frequency: 1.4/week (3.1\u03c3 above mean).",
         "end_line": null,
         "file": "src/myapp/config/settings.py",
         "finding_context": "production",
         "finding_id": "3ee0e7e6b729028a",
         "fix": "6 commits in 30 days \u2014 split the file into smaller modules.",
         "impact": 0.0,
-        "impact_rank": 86,
+        "impact_rank": 83,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.config.settings",
@@ -5354,8 +5462,9 @@
           "defect_correlated": 0,
           "defect_z": -0.25,
           "finding_context": "production",
-          "freq_z": 2.76,
-          "unique_authors": 1
+          "freq_z": 3.1,
+          "unique_authors": 1,
+          "workspace_burst_dampened": false
         },
         "related_files": [],
         "remediation": {
@@ -5365,9 +5474,9 @@
           "title": "Stabilize src\\myapp\\config\\settings.py"
         },
         "rule_id": "temporal_volatility",
-        "score": 0.279,
+        "score": 0.317,
         "score_contribution": 0.0,
-        "severity": "info",
+        "severity": "low",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -5381,14 +5490,15 @@
         "ai_attributed": false,
         "attribution": null,
         "deferred": false,
-        "description": "Change frequency: 1.4/week (2.8\u03c3 above mean).",
+        "description": "Change frequency: 1.4/week (3.1\u03c3 above mean).",
         "end_line": null,
         "file": "src/myapp/deploy/manifest.py",
         "finding_context": "production",
         "finding_id": "3d8b0ddd49ccc86b",
         "fix": "6 commits in 30 days \u2014 split the file into smaller modules.",
         "impact": 0.0,
-        "impact_rank": 87,
+        "impact_rank": 84,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.deploy.manifest",
@@ -5403,8 +5513,9 @@
           "defect_correlated": 0,
           "defect_z": -0.25,
           "finding_context": "production",
-          "freq_z": 2.76,
-          "unique_authors": 1
+          "freq_z": 3.1,
+          "unique_authors": 1,
+          "workspace_burst_dampened": false
         },
         "related_files": [],
         "remediation": {
@@ -5414,9 +5525,9 @@
           "title": "Stabilize src\\myapp\\deploy\\manifest.py"
         },
         "rule_id": "temporal_volatility",
-        "score": 0.279,
+        "score": 0.317,
         "score_contribution": 0.0,
-        "severity": "info",
+        "severity": "low",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -5430,14 +5541,15 @@
         "ai_attributed": false,
         "attribution": null,
         "deferred": false,
-        "description": "Change frequency: 1.6/week (3.3\u03c3 above mean).",
+        "description": "Change frequency: 1.2/week (2.5\u03c3 above mean).",
         "end_line": null,
         "file": "src/myapp/hotspot.py",
         "finding_context": "production",
         "finding_id": "46af5bf9c0b3337a",
         "fix": "10 commits in 30 days \u2014 split the file into smaller modules.",
         "impact": 0.0,
-        "impact_rank": 88,
+        "impact_rank": 85,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.hotspot",
@@ -5448,12 +5560,13 @@
         "metadata": {
           "ai_ratio": 0.0,
           "author_z": 0.0,
-          "change_frequency_30d": 1.63,
+          "change_frequency_30d": 1.17,
           "defect_correlated": 0,
           "defect_z": -0.25,
           "finding_context": "production",
-          "freq_z": 3.29,
-          "unique_authors": 1
+          "freq_z": 2.52,
+          "unique_authors": 1,
+          "workspace_burst_dampened": false
         },
         "related_files": [],
         "remediation": {
@@ -5463,9 +5576,9 @@
           "title": "Stabilize src\\myapp\\hotspot.py"
         },
         "rule_id": "temporal_volatility",
-        "score": 0.337,
+        "score": 0.252,
         "score_contribution": 0.0,
-        "severity": "low",
+        "severity": "info",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -5486,7 +5599,8 @@
         "finding_id": "837ba45c5ddb0eac",
         "fix": "1 defect-correlated commits \u2014 stabilize with tests and code review.",
         "impact": 0.0,
-        "impact_rank": 89,
+        "impact_rank": 86,
+        "language": "python",
         "logical_location": {
           "class_name": null,
           "fully_qualified_name": "src.myapp.payment.process_refund",
@@ -5501,8 +5615,9 @@
           "defect_correlated": 1,
           "defect_z": 3.81,
           "finding_context": "production",
-          "freq_z": 0.66,
-          "unique_authors": 1
+          "freq_z": 0.77,
+          "unique_authors": 1,
+          "workspace_burst_dampened": false
         },
         "related_files": [],
         "remediation": {
@@ -5512,9 +5627,9 @@
           "title": "Stabilize src\\myapp\\payment.py"
         },
         "rule_id": "temporal_volatility",
-        "score": 0.497,
+        "score": 0.509,
         "score_contribution": 0.0,
-        "severity": "low",
+        "severity": "medium",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -5532,7 +5647,8 @@
         "finding_context": "production",
         "finding_id": "b760449ae72c68e5",
         "impact": 0.2239,
-        "next_step": "Consolidate 3 pattern variants in src/myapp",
+        "language": null,
+        "next_step": "Consolidate to the dominant pattern (2x, exemplar: src/myapp/complex_logic.py:47). Deviations: src/myapp/auth_service.py:3 (authenticate), src/myapp/kitchen_sink.py:31 (send_email_notification).",
         "rank": 1,
         "rule_id": "pattern_fragmentation",
         "score_contribution": 0.1123,
@@ -5549,7 +5665,8 @@
         "finding_context": "production",
         "finding_id": "6f9703f24ece4a01",
         "impact": 0.1981,
-        "next_step": "Merge 'process_order' and 'process_order' (across src/myapp/service_a.py and src/myapp/service_b.py)",
+        "language": "python",
+        "next_step": "Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "rank": 2,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1232,
@@ -5566,7 +5683,8 @@
         "finding_context": "production",
         "finding_id": "ed0c620fc5523ea7",
         "impact": 0.1981,
-        "next_step": "Merge 'validate_input' and 'validate_input' (across src/myapp/service_a.py and src/myapp/service_b.py)",
+        "language": "python",
+        "next_step": "Extract validate_input() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "rank": 3,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1232,
@@ -5583,7 +5701,8 @@
         "finding_context": "production",
         "finding_id": "d7a17c3a9afb3169",
         "impact": 0.1981,
-        "next_step": "Merge 'formatCurrency' and 'formatMoney' (across src/tsapp/utils/formatters.ts and src/tsapp/utils/money.ts)",
+        "language": "typescript",
+        "next_step": "Extract formatCurrency() into src/tsapp/utils/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "rank": 4,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1232,
@@ -5600,6 +5719,7 @@
         "finding_context": "production",
         "finding_id": "8c0473d52f88d1e9",
         "impact": 0.1896,
+        "language": "python",
         "next_step": "Investigate hidden coupling between settings.py and manifest.py. Extract shared logic or make the dependency explicit.",
         "rank": 5,
         "rule_id": "avs_co_change",
@@ -5617,7 +5737,8 @@
         "finding_context": "production",
         "finding_id": "c3184cb7ac7e5334",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_1' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 6,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5634,7 +5755,8 @@
         "finding_context": "production",
         "finding_id": "ff2ff529919d50d0",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_2' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 7,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5651,7 +5773,8 @@
         "finding_context": "production",
         "finding_id": "7427ff297a84f930",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_3' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 8,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5668,7 +5791,8 @@
         "finding_context": "production",
         "finding_id": "c3e3a9fbf772e081",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_4' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 9,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5685,7 +5809,8 @@
         "finding_context": "production",
         "finding_id": "b3a89081ea88473a",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_5' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 10,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5702,7 +5827,8 @@
         "finding_context": "production",
         "finding_id": "20910fd6f208c178",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_6' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 11,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5719,7 +5845,8 @@
         "finding_context": "production",
         "finding_id": "018ba5001a8d8666",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_7' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 12,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5736,7 +5863,8 @@
         "finding_context": "production",
         "finding_id": "2918c89048b06735",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_8' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 13,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5753,7 +5881,8 @@
         "finding_context": "production",
         "finding_id": "310b9798e575c781",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_9' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 14,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5770,7 +5899,8 @@
         "finding_context": "production",
         "finding_id": "d7e3defd0afbfee3",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_10' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 15,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5787,7 +5917,8 @@
         "finding_context": "production",
         "finding_id": "3effd74cfb578050",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_11' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 16,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5804,7 +5935,8 @@
         "finding_context": "production",
         "finding_id": "341303addca19a52",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_12' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 17,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5821,7 +5953,8 @@
         "finding_context": "production",
         "finding_id": "95e5a05ad95c2044",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_13' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 18,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5838,7 +5971,8 @@
         "finding_context": "production",
         "finding_id": "23667e2c5b49e595",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_14' (in src/myapp/legacy/compat.py)",
+        "language": "python",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "rank": 19,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.1076,
@@ -5855,7 +5989,8 @@
         "finding_context": "production",
         "finding_id": "255ca0782c01df14",
         "impact": 0.1679,
-        "next_step": "Consolidate 2 pattern variants in src/myapp",
+        "language": null,
+        "next_step": "Consolidate to the dominant pattern (2x, exemplar: src/myapp/auth_service.py:1). Deviations: src/myapp/service_a.py:1 (process_order), src/myapp/service_b.py:1 (process_order).",
         "rank": 20,
         "rule_id": "pattern_fragmentation",
         "score_contribution": 0.0842,
@@ -5872,7 +6007,8 @@
         "finding_context": "production",
         "finding_id": "d32047deaf625de2",
         "impact": 0.159,
-        "next_step": "Merge 'download_file' and 'send_message' (across src/myapp/connectors/aws_s3.py and src/myapp/connectors/slack_api.py)",
+        "language": "python",
+        "next_step": "Extract download_file() into src/myapp/connectors/shared.py. Similarity: 85%. Effort: S.",
         "rank": 21,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.0989,
@@ -5889,7 +6025,8 @@
         "finding_context": "production",
         "finding_id": "05c1f15ecabe59cd",
         "impact": 0.159,
-        "next_step": "Merge 'fetch_user_data' and 'get_customer_info' (across src/myapp/handler_v1.py and src/myapp/handler_v2.py)",
+        "language": "python",
+        "next_step": "Extract fetch_user_data() into src/myapp/shared.py. Similarity: 85%. Effort: S.",
         "rank": 22,
         "rule_id": "mutant_duplicate",
         "score_contribution": 0.0989,
@@ -5906,7 +6043,8 @@
         "finding_context": "production",
         "finding_id": "5e470dabd9e33897",
         "impact": 0.1455,
-        "next_step": "Consolidate 3 pattern variants in src/tsapp/services",
+        "language": null,
+        "next_step": "Consolidate to the dominant pattern (1x, exemplar: src/tsapp/services/handler_a.ts:2). Deviations: src/tsapp/services/handler_b.ts:2 (handleB), src/tsapp/services/handler_c.ts:2 (handleC).",
         "rank": 23,
         "rule_id": "pattern_fragmentation",
         "score_contribution": 0.073,
@@ -5923,7 +6061,8 @@
         "finding_context": "production",
         "finding_id": "4c322947dea01b7a",
         "impact": 0.1355,
-        "next_step": "Consolidate 2 pattern variants in src/myapp/models",
+        "language": null,
+        "next_step": "Consolidate to the dominant pattern (1x, exemplar: src/myapp/models/user.py:1). Deviations: src/myapp/models/user.py:7 (get_user_or_raise).",
         "rank": 24,
         "rule_id": "pattern_fragmentation",
         "score_contribution": 0.0842,
@@ -5940,6 +6079,7 @@
         "finding_context": "production",
         "finding_id": "169ff6b21448f3fa",
         "impact": 0.1044,
+        "language": null,
         "next_step": "Differentiate exception handlers: catch specific exception types and re-raise or convert unknown errors.",
         "rank": 25,
         "rule_id": "broad_exception_monoculture",
@@ -5957,6 +6097,7 @@
         "finding_context": "production",
         "finding_id": "df67b0a14c0f5e56",
         "impact": 0.1,
+        "language": "typescript",
         "next_step": "Replace type safety bypasses with proper type guards, narrowing, or explicit type definitions. Found: 1\u00d7 as_any, 1\u00d7 double_cast, 1\u00d7 non_null_assertion, 2\u00d7 ts_ignore.",
         "rank": 26,
         "rule_id": "type_safety_bypass",
@@ -5974,6 +6115,7 @@
         "finding_context": "production",
         "finding_id": "639f208e29e7028b",
         "impact": 0.0955,
+        "language": null,
         "next_step": "Differentiate exception handlers: catch specific exception types and re-raise or convert unknown errors.",
         "rank": 27,
         "rule_id": "broad_exception_monoculture",
@@ -5991,7 +6133,8 @@
         "finding_context": "production",
         "finding_id": "5e76522b4d9a799e",
         "impact": 0.09,
-        "next_step": "Document 'transform_dataset'",
+        "language": "python",
+        "next_step": "Function transform_dataset (complexity 30): add Docstring, Tests, Return-Type.",
         "rank": 28,
         "rule_id": "explainability_deficit",
         "score_contribution": 0.0947,
@@ -6008,7 +6151,8 @@
         "finding_context": "production",
         "finding_id": "20e372826b1486b6",
         "impact": 0.088,
-        "next_step": "Consolidate 2 pattern variants in src/myapp/handlers",
+        "language": null,
+        "next_step": "Consolidate to the dominant pattern (1x, exemplar: src/myapp/handlers/auth.py:5). Deviations: src/myapp/handlers/orders.py:7 (create_order).",
         "rank": 29,
         "rule_id": "pattern_fragmentation",
         "score_contribution": 0.0547,
@@ -6025,7 +6169,8 @@
         "finding_context": "production",
         "finding_id": "318a97ef7e561623",
         "impact": 0.0855,
-        "next_step": "Document 'calculate_pricing'",
+        "language": "python",
+        "next_step": "Function calculate_pricing (complexity 19): add Docstring, Tests, Return-Type.",
         "rank": 30,
         "rule_id": "explainability_deficit",
         "score_contribution": 0.09,
@@ -6042,7 +6187,8 @@
         "finding_context": "production",
         "finding_id": "dcb6c8a1942eb624",
         "impact": 0.06,
-        "next_step": "Review novel dependencies in src\\myapp",
+        "language": null,
+        "next_step": "Verify whether cffi, msgpack, numpy was intentionally introduced in src/myapp/. If yes, add it to drift configuration under allowed_imports. If not, remove the dependency.",
         "rank": 31,
         "rule_id": "system_misalignment",
         "score_contribution": 0.0632,
@@ -6059,6 +6205,7 @@
         "finding_context": "production",
         "finding_id": "deefd527f9432d71",
         "impact": 0.0508,
+        "language": "python",
         "next_step": "Review exception handling changes in authenticate, process_refund. If the change is intentional, update callers and documentation. If accidental, restore the original exception contract.",
         "rank": 32,
         "rule_id": "exception_contract_drift",
@@ -6076,7 +6223,8 @@
         "finding_context": "production",
         "finding_id": "ea7d3971d72f1d39",
         "impact": 0.0473,
-        "next_step": "Document 'processBatch'",
+        "language": "typescript",
+        "next_step": "Function processBatch (complexity 14): add Docstring, Tests.",
         "rank": 33,
         "rule_id": "explainability_deficit",
         "score_contribution": 0.0497,
@@ -6093,7 +6241,8 @@
         "finding_context": "production",
         "finding_id": "c0d22512d419f204",
         "impact": 0.0405,
-        "next_step": "Document 'enrich_payload'",
+        "language": "python",
+        "next_step": "Function enrich_payload (complexity 10): add Docstring, Tests, Return-Type.",
         "rank": 34,
         "rule_id": "explainability_deficit",
         "score_contribution": 0.0426,
@@ -6110,7 +6259,8 @@
         "finding_context": "production",
         "finding_id": "5158cb9fc4cf9397",
         "impact": 0.0376,
-        "next_step": "Document 'transform_records'",
+        "language": "python",
+        "next_step": "Function transform_records (complexity 9): add Docstring, Tests, Return-Type.",
         "rank": 35,
         "rule_id": "explainability_deficit",
         "score_contribution": 0.0396,
@@ -6127,7 +6277,8 @@
         "finding_context": "production",
         "finding_id": "f1f21f9459bffa74",
         "impact": 0.033,
-        "next_step": "Document 'processOrder'",
+        "language": "typescript",
+        "next_step": "Function processOrder (complexity 10): add Docstring, Tests.",
         "rank": 36,
         "rule_id": "explainability_deficit",
         "score_contribution": 0.0348,
@@ -6144,7 +6295,8 @@
         "finding_context": "production",
         "finding_id": "6b9f18797d1d2231",
         "impact": 0.0324,
-        "next_step": "Document 'aggregate_metrics'",
+        "language": "python",
+        "next_step": "Function aggregate_metrics (complexity 8): add Docstring, Tests, Return-Type.",
         "rank": 37,
         "rule_id": "explainability_deficit",
         "score_contribution": 0.0341,
@@ -6161,6 +6313,7 @@
         "finding_context": "production",
         "finding_id": "f8dfbfd31fb162a4",
         "impact": 0.03,
+        "language": "python",
         "next_step": "Remove or document each bypass marker in 'compat.py': replace Any with concrete types and add explicit ignores only where the root cause is resolved.",
         "rank": 38,
         "rule_id": "bypass_accumulation",
@@ -6177,11 +6330,12 @@
         "file": "src/myapp",
         "finding_context": "production",
         "finding_id": "659c6cb0145724f8",
-        "impact": 0.03,
-        "next_step": "Add guard clauses to 3/3 unguarded functions in src/myapp/ (mean complexity 36.0): isinstance checks, None guards, or assert statements.",
+        "impact": 0.027,
+        "language": null,
+        "next_step": "Add guard clauses to 3/3 unguarded functions in src/myapp/ (mean complexity 18.0): isinstance checks, None guards, or assert statements.",
         "rank": 39,
         "rule_id": "guard_clause_deficit",
-        "score_contribution": 0.0316,
+        "score_contribution": 0.0284,
         "severity": "high",
         "signal": "guard_clause_deficit",
         "signal_abbrev": "GCD",
@@ -6191,29 +6345,13 @@
       },
       {
         "duplicate_count": 1,
-        "file": "src/myapp/processors",
-        "finding_context": "production",
-        "finding_id": "4e93fa3fcbeaf86d",
-        "impact": 0.027,
-        "next_step": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 18.0): isinstance checks, None guards, or assert statements.",
-        "rank": 40,
-        "rule_id": "guard_clause_deficit",
-        "score_contribution": 0.0284,
-        "severity": "high",
-        "signal": "guard_clause_deficit",
-        "signal_abbrev": "GCD",
-        "start_line": 1,
-        "status": "active",
-        "title": "Guard clause deficit in src/myapp/processors/"
-      },
-      {
-        "duplicate_count": 1,
         "file": "src/myapp/validators/checks.py",
         "finding_context": "production",
         "finding_id": "ce0e547fd17cad4e",
         "impact": 0.024,
+        "language": "python",
         "next_step": "'validate_email()' at src/myapp/validators/checks.py:1 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
-        "rank": 41,
+        "rank": 40,
         "rule_id": "naming_contract_violation",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6229,8 +6367,9 @@
         "finding_context": "production",
         "finding_id": "300d896e37a5f10d",
         "impact": 0.024,
+        "language": "python",
         "next_step": "'validate_age()' at src/myapp/validators/checks.py:8 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
-        "rank": 42,
+        "rank": 41,
         "rule_id": "naming_contract_violation",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6246,8 +6385,9 @@
         "finding_context": "production",
         "finding_id": "56e13a8b354e0baf",
         "impact": 0.024,
+        "language": "python",
         "next_step": "'is_premium_user()' at src/myapp/validators/checks.py:14 does not satisfy 'is_' naming contract. Suggestion: return a bool-compatible result (annotation and runtime returns).",
-        "rank": 43,
+        "rank": 42,
         "rule_id": "naming_contract_violation",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6263,8 +6403,9 @@
         "finding_context": "production",
         "finding_id": "d4d8379764797516",
         "impact": 0.024,
+        "language": "python",
         "next_step": "'ensure_database_connection()' at src/myapp/validators/checks.py:23 does not satisfy 'ensure_' naming contract. Suggestion: add at least one raise path that enforces the ensured precondition.",
-        "rank": 44,
+        "rank": 43,
         "rule_id": "naming_contract_violation",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6280,8 +6421,9 @@
         "finding_context": "production",
         "finding_id": "55305fb5b68ba5b9",
         "impact": 0.024,
+        "language": "typescript",
         "next_step": "'validateEmail()' at src/tsapp/validators/checks.ts:1 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
-        "rank": 45,
+        "rank": 44,
         "rule_id": "naming_contract_violation",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6297,8 +6439,9 @@
         "finding_context": "production",
         "finding_id": "37826c2265b917ba",
         "impact": 0.024,
+        "language": "typescript",
         "next_step": "'validateAge()' at src/tsapp/validators/checks.ts:6 does not satisfy 'validate_' naming contract. Suggestion: implement a rejection path (raise or return False/None), or rename the function to match non-validating behavior.",
-        "rank": 46,
+        "rank": 45,
         "rule_id": "naming_contract_violation",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6314,8 +6457,9 @@
         "finding_context": "production",
         "finding_id": "1a236e0c7a81d245",
         "impact": 0.024,
+        "language": "typescript",
         "next_step": "'isPremiumUser()' at src/tsapp/validators/checks.ts:11 does not satisfy 'is_' naming contract. Suggestion: return a bool-compatible result (annotation and runtime returns).",
-        "rank": 47,
+        "rank": 46,
         "rule_id": "naming_contract_violation",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6328,11 +6472,12 @@
       {
         "duplicate_count": 1,
         "file": "tests/api",
-        "finding_context": "production",
+        "finding_context": "test",
         "finding_id": "adbe38c3e7d898e4",
         "impact": 0.024,
+        "language": null,
         "next_step": "Add negative tests to tests/api/ (6 test functions, only 0 negative assertions): use pytest.raises for expected exceptions, test edge cases (empty, None, invalid input).",
-        "rank": 48,
+        "rank": 47,
         "rule_id": "test_polarity_deficit",
         "score_contribution": 0.0253,
         "severity": "medium",
@@ -6348,8 +6493,9 @@
         "finding_context": "production",
         "finding_id": "b9dcfac904ab10cd",
         "impact": 0.0225,
+        "language": "python",
         "next_step": "Reduce nesting in 'transform_dataset' (depth 7, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
-        "rank": 49,
+        "rank": 48,
         "rule_id": "deep_nesting",
         "score_contribution": 0.0237,
         "severity": "high",
@@ -6365,8 +6511,9 @@
         "finding_context": "production",
         "finding_id": "0e136eeac3df5ad3",
         "impact": 0.018,
+        "language": "python",
         "next_step": "Reduce nesting in 'calculate_pricing' (depth 6, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
-        "rank": 50,
+        "rank": 49,
         "rule_id": "deep_nesting",
         "score_contribution": 0.0189,
         "severity": "high",
@@ -6382,8 +6529,9 @@
         "finding_context": "production",
         "finding_id": "63b6ce32845c5723",
         "impact": 0.018,
+        "language": "python",
         "next_step": "Reduce nesting in 'enrich_payload' (depth 6, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
-        "rank": 51,
+        "rank": 50,
         "rule_id": "deep_nesting",
         "score_contribution": 0.0189,
         "severity": "high",
@@ -6395,10 +6543,29 @@
       },
       {
         "duplicate_count": 1,
+        "file": "src/myapp/processors",
+        "finding_context": "production",
+        "finding_id": "4e93fa3fcbeaf86d",
+        "impact": 0.0135,
+        "language": null,
+        "next_step": "Add guard clauses to 3/3 unguarded functions in src/myapp/processors/ (mean complexity 9.0): isinstance checks, None guards, or assert statements.",
+        "rank": 51,
+        "rule_id": "guard_clause_deficit",
+        "score_contribution": 0.0142,
+        "severity": "medium",
+        "signal": "guard_clause_deficit",
+        "signal_abbrev": "GCD",
+        "start_line": 1,
+        "status": "active",
+        "title": "Guard clause deficit in src/myapp/processors/"
+      },
+      {
+        "duplicate_count": 1,
         "file": "src/myapp/processors/data_pipeline.py",
         "finding_context": "production",
         "finding_id": "ec556c03e5f8ba30",
         "impact": 0.0135,
+        "language": "python",
         "next_step": "Reduce nesting in 'transform_records' (depth 5, threshold 4): use early returns, extract nested blocks into helpers, or invert conditions.",
         "rank": 52,
         "rule_id": "deep_nesting",
@@ -6416,7 +6583,8 @@
         "finding_context": "production",
         "finding_id": "e2f1b1a6fcc6d2a8",
         "impact": 0.0134,
-        "next_step": "Split low-cohesion module (6/6 isolated units)",
+        "language": "python",
+        "next_step": "Split 6 isolated units into focused modules. Start with: parse_csv_line, send_email_notification, compute_file_checksum, extract_urls, calculate_compound_interest (+1 more). Move each cohesive group into its own module.",
         "rank": 53,
         "rule_id": "cohesion_deficit",
         "score_contribution": 0.0083,
@@ -6433,6 +6601,7 @@
         "finding_context": "production",
         "finding_id": "832dd232d35d3c1a",
         "impact": 0.012,
+        "language": null,
         "next_step": "Remove 'handlers/' from README.md or create the directory.",
         "rank": 54,
         "rule_id": "doc_impl_drift",
@@ -6450,6 +6619,7 @@
         "finding_context": "production",
         "finding_id": "0a5e145e87a9fd6d",
         "impact": 0.012,
+        "language": null,
         "next_step": "Remove 'middleware/' from README.md or create the directory.",
         "rank": 55,
         "rule_id": "doc_impl_drift",
@@ -6467,6 +6637,7 @@
         "finding_context": "production",
         "finding_id": "c62fe02b17684732",
         "impact": 0.012,
+        "language": null,
         "next_step": "Remove 'models/' from README.md or create the directory.",
         "rank": 56,
         "rule_id": "doc_impl_drift",
@@ -6484,6 +6655,7 @@
         "finding_context": "production",
         "finding_id": "d6134784bdb6fb60",
         "impact": 0.012,
+        "language": null,
         "next_step": "Remove 'plugins/' from README.md or create the directory.",
         "rank": 57,
         "rule_id": "doc_impl_drift",
@@ -6501,6 +6673,7 @@
         "finding_context": "production",
         "finding_id": "cb591161b3d1d383",
         "impact": 0.012,
+        "language": null,
         "next_step": "Remove 'utils/' from README.md or create the directory.",
         "rank": 58,
         "rule_id": "doc_impl_drift",
@@ -6518,6 +6691,7 @@
         "finding_context": "production",
         "finding_id": "b5ba5b917aa866a5",
         "impact": 0.012,
+        "language": null,
         "next_step": "Remove 'views/' from README.md or create the directory.",
         "rank": 59,
         "rule_id": "doc_impl_drift",
@@ -6535,7 +6709,8 @@
         "finding_context": "production",
         "finding_id": "416cdaf97be742e9",
         "impact": 0.0105,
-        "next_step": "Split low-cohesion module (3/6 isolated units)",
+        "language": "typescript",
+        "next_step": "Split 3 isolated units into focused modules. Start with: processBatch, fastProcess, slowProcess. Move each cohesive group into its own module.",
         "rank": 60,
         "rule_id": "cohesion_deficit",
         "score_contribution": 0.0065,
@@ -6552,13 +6727,14 @@
         "finding_context": "production",
         "finding_id": "b68a04b6db90cbce",
         "impact": 0.009,
+        "language": "python",
         "next_step": "Verify that msgpack exists in the project or add the missing import. If these functions were suggested by an AI assistant, they may need to be implemented first.",
         "rank": 61,
         "rule_id": "phantom_reference",
         "score_contribution": 0.0095,
         "severity": "medium",
         "signal": "phantom_reference",
-        "signal_abbrev": "PHA",
+        "signal_abbrev": "PHR",
         "start_line": 3,
         "status": "active",
         "title": "1 unresolvable reference in outlier_module.py"
@@ -6569,7 +6745,8 @@
         "finding_context": "production",
         "finding_id": "e141634975357af5",
         "impact": 0.0067,
-        "next_step": "Make hidden coupling explicit: settings.py <-> manifest.py",
+        "language": "python",
+        "next_step": "Co-change coupling: settings.py \u2194 manifest.py.\nRecent context:\n  - \"Update config and deploy v5\"\n  - \"Update config and deploy v4\"\n  - \"Update config and deploy v3\"\n\nIf intentional (shared boundary):\n  \u2192 Add integration test: def test_settings_manifest_sync():\n        # Verify consistent contracts between both modules\n\nIf accidental (layering issue):\n  \u2192 Extract shared logic into src/<domain>/shared.py",
         "rank": 62,
         "rule_id": "co_change_coupling",
         "score_contribution": 0.0042,
@@ -6586,6 +6763,7 @@
         "finding_context": "production",
         "finding_id": "ac15d4212e9308c3",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Reduce cognitive complexity of 'calculate_pricing' (currently 57, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "rank": 63,
         "rule_id": "cognitive_complexity",
@@ -6603,6 +6781,7 @@
         "finding_context": "production",
         "finding_id": "9f847448a94cf997",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Reduce cognitive complexity of 'transform_dataset' (currently 113, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "rank": 64,
         "rule_id": "cognitive_complexity",
@@ -6620,6 +6799,7 @@
         "finding_context": "production",
         "finding_id": "93408ba80f9b4fe9",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Reduce cognitive complexity of 'transform_records' (currently 24, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "rank": 65,
         "rule_id": "cognitive_complexity",
@@ -6637,6 +6817,7 @@
         "finding_context": "production",
         "finding_id": "55777f5d8b3ed376",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Reduce cognitive complexity of 'enrich_payload' (currently 28, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
         "rank": 66,
         "rule_id": "cognitive_complexity",
@@ -6650,12 +6831,31 @@
       },
       {
         "duplicate_count": 1,
+        "file": "src/tsapp/core/processor.ts",
+        "finding_context": "production",
+        "finding_id": "5d7bc8192414ba9c",
+        "impact": 0.0,
+        "language": "typescript",
+        "next_step": "Reduce cognitive complexity of 'processBatch' (currently 21, threshold 15): extract nested logic into helper functions, replace nested conditionals with guard clauses, simplify boolean expressions.",
+        "rank": 67,
+        "rule_id": "cognitive_complexity",
+        "score_contribution": 0.0,
+        "severity": "medium",
+        "signal": "cognitive_complexity",
+        "signal_abbrev": "CXS",
+        "start_line": 1,
+        "status": "active",
+        "title": "High cognitive complexity in processBatch()"
+      },
+      {
+        "duplicate_count": 1,
         "file": "src/myapp/complex_logic.py",
         "finding_context": "production",
         "finding_id": "dade14c37b06490c",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in complex_logic.py: calculate_pricing, transform_dataset. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 67,
+        "rank": 68,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6671,8 +6871,9 @@
         "finding_context": "production",
         "finding_id": "a958b082027bd8c7",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in aws_s3.py: upload_file, download_file. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 68,
+        "rank": 69,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6688,8 +6889,9 @@
         "finding_context": "production",
         "finding_id": "db4fd9baca7b6a8b",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in google_api.py: fetch_calendar, sync_contacts. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 69,
+        "rank": 70,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6705,8 +6907,9 @@
         "finding_context": "production",
         "finding_id": "61ea9f6aa5507b39",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in slack_api.py: send_message, list_channels. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 70,
+        "rank": 71,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6722,8 +6925,9 @@
         "finding_context": "production",
         "finding_id": "0d6cb829f8bba261",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in stripe_api.py: charge_card, refund. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 71,
+        "rank": 72,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6739,8 +6943,9 @@
         "finding_context": "production",
         "finding_id": "daad38dea5f5e7a0",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in hotspot.py: unstable_function, also_changes. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 72,
+        "rank": 73,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6756,8 +6961,9 @@
         "finding_context": "production",
         "finding_id": "3a6d85f71a96e945",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 6 unused exports in kitchen_sink.py: parse_csv_line, send_email_notification, compute_file_checksum, extract_urls, calculate_compound_interest, serialize_to_jsonl. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 73,
+        "rank": 74,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6773,8 +6979,9 @@
         "finding_context": "production",
         "finding_id": "92b931bf1e8a4a75",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 15 unused exports in compat.py: legacy_handler_0, legacy_handler_1, legacy_handler_2, legacy_handler_3, legacy_handler_4, legacy_handler_5, legacy_handler_6, legacy_handler_7, legacy_handler_8, legacy_handler_9. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 74,
+        "rank": 75,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6790,8 +6997,9 @@
         "finding_context": "production",
         "finding_id": "30510193da543792",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 3 unused exports in user.py: get_user, get_user_or_raise, get_user_result. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 75,
+        "rank": 76,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6807,8 +7015,9 @@
         "finding_context": "production",
         "finding_id": "3bad91602c5a579b",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 3 unused exports in data_pipeline.py: transform_records, aggregate_metrics, enrich_payload. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 76,
+        "rank": 77,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6824,8 +7033,9 @@
         "finding_context": "production",
         "finding_id": "5fa57d35c1463017",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in service_a.py: process_order, validate_input. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 77,
+        "rank": 78,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6841,8 +7051,9 @@
         "finding_context": "production",
         "finding_id": "867849b3fde894ba",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 2 unused exports in service_b.py: process_order, validate_input. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 78,
+        "rank": 79,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6858,8 +7069,9 @@
         "finding_context": "production",
         "finding_id": "adca8dd2c73bcc1f",
         "impact": 0.0,
+        "language": "python",
         "next_step": "Review and remove 4 unused exports in checks.py: validate_email, validate_age, is_premium_user, ensure_database_connection. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 79,
+        "rank": 80,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6871,80 +7083,13 @@
       },
       {
         "duplicate_count": 1,
-        "file": "src/tsapp/core/processor.ts",
-        "finding_context": "production",
-        "finding_id": "99088d63d43a6839",
-        "impact": 0.0,
-        "next_step": "Review and remove 6 unused exports in processor.ts: processBatch, handleHighPriority, handlePending, handleDefault, fastProcess, slowProcess. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 80,
-        "rule_id": "dead_code_accumulation",
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 1,
-        "status": "active",
-        "title": "6 potentially unused exports in processor.ts"
-      },
-      {
-        "duplicate_count": 1,
-        "file": "src/tsapp/services/handler_a.ts",
-        "finding_context": "production",
-        "finding_id": "fb305a060e86b3a2",
-        "impact": 0.0,
-        "next_step": "Review and remove 3 unused exports in handler_a.ts: handleA, process, AppError. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 81,
-        "rule_id": "dead_code_accumulation",
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 1,
-        "status": "active",
-        "title": "3 potentially unused exports in handler_a.ts"
-      },
-      {
-        "duplicate_count": 1,
-        "file": "src/tsapp/services/handler_b.ts",
-        "finding_context": "production",
-        "finding_id": "ad1f74c58c9e88e2",
-        "impact": 0.0,
-        "next_step": "Review and remove 2 unused exports in handler_b.ts: process, handleB. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 82,
-        "rule_id": "dead_code_accumulation",
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 9,
-        "status": "active",
-        "title": "2 potentially unused exports in handler_b.ts"
-      },
-      {
-        "duplicate_count": 1,
-        "file": "src/tsapp/services/handler_c.ts",
-        "finding_context": "production",
-        "finding_id": "47b6132179bb7509",
-        "impact": 0.0,
-        "next_step": "Review and remove 2 unused exports in handler_c.ts: process, handleC. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 83,
-        "rule_id": "dead_code_accumulation",
-        "score_contribution": 0.0,
-        "severity": "high",
-        "signal": "dead_code_accumulation",
-        "signal_abbrev": "DCA",
-        "start_line": 9,
-        "status": "active",
-        "title": "2 potentially unused exports in handler_c.ts"
-      },
-      {
-        "duplicate_count": 1,
         "file": "src/tsapp/validators/checks.ts",
         "finding_context": "production",
         "finding_id": "3b195f946473c1c6",
         "impact": 0.0,
+        "language": "typescript",
         "next_step": "Review and remove 3 unused exports in checks.ts: validateEmail, validateAge, isPremiumUser. If they are framework entry-points or dynamically loaded, mark with # drift:ignore or add to exclude patterns.",
-        "rank": 84,
+        "rank": 81,
         "rule_id": "dead_code_accumulation",
         "score_contribution": 0.0,
         "severity": "high",
@@ -6960,11 +7105,12 @@
         "finding_context": "production",
         "finding_id": "96a1675538a8abf7",
         "impact": 0.0,
-        "next_step": "Stabilize src\\myapp\\auth_service.py",
-        "rank": 85,
+        "language": "python",
+        "next_step": "1 defect-correlated commits \u2014 stabilize with tests and code review.",
+        "rank": 82,
         "rule_id": "temporal_volatility",
         "score_contribution": 0.0,
-        "severity": "low",
+        "severity": "medium",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -6977,11 +7123,12 @@
         "finding_context": "production",
         "finding_id": "3ee0e7e6b729028a",
         "impact": 0.0,
-        "next_step": "Stabilize src\\myapp\\config\\settings.py",
-        "rank": 86,
+        "language": "python",
+        "next_step": "6 commits in 30 days \u2014 split the file into smaller modules.",
+        "rank": 83,
         "rule_id": "temporal_volatility",
         "score_contribution": 0.0,
-        "severity": "info",
+        "severity": "low",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -6994,11 +7141,12 @@
         "finding_context": "production",
         "finding_id": "3d8b0ddd49ccc86b",
         "impact": 0.0,
-        "next_step": "Stabilize src\\myapp\\deploy\\manifest.py",
-        "rank": 87,
+        "language": "python",
+        "next_step": "6 commits in 30 days \u2014 split the file into smaller modules.",
+        "rank": 84,
         "rule_id": "temporal_volatility",
         "score_contribution": 0.0,
-        "severity": "info",
+        "severity": "low",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -7011,11 +7159,12 @@
         "finding_context": "production",
         "finding_id": "46af5bf9c0b3337a",
         "impact": 0.0,
-        "next_step": "Stabilize src\\myapp\\hotspot.py",
-        "rank": 88,
+        "language": "python",
+        "next_step": "10 commits in 30 days \u2014 split the file into smaller modules.",
+        "rank": 85,
         "rule_id": "temporal_volatility",
         "score_contribution": 0.0,
-        "severity": "low",
+        "severity": "info",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -7028,11 +7177,12 @@
         "finding_context": "production",
         "finding_id": "837ba45c5ddb0eac",
         "impact": 0.0,
-        "next_step": "Stabilize src\\myapp\\payment.py",
-        "rank": 89,
+        "language": "python",
+        "next_step": "1 defect-correlated commits \u2014 stabilize with tests and code review.",
+        "rank": 86,
         "rule_id": "temporal_volatility",
         "score_contribution": 0.0,
-        "severity": "low",
+        "severity": "medium",
         "signal": "temporal_volatility",
         "signal_abbrev": "TVS",
         "start_line": 1,
@@ -7043,7 +7193,7 @@
     "findings_suppressed": [],
     "first_run": {
       "headline": "Start with the highest-risk structural issue.",
-      "next_step": "Split low-cohesion module (6/6 isolated units)",
+      "next_step": "Split 6 isolated units into focused modules. Start with: parse_csv_line, send_email_notification, compute_file_checksum, extract_urls, calculate_compound_interest (+1 more). Move each cohesive group into its own module.",
       "top_findings": [
         {
           "detection_method": null,
@@ -7052,7 +7202,7 @@
           "finding_context": "production",
           "fingerprint": "e2f1b1a6fcc6d2a8",
           "line": 1,
-          "next_step": "Split low-cohesion module (6/6 isolated units)",
+          "next_step": "Split 6 isolated units into focused modules. Start with: parse_csv_line, send_email_notification, compute_file_checksum, extract_urls, calculate_compound_interest (+1 more). Move each cohesive group into its own module.",
           "priority_class": "architecture_boundary",
           "rule_id": "cohesion_deficit",
           "severity": "high",
@@ -7070,7 +7220,7 @@
           "finding_context": "production",
           "fingerprint": "416cdaf97be742e9",
           "line": 1,
-          "next_step": "Split low-cohesion module (3/6 isolated units)",
+          "next_step": "Split 3 isolated units into focused modules. Start with: processBatch, fastProcess, slowProcess. Move each cohesive group into its own module.",
           "priority_class": "architecture_boundary",
           "rule_id": "cohesion_deficit",
           "severity": "high",
@@ -7088,7 +7238,7 @@
           "finding_context": "production",
           "fingerprint": "e141634975357af5",
           "line": 1,
-          "next_step": "Make hidden coupling explicit: settings.py <-> manifest.py",
+          "next_step": "Co-change coupling: settings.py \u2194 manifest.py.\nRecent context:\n  - \"Update config and deploy v5\"\n  - \"Update config and deploy v4\"\n  - \"Update config and deploy v3\"\n\nIf intentional (shared boundary):\n  \u2192 Add integration test: def test_settings_manifest_sync():\n        # Verify consistent contracts between both modules\n\nIf accidental (layering issue):\n  \u2192 Extract shared logic into src/<domain>/shared.py",
           "priority_class": "architecture_boundary",
           "rule_id": "co_change_coupling",
           "severity": "high",
@@ -7109,7 +7259,7 @@
         "finding_context": "production",
         "finding_id": "e2f1b1a6fcc6d2a8",
         "impact": 0.0134,
-        "next_step": "Split low-cohesion module (6/6 isolated units)",
+        "next_step": "Split 6 isolated units into focused modules. Start with: parse_csv_line, send_email_notification, compute_file_checksum, extract_urls, calculate_compound_interest (+1 more). Move each cohesive group into its own module.",
         "priority_class": "architecture_boundary",
         "rank": 1,
         "rule_id": "cohesion_deficit",
@@ -7126,7 +7276,7 @@
         "finding_context": "production",
         "finding_id": "416cdaf97be742e9",
         "impact": 0.0105,
-        "next_step": "Split low-cohesion module (3/6 isolated units)",
+        "next_step": "Split 3 isolated units into focused modules. Start with: processBatch, fastProcess, slowProcess. Move each cohesive group into its own module.",
         "priority_class": "architecture_boundary",
         "rank": 2,
         "rule_id": "cohesion_deficit",
@@ -7143,7 +7293,7 @@
         "finding_context": "production",
         "finding_id": "e141634975357af5",
         "impact": 0.0067,
-        "next_step": "Make hidden coupling explicit: settings.py <-> manifest.py",
+        "next_step": "Co-change coupling: settings.py \u2194 manifest.py.\nRecent context:\n  - \"Update config and deploy v5\"\n  - \"Update config and deploy v4\"\n  - \"Update config and deploy v3\"\n\nIf intentional (shared boundary):\n  \u2192 Add integration test: def test_settings_manifest_sync():\n        # Verify consistent contracts between both modules\n\nIf accidental (layering issue):\n  \u2192 Extract shared logic into src/<domain>/shared.py",
         "priority_class": "architecture_boundary",
         "rank": 3,
         "rule_id": "co_change_coupling",
@@ -7177,7 +7327,7 @@
         "finding_context": "production",
         "finding_id": "6f9703f24ece4a01",
         "impact": 0.1981,
-        "next_step": "Merge 'process_order' and 'process_order' (across src/myapp/service_a.py and src/myapp/service_b.py)",
+        "next_step": "Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "priority_class": "structural_risk",
         "rank": 5,
         "rule_id": "mutant_duplicate",
@@ -7194,7 +7344,7 @@
         "finding_context": "production",
         "finding_id": "d7a17c3a9afb3169",
         "impact": 0.1981,
-        "next_step": "Merge 'formatCurrency' and 'formatMoney' (across src/tsapp/utils/formatters.ts and src/tsapp/utils/money.ts)",
+        "next_step": "Extract formatCurrency() into src/tsapp/utils/shared.py. 2 identical copies (similarity: 1.00). Effort: S.",
         "priority_class": "structural_risk",
         "rank": 6,
         "rule_id": "mutant_duplicate",
@@ -7211,7 +7361,7 @@
         "finding_context": "production",
         "finding_id": "c3184cb7ac7e5334",
         "impact": 0.1731,
-        "next_step": "Merge 'legacy_handler_0' and 'legacy_handler_1' (in src/myapp/legacy/compat.py)",
+        "next_step": "Extract legacy_handler_0() into src/myapp/legacy/shared.py. Similarity: 92%. Effort: S.",
         "priority_class": "structural_risk",
         "rank": 7,
         "rule_id": "mutant_duplicate",
@@ -7303,6 +7453,17 @@
       {
         "ai_ratio": 0.0,
         "drift_score": 0.273,
+        "finding_count": 4,
+        "path": "src/tsapp/validators",
+        "severity": "low",
+        "signal_scores": {
+          "dead_code_accumulation": 0.1958,
+          "naming_contract_violation": 0.2732
+        }
+      },
+      {
+        "ai_ratio": 0.0,
+        "drift_score": 0.272,
         "finding_count": 24,
         "path": "src/myapp",
         "severity": "low",
@@ -7312,23 +7473,12 @@
           "dead_code_accumulation": 0.5038,
           "exception_contract_drift": 0.2277,
           "explainability_deficit": 0.3518,
-          "guard_clause_deficit": 0.3567,
+          "guard_clause_deficit": 0.3415,
           "mutant_duplicate": 0.3829,
           "pattern_fragmentation": 0.2105,
           "phantom_reference": 0.1025,
           "system_misalignment": 0.1708,
-          "temporal_volatility": 0.202
-        }
-      },
-      {
-        "ai_ratio": 0.0,
-        "drift_score": 0.273,
-        "finding_count": 4,
-        "path": "src/tsapp/validators",
-        "severity": "low",
-        "signal_scores": {
-          "dead_code_accumulation": 0.1958,
-          "naming_contract_violation": 0.2732
+          "temporal_volatility": 0.1928
         }
       },
       {
@@ -7343,25 +7493,25 @@
       },
       {
         "ai_ratio": 0.0,
-        "drift_score": 0.214,
-        "finding_count": 9,
-        "path": "src/myapp/processors",
-        "severity": "low",
-        "signal_scores": {
-          "cognitive_complexity": 0.267,
-          "dead_code_accumulation": 0.1958,
-          "explainability_deficit": 0.1864,
-          "guard_clause_deficit": 0.296
-        }
-      },
-      {
-        "ai_ratio": 0.0,
         "drift_score": 0.205,
         "finding_count": 1,
         "path": "src/tsapp/utils",
         "severity": "low",
         "signal_scores": {
           "mutant_duplicate": 0.2049
+        }
+      },
+      {
+        "ai_ratio": 0.0,
+        "drift_score": 0.197,
+        "finding_count": 9,
+        "path": "src/myapp/processors",
+        "severity": "info",
+        "signal_scores": {
+          "cognitive_complexity": 0.267,
+          "dead_code_accumulation": 0.1958,
+          "explainability_deficit": 0.1864,
+          "guard_clause_deficit": 0.2277
         }
       },
       {
@@ -7395,7 +7545,7 @@
         "signal_scores": {
           "architecture_violation": 0.1594,
           "co_change_coupling": 0.1799,
-          "temporal_volatility": 0.0635
+          "temporal_volatility": 0.0722
         }
       },
       {
@@ -7415,8 +7565,8 @@
         "path": "src/tsapp/core",
         "severity": "info",
         "signal_scores": {
+          "cognitive_complexity": 0.1229,
           "cohesion_deficit": 0.1416,
-          "dead_code_accumulation": 0.2095,
           "explainability_deficit": 0.1195
         }
       },
@@ -7434,11 +7584,10 @@
       {
         "ai_ratio": 0.0,
         "drift_score": 0.099,
-        "finding_count": 4,
+        "finding_count": 1,
         "path": "src/tsapp/services",
         "severity": "info",
         "signal_scores": {
-          "dead_code_accumulation": 0.3855,
           "pattern_fragmentation": 0.0987
         }
       },
@@ -7469,7 +7618,7 @@
         "path": "src/myapp/deploy",
         "severity": "info",
         "signal_scores": {
-          "temporal_volatility": 0.0635
+          "temporal_volatility": 0.0722
         }
       },
       {
@@ -7489,7 +7638,7 @@
           "src/myapp/config/settings.py"
         ],
         "anti_pattern_id": "neg-co_-a2b42ac039",
-        "canonical_alternative": "# REQUIRED: When modifying 'src/myapp/config/settings.py', also review:\n# - src/myapp/deploy/manifest.py\n\n# Evidence: 5 commits show co-change, e.g. 082b0f6f, 16032040, 189ab060",
+        "canonical_alternative": "# REQUIRED: When modifying 'src/myapp/config/settings.py', also review:\n# - src/myapp/deploy/manifest.py\n\n# Evidence: 5 commits show co-change, e.g. 3f40a1d3, 52041124, 7ba11834",
         "category": "architecture",
         "confidence": 0.95,
         "description": "'src/myapp/config/settings.py' is historically co-changed with: src/myapp/deploy/manifest.py. Co-change strength: 6.0 (confidence 100%). When changing one file, you MUST review and update the others.",
@@ -7497,9 +7646,9 @@
         "metadata": {
           "co_change_weight": 6.0,
           "commit_samples": [
-            "082b0f6f4aa2",
-            "160320400dae",
-            "189ab060c797"
+            "3f40a1d3d31e",
+            "52041124ecc0",
+            "7ba118341d39"
           ]
         },
         "rationale": "AI agents change files in isolation without seeing co-change history (FMEA FM-17, RPN 240). This pair has been co-changed in 5 commits.",
@@ -7818,7 +7967,7 @@
         "source_signal": "mutant_duplicate"
       }
     ],
-    "repo": "C:/Users/mickg/AppData/Local/Temp/drift_mutation_x__0y10t/synthetic_repo",
+    "repo": "C:/Users/mickg/AppData/Local/Temp/drift_mutation_jr0gshji/synthetic_repo",
     "schema_version": "2.1",
     "severity": "low",
     "signal_abbrev_map": {
@@ -7841,6 +7990,7 @@
       "MDS": "mutant_duplicate",
       "NBV": "naming_contract_violation",
       "PFS": "pattern_fragmentation",
+      "PHR": "phantom_reference",
       "SMS": "system_misalignment",
       "TPD": "test_polarity_deficit",
       "TSA": "ts_architecture",
@@ -7849,7 +7999,16 @@
     "summary": {
       "ai_attributed_ratio": 0.0,
       "ai_tools_detected": [],
-      "analysis_duration_seconds": 0.5,
+      "analysis_duration_seconds": 0.59,
+      "phase_timing": {
+        "discover_seconds": 0.094,
+        "git_seconds": 0.109,
+        "output_seconds": 0.0,
+        "parse_seconds": 0.281,
+        "signals_seconds": 0.203,
+        "total_seconds": 0.59
+      },
+      "skipped_languages": null,
       "total_files": 50,
       "total_functions": 80
     },
@@ -7862,6 +8021,6 @@
       "recent_scores": [],
       "transition_ratio": 0.0
     },
-    "version": "2.8.0"
+    "version": "2.9.3"
   }
 }

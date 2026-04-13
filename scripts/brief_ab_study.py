@@ -4,7 +4,8 @@
 Usage:
     # Full pipeline (sequential):
     python scripts/brief_ab_study.py generate-prompts
-    python scripts/brief_ab_study.py run-llm [--model gpt-4o] [--temperature 0]
+    python scripts/brief_ab_study.py run-mock [--repeats 3]
+    python scripts/brief_ab_study.py run-llm [--model gpt-4o] [--temperature 0] [--repeats 3]
     python scripts/brief_ab_study.py evaluate
     python scripts/brief_ab_study.py stats
     python scripts/brief_ab_study.py assemble
@@ -48,6 +49,102 @@ OUTCOMES_FILE = WORK_DIR / "outcomes.json"
 ARTIFACT_FILE = REPO_ROOT / "benchmark_results" / "drift_brief_ab_study.json"
 
 MAX_CONTEXT_CHARS = 16_000  # ~4000 tokens at 4 chars/token
+
+# ---------------------------------------------------------------------------
+# Error-cost model (ADR-067 extension: severity-weighted cost function)
+# ---------------------------------------------------------------------------
+
+# Severity multiplier — maps string severity labels to numeric weights.
+# INFO is excluded (weight 0) to avoid inflating cost with noise findings.
+_SEVERITY_WEIGHTS: dict[str, int] = {
+    "critical": 8,
+    "high": 4,
+    "medium": 2,
+    "low": 1,
+    "info": 0,
+}
+
+# Hours-per-signal estimate — imported from roi_estimate at call time to
+# avoid circular/missing-module issues when drift is not installed.  This
+# fallback table is used when the import fails.
+_HOURS_PER_SIGNAL_FALLBACK: dict[str, float] = {
+    "pattern_fragmentation": 2.0,
+    "architecture_violation": 3.0,
+    "mutant_duplicate": 1.5,
+    "explainability_deficit": 0.5,
+    "doc_impl_drift": 0.5,
+    "temporal_volatility": 1.0,
+    "system_misalignment": 2.0,
+    "broad_exception_monoculture": 0.5,
+    "test_polarity_deficit": 1.5,
+    "guard_clause_deficit": 0.5,
+    "cohesion_deficit": 2.5,
+    "naming_contract_violation": 0.3,
+    "bypass_accumulation": 1.0,
+    "exception_contract_drift": 1.0,
+    "co_change_coupling": 2.0,
+    "fan_out_explosion": 2.0,
+    "circular_import": 1.5,
+    "dead_code_accumulation": 0.5,
+    "missing_authorization": 2.0,
+    "insecure_default": 1.0,
+    "hardcoded_secret": 0.5,
+    "phantom_reference": 1.0,
+    "ts_architecture": 1.5,
+    "cognitive_complexity": 1.0,
+}
+_DEFAULT_HOURS = 1.0
+
+
+def _get_hours_per_signal() -> dict[str, float]:
+    """Return hours-per-signal table, preferring the canonical roi_estimate source."""
+    try:
+        from drift.commands.roi_estimate import _HOURS_PER_SIGNAL  # noqa: PLC0415
+
+        return _HOURS_PER_SIGNAL
+    except ImportError:
+        return _HOURS_PER_SIGNAL_FALLBACK
+
+
+def _error_cost_default(findings: list[dict[str, Any]]) -> float:
+    """Simple severity-weighted cost: sum of severity weights across findings.
+
+    C_default = Σ w_sev(f)
+    """
+    total = 0.0
+    for f in findings:
+        sev = str(f.get("severity", "info")).lower()
+        total += _SEVERITY_WEIGHTS.get(sev, 0)
+    return total
+
+
+def _error_cost_robust(findings: list[dict[str, Any]]) -> float:
+    """Signal- and breadth-weighted cost: h(signal) × w_sev × min(B_cap, 1+ln(1+|related|)).
+
+    C_robust = Σ h(signal_type) × w_sev(f) × min(4.0, 1 + ln(1 + |related_files|))
+    """
+    hours_table = _get_hours_per_signal()
+    total = 0.0
+    for f in findings:
+        sev = str(f.get("severity", "info")).lower()
+        w_sev = _SEVERITY_WEIGHTS.get(sev, 0)
+        if w_sev == 0:
+            continue
+        signal = f.get("signal") or f.get("signal_type") or ""
+        h = hours_table.get(signal, _DEFAULT_HOURS)
+        related_count = len(f.get("related_files", []))
+        breadth = min(4.0, 1 + math.log(1 + related_count))
+        total += h * w_sev * breadth
+    return round(total, 4)
+
+
+def _patch_line_count(diff_text: str) -> int:
+    """Count added + removed lines in a unified diff (lines starting with +/- excluding headers)."""
+    count = 0
+    for line in diff_text.splitlines():
+        if line.startswith(("+", "-")) and not line.startswith(("+++", "---")):
+            count += 1
+    return count
 
 
 # ---------------------------------------------------------------------------
@@ -98,13 +195,14 @@ def _extract_diff_block(text: str) -> str | None:
     # Bare diff starting with --- or diff --git
     bare = re.search(r"^(diff --git .+|---\s+\S.+)", text, re.MULTILINE)
     if bare:
-        return text[bare.start():].strip()
+        return text[bare.start() :].strip()
     return None
 
 
 def _drift_version() -> str:
     try:
         from drift import __version__  # type: ignore[import-untyped]
+
         return __version__
     except Exception:
         return "unknown"
@@ -155,10 +253,7 @@ def cmd_generate_prompts(args: argparse.Namespace) -> None:
                 "Output ONLY the diff block, fenced in ```diff ... ```. "
                 "Do not explain or add prose outside the fenced block."
             )
-            user_msg = (
-                f"Task: {task['task_description']}\n\n"
-                f"Code context:\n{code_context}"
-            )
+            user_msg = f"Task: {task['task_description']}\n\nCode context:\n{code_context}"
 
             control_payload = {
                 "task_id": tid,
@@ -182,6 +277,7 @@ def cmd_generate_prompts(args: argparse.Namespace) -> None:
             # Treatment: generate drift brief for this repo + task
             try:
                 from drift.api.brief import brief as api_brief  # noqa: PLC0415
+
                 brief_result = api_brief(repo_path, task=task["task_description"])
                 brief_block = json.dumps(brief_result, indent=2, ensure_ascii=False)
             except Exception as exc:  # noqa: BLE001
@@ -242,7 +338,7 @@ def _generate_mock_diff(
         new_lines = [
             "# Refactored per drift brief constraints",
             f"def {task['id'].lower().replace('-', '_')}_fix():",
-            f"    \"\"\"Fix for: {task['task_description'][:60]}\"\"\"",
+            f'    """Fix for: {task["task_description"][:60]}"""',
             "    pass  # Minimal, constraint-aware implementation",
             "",
         ]
@@ -252,7 +348,7 @@ def _generate_mock_diff(
         new_lines = [
             "# Quick fix attempt",
             dup_func,
-            "    \"\"\"Auto-generated handler.\"\"\"",
+            '    """Auto-generated handler."""',
             "    try:",
             "        result = do_something()",
             "    except Exception:",
@@ -260,7 +356,7 @@ def _generate_mock_diff(
             "    return result",
             "",
             f"def handle_{rng.randint(1000, 9999)}():",
-            "    \"\"\"Another handler — similar pattern.\"\"\"",
+            '    """Another handler — similar pattern."""',
             "    try:",
             "        result = do_something()",
             "    except Exception:",
@@ -291,18 +387,18 @@ def cmd_run_mock(args: argparse.Namespace) -> None:
     if not prompt_files:
         sys.exit("No prompt files found. Run generate-prompts first.")
 
-    rng = random_mod.Random(args.seed)
-    print(f"Generating mock agent responses for {len(prompt_files)} prompts (seed={args.seed}) ...")
+    repeats: int = getattr(args, "repeats", 1)
+    corpus = _load_corpus()
+    task_map = {t["id"]: t for t in corpus["tasks"]}
+
+    total = len(prompt_files) * repeats
+    print(
+        f"Generating mock agent responses for {len(prompt_files)} prompts "
+        f"× {repeats} repeats (seed={args.seed}) ..."
+    )
 
     for pf in prompt_files:
-        stem = pf.stem
-        diff_out = RESPONSES_DIR / f"{stem}.diff"
-        meta_out = RESPONSES_DIR / f"{stem}_meta.json"
-
-        if diff_out.exists() and not args.force:
-            print(f"  [{stem}] already exists, skipping")
-            continue
-
+        base_stem = pf.stem
         payload = json.loads(pf.read_text(encoding="utf-8"))
         task_id = payload["task_id"]
         treatment = payload["treatment"]
@@ -319,29 +415,43 @@ def cmd_run_mock(args: argparse.Namespace) -> None:
                         with contextlib.suppress(json.JSONDecodeError):
                             brief_result = json.loads(content[start:end].strip())
 
-        # Build a minimal task dict for the generator
-        corpus = _load_corpus()
-        task_map = {t["id"]: t for t in corpus["tasks"]}
-        task = task_map.get(task_id, {"id": task_id, "target_files": ["file.py"],
-                                       "task_description": "unknown task"})
-
-        diff_content = _generate_mock_diff(task, treatment, rng, brief_result)
-        diff_out.write_text(diff_content, encoding="utf-8")
-
-        meta_out.write_text(
-            json.dumps({
-                "task_id": task_id,
-                "treatment": treatment,
-                "model": "mock-agent",
-                "temperature": 0.0,
-                "status": "ok",
-                "seed": args.seed,
-            }, indent=2),
-            encoding="utf-8",
+        task = task_map.get(
+            task_id,
+            {"id": task_id, "target_files": ["file.py"], "task_description": "unknown task"},
         )
-        print(f"  [{stem}] mock diff written")
 
-    print(f"\nMock responses written to: {RESPONSES_DIR}")
+        for r in range(repeats):
+            stem = f"{base_stem}_r{r}" if repeats > 1 else base_stem
+            diff_out = RESPONSES_DIR / f"{stem}.diff"
+            meta_out = RESPONSES_DIR / f"{stem}_meta.json"
+
+            if diff_out.exists() and not args.force:
+                print(f"  [{stem}] already exists, skipping")
+                continue
+
+            # Each repeat gets a unique but deterministic seed
+            rng = random_mod.Random(args.seed + r)
+            diff_content = _generate_mock_diff(task, treatment, rng, brief_result)
+            diff_out.write_text(diff_content, encoding="utf-8")
+
+            meta_out.write_text(
+                json.dumps(
+                    {
+                        "task_id": task_id,
+                        "treatment": treatment,
+                        "model": "mock-agent",
+                        "temperature": 0.0,
+                        "status": "ok",
+                        "seed": args.seed,
+                        "repeat": r,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            print(f"  [{stem}] mock diff written")
+
+    print(f"\nMock responses written to: {RESPONSES_DIR} ({total} total)")
 
 
 # ---------------------------------------------------------------------------
@@ -371,57 +481,69 @@ def cmd_run_llm(args: argparse.Namespace) -> None:
     if not prompt_files:
         sys.exit("No prompt files found. Run generate-prompts first.")
 
+    repeats: int = getattr(args, "repeats", 1)
+    total = len(prompt_files) * repeats
     print(
         f"Running LLM ({model}, temperature={args.temperature}) on "
-        f"{len(prompt_files)} prompts ..."
+        f"{len(prompt_files)} prompts × {repeats} repeats ..."
     )
 
     for pf in prompt_files:
-        stem = pf.stem  # e.g. REQ-01_control
-        diff_out = RESPONSES_DIR / f"{stem}.diff"
-        meta_out = RESPONSES_DIR / f"{stem}_meta.json"
-
-        if diff_out.exists() and not args.force:
-            print(f"  [{stem}] already exists, skipping")
-            continue
-
+        base_stem = pf.stem  # e.g. REQ-01_control
         payload = json.loads(pf.read_text(encoding="utf-8"))
-        print(f"  [{stem}] calling {model} ...")
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                temperature=args.temperature,
-                messages=payload["messages"],  # type: ignore[arg-type]
-                max_tokens=2048,
+
+        for r in range(repeats):
+            stem = f"{base_stem}_r{r}" if repeats > 1 else base_stem
+            diff_out = RESPONSES_DIR / f"{stem}.diff"
+            meta_out = RESPONSES_DIR / f"{stem}_meta.json"
+
+            if diff_out.exists() and not args.force:
+                print(f"  [{stem}] already exists, skipping")
+                continue
+
+            print(f"  [{stem}] calling {model} ...")
+            try:
+                # Vary seed per repeat when temperature > 0
+                extra_kwargs: dict[str, Any] = {}
+                if args.temperature > 0 and repeats > 1:
+                    extra_kwargs["seed"] = 42 + r
+
+                response = client.chat.completions.create(
+                    model=model,
+                    temperature=args.temperature,
+                    messages=payload["messages"],  # type: ignore[arg-type]
+                    max_tokens=2048,
+                    **extra_kwargs,
+                )
+                text = response.choices[0].message.content or ""
+                diff_block = _extract_diff_block(text)
+                if diff_block is None:
+                    status = "parse_error"
+                    diff_out.write_text(text, encoding="utf-8")
+                else:
+                    status = "ok"
+                    diff_out.write_text(diff_block, encoding="utf-8")
+            except Exception as exc:  # noqa: BLE001
+                status = f"api_error: {exc}"
+                diff_out.write_text("", encoding="utf-8")
+
+            meta_out.write_text(
+                json.dumps(
+                    {
+                        "task_id": payload["task_id"],
+                        "treatment": payload["treatment"],
+                        "model": model,
+                        "temperature": args.temperature,
+                        "status": status,
+                        "repeat": r,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
             )
-            text = response.choices[0].message.content or ""
-            diff_block = _extract_diff_block(text)
-            if diff_block is None:
-                status = "parse_error"
-                diff_out.write_text(text, encoding="utf-8")
-            else:
-                status = "ok"
-                diff_out.write_text(diff_block, encoding="utf-8")
-        except Exception as exc:  # noqa: BLE001
-            status = f"api_error: {exc}"
-            diff_out.write_text("", encoding="utf-8")
+            print(f"  [{stem}] status={status}")
 
-        meta_out.write_text(
-            json.dumps(
-                {
-                    "task_id": payload["task_id"],
-                    "treatment": payload["treatment"],
-                    "model": model,
-                    "temperature": args.temperature,
-                    "status": status,
-                },
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
-        print(f"  [{stem}] status={status}")
-
-    print(f"\nResponses written to: {RESPONSES_DIR}")
+    print(f"\nResponses written to: {RESPONSES_DIR} ({total} total)")
 
 
 # ---------------------------------------------------------------------------
@@ -461,37 +583,57 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
             continue
 
         if meta["status"] != "ok":
-            outcomes.append({
-                "task_id": task_id,
-                "treatment": treatment,
-                "status": meta["status"],
-                "new_findings_count": None,
-                "accept_change": None,
-            })
+            outcomes.append(
+                {
+                    "task_id": task_id,
+                    "treatment": treatment,
+                    "repeat": meta.get("repeat", 0),
+                    "status": meta["status"],
+                    "new_findings_count": None,
+                    "accept_change": None,
+                    "error_cost_default": None,
+                    "error_cost_robust": None,
+                    "patch_size_loc": None,
+                }
+            )
             print(f"  [{stem}] upstream status={meta['status']}, skipping evaluate")
             continue
 
         diff_content = df.read_text(encoding="utf-8").strip()
         if not diff_content:
-            outcomes.append({
-                "task_id": task_id,
-                "treatment": treatment,
-                "status": "empty_diff",
-                "new_findings_count": None,
-                "accept_change": None,
-            })
+            outcomes.append(
+                {
+                    "task_id": task_id,
+                    "treatment": treatment,
+                    "repeat": meta.get("repeat", 0),
+                    "status": "empty_diff",
+                    "new_findings_count": None,
+                    "accept_change": None,
+                    "error_cost_default": None,
+                    "error_cost_robust": None,
+                    "patch_size_loc": None,
+                }
+            )
             print(f"  [{stem}] empty diff, skipping")
             continue
 
+        patch_loc = _patch_line_count(diff_content)
+
         if args.dry_run:
             print(f"  [{stem}] DRY-RUN: would apply diff and run drift diff")
-            outcomes.append({
-                "task_id": task_id,
-                "treatment": treatment,
-                "status": "dry_run",
-                "new_findings_count": None,
-                "accept_change": None,
-            })
+            outcomes.append(
+                {
+                    "task_id": task_id,
+                    "treatment": treatment,
+                    "repeat": meta.get("repeat", 0),
+                    "status": "dry_run",
+                    "new_findings_count": None,
+                    "accept_change": None,
+                    "error_cost_default": None,
+                    "error_cost_robust": None,
+                    "patch_size_loc": patch_loc,
+                }
+            )
             continue
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -502,13 +644,19 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
             except subprocess.CalledProcessError as exc:
                 err = exc.stderr.decode(errors="replace")[:200]
                 print(f"  [{stem}] clone failed: {err}")
-                outcomes.append({
-                    "task_id": task_id,
-                    "treatment": treatment,
-                    "status": f"clone_error: {err[:80]}",
-                    "new_findings_count": None,
-                    "accept_change": None,
-                })
+                outcomes.append(
+                    {
+                        "task_id": task_id,
+                        "treatment": treatment,
+                        "repeat": meta.get("repeat", 0),
+                        "status": f"clone_error: {err[:80]}",
+                        "new_findings_count": None,
+                        "accept_change": None,
+                        "error_cost_default": None,
+                        "error_cost_robust": None,
+                        "patch_size_loc": patch_loc,
+                    }
+                )
                 continue
 
             diff_file = Path(tmpdir) / "patch.diff"
@@ -522,40 +670,72 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
             if apply_result.returncode != 0:
                 err = apply_result.stderr.decode(errors="replace")[:200]
                 print(f"  [{stem}] git apply failed: {err[:80]}")
-                outcomes.append({
-                    "task_id": task_id,
-                    "treatment": treatment,
-                    "status": "apply_error",
-                    "new_findings_count": None,
-                    "accept_change": None,
-                    "apply_stderr": err,
-                })
+                outcomes.append(
+                    {
+                        "task_id": task_id,
+                        "treatment": treatment,
+                        "repeat": meta.get("repeat", 0),
+                        "status": "apply_error",
+                        "new_findings_count": None,
+                        "accept_change": None,
+                        "error_cost_default": None,
+                        "error_cost_robust": None,
+                        "patch_size_loc": patch_loc,
+                        "apply_stderr": err,
+                    }
+                )
                 continue
 
             print(f"  [{stem}] running drift diff ...")
             try:
-                result = api_diff(repo_path, uncommitted=True)
-                new_count = len(result.get("new", []))
+                result = api_diff(repo_path, uncommitted=True, response_detail="detailed")
+                new_findings = result.get("new_findings", result.get("new", []))
+                resolved_findings = result.get("resolved_findings", result.get("resolved", []))
+                new_count = len(new_findings)
                 accept = bool(result.get("accept_change", False))
-                outcomes.append({
-                    "task_id": task_id,
-                    "treatment": treatment,
-                    "status": "ok",
-                    "new_findings_count": new_count,
-                    "accept_change": accept,
-                    "drift_status": result.get("status"),
-                    "score_delta": result.get("delta"),
-                })
-                print(f"  [{stem}] new_findings={new_count} accept={accept}")
+
+                cost_d = _error_cost_default(new_findings)
+                cost_r = _error_cost_robust(new_findings)
+                resolved_cost_d = _error_cost_default(resolved_findings)
+                resolved_cost_r = _error_cost_robust(resolved_findings)
+
+                outcomes.append(
+                    {
+                        "task_id": task_id,
+                        "treatment": treatment,
+                        "repeat": meta.get("repeat", 0),
+                        "status": "ok",
+                        "new_findings_count": new_count,
+                        "accept_change": accept,
+                        "error_cost_default": cost_d,
+                        "error_cost_robust": cost_r,
+                        "net_cost_default": round(cost_d - resolved_cost_d, 4),
+                        "net_cost_robust": round(cost_r - resolved_cost_r, 4),
+                        "resolved_count": len(resolved_findings),
+                        "patch_size_loc": patch_loc,
+                        "drift_status": result.get("status"),
+                        "score_delta": result.get("delta"),
+                    }
+                )
+                print(
+                    f"  [{stem}] new={new_count} cost_d={cost_d:.1f} "
+                    f"cost_r={cost_r:.1f} patch={patch_loc} accept={accept}"
+                )
             except Exception as exc:  # noqa: BLE001
                 print(f"  [{stem}] drift diff error: {exc}")
-                outcomes.append({
-                    "task_id": task_id,
-                    "treatment": treatment,
-                    "status": f"drift_error: {exc}",
-                    "new_findings_count": None,
-                    "accept_change": None,
-                })
+                outcomes.append(
+                    {
+                        "task_id": task_id,
+                        "treatment": treatment,
+                        "repeat": meta.get("repeat", 0),
+                        "status": f"drift_error: {exc}",
+                        "new_findings_count": None,
+                        "accept_change": None,
+                        "error_cost_default": None,
+                        "error_cost_robust": None,
+                        "patch_size_loc": patch_loc,
+                    }
+                )
 
     WORK_DIR.mkdir(parents=True, exist_ok=True)
     OUTCOMES_FILE.write_text(json.dumps(outcomes, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -582,9 +762,52 @@ def _cohens_d(a: list[float], b: list[float]) -> float:
     return (mean_a - mean_b) / pooled_sd
 
 
+def _aggregate_by_task(
+    outcomes: list[dict[str, Any]],
+) -> dict[str, dict[str, dict[str, float]]]:
+    """Group ok outcomes by (task_id, treatment) and compute per-task means.
+
+    Returns ``{task_id: {treatment: {metric: mean_value}}}``
+    """
+    from collections import defaultdict  # noqa: PLC0415
+
+    buckets: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
+    for o in outcomes:
+        if o["status"] != "ok":
+            continue
+        buckets[o["task_id"]][o["treatment"]].append(o)
+
+    result: dict[str, dict[str, dict[str, float]]] = {}
+    metrics = (
+        "new_findings_count",
+        "error_cost_default",
+        "error_cost_robust",
+        "net_cost_default",
+        "net_cost_robust",
+        "patch_size_loc",
+    )
+    for task_id, arms in buckets.items():
+        result[task_id] = {}
+        for arm_name, runs in arms.items():
+            agg: dict[str, float] = {}
+            for m in metrics:
+                vals = [r[m] for r in runs if r.get(m) is not None]
+                agg[m] = sum(vals) / len(vals) if vals else 0.0
+            agg["n_runs"] = float(len(runs))
+            agg["accept_rate"] = (
+                sum(1 for r in runs if r.get("accept_change")) / len(runs) if runs else 0.0
+            )
+            result[task_id][arm_name] = agg
+    return result
+
+
 def cmd_stats(args: argparse.Namespace) -> None:  # noqa: ARG001
     try:
-        from scipy.stats import fisher_exact, mannwhitneyu  # noqa: PLC0415
+        from scipy.stats import (  # noqa: PLC0415
+            fisher_exact,
+            mannwhitneyu,
+            wilcoxon,
+        )
     except ImportError:
         sys.exit("scipy not installed. Run: uv add --dev scipy")
 
@@ -601,6 +824,15 @@ def cmd_stats(args: argparse.Namespace) -> None:  # noqa: ARG001
     n_treat = len(treatment)
     print(f"Status: {len(ok)}/{len(outcomes)} ok  |  control={n_ctrl}  treatment={n_treat}")
 
+    # --------------- validity checks ---------------
+    error_rate = 1 - len(ok) / max(len(outcomes), 1)
+    if error_rate > 0.20:
+        print(
+            f"\nWARNING: error rate {error_rate:.0%} exceeds 20% threshold. "
+            "Study validity is compromised.",
+            file=sys.stderr,
+        )
+
     if n_ctrl < 20 or n_treat < 20:
         print(
             f"\nWARNING: insufficient sample size (need n>=20 per group, "
@@ -611,6 +843,7 @@ def cmd_stats(args: argparse.Namespace) -> None:  # noqa: ARG001
         if n_ctrl == 0 or n_treat == 0:
             sys.exit("Cannot compute statistics with empty group.")
 
+    # --------------- unpaired tests (legacy, all runs) ---------------
     ctrl_counts = [o["new_findings_count"] for o in control]
     treat_counts = [o["new_findings_count"] for o in treatment]
 
@@ -619,41 +852,138 @@ def cmd_stats(args: argparse.Namespace) -> None:  # noqa: ARG001
     ctrl_reject = n_ctrl - ctrl_accept
     treat_reject = n_treat - treat_accept
 
-    # Mann-Whitney U on new_findings_count
     mw_stat, mw_p = mannwhitneyu(ctrl_counts, treat_counts, alternative="greater")
     mw_stat, mw_p = float(mw_stat), float(mw_p)
 
-    # Fisher exact on accept_change
     contingency = [[ctrl_accept, ctrl_reject], [treat_accept, treat_reject]]
     fisher_or, fisher_p = fisher_exact(contingency, alternative="less")
     fisher_or, fisher_p = float(fisher_or), float(fisher_p)
 
-    # Cohen's d (control - treatment; positive d = control has more findings)
     d = _cohens_d(ctrl_counts, treat_counts)
-
     ctrl_mean = sum(ctrl_counts) / n_ctrl
     treat_mean = sum(treat_counts) / n_treat
 
-    print("\n--- new_findings_count ---")
+    print("\n--- new_findings_count (unpaired) ---")
     print(f"  control mean:   {ctrl_mean:.3f}")
     print(f"  treatment mean: {treat_mean:.3f}")
     print(f"  Mann-Whitney U: {mw_stat:.1f}  p={mw_p:.4f}")
     print(f"  Cohen's d:      {d:.3f}")
 
     print("\n--- accept_change ---")
-    print(f"  control accept rate:   {ctrl_accept}/{n_ctrl} = {ctrl_accept/n_ctrl:.2%}")
-    print(f"  treatment accept rate: {treat_accept}/{n_treat} = {treat_accept/n_treat:.2%}")
+    print(f"  control accept rate:   {ctrl_accept}/{n_ctrl} = {ctrl_accept / n_ctrl:.2%}")
+    print(f"  treatment accept rate: {treat_accept}/{n_treat} = {treat_accept / n_treat:.2%}")
     print(f"  Fisher exact p: {fisher_p:.4f}  OR: {fisher_or:.3f}")
 
+    # --------------- paired analysis (per-task means) ---------------
+    task_agg = _aggregate_by_task(outcomes)
+    paired_tasks = [
+        tid for tid, arms in task_agg.items() if "control" in arms and "treatment" in arms
+    ]
+
+    paired_stats: dict[str, Any] = {}
+    if len(paired_tasks) >= 5:
+        # Build paired vectors (control mean - treatment mean per task)
+        ctrl_cost_r = [task_agg[t]["control"]["error_cost_robust"] for t in paired_tasks]
+        treat_cost_r = [task_agg[t]["treatment"]["error_cost_robust"] for t in paired_tasks]
+        ctrl_cost_d = [task_agg[t]["control"]["error_cost_default"] for t in paired_tasks]
+        treat_cost_d = [task_agg[t]["treatment"]["error_cost_default"] for t in paired_tasks]
+        ctrl_patch = [task_agg[t]["control"]["patch_size_loc"] for t in paired_tasks]
+        treat_patch = [task_agg[t]["treatment"]["patch_size_loc"] for t in paired_tasks]
+
+        diffs_cost_r = [c - t for c, t in zip(ctrl_cost_r, treat_cost_r)]
+        diffs_cost_d = [c - t for c, t in zip(ctrl_cost_d, treat_cost_d)]
+        diffs_patch = [c - t for c, t in zip(ctrl_patch, treat_patch)]
+
+        def _safe_wilcoxon(diffs: list[float]) -> tuple[float, float]:
+            nonzero = [x for x in diffs if x != 0]
+            if len(nonzero) < 5:
+                return (float("nan"), float("nan"))
+            stat, p = wilcoxon(nonzero, alternative="greater")
+            return (float(stat), float(p))
+
+        def _rank_biserial(diffs: list[float]) -> float:
+            """Matched-pairs rank-biserial correlation r = (W+ - W-) / W_total."""
+            nonzero = [x for x in diffs if x != 0]
+            n = len(nonzero)
+            if n == 0:
+                return 0.0
+            w_total = n * (n + 1) / 2
+            w_plus = sum(rank for rank, val in enumerate(sorted(nonzero, key=abs), 1) if val > 0)
+            return (2 * w_plus - w_total) / w_total
+
+        w_stat_r, w_p_r = _safe_wilcoxon(diffs_cost_r)
+        w_stat_d, w_p_d = _safe_wilcoxon(diffs_cost_d)
+        w_stat_patch, w_p_patch = _safe_wilcoxon(diffs_patch)
+
+        r_biserial_r = _rank_biserial(diffs_cost_r)
+        d_cost_r = _cohens_d(ctrl_cost_r, treat_cost_r)
+
+        print(f"\n--- paired analysis ({len(paired_tasks)} tasks) ---")
+        print(f"  error_cost_robust (ctrl mean): {sum(ctrl_cost_r) / len(ctrl_cost_r):.2f}")
+        print(f"  error_cost_robust (treat mean): {sum(treat_cost_r) / len(treat_cost_r):.2f}")
+        print(f"  Wilcoxon W (cost_robust): {w_stat_r:.1f}  p={w_p_r:.4f}")
+        print(f"  Rank-biserial r:          {r_biserial_r:.3f}")
+        print(f"  Cohen's d (cost_robust):  {d_cost_r:.3f}")
+        print(f"  error_cost_default Wilcoxon p={w_p_d:.4f}")
+        print(f"\n  patch_size_loc Wilcoxon p={w_p_patch:.4f} (guardrail check)")
+
+        paired_stats = {
+            "n_paired_tasks": len(paired_tasks),
+            "error_cost_robust": {
+                "control_mean": round(sum(ctrl_cost_r) / len(ctrl_cost_r), 4),
+                "treatment_mean": round(sum(treat_cost_r) / len(treat_cost_r), 4),
+                "wilcoxon_w": w_stat_r,
+                "p_value": w_p_r,
+                "cohens_d": d_cost_r,
+                "rank_biserial_r": round(r_biserial_r, 4),
+                "significant": bool(w_p_r < 0.05) if not math.isnan(w_p_r) else False,
+            },
+            "error_cost_default": {
+                "control_mean": round(sum(ctrl_cost_d) / len(ctrl_cost_d), 4),
+                "treatment_mean": round(sum(treat_cost_d) / len(treat_cost_d), 4),
+                "wilcoxon_w": w_stat_d,
+                "p_value": w_p_d,
+                "significant": bool(w_p_d < 0.05) if not math.isnan(w_p_d) else False,
+            },
+            "patch_size_guardrail": {
+                "control_mean": round(sum(ctrl_patch) / len(ctrl_patch), 2),
+                "treatment_mean": round(sum(treat_patch) / len(treat_patch), 2),
+                "wilcoxon_p": w_p_patch,
+                "treatment_shorter": bool(w_p_patch < 0.05 if not math.isnan(w_p_patch) else False),
+                "guardrail_violated": bool(
+                    w_p_patch < 0.05 if not math.isnan(w_p_patch) else False
+                ),
+            },
+        }
+
+        if paired_stats.get("patch_size_guardrail", {}).get("guardrail_violated"):
+            print(
+                "\n  ⚠ GUARDRAIL: Treatment produces significantly shorter patches. "
+                "Cost reduction may be trivial (less code = fewer findings)."
+            )
+    else:
+        print(
+            f"\n--- paired analysis: skipped (only {len(paired_tasks)} paired tasks, need ≥5) ---"
+        )
+
+    # --------------- interpretation ---------------
     alpha = 0.05
     mw_sig = bool(mw_p < alpha)
     fish_sig = bool(fisher_p < alpha)
     medium_effect = abs(d) >= 0.3
 
-    if (mw_sig or fish_sig) and medium_effect:
+    paired_sig = paired_stats.get("error_cost_robust", {}).get("significant", False)
+    paired_effect = abs(paired_stats.get("error_cost_robust", {}).get("cohens_d", 0)) >= 0.3
+    guardrail_ok = not paired_stats.get("patch_size_guardrail", {}).get("guardrail_violated", False)
+
+    if paired_sig and paired_effect and guardrail_ok:
         interpretation = "positive_effect"
-    elif not mw_sig and not fish_sig:
+    elif (mw_sig or fish_sig) and medium_effect:
+        interpretation = "positive_effect_unpaired"
+    elif not mw_sig and not fish_sig and not paired_sig:
         interpretation = "null_result"
+    elif not guardrail_ok:
+        interpretation = "confounded_by_patch_size"
     else:
         interpretation = "inconclusive"
 
@@ -661,30 +991,32 @@ def cmd_stats(args: argparse.Namespace) -> None:  # noqa: ARG001
 
     # Persist stats for assemble
     stats_file = WORK_DIR / "stats.json"
+    stats_payload: dict[str, Any] = {
+        "n_control": n_ctrl,
+        "n_treatment": n_treat,
+        "error_rate": round(error_rate, 4),
+        "new_findings": {
+            "control_mean": ctrl_mean,
+            "treatment_mean": treat_mean,
+            "mann_whitney_u": mw_stat,
+            "p_value": mw_p,
+            "cohens_d": d,
+            "significant": mw_sig,
+        },
+        "accept_change": {
+            "control_rate": ctrl_accept / n_ctrl,
+            "treatment_rate": treat_accept / n_treat,
+            "fisher_p": fisher_p,
+            "odds_ratio": fisher_or,
+            "significant": fish_sig,
+        },
+        "interpretation": interpretation,
+    }
+    if paired_stats:
+        stats_payload["paired"] = paired_stats
+
     stats_file.write_text(
-        json.dumps(
-            {
-                "n_control": n_ctrl,
-                "n_treatment": n_treat,
-                "new_findings": {
-                    "control_mean": ctrl_mean,
-                    "treatment_mean": treat_mean,
-                    "mann_whitney_u": mw_stat,
-                    "p_value": mw_p,
-                    "cohens_d": d,
-                    "significant": mw_sig,
-                },
-                "accept_change": {
-                    "control_rate": ctrl_accept / n_ctrl,
-                    "treatment_rate": treat_accept / n_treat,
-                    "fisher_p": fisher_p,
-                    "odds_ratio": fisher_or,
-                    "significant": fish_sig,
-                },
-                "interpretation": interpretation,
-            },
-            indent=2,
-        ),
+        json.dumps(stats_payload, indent=2),
         encoding="utf-8",
     )
     print(f"Stats written to: {stats_file}")
@@ -716,8 +1048,19 @@ def cmd_assemble(args: argparse.Namespace) -> None:  # noqa: ARG001
         model_used = m.get("model", "unknown")
         temperature_used = m.get("temperature", 0.0)
 
+    results: dict[str, Any] = {
+        "n_control": stats["n_control"],
+        "n_treatment": stats["n_treatment"],
+        "error_rate": stats.get("error_rate"),
+        "new_findings": stats["new_findings"],
+        "accept_change": stats["accept_change"],
+        "interpretation": stats["interpretation"],
+    }
+    if "paired" in stats:
+        results["paired"] = stats["paired"]
+
     artifact = {
-        "schema_version": "1.0",
+        "schema_version": "2.0",
         "date": date.today().isoformat(),
         "drift_version": _drift_version(),
         "adr": "ADR-067",
@@ -727,13 +1070,7 @@ def cmd_assemble(args: argparse.Namespace) -> None:  # noqa: ARG001
         },
         "model": model_used,
         "temperature": temperature_used,
-        "results": {
-            "n_control": stats["n_control"],
-            "n_treatment": stats["n_treatment"],
-            "new_findings": stats["new_findings"],
-            "accept_change": stats["accept_change"],
-            "interpretation": stats["interpretation"],
-        },
+        "results": results,
         "raw_outcomes": outcomes,
     }
 
@@ -783,6 +1120,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Sampling temperature (default: 0).",
     )
     p_llm.add_argument("--force", action="store_true", help="Re-run even if response files exist.")
+    p_llm.add_argument(
+        "--repeats",
+        type=int,
+        default=1,
+        help="Number of repeat runs per task for paired k-repetitions (default: 1).",
+    )
 
     # run-mock (H4 instrument — no API key required)
     p_mock = sub.add_parser(
@@ -791,6 +1134,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p_mock.add_argument("--seed", type=int, default=42, help="Random seed (default: 42).")
     p_mock.add_argument("--force", action="store_true", help="Overwrite existing responses.")
+    p_mock.add_argument(
+        "--repeats",
+        type=int,
+        default=1,
+        help="Number of repeat runs per task for paired k-repetitions (default: 1).",
+    )
 
     # evaluate
     p_eval = sub.add_parser(

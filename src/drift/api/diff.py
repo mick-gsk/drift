@@ -20,6 +20,7 @@ from drift.api_helpers import (
     _finding_concise,
     _finding_detailed,
     _next_step_contract,
+    apply_output_mode,
     shape_for_profile,
     signal_abbrev,
 )
@@ -537,6 +538,7 @@ def diff(
                     error=None,
                     repo_root=repo_path,
                 )
+                result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
                 return shape_for_profile(result, response_profile)
             except (OSError, json.JSONDecodeError, ValueError) as exc:
                 result = _error_response(
@@ -893,6 +895,7 @@ def diff(
             error=None,
             repo_root=repo_path,
         )
+        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
         return shape_for_profile(result, response_profile)
     except Exception as exc:
         _emit_api_telemetry(

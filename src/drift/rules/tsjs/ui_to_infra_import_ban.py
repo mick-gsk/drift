@@ -14,16 +14,18 @@ _FILE_TO_LAYER_KEY = "file_to_layer"
 def _load_file_to_layer_mapping(config_path: Path) -> dict[str, str]:
     """Load repository-relative file-to-layer mapping from JSON config."""
     if not config_path.is_file():
-        return {}
+        _out: dict[str, str] = {}
+        return _out
 
     try:
         data = json.loads(config_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {}
+        return dict()
 
     raw_mapping = data.get(_FILE_TO_LAYER_KEY, {}) if isinstance(data, dict) else {}
     if not isinstance(raw_mapping, dict):
-        return {}
+        _out = {}
+        return _out
 
     file_to_layer: dict[str, str] = {}
     for file_path, layer in raw_mapping.items():
