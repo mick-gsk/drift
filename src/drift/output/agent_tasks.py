@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import dataclass
 from typing import Any
 
 from drift import __version__
@@ -380,6 +381,31 @@ _SHADOW_VERIFY_STEP_TEMPLATE: dict[str, Any] = {
 }
 
 
+@dataclass(frozen=True)
+class _VerifyPlanContext:
+    """Typed context used while building a signal-specific verify plan."""
+
+    signal_type: str
+    metadata: dict[str, Any]
+    file_path: str
+    needs_shadow: bool
+
+
+def _finalize_verify_steps(
+    steps: list[dict[str, Any]],
+    *,
+    needs_shadow: bool,
+    shadow_step_builder: Any,
+    nudge_step_builder: Any,
+) -> list[dict[str, Any]]:
+    """Append optional shadow verify and mandatory nudge step."""
+    finalized = list(steps)
+    if needs_shadow:
+        finalized.append(shadow_step_builder(len(finalized) + 1))
+    finalized.append(nudge_step_builder(len(finalized) + 1))
+    return finalized
+
+
 def _shadow_verify_step(n: int, scope_files: list[str]) -> dict[str, Any]:
     """Build a shadow_verify verification step at the given 1-based index."""
     return {
@@ -440,11 +466,16 @@ def _verify_plan_for(
 
     The final step is always a drift_nudge check.
     """
-    st = finding.signal_type
-    meta = finding.metadata
-    path_str = finding.file_path.as_posix() if finding.file_path else ""
-
-    needs_shadow = bool(shadow_verify_scope)
+    context = _VerifyPlanContext(
+        signal_type=finding.signal_type,
+        metadata=finding.metadata,
+        file_path=finding.file_path.as_posix() if finding.file_path else "",
+        needs_shadow=bool(shadow_verify_scope),
+    )
+    st = context.signal_type
+    meta = context.metadata
+    path_str = context.file_path
+    needs_shadow = context.needs_shadow
 
     def nudge(n: int) -> dict[str, Any]:
         return {"step": n, **_NUDGE_STEP}
@@ -478,10 +509,12 @@ def _verify_plan_for(
             },
             scan_zero(2),
         ]
-        if needs_shadow:
-            steps.append(shadow(3))
-        steps.append(nudge(len(steps) + 1))
-        return steps
+        return _finalize_verify_steps(
+            steps,
+            needs_shadow=needs_shadow,
+            shadow_step_builder=shadow,
+            nudge_step_builder=nudge,
+        )
 
     if st == SignalType.CO_CHANGE_COUPLING:
         file_a = meta.get("file_a", path_str)
@@ -499,10 +532,12 @@ def _verify_plan_for(
             },
             scan_zero(2, file_a=file_a, file_b=file_b),
         ]
-        if needs_shadow:
-            steps.append(shadow(3))
-        steps.append(nudge(len(steps) + 1))
-        return steps
+        return _finalize_verify_steps(
+            steps,
+            needs_shadow=needs_shadow,
+            shadow_step_builder=shadow,
+            nudge_step_builder=nudge,
+        )
 
     if st == SignalType.PATTERN_FRAGMENTATION:
         module = meta.get("module", path_str)
@@ -531,10 +566,12 @@ def _verify_plan_for(
                 },
                 scan_zero(2, kind="circular", modules=[str(m) for m in cycle[:5]]),
             ]
-            if needs_shadow:
-                steps.append(shadow(3))
-            steps.append(nudge(len(steps) + 1))
-            return steps
+            return _finalize_verify_steps(
+                steps,
+                needs_shadow=needs_shadow,
+                shadow_step_builder=shadow,
+                nudge_step_builder=nudge,
+            )
         # layer violation or blast radius
         if needs_shadow:
             return [scan_zero(1), shadow(2), nudge(3)]
@@ -555,10 +592,12 @@ def _verify_plan_for(
             },
             scan_zero(2),
         ]
-        if needs_shadow:
-            steps.append(shadow(3))
-        steps.append(nudge(len(steps) + 1))
-        return steps
+        return _finalize_verify_steps(
+            steps,
+            needs_shadow=needs_shadow,
+            shadow_step_builder=shadow,
+            nudge_step_builder=nudge,
+        )
 
     if st == SignalType.TYPE_SAFETY_BYPASS:
         bypass_kinds = list(
@@ -650,10 +689,12 @@ def _verify_plan_for(
             },
             scan_zero(2),
         ]
-        if needs_shadow:
-            steps.append(shadow(3))
-        steps.append(nudge(len(steps) + 1))
-        return steps
+        return _finalize_verify_steps(
+            steps,
+            needs_shadow=needs_shadow,
+            shadow_step_builder=shadow,
+            nudge_step_builder=nudge,
+        )
 
     if st == SignalType.BROAD_EXCEPTION_MONOCULTURE:
         broad = meta.get("broad_count", 0)

@@ -9,18 +9,23 @@ from drift.analyzers.typescript.alias_resolver import (
     _match_alias_pattern,
 )
 from drift.api.diff import (
+    _build_diff_decision_state,
     _diff_decision_reason,
     _diff_next_actions,
     _diff_next_step_contract,
+    _scope_findings,
 )
 from drift.api.fix_plan import (
     _fix_plan_agent_instruction,
     _fix_plan_next_step_contract,
 )
 from drift.api.nudge import (
+    _build_nudge_blocking_state,
     _is_derived_cache_artifact,
+    _nudge_magnitude_label,
     _nudge_next_step_contract,
 )
+from drift.output.agent_tasks import _finalize_verify_steps
 
 # ── _diff_decision_reason ────────────────────────────────────────
 
@@ -57,6 +62,52 @@ class TestDiffDecisionReason:
             has_out_of_scope_noise=False,
         )
         assert code == "rejected_unknown"
+
+
+class TestDiffScopeState:
+    def test_no_target_path_keeps_all(self):
+        new = [SimpleNamespace(file_path="a.py")]
+        resolved = [SimpleNamespace(file_path="b.py")]
+        state = _scope_findings(new=new, resolved=resolved, target_path=None)
+        assert state.normalized_target is None
+        assert state.scoped_new == new
+        assert state.scoped_resolved == resolved
+        assert state.out_of_scope_new == []
+
+    def test_target_path_splits_scope(self):
+        new = [
+            SimpleNamespace(file_path="src/a.py"),
+            SimpleNamespace(file_path="tests/t.py"),
+        ]
+        resolved = [SimpleNamespace(file_path="src/b.py")]
+        state = _scope_findings(new=new, resolved=resolved, target_path="src")
+        assert state.normalized_target == "src"
+        assert len(state.scoped_new) == 1
+        assert len(state.scoped_resolved) == 1
+        assert len(state.out_of_scope_new) == 1
+
+
+class TestDiffDecisionState:
+    def test_in_scope_blocker_by_high(self):
+        scoped_new = [_mock_finding("high")]
+        state = _build_diff_decision_state(
+            scoped_new=scoped_new,
+            out_of_scope_new=[],
+            delta=0.0,
+        )
+        assert state.accept_change is False
+        assert state.in_scope_accept is False
+        assert "new_high_or_critical_findings" in state.blocking_reasons
+
+    def test_out_of_scope_noise_only(self):
+        state = _build_diff_decision_state(
+            scoped_new=[],
+            out_of_scope_new=[SimpleNamespace()],
+            delta=0.0,
+        )
+        assert state.accept_change is False
+        assert state.in_scope_accept is True
+        assert state.decision_reason_code == "rejected_out_of_scope_noise_only"
 
 
 # ── _diff_next_actions ───────────────────────────────────────────
@@ -207,6 +258,71 @@ class TestNudgeNextStepContract:
     def test_not_safe(self):
         result = _nudge_next_step_contract(safe_to_commit=False)
         assert _next_tool(result) == "drift_fix_plan"
+
+
+class TestNudgeBlockingState:
+    def test_blocks_on_parse_failures(self):
+        inc_result = SimpleNamespace(
+            new_findings=[],
+            delta=0.0,
+            baseline_valid=True,
+        )
+        state = _build_nudge_blocking_state(
+            inc_result=inc_result,
+            git_detection_failed=False,
+            changed_set_empty=False,
+            parse_failure_count=1,
+            significant_delta_threshold=0.05,
+        )
+        assert state.safe_to_commit is False
+        assert any("Parse failures" in reason for reason in state.blocking_reasons)
+
+    def test_blocks_on_high_finding(self):
+        inc_result = SimpleNamespace(
+            new_findings=[SimpleNamespace(severity=SimpleNamespace(value="critical"), title="x")],
+            delta=0.0,
+            baseline_valid=True,
+        )
+        state = _build_nudge_blocking_state(
+            inc_result=inc_result,
+            git_detection_failed=False,
+            changed_set_empty=False,
+            parse_failure_count=0,
+            significant_delta_threshold=0.05,
+        )
+        assert state.safe_to_commit is False
+        assert any("New critical finding" in reason for reason in state.blocking_reasons)
+
+
+class TestNudgeMagnitudeLabel:
+    def test_magnitude_buckets(self):
+        assert _nudge_magnitude_label(0.0) == "minor"
+        assert _nudge_magnitude_label(0.02) == "moderate"
+        assert _nudge_magnitude_label(0.2) == "significant"
+
+
+class TestFinalizeVerifySteps:
+    def test_without_shadow(self):
+        result = _finalize_verify_steps(
+            [{"step": 1, "tool": "drift_scan"}],
+            needs_shadow=False,
+            shadow_step_builder=lambda n: {"step": n, "tool": "drift_shadow_verify"},
+            nudge_step_builder=lambda n: {"step": n, "tool": "drift_nudge"},
+        )
+        assert [step["tool"] for step in result] == ["drift_scan", "drift_nudge"]
+
+    def test_with_shadow(self):
+        result = _finalize_verify_steps(
+            [{"step": 1, "tool": "drift_scan"}],
+            needs_shadow=True,
+            shadow_step_builder=lambda n: {"step": n, "tool": "drift_shadow_verify"},
+            nudge_step_builder=lambda n: {"step": n, "tool": "drift_nudge"},
+        )
+        assert [step["tool"] for step in result] == [
+            "drift_scan",
+            "drift_shadow_verify",
+            "drift_nudge",
+        ]
 
 
 # ── _fix_plan_agent_instruction ──────────────────────────────────

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,101 @@ from drift.api_helpers import (
 )
 
 
+@dataclass(frozen=True)
+class _DiffScopeState:
+    """Target-path scoped view of diff findings."""
+
+    scoped_new: list[Any]
+    scoped_resolved: list[Any]
+    out_of_scope_new: list[Any]
+    normalized_target: str | None
+
+
+@dataclass(frozen=True)
+class _DiffDecisionState:
+    """Typed decision state for change acceptance."""
+
+    in_scope_blocking: list[str]
+    blocking_reasons: list[str]
+    accept_change: bool
+    in_scope_accept: bool
+    decision_reason_code: str
+    decision_reason: str
+
+
+def _scope_findings(
+    *,
+    new: list[Any],
+    resolved: list[Any],
+    target_path: str | None,
+) -> _DiffScopeState:
+    """Return scoped and out-of-scope findings for a target path."""
+    if not target_path:
+        return _DiffScopeState(
+            scoped_new=new,
+            scoped_resolved=resolved,
+            out_of_scope_new=[],
+            normalized_target=None,
+        )
+
+    normalized_target = Path(target_path).as_posix().strip("/")
+
+    def _in_scope(finding: Any) -> bool:
+        raw_file_path = getattr(finding, "file_path", None)
+        if raw_file_path is None or not normalized_target:
+            return False
+        file_path = Path(raw_file_path).as_posix().strip("/")
+        return bool(
+            file_path == normalized_target
+            or file_path.startswith(normalized_target + "/")
+        )
+
+    scoped_new = [finding for finding in new if _in_scope(finding)]
+    scoped_resolved = [finding for finding in resolved if _in_scope(finding)]
+    out_of_scope_new = [finding for finding in new if not _in_scope(finding)]
+    return _DiffScopeState(
+        scoped_new=scoped_new,
+        scoped_resolved=scoped_resolved,
+        out_of_scope_new=out_of_scope_new,
+        normalized_target=normalized_target,
+    )
+
+
+def _build_diff_decision_state(
+    *,
+    scoped_new: list[Any],
+    out_of_scope_new: list[Any],
+    delta: float,
+) -> _DiffDecisionState:
+    """Build acceptance decision fields for diff responses."""
+    high_count = sum(
+        1 for finding in scoped_new if finding.severity.value in ("critical", "high")
+    )
+    in_scope_blocking: list[str] = []
+    if high_count:
+        in_scope_blocking.append("new_high_or_critical_findings")
+    if delta > 0.0:
+        in_scope_blocking.append("drift_score_regressed")
+
+    blocking_reasons: list[str] = list(in_scope_blocking)
+    if out_of_scope_new:
+        blocking_reasons.append("out_of_scope_diff_noise")
+
+    accept_change = not blocking_reasons
+    in_scope_accept = not in_scope_blocking
+    decision_reason_code, decision_reason = _diff_decision_reason(
+        accept_change=accept_change,
+        in_scope_accept=in_scope_accept,
+        has_out_of_scope_noise=bool(out_of_scope_new),
+    )
+    return _DiffDecisionState(
+        in_scope_blocking=in_scope_blocking,
+        blocking_reasons=blocking_reasons,
+        accept_change=accept_change,
+        in_scope_accept=in_scope_accept,
+        decision_reason_code=decision_reason_code,
+        decision_reason=decision_reason,
+    )
 def _diff_decision_reason(
     *,
     accept_change: bool,
@@ -204,28 +300,15 @@ def diff(
             new = [f for f in new if signal_abbrev(f.signal_type) not in _excl]
             resolved = [f for f in resolved if signal_abbrev(f.signal_type) not in _excl]
 
-        scoped_new = new
-        scoped_resolved = resolved
-        out_of_scope_new = []
-        normalized_target: str | None = None
-        if target_path:
-            normalized_target = Path(target_path).as_posix().strip("/")
-
-            def _in_scope(finding: Any) -> bool:
-                raw_file_path = getattr(finding, "file_path", None)
-                if raw_file_path is None or not normalized_target:
-                    return False
-                file_path = Path(raw_file_path).as_posix().strip("/")
-                return bool(
-                    file_path == normalized_target
-                    or file_path.startswith(
-                    normalized_target + "/"
-                )
-                )
-
-            scoped_new = [finding for finding in new if _in_scope(finding)]
-            scoped_resolved = [finding for finding in resolved if _in_scope(finding)]
-            out_of_scope_new = [finding for finding in new if not _in_scope(finding)]
+        scope_state = _scope_findings(
+            new=new,
+            resolved=resolved,
+            target_path=target_path,
+        )
+        scoped_new = scope_state.scoped_new
+        scoped_resolved = scope_state.scoped_resolved
+        out_of_scope_new = scope_state.out_of_scope_new
+        normalized_target = scope_state.normalized_target
 
         # Score comparison via trend context
         score_after = diff_analysis.drift_score
@@ -287,17 +370,12 @@ def diff(
             summary_parts.append(f"{len(out_of_scope_new)} out-of-scope")
         summary_parts.append(f"drift score {'+' if delta >= 0 else ''}{delta:.3f}")
 
-        # Compute in-scope-only accept decision (D6: helps agents isolate
-        # scoped results from pre-existing out-of-scope noise).
-        in_scope_blocking: list[str] = []
-        if high_count:
-            in_scope_blocking.append("new_high_or_critical_findings")
-        if delta > 0.0:
-            in_scope_blocking.append("drift_score_regressed")
-
-        blocking_reasons: list[str] = list(in_scope_blocking)
-        if out_of_scope_new:
-            blocking_reasons.append("out_of_scope_diff_noise")
+        decision_state = _build_diff_decision_state(
+            scoped_new=scoped_new,
+            out_of_scope_new=out_of_scope_new,
+            delta=delta,
+        )
+        blocking_reasons = decision_state.blocking_reasons
 
         # Resolved-count-by-rule: helps agents gauge batch fix efficiency
         _resolved_by_rule: dict[str, int] = {}
@@ -355,13 +433,10 @@ def diff(
         baseline_recommended = bool(baseline_reasons)
         baseline_reason = baseline_reasons[0] if baseline_reasons else "none"
 
-        accept_change = not blocking_reasons
-        in_scope_accept = not in_scope_blocking
-        decision_reason_code, decision_reason = _diff_decision_reason(
-            accept_change=accept_change,
-            in_scope_accept=in_scope_accept,
-            has_out_of_scope_noise=bool(out_of_scope_new),
-        )
+        accept_change = decision_state.accept_change
+        in_scope_accept = decision_state.in_scope_accept
+        decision_reason_code = decision_state.decision_reason_code
+        decision_reason = decision_state.decision_reason
 
         staged_file_count = diff_analysis.total_files if diff_mode == "staged" else None
         no_staged_files = bool(diff_mode == "staged" and diff_analysis.total_files == 0)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -104,6 +105,68 @@ def _nudge_next_step_contract(*, safe_to_commit: bool) -> dict[str, Any]:
         fallback_tool="drift_scan",
         fallback_params={"response_detail": "concise"},
     )
+
+
+@dataclass(frozen=True)
+class _NudgeBlockingState:
+    """Typed outcome of safe-to-commit gate evaluation."""
+
+    safe_to_commit: bool
+    blocking_reasons: list[str]
+
+
+def _build_nudge_blocking_state(
+    *,
+    inc_result: Any,
+    git_detection_failed: bool,
+    changed_set_empty: bool,
+    parse_failure_count: int,
+    significant_delta_threshold: float,
+) -> _NudgeBlockingState:
+    """Derive safe_to_commit and blocking reasons from incremental state."""
+    blocking_reasons: list[str] = []
+
+    if git_detection_failed and changed_set_empty:
+        blocking_reasons.append(
+            "Git change detection failed; "
+            "pass changed_files explicitly or check git availability"
+        )
+
+    for finding in inc_result.new_findings:
+        if finding.severity.value in ("critical", "high"):
+            blocking_reasons.append(
+                f"New {finding.severity.value} finding: {finding.title}"
+            )
+            break
+
+    if inc_result.delta > significant_delta_threshold:
+        blocking_reasons.append(
+            f"Score degradation of {inc_result.delta:+.4f} exceeds threshold"
+        )
+
+    if not inc_result.baseline_valid:
+        blocking_reasons.append("Baseline expired — full rescan recommended")
+
+    if parse_failure_count > 0:
+        blocking_reasons.append(
+            f"Parse failures in {parse_failure_count} file(s): "
+            "affected files were skipped or only partially analyzable"
+        )
+
+    return _NudgeBlockingState(
+        safe_to_commit=len(blocking_reasons) == 0,
+        blocking_reasons=blocking_reasons,
+    )
+
+
+def _nudge_magnitude_label(delta: float) -> str:
+    """Return magnitude bucket for a score delta."""
+    abs_delta = abs(delta)
+    if abs_delta < 0.01:
+        return "minor"
+    if abs_delta < 0.05:
+        return "moderate"
+    return "significant"
 
 
 def nudge(
@@ -444,50 +507,18 @@ def nudge(
             inc_result = runner.run(effective_changed_set, current_parse)
 
         # -- safe_to_commit hardrule (Step 13) ------------------------------
-        blocking_reasons: list[str] = []
-
-        # Rule (e): git detection failed — empty file-set is unreliable
-        if git_detection_failed and not changed_set:
-            blocking_reasons.append(
-                "Git change detection failed; "
-                "pass changed_files explicitly or check git availability"
-            )
-
-        # Rule (a): new findings with critical/high severity
-        for f in inc_result.new_findings:
-            if f.severity.value in ("critical", "high"):
-                blocking_reasons.append(
-                    f"New {f.severity.value} finding: {f.title}"
-                )
-                break  # one reason suffices
-
-        # Rule (b): significant degradation
-        if inc_result.delta > _NUDGE_SIGNIFICANT_DELTA:
-            blocking_reasons.append(
-                f"Score degradation of {inc_result.delta:+.4f} exceeds threshold"
-            )
-
-        # Rule (c): expired baseline
-        if not inc_result.baseline_valid:
-            blocking_reasons.append("Baseline expired — full rescan recommended")
-
-        # Rule (d): parse failures hide analyzable surface and therefore block commit safety.
-        if parse_failure_count > 0:
-            blocking_reasons.append(
-                f"Parse failures in {parse_failure_count} file(s): "
-                "affected files were skipped or only partially analyzable"
-            )
-
-        safe_to_commit = len(blocking_reasons) == 0
+        blocking_state = _build_nudge_blocking_state(
+            inc_result=inc_result,
+            git_detection_failed=git_detection_failed,
+            changed_set_empty=not changed_set,
+            parse_failure_count=parse_failure_count,
+            significant_delta_threshold=_NUDGE_SIGNIFICANT_DELTA,
+        )
+        safe_to_commit = blocking_state.safe_to_commit
+        blocking_reasons = blocking_state.blocking_reasons
 
         # -- Magnitude label -----------------------------------------------
-        abs_delta = abs(inc_result.delta)
-        if abs_delta < 0.01:
-            magnitude = "minor"
-        elif abs_delta < 0.05:
-            magnitude = "moderate"
-        else:
-            magnitude = "significant"
+        magnitude = _nudge_magnitude_label(inc_result.delta)
 
         # -- Nudge message --------------------------------------------------
         if inc_result.direction == "improving":
