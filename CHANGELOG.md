@@ -31,7 +31,7 @@
 - Resolve mypy typing in adaptive recommendation refinement within `analyze` command outcome/reward processing.
 - Add managed inline suppression tooling via `drift suppress list` and `drift suppress audit` with optional `until:`/`reason:` metadata support for `drift:ignore` comments.
 
-## [2.9.15] - 2026-04-13
+## [2.9.16] - 2026-04-13
 
 Short version: Harden copilot-autopilot risky-edit completion with fix-intent contracts, shadow-verify, and repair-template registry evidence.
 
