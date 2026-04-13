@@ -85,7 +85,10 @@ cross-file structural drift that accumulates silently during AI-assisted develop
 
 > 🔍 **Before** — `drift brief` analyses your repo scope and generates structural constraints ready to paste into your agent prompt  
 > 🚦 **After** — `drift check` runs 20+ cross-file signals and exits 1 on violations — CI, SARIF, and pre-commit ready  
-> 🧠 **Over time** — Bayesian calibration reweights signals via feedback, git outcome correlation, and GitHub label correlation
+> 🧠 **Over time** — Adaptive calibration reweights signals via feedback, git outcome correlation, and GitHub label correlation
+
+> [!NOTE]
+> **Origin note:** Drift was originally designed to detect cross-file structural erosion in any codebase (v0.1, March 2026). The vibe-coding framing — and the dedicated `vibe-coding` profile — were added in v1.1.11 when it became clear that AI-assisted codebases exhibit these erosion patterns disproportionately. The underlying signals are the same; the profile adjusts weights and thresholds for AI-heavy development styles.
 
 ---
 
@@ -240,7 +243,7 @@ Pick a profile that matches your project — or start with `default` and calibra
 
 Drift does not treat all signals equally forever. It maintains a per-repo profile:
 
-- **Bayesian calibration engine** combines three evidence sources: explicit `drift feedback mark`, git outcome correlation, and GitHub issue/PR label correlation.
+- **Adaptive calibration engine** uses precision-weighted linear interpolation across three evidence sources: explicit `drift feedback mark`, git outcome correlation, and GitHub issue/PR label correlation. As feedback accumulates, observed signal precision gradually overrides default weights (see [calibration design](src/drift/calibration/profile_builder.py)).
 - **Feedback events** are stored as structured `FeedbackEvent` records and can be reloaded and replayed across versions (`record_feedback`, `load_feedback`).
 - **Profile builder** (`build_profile`) produces a calibrated weight profile that `drift check` and `drift brief` use to focus on the most trusted signals in your codebase.
 
@@ -291,7 +294,7 @@ If your team ships most changes via AI coding tools (Copilot, Cursor, Claude), d
 | Architecture Violation signals | ✔ | Partial | — | Partial (custom rules) | — |
 | Temporal / change-history signals | ✔ | — | — | — | — |
 | GitHub Code Scanning via SARIF | ✔ | ✔ | — | ✔ | — |
-| Bayesian per-repo calibration | ✔ | — | — | — | — |
+| Adaptive per-repo calibration | ✔ | — | — | — | — |
 | MCP server for AI agents | ✔ | — | — | — | — |
 | Zero server setup | ✔ | — | ✔ | ✔ | ✔ |
 | TypeScript support | Partial ¹ | ✔ | — | ✔ | ✔ |
@@ -300,7 +303,7 @@ If your team ships most changes via AI coding tools (Copilot, Cursor, Claude), d
 
 ¹ Via `drift-analyzer[typescript]`. 17/24 signals supported via tree-sitter. Python is the primary analysis target.
 
-Comparison reflects primary design scope per [STUDY.md §9](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md).
+Comparison reflects primary design scope per [STUDY.md §9](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md). This table was authored by the maintainer and has not been independently verified. Corrections welcome via [discussion](https://github.com/mick-gsk/drift/discussions).
 
 ---
 
@@ -335,8 +338,9 @@ Paste the Markdown output into your README:
 | [MCP & AI Tools](https://mick-gsk.github.io/drift/integrations/) | Cursor, Claude Code, Copilot, HTTP API |
 | [Configuration](https://mick-gsk.github.io/drift/getting-started/configuration/) | drift.yaml, layer boundaries, signal weights |
 | [Configuration Levels](https://mick-gsk.github.io/drift/guides/configuration-levels/) | Zero-Config → Preset → YAML → Calibration → MCP → CI |
-| [Calibration & Feedback](https://mick-gsk.github.io/drift/algorithms/scoring/) | Bayesian signal reweighting, feedback workflow |
+| [Calibration & Feedback](https://mick-gsk.github.io/drift/algorithms/scoring/) | Adaptive signal reweighting, feedback workflow |
 | [Vibe-coding Playbook](examples/vibe-coding/README.md) | 30-day rollout guide for AI-heavy teams |
+| [Open Research Questions](RESEARCH.md) | 5 falsifiable hypotheses on validity and effectiveness |
 | [Contributing](CONTRIBUTING.md) | Dev setup, FP/FN reporting, signal development |
 
 ---
@@ -379,14 +383,20 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 | Ground-truth recall | 100 % (0 FN across 114 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
 | Mutation recall | 100 % (25/25 injected patterns) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 | Wild-repo precision | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
+| Agent session score delta | 0.495→0.506 (1 live run) ² | [Copilot Autopilot artefacts](demos/copilot-autopilot/) |
+
+² Single uncontrolled run — see [RESEARCH.md H4/H5](RESEARCH.md#h4--agent-guardrail-compliance-rate) for what a controlled study would require.
 
 - **No LLM in detection.** Same input, same output. Reproducible in CI and auditable.
 - **Single-rater caveat:** ground-truth classification is not yet independently replicated.
 - **Small-repo noise:** repositories with few files can produce noisy scores. Calibration mitigates but does not eliminate this.
 - **Temporal signals** depend on clone depth and git history quality.
 - **The composite score is orientation, not a verdict.** Interpret deltas via `drift trend`, not isolated snapshots.
+- **Own score context (0.50):** Drift's self-score is driven primarily by explainability deficit (undocumented internal functions) and findings in intentional anti-pattern fixtures under `data/negative-patterns/`. The score is neither aspirational nor concerning — it reflects a codebase that grows fast and prioritizes signal correctness over internal documentation. See [drift_self.json](benchmark_results/drift_self.json) for the full breakdown.
+- **Signal overlap:** Some signals measure related phenomena (e.g., MDS and PFS both detect code similarity; CCC and TVS both use git history). A formal inter-signal correlation analysis has not been conducted. Overlap does not produce double-counting in the composite score (each signal contributes independently), but it means some findings may describe the same underlying issue from different angles.
+- **Weight derivation:** Default signal weights for the 6 original signals were derived via rank-correlation (Kendall's τ) against manual architectural assessments on 5 open-source repos (single rater). Weights for the 18 newer signals are conservative heuristic assignments pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [ADR-003](decisions/ADR-003-composite-scoring-model.md).
 
-Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchmarking/) · [Full Study](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md)
+Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchmarking/) · [Full Study](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) · [Open Research Questions](RESEARCH.md)
 
 ---
 

@@ -73,6 +73,16 @@ is a first-class contribution — you do not need to write code.
 Currently open studies are documented in [STUDY.md §15–§17](docs/STUDY.md).
 All studies follow the quality criteria in [POLICY.md §13](POLICY.md).
 
+## Validation & annotation
+
+Ground-truth labels are currently single-rater. Independent annotation is the fastest way to validate or challenge precision claims.
+
+1. Run `python scripts/generate_annotation_sheet.py` to generate a randomized, score-free sheet at `benchmark_results/annotation_sheet.json`.
+2. Label each finding as **TP**, **FP**, or **Unclear** from the shown code context.
+3. Submit results via the [FP/FN report template](https://github.com/mick-gsk/drift/issues/new?template=false_positive.yml) or a [discussion](https://github.com/mick-gsk/drift/discussions).
+
+Optional: run `python scripts/generate_annotation_sheet.py --evaluate annotated.json` to compare your labels with the maintainer key and compute agreement.
+
 ## Where to ask what
 
 Not sure where to go? Use this routing table:
