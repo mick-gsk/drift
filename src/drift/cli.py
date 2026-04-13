@@ -152,7 +152,7 @@ class SuggestingGroup(click.Group):
                 "session-report",
             ),
         ),
-        ("CI & Automation", ("ci", "gate", "badge", "baseline", "validate", "import")),
+        ("CI & Automation", ("ci", "gate", "badge", "baseline", "validate", "verify", "import")),
         ("Configuration", ("init", "config", "preset", "calibrate", "feedback", "completions")),
         ("Measurement", ("self", "precision", "roi-estimate", "start")),
     )
@@ -291,6 +291,7 @@ from drift.commands.status import status
 from drift.commands.timeline import timeline
 from drift.commands.trend import trend
 from drift.commands.validate_cmd import validate
+from drift.commands.verify import verify
 from drift.commands.visualize import visualize
 from drift.commands.watch import watch
 
@@ -324,6 +325,7 @@ main.add_command(trend)
 main.add_command(validate)
 main.add_command(self_analyze)
 main.add_command(badge)
+main.add_command(verify)
 main.add_command(check, "gate")
 main.add_command(ci)
 main.add_command(completions)

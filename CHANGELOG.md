@@ -2,6 +2,7 @@
 
 ### Added
 
+- `drift verify` subcommand — binary pass/fail coherence gate for post-edit CI workflows (ADR-070). Wraps `shadow_verify()` with a severity-threshold gate; returns `pass`/`fail` verdict, `blocking_reasons`, and `score_delta`. Available as CLI (`--fail-on`, `--scope-files`, `--format json/rich`) and as `drift_verify` MCP tool.
 - `drift init --interactive` flag — delegates to setup's onboarding questions for profile-driven scaffolding.
 - `drift trend --json` flag — emit trend data as machine-readable JSON.
 - `drift feedback` N column shows total observations per signal.

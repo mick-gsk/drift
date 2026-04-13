@@ -13,6 +13,7 @@ Tool surface (v3 — sessions):
     drift_validate        — Preflight config & environment check
     drift_brief           — Pre-task structural briefing with guardrails
     drift_nudge           — Fast directional feedback after edits
+    drift_verify          — Binary pass/fail coherence check after edits (ADR-070)
     drift_negative_context — Anti-pattern warnings
     drift_session_start   — Create a stateful session (scope, baseline, tasks)
     drift_session_status  — Show current session state
@@ -2810,6 +2811,7 @@ async def drift_calibrate(
 _EXPORTED_MCP_TOOLS = (
     drift_scan,
     drift_diff,
+    drift_verify,
     drift_explain,
     drift_fix_plan,
     drift_validate,

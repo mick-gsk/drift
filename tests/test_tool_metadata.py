@@ -21,6 +21,7 @@ class TestToolCatalog:
         expected_tools = {
             "drift_scan",
             "drift_diff",
+            "drift_verify",
             "drift_explain",
             "drift_fix_plan",
             "drift_validate",
