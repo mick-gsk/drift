@@ -63,7 +63,7 @@ Full study: docs/STUDY.md
 
 ## Signals
 
-### Scoring-active (20, contribute to composite drift score)
+### Scoring-active (19, contribute to composite drift score)
 - PFS: Pattern Fragmentation (weight 0.16)
 - AVS: Architecture Violations (weight 0.16)
 - MDS: Mutant Duplicates (weight 0.13)
@@ -83,9 +83,9 @@ Full study: docs/STUDY.md
 - ISD: Insecure Default (weight 0.01, CWE-1188)
 - CCC: Co-Change Coupling (weight 0.005)
 - FOE: Fan-Out Explosion (weight 0.005)
-- TVS: Temporal Volatility (weight 0.0, part of scoring model, temporarily zero-weighted)
 
-### Report-only (4, weight 0.0, findings shown but not scored)
+### Report-only (5, weight 0.0, findings shown but not scored)
+- TVS: Temporal Volatility (weight 0.0, report-only — excluded from composite score)
 - TSA: TypeScript Architecture — TS/JS layer leaks, cycles, cross-package imports
 - CXS: Cognitive Complexity — deeply nested control flow
 - CIR: Circular Import — circular dependency chains
