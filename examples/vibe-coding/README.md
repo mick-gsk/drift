@@ -30,9 +30,11 @@ drift detects the **exact patterns** that vibe-coding produces:
 | `# type: ignore` / `Any` buildup | **BAT** (Bypass Accumulation) | Quality-bypass marker density |
 | Broad `except Exception` | **BEM** (Exception Monoculture) | Uniform error-swallowing detection |
 | `validate_*` without raise | **NBV** (Naming Contract) | Name-to-AST contract verification |
-| Circular imports between modules | **CIR** (Circular Import) | Import-cycle detection in module graph |
-| High-churn files | **TVS** (Temporal Volatility) | Z-score anomaly on 30-day window |
+| Circular imports between modules | **CIR** *(report-only)* (Circular Import) | Import-cycle detection in module graph |
+| High-churn files | **TVS** *(report-only)* (Temporal Volatility) | Z-score anomaly on 30-day window |
 | Hidden coupling | **CCC** (Co-Change Coupling) | Co-change frequency without import |
+
+**Note:** CIR and TVS are report-only signals (weight `0.0`). They appear in `drift analyze` output but do not contribute to the composite score and do not trigger `--fail-on` gates.
 
 ## Quick Start (2 Minutes)
 
