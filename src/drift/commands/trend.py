@@ -21,7 +21,7 @@ from drift.trend_history import load_history, snapshot_scope
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output trend data as JSON.")
 def trend(repo: Path, days: int, config: Path | None, as_json: bool) -> None:
-    """Show drift score trend over time (requires git history)."""
+    """Show drift score trend over time; optional machine-readable JSON output."""
     import json as json_mod
 
     from rich.table import Table
