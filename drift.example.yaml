@@ -1,103 +1,39 @@
-# Drift Configuration Example
-# Copy to drift.yaml in your project root
+# Drift Configuration — Minimal Example
+# Copy to drift.yaml in your project root.
+# Tip: Run `drift setup` for an interactive wizard that picks the right
+# profile for your project, or `drift init -p <profile>` for presets.
 
 # File patterns (glob syntax)
 include:
   - "**/*.py"
-  - "**/*.ts"
-  - "**/*.tsx"
 
 exclude:
-  # Build artifacts & environment
   - "**/node_modules/**"
   - "**/__pycache__/**"
   - "**/venv/**"
   - "**/.venv/**"
   - "**/dist/**"
   - "**/build/**"
-  - "**/.git/**"
-  - "**/.tox/**"
-  - "**/*.egg-info/**"
-  # Third-party / vendor code — environment & package manager directories
-  - "**/.conda/**"
-  - "**/site-packages/**"
-  - "**/.pixi/**"
-  # Documentation & example code — often contains intentional duplicates
-  # that inflate drift scores without reflecting production architecture.
-  # Remove these lines if you want to analyze docs/examples too.
-  - "**/docs/**"
-  - "**/docs_src/**"
-  - "**/examples/**"
-  - "**/site/**"  # Generated documentation output (e.g. mkdocs)
 
-# Signal weights (can be below ~1.0 when some signals are report-only)
-weights:
-  # Core signals (ablation-validated)
-  pattern_fragmentation: 0.16
-  architecture_violation: 0.16
-  mutant_duplicate: 0.13
-  temporal_volatility: 0.0  # report-only until re-validation
-  explainability_deficit: 0.09
-  system_misalignment: 0.08
-  # Promoted from report-only in v0.7.0
-  doc_impl_drift: 0.04
-  broad_exception_monoculture: 0.04
-  test_polarity_deficit: 0.04
-  guard_clause_deficit: 0.03
-  naming_contract_violation: 0.04
-  bypass_accumulation: 0.03
-  exception_contract_drift: 0.03
-  # Added in v0.7.3 / v0.8.0
-  cohesion_deficit: 0.01
-  co_change_coupling: 0.005
-  # Promoted from report-only (ADR-039/040: agent-safety signals)
-  fan_out_explosion: 0.005
-  hardcoded_secret: 0.01
-  phantom_reference: 0.02
-  missing_authorization: 0.02
-  insecure_default: 0.01
-  # Report-only signals (weight 0.0, pending validation)
-  typescript_architecture: 0.0
-  cognitive_complexity: 0.0
-  circular_import: 0.0
-  dead_code_accumulation: 0.0
-
-# Auto-calibration rebalances weights at runtime based on finding distribution.
-# Set to false for fully manual weight control.
+# Auto-calibration rebalances signal weights at runtime.
+# Drift ships sensible defaults — you don't need to tune weights on first use.
+# Set to false to lock weights as configured.  default: true
 auto_calibrate: true
 
-# Worker strategy (performance rollout):
-# - fixed: CPU-based default (plus CLI/env overrides)
-# - auto: conservative auto-tuning based on repo size, file types, and I/O proxies
-# performance:
-#   worker_strategy: auto
-#   load_profile: conservative
-#   min_workers: 2
-#   max_workers: 16
-#   small_repo_file_threshold: 40
+# Optional: Architecture policies (uncomment to enable)
+# policies:
+#   layer_boundaries:
+#     - name: "No DB imports in API layer"
+#       from: "api/**"
+#       deny_import:
+#         - "db.*"
+#         - "models.*"
 
-# Architecture policies
-policies:
-  # Layer boundary enforcement
-  layer_boundaries:
-    - name: "No DB imports in API layer"
-      from: "api/**"
-      deny_import:
-        - "db.*"
-        - "models.*"
-        - "repositories.*"
-
-    - name: "No API imports in DB layer"
-      from: "db/**"
-      deny_import:
-        - "api.*"
-        - "routes.*"
-        - "views.*"
-
-  # Maximum allowed variants per pattern category
-  max_pattern_variants:
-    error_handling: 2
-    data_access: 2
+# ──────────────────────────────────────────────────────────────────────
+# For the full configuration reference with all 24 signal weights,
+# performance tuning, and advanced policies, see:
+# https://mick-gsk.github.io/drift/getting-started/configuration/
+# ──────────────────────────────────────────────────────────────────────
     api_endpoint: 3
 
   # AI attribution override: set a fixed ratio if your repo is fully AI-built
@@ -107,24 +43,27 @@ policies:
 
   # Language scanning settings
   # languages:
-  #   typescript: true  # Enable TypeScript/TSX/JS/JSX analysis (requires tree-sitter)
+  #   typescript: true  # Enable TypeScript/TSX/JS/JSX analysis (requires tree-sitter)  default: false
+  #                     # Install: pip install 'drift-analyzer[typescript]'
 
 # CI severity gate: exit 1 if findings meet or exceed this level
 # Options: critical, high, medium, low, none
 # NOTE: The library default (when no drift.yaml is present) is "high".
 # This example uses "none" as the recommended safe starting point for
 # first rollouts. The GitHub Action also defaults to "none".
+# Signals with weight: 0.0 are report-only: they run, appear in output,
+# but do NOT contribute to the composite score and do NOT trigger this gate.
 fail_on: none  # recommended for the first rollout pass
 
 # Context-tagging dampening factor (ADR-006): findings annotated with
 # # drift:context <tag> have their score multiplied by this value.
-# Set to 1.0 to disable dampening (tags are metadata-only).
+# Set to 1.0 to disable dampening (tags are metadata-only).  default: 1.0 (disabled)
 # context_dampening: 0.5
 
 # Delta gate (ADR-005): exit 1 if score increases by more than this value
-# compared to the mean of the last N snapshots.
+# compared to the mean of the last N snapshots.  default: disabled
 # fail_on_delta: 0.05
-# fail_on_delta_window: 5   # Compare against mean of last N snapshots
+# fail_on_delta_window: 5   # Compare against mean of last N snapshots  default: 5
 
 # Tunable thresholds
 thresholds:

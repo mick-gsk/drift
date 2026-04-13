@@ -9,6 +9,8 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
+from drift.config._schema import SignalWeights
+
 if TYPE_CHECKING:
     from drift.models import RepoAnalysis
 
@@ -234,7 +236,7 @@ SIGNAL_PLAIN_TEXT: dict[str, str] = {
         "Bestimmte Dateien müssen immer zusammen geändert werden — ein Zeichen "
         "versteckter Abhängigkeiten."
     ),
-    # --- 3 promoted signals (ADR-040) ---
+    # --- Additional scoring-active signals ---
     "fan_out_explosion": (
         "Einzelne Dateien importieren zu viele andere Module — ein Änderungs-Risiko."
     ),
@@ -244,7 +246,13 @@ SIGNAL_PLAIN_TEXT: dict[str, str] = {
     "phantom_reference": (
         "Der Code verweist auf Funktionen oder Module, die nicht mehr existieren."
     ),
-    # --- Report-only signals (included for completeness) ---
+    "missing_authorization": (
+        "Bestimmte Endpunkte haben möglicherweise keine Zugriffsprüfung."
+    ),
+    "insecure_default": (
+        "Sicherheitsrelevante Einstellungen verwenden unsichere Standardwerte."
+    ),
+    # --- Report-only signals (weight 0.0 in the default profile) ---
     "temporal_volatility": (
         "Bestimmte Dateien werden ungewöhnlich häufig geändert."
     ),
@@ -260,37 +268,20 @@ SIGNAL_PLAIN_TEXT: dict[str, str] = {
     "dead_code_accumulation": (
         "Es gibt ungenutzten Code, der das Projekt unübersichtlicher macht."
     ),
-    "missing_authorization": (
-        "Bestimmte Endpunkte haben möglicherweise keine Zugriffsprüfung."
-    ),
-    "insecure_default": (
-        "Sicherheitsrelevante Einstellungen verwenden unsichere Standardwerte."
-    ),
+    # --- Additional non-configured signal text ---
     "type_safety_bypass": (
         "Typ-Prüfungen werden an mehreren Stellen umgangen."
     ),
 }
 
+_DEFAULT_SIGNAL_WEIGHTS = SignalWeights().as_dict()
+
 # Set of signal types that are scoring-active (weight > 0 in default profile)
-SCORING_ACTIVE_SIGNALS: frozenset[str] = frozenset({
-    "pattern_fragmentation",
-    "architecture_violation",
-    "mutant_duplicate",
-    "explainability_deficit",
-    "doc_impl_drift",
-    "system_misalignment",
-    "broad_exception_monoculture",
-    "test_polarity_deficit",
-    "guard_clause_deficit",
-    "naming_contract_violation",
-    "bypass_accumulation",
-    "exception_contract_drift",
-    "cohesion_deficit",
-    "co_change_coupling",
-    "fan_out_explosion",
-    "hardcoded_secret",
-    "phantom_reference",
-})
+SCORING_ACTIVE_SIGNALS: frozenset[str] = frozenset(
+    signal_type
+    for signal_type, weight in _DEFAULT_SIGNAL_WEIGHTS.items()
+    if weight > 0.0
+)
 
 
 def plain_text_for_signal(signal_type: str, language: str = "de") -> str:

@@ -9,7 +9,7 @@ Order = recommended priority.
 - Package: `drift-analyzer`
 - Command: `drift`
 - Version: v2.5.1
-- Safe signal claim: 20 scoring signals (auto-calibrated at runtime) + 4 report-only signals (including TypeScript architecture and complexity) = 24 total detectors.
+- Safe signal claim: 19 scoring signals (auto-calibrated at runtime) + 5 report-only signals (TVS, TSA, CXS, CIR, DCA) = 24 total detectors.
 - Safe CLI claim: 18 commands — `analyze`, `init`, `scan`, `diff`, `baseline`, `mcp`, `export-context`, `copilot-context`, `timeline`, `trend`, `patterns`, `badge`, `check`, `config`, `explain`, `fix-plan`, `self`, `validate`.
 - Safe rollout claim: `drift init --profile vibe-coding` for zero-config start, then baseline + incremental adoption.
 - Execution assets: see `docs/distribution/README.md` for awesome submissions, article draft, IDE MVP spec, and week-1 runbook.
@@ -37,13 +37,12 @@ near-identical functions accumulate with subtle differences.
 
 Drift doesn't detect bugs. It detects the loss of design intent.
 
-20 scoring signals cover pattern fragmentation, architecture violations,
-mutant duplicates, explainability deficit, temporal volatility, system
-misalignment, doc-impl drift, naming contracts, guard clauses, cohesion,
-coupling, hardcoded secrets, fan-out explosion, phantom references,
-missing authorization, insecure defaults, and more.
-4 additional report-only signals cover TypeScript
-architecture and complexity.
+19 scoring signals cover pattern fragmentation, architecture violations,
+mutant duplicates, explainability deficit, system misalignment, doc-impl
+drift, naming contracts, guard clauses, cohesion, coupling, exception
+contracts, test polarity, bypass accumulation, security, and AI quality —
+plus 5 report-only detectors for temporal volatility, TypeScript architecture,
+complexity, circular imports, and dead code.
 
 All signals are deterministic, LLM-free, fast. Uses Python's built-in `ast`
 module — zero dependencies on ML infrastructure.
@@ -85,16 +84,17 @@ I built drift – deterministic architectural drift detection for AI-accelerated
 TL;DR: `pip install -q drift-analyzer && drift init --profile vibe-coding && drift analyze --repo .`
 
 Copilot and Cursor write code that solves local tasks correctly but weakens
-global design. Drift detects that architectural drift with 20 scoring signals
-covering pattern, architecture, consistency, contract, and security dimensions — plus
-4 report-only signals.
+global design. Drift detects that architectural drift with 19 scoring signals
+covering pattern, architecture, consistency, security, and contract dimensions — plus
+5 report-only signals for temporal volatility, TypeScript architecture,
+complexity, circular imports, and dead code.
 
 Core signals:
 - Pattern Fragmentation – same thing done N ways in one module
 - Architecture Violations – wrong-direction imports
 - Mutant Duplicates – near-identical functions (copy-paste-then-modify)
 - Explainability Deficit – complex functions without docs or types
-- Temporal Volatility – files changed by too many authors too fast
+- Temporal Volatility (report-only) – files changed by too many authors too fast
 - System Misalignment – patterns foreign to their target module
 
 Plus: doc-impl drift, naming contracts, guard clauses, cohesion, coupling,
@@ -187,11 +187,12 @@ These aren't bugs. Linters won't flag them. They compound silently until the
 codebase resists change.
 
 I built drift, a static analyzer focused specifically on this problem. It runs
-20 scoring signals covering pattern fragmentation, layer violations,
+19 scoring signals covering pattern fragmentation, layer violations,
 near-duplicates, explainability gaps, naming contracts, cohesion, coupling,
-exception contracts, hardcoded secrets, phantom references, missing authorization,
-insecure defaults, and more — plus 4 report-only detectors for TypeScript
-architecture and complexity.
+exception contracts, test polarity, guard clauses, bypass accumulation,
+security, and AI quality —
+plus 5 report-only detectors for temporal volatility, TypeScript architecture,
+complexity, circular imports, and dead code.
 
 Key design decisions:
 - No LLMs in the pipeline. Deterministic, reproducible, fast.
@@ -327,7 +328,7 @@ This isn't "bad code." It's code that grew without coherent design pressure.
 
 ## The 24 detectors
 
-Drift runs 20 scoring signals plus 4 report-only detectors.
+Drift runs 19 scoring signals plus 5 report-only detectors.
 
 ### Core signals (ablation-validated)
 
@@ -364,12 +365,12 @@ Polarity Deficit (TPD), Guard Clause Deficit (GCD), Naming Contract Violation
 Deficit (COD), Co-Change Coupling (CCC). All scoring-active with conservative
 weights, auto-calibrated at runtime.
 
-### Report-only signals (security & complexity)
+### Remaining report-only signals
 
-**16–23:** TypeScript Architecture (TSA), Cognitive Complexity (CXS), Fan-Out Explosion (FOE), Circular
-Import (CIR), Dead Code Accumulation (DCA), Missing Authorization (MAZ),
-Insecure Default (ISD), Hardcoded Secret (HSC). These are visible in findings
-but don't affect the composite score yet — precision validation in progress.
+TVS remains report-only in the live model, and the remaining report-only set is
+TypeScript Architecture (TSA), Cognitive Complexity (CXS), Circular Import (CIR),
+and Dead Code Accumulation (DCA). These signals are visible in findings but do
+not affect the composite score yet — precision validation remains in progress.
 
 See the [signal reference](https://mick-gsk.github.io/drift/reference/signals/) for full details.
 
@@ -472,7 +473,7 @@ Built an open-source static analyzer for architectural drift — the kind of
 structural erosion that happens when AI coding tools fragment your patterns,
 cross layer boundaries, and accumulate near-duplicates.
 
-23 detectors (15 scoring + 8 security/complexity), no LLMs, fast.
+24 detectors (19 scoring + 5 report-only), no LLMs, fast.
 Pure AST + git history analysis.
 
 New: built-in MCP server for Copilot/Cursor, agent-native `scan`/`diff`

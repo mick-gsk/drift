@@ -573,6 +573,52 @@
       "title": "PolicyConfig",
       "type": "object"
     },
+    "RecommendationsConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for the adaptive recommendation engine (ARE).\n\nControls outcome tracking, effort calibration, and recommendation\nrefinement.  All features are opt-in (``enabled: false`` by default).\n\nExample drift.yaml::\n\n    recommendations:\n      enabled: true\n      archive_after_days: 180",
+      "properties": {
+        "archive_after_days": {
+          "default": 180,
+          "description": "Archive resolved outcomes older than this many days.",
+          "title": "Archive After Days",
+          "type": "integer"
+        },
+        "calibration_path": {
+          "default": ".drift/effort_calibration.json",
+          "description": "Path to the effort calibration JSON file (relative to repo root).",
+          "title": "Calibration Path",
+          "type": "string"
+        },
+        "enabled": {
+          "default": false,
+          "description": "Enable adaptive recommendation engine (outcome tracking + reward chain).",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "min_calibration_samples": {
+          "default": 10,
+          "description": "Minimum resolved outcomes per signal type before effort calibration kicks in.",
+          "title": "Min Calibration Samples",
+          "type": "integer"
+        },
+        "outcome_path": {
+          "default": ".drift/outcomes.jsonl",
+          "description": "Path to the outcome JSONL file (relative to repo root).",
+          "title": "Outcome Path",
+          "type": "string"
+        },
+        "refinement_threshold": {
+          "default": 0.7,
+          "description": "Recommendations with reward >= this threshold skip refinement.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Refinement Threshold",
+          "type": "number"
+        }
+      },
+      "title": "RecommendationsConfig",
+      "type": "object"
+    },
     "SignalWeights": {
       "additionalProperties": true,
       "description": "Weights for each detection signal in composite scoring.\n\nWeights are normalised internally \u2014 they don't need to sum to 1.0,\nbut a warning is emitted if they deviate significantly.\n\nSignals can be run in report-only mode by assigning weight 0.0.\nThis keeps detection visible while removing score impact until\nprecision/recall is sufficiently validated.",
@@ -1034,6 +1080,9 @@
     },
     "policies": {
       "$ref": "#/$defs/PolicyConfig"
+    },
+    "recommendations": {
+      "$ref": "#/$defs/RecommendationsConfig"
     },
     "signal_cache_dependency_scopes_enabled": {
       "default": true,

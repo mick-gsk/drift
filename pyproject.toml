@@ -110,6 +110,8 @@ dev = [
     "mutmut>=2.4",
     "python-semantic-release>=9.0",
     "jsonschema>=4.0",
+    "scipy>=1.13",
+    "openai>=1.30",
 ]
 all = [
     "drift-analyzer[typescript,embeddings,markdown,mcp,dev]",

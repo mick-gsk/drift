@@ -33,7 +33,7 @@ AI coding tools generate code that works — but silently erodes structural cons
 - outputs: rich terminal, JSON, SARIF
 - GitHub Action support: yes
 - analysis style: deterministic, no LLM in the detector pipeline
-- scoring model: 18 scoring signals in the current composite model; 6 additional signals are report-only, with TVS at weight 0.0 pending re-validation
+- scoring model: 19 scoring signals in the current composite model; 5 additional signals are report-only
 
 ## Suggested directory blurb
 

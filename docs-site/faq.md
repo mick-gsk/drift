@@ -78,7 +78,7 @@ See [Interpreting the Score](trust-evidence.md).
 
 ## What is the drift composite score?
 
-A weighted aggregate of the 14 currently scoring-active signal scores that produces a single number between 0 and 1. Higher values indicate more structural erosion. Auto-calibration rebalances weights at runtime based on finding distribution.
+A weighted aggregate of the 19 currently scoring-active signal scores that produces a single number between 0 and 1. Higher values indicate more structural erosion. Auto-calibration rebalances weights at runtime based on finding distribution.
 
 See [Scoring Model](algorithms/scoring.md).
 
@@ -88,9 +88,9 @@ Drift is a deterministic static analyzer for architectural erosion and cross-fil
 
 ## What does drift detect?
 
-Drift detects 23 signal families across structural, architectural, temporal, and security-by-default dimensions. 15 signals are currently scoring-active in the composite score: pattern fragmentation (PFS), architecture violations (AVS), mutant duplicates (MDS), temporal volatility (TVS), explainability deficit (EDS), system misalignment (SMS), DIA, BEM, TPD, GCD, NBV, BAT, ECM, COD, and CCC.
+Drift detects 24 signal families across structural, architectural, temporal, and security-by-default dimensions. 19 signals are currently scoring-active in the composite score: pattern fragmentation (PFS), architecture violations (AVS), mutant duplicates (MDS), explainability deficit (EDS), system misalignment (SMS), DIA, BEM, TPD, GCD, NBV, BAT, ECM, COD, CCC, FOE, MAZ, ISD, HSC, and PHR.
 
-8 additional signals currently run in report-only mode pending validation or re-validation: TSA, CXS, FOE, CIR, DCA, MAZ, ISD, and HSC.
+5 additional signals currently run in report-only mode pending validation or re-validation: TVS, TSA, CXS, CIR, and DCA.
 
 See [Signal Reference](algorithms/signals.md).
 
@@ -133,9 +133,9 @@ See [Configuration](getting-started/configuration.md).
 
 ## What is the difference between scoring signals and report-only signals?
 
-**Scoring signals** (14) contribute to the composite drift score and severity.
+**Scoring signals** (19) contribute to the composite drift score and severity.
 
-**Report-only signals** (9) detect real patterns but are not yet included in the composite score. They appear in findings output tagged as `report_only: true`. Report-only signals graduate to scoring-active once they pass validation thresholds.
+**Report-only signals** (5) detect real patterns but are not yet included in the composite score. They appear in findings output tagged as `report_only: true`. Report-only signals graduate to scoring-active once they pass validation thresholds.
 
 See [Signal Reference](algorithms/signals.md).
 

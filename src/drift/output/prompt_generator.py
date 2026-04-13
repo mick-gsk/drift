@@ -210,7 +210,7 @@ _PROMPT_TEMPLATES: dict[str, str] = {
         "aktualisiere diese Verweise. Danach sollte der Code fehlerfrei "
         "ausführbar sein."
     ),
-    # --- Report-only (fallback, less likely to appear) ---
+    # --- Non-scoring or fallback templates ---
     "temporal_volatility": (
         "In meinem Projekt werden bestimmte Dateien rund um {file_role} "
         "ungewöhnlich häufig geändert. Bitte prüfe, ob diese Dateien zu "

@@ -1,5 +1,23 @@
 # Risk Register
 
+## 2025-07-24 - ADR-068/069: Package-Dekomposition + Protocol Dependency Inversion
+
+- Risk ID: RISK-ARCH-2025-07-24-ADR068-PACKAGE-DECOMPOSITION
+- Component: `src/drift/models/`, `src/drift/config/`, `src/drift/errors/`, `src/drift/protocols.py`, `src/drift/signals/_ts_support.py`
+- Type: Architektur-Refactoring (internal restructuring, backward-compatible shims)
+- Description: Drei monolithische God-Module (models.py, config.py, errors.py) wurden in Packages mit internen Sub-Modulen aufgeteilt. Kompatibilitaets-Shims (`__init__.py`) re-exportieren alle Public Symbols. Tree-Sitter-Funktionen aus _utils.py in _ts_support.py isoliert. EmbeddingServiceProtocol in protocols.py extrahiert.
+- Trigger: Jeder Import von `drift.models`, `drift.config` oder `drift.errors` — unveraendertes Verhalten durch Shim-Layer.
+- Impact: Neutral auf Score (0.501 → 0.525). Architektonisch klarer, aber protocols.py erzeugt neuen High-Coupling-Hub (blast radius 84). Kein Breaking Change fuer externe Consumer.
+- Mitigation:
+  - __init__.py-Shims re-exportieren ALLE bisherigen Symbole inkl. privater Helper
+  - 4641 Tests nach jeder Phase verifiziert (0 failed)
+  - check_model_consistency.py Pfad aktualisiert fuer neue config/_schema.py Lokation
+  - protocols.py ist stabiles read-only Interface (5 Methoden), Aenderungen selten
+- Verification:
+  - `\.venv\Scripts\python.exe -m pytest tests/ --ignore=tests/test_smoke_real_repos.py -m "not slow" -q -n auto --dist=loadscope`
+  - `\.venv\Scripts\python.exe -m pytest tests/test_model_consistency.py -v --tb=short`
+- Residual risk: Niedrig. Hauptrisiko ist Shim-Vergessen bei zukuenftigen Symbol-Hinzufuegungen. Bestehendes test_model_consistency erkennt Schema-Divergenz sofort.
+
 ## 2025-07-22 - ADR-064: Shadow-Verify fuer cross-file-risky edit_kinds
 
 - Risk ID: RISK-OUTPUT-2025-07-22-ADR064-SHADOW-VERIFY
@@ -2496,3 +2514,22 @@
   - Evidence-aware TS dampening in EDS (strong dampening only when tests exist, mild when unknown, none when tests missing).
 - Verification: `.venv\\Scripts\\python.exe -m mypy src/drift` (green), `.venv\\Scripts\\python.exe -m ruff check src/ tests/` (green), targeted pytest regressions for CCC helper + EDS fixture (green).
 - Residual risk: Low; changes are type-safety hardening with no intended heuristic/scoring behavior change.
+
+## 2025-07-26 - ADR-066: Adaptive Recommendation Engine (ARE)
+
+- Risk ID: RISK-ARE-2025-07-26-066
+- Component: `src/drift/outcome_tracker.py`, `src/drift/reward_chain.py`, `src/drift/calibration/recommendation_calibrator.py`, `src/drift/recommendation_refiner.py`
+- Type: New feature — recommendation quality feedback loop
+- Description: ARE adds opt-in outcome tracking, reward scoring, effort calibration, and recommendation refinement. Findings are tracked across runs via JSONL; reward scores drive effort label recalibration and text refinement.
+- Trigger: `recommendations.enabled: true` in drift.yaml; otherwise no behavioral change.
+- Impact: Positive — recommendations improve over time; effort labels become project-specific. No changes to existing output schema or signal scoring.
+- Mitigation:
+  - Fully opt-in via config (`recommendations.enabled: false` by default).
+  - No PII stored (no author names, emails, or commit hashes in outcome data).
+  - Deterministic logic only — no LLM calls, no network requests.
+  - Archive rotation (180 days) prevents unbounded file growth.
+  - Min-sample threshold (10) prevents noisy calibration.
+  - Confidence cap (<0.5) for findings without outcome data.
+- Verification:
+  - `.venv\Scripts\python.exe -m pytest tests/test_outcome_tracker.py tests/test_reward_chain.py tests/test_recommendation_calibrator.py tests/test_recommendation_refiner.py tests/test_are_integration.py -q --tb=short` (51 passed).
+- Residual risk: Low. Fingerprint drift on symbol renames may fragment outcome history; mitigated by archive rotation. Cold-start bias mitigated by confidence cap.

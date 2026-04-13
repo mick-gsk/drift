@@ -25,3 +25,9 @@ Use the right channel so requests are handled quickly and in context. When in do
 
 - First response target: within 72 hours
 - If you do not get a reply in that window, ping the thread once
+
+## Long-term maintenance
+
+Drift is maintained by [Mick Gottschalk](https://github.com/mick-gsk) as an independent open-source project.
+All signal logic, benchmarks, and release automation are fully documented and reproducible.
+If your team relies on drift in CI, consider [sponsoring](https://github.com/sponsors/mick-gsk) to support continued development.

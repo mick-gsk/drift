@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -66,42 +65,8 @@ def is_likely_library_repo(parse_results: list[Any]) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Tree-sitter helpers (shared by GCD, NBV, and future TS-aware signals)
+# Tree-sitter helpers live in _ts_support to avoid pulling the unstable
+# ts_parser dependency into this high-fan-in utility module.
+# Signals should import ts_parse_source / ts_walk / ts_node_text from
+# drift.signals._ts_support directly.
 # ---------------------------------------------------------------------------
-
-
-def ts_parse_source(source: str, language: str = "typescript") -> tuple[Any, bytes] | None:
-    """Parse *source* with tree-sitter.  Returns ``(root_node, source_bytes)`` or *None*."""
-    try:
-        from drift.ingestion.ts_parser import _get_parser, tree_sitter_available
-
-        if not tree_sitter_available():
-            return None
-        ts_lang = "tsx" if language in ("tsx", "jsx") else "typescript"
-        parser = _get_parser(ts_lang)
-        source_bytes = source.encode("utf-8")
-        tree = parser.parse(source_bytes)
-        return tree.root_node, source_bytes
-    except ImportError:
-        return None
-    except Exception:
-        logging.getLogger("drift").debug(
-            "tree-sitter parse failed for %s source", language, exc_info=True,
-        )
-        return None
-
-
-def ts_walk(node: Any) -> list[Any]:
-    """Depth-first walk of all descendants of a tree-sitter node."""
-    result: list[Any] = []
-    stack = [node]
-    while stack:
-        n = stack.pop()
-        result.append(n)
-        stack.extend(reversed(n.children))
-    return result
-
-
-def ts_node_text(node: Any, source: bytes) -> str:
-    """Extract the UTF-8 text of a tree-sitter node."""
-    return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")

@@ -1,7 +1,7 @@
 ---
 template: home.html
 title: Drift — Catches What AI Coding Tools Break Silently
-description: Quality control layer for AI-generated Python code. Detects structural erosion across files that passes linters, type checkers, and tests — pattern fragmentation, architecture violations, and near-duplicate code. Agent-native (MCP), 24 signals, 97% precision, no LLM.
+description: Quality control layer for AI-generated Python code. Detects structural erosion across files that passes linters, type checkers, and tests — pattern fragmentation, architecture violations, and near-duplicate code. Agent-native (MCP), 24 signals, 77–95% precision, no LLM.
 ---
 
 <!-- Primary content is rendered by overrides/home.html template. -->
@@ -19,9 +19,15 @@ Unlike linters (Ruff, pylint) which check single files, or security scanners (Se
 - **Temporal Volatility (TVS)** — files that change together but aren't co-located
 - **Explainability Deficit (EDS)** — complex code without proportional documentation
 
-24 signals total — 18 scoring-active, 6 report-only. Each finding includes file location, cause, severity score, and a concrete next step.
+24 signals total — 19 scoring-active, 5 report-only. Each finding includes file location, cause, severity score, and a concrete next step.
 
 ## Get Started
+
+| You are... | Start here |
+|---|---|
+| **Developer using AI tools** (Copilot, Cursor, Claude) | [Quick Start](getting-started/quickstart.md) — install to first findings in 2 minutes |
+| **Tech lead evaluating for your team** | [Evaluate Drift](start-here.md) — evidence, comparisons, and rollout guidance |
+| **Curious — just want to see it** | [Prove It](prove-it.md) — paste a GitHub URL, no install |
 
 ```bash
 # Human dev
@@ -33,16 +39,14 @@ pip install drift-analyzer[mcp]
 drift init --mcp
 ```
 
-- [Quick Start](getting-started/quickstart.md) — install to first findings in 2 minutes
-- [Example Findings](product/example-findings.md) — 5 concrete findings with code and fix paths
-- [Evaluate Drift](start-here.md) — evidence, comparisons, and rollout guidance
+More: [Example Findings](product/example-findings.md) — 5 concrete findings with code and fix paths
 
 ## How It Works
 
-Drift parses Python via AST, analyzes git history, runs 23 detection signals, and produces scored, actionable findings — deterministically, with zero external dependencies at runtime.
+Drift parses Python via AST, analyzes git history, runs 24 detection signals, and produces scored, actionable findings — deterministically, with zero external dependencies at runtime.
 
 - [Algorithm Deep Dive](algorithms/deep-dive.md) — signal mechanics under the hood
-- [Signal Reference](algorithms/signals.md) — all 23 signals explained
+- [Signal Reference](algorithms/signals.md) — all 24 signals explained
 - [Scoring Model](algorithms/scoring.md) — composite scoring methodology
 
 ## Trust and Evidence

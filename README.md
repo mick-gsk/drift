@@ -6,7 +6,9 @@
 
 **Your architecture is drifting. Your linter won't tell you. Drift will.**
 
-24 cross-file signals · 100 % ground-truth precision · deterministic, no LLM · ~30 s for a 2 900-file codebase
+19 scoring + 5 report-only signals · 77–95 % real-world precision · deterministic, no LLM · ~30 s for a 2 900-file codebase
+
+→ **Vibe-coder / Cursor / Claude user?** [Start here](examples/vibe-coding/README.md) · → **CI & team rollout?** [Team rollout guide](https://mick-gsk.github.io/drift/getting-started/team-rollout/) · → **Evaluating signals?** [Benchmarks & study](docs/STUDY.md)
 
 ```bash
 pip install drift-analyzer
@@ -39,20 +41,24 @@ uvx drift-analyzer analyze --repo .
 ```
 
 > One command. No pre-install. Results in ~30 seconds.
+> No config? Run `drift setup` after install — or: `drift init --profile vibe-coding` for an AI-optimised first run.
 
 🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/)
 
-**Permanent install:** `pip install drift-analyzer` · Python 3.11+ · also via [pipx, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/)
+> [!TIP]
+> **Best fit:** Python repos with 20+ files and active AI-assisted development. TypeScript/TSX repo? `pip install 'drift-analyzer[typescript]'` — 17/24 signals supported.
+> Tiny repos produce noisy scores. Drift does not replace your linter, type checker, or security scanner — it covers the layer they cannot: cross-file structural coherence over time.
+
+**Recommended install:** `pipx install drift-analyzer` (isolated CLI) · Python 3.11+ · also via [pip, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/)
 
 | Metric | Value | Evidence |
 |---|---|---|
-| Ground-truth precision | **100 %** (47 TP, 0 FP) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
-| Ground-truth recall | **100 %** (0 FN, 114 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
-| Mutation recall | **100 %** (25/25 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
-| Wild-repo precision | **77–95 %** (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
+| Wild-repo precision | **77 % strict / 95 % lenient** (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
+| Ground-truth regression | 0 FP, 0 FN (47 TP, 114 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
+| Mutation recall | 100 % (25/25 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 
 > [!NOTE]
-> **Drift eats its own dog food.** Every release runs `drift self` on its own source — same pipeline, same rules, no exceptions. Results: [drift_self.json](benchmark_results/drift_self.json)
+> **Drift eats its own dog food.** Every release runs `drift self` on its own source — same pipeline, same rules, no exceptions. Results: [drift_self.json](benchmark_results/drift_self.json) · Score 0.50 — driven by explainability findings in internal functions and anti-pattern fixtures; [target ≤ 0.30 via 30-day rollout](examples/vibe-coding/README.md).
 
 ---
 
@@ -86,9 +92,20 @@ cross-file structural drift that accumulates silently during AI-assisted develop
 > 🔍 **Before** — `drift brief` analyses your repo scope and generates structural constraints ready to paste into your agent prompt  
 > 🚦 **After** — `drift check` runs 20+ cross-file signals and exits 1 on violations — CI, SARIF, and pre-commit ready  
 > 🧠 **Over time** — Adaptive calibration reweights signals via feedback, git outcome correlation, and GitHub label correlation
+> 📚 **Negative context library** — `drift_nudge` delivers structured anti-patterns (canonical alternatives + CWE tags) directly into your agent's context — no manual guardrail writing needed
 
 > [!NOTE]
 > **Origin note:** Drift was originally designed to detect cross-file structural erosion in any codebase (v0.1, March 2026). The vibe-coding framing — and the dedicated `vibe-coding` profile — were added in v1.1.11 when it became clear that AI-assisted codebases exhibit these erosion patterns disproportionately. The underlying signals are the same; the profile adjusts weights and thresholds for AI-heavy development styles.
+
+---
+
+## 👤 Who is drift for?
+
+| Audience | Starting point | You'll use |
+|---|---|---|
+| **Developers using AI tools** (Copilot, Cursor, Claude) | `drift setup` → `drift status` | `brief`, `nudge`, `check` — catch what your agent breaks |
+| **Tech leads & teams** adopting AI at scale | [Team Rollout Guide](https://mick-gsk.github.io/drift/getting-started/team-rollout/) | CI gate, SARIF, `trend` — enforce structural standards |
+| **Solo developers** wanting structural quality | `drift analyze --repo .` | `fix-plan`, `explain` — find and fix erosion patterns |
 
 ---
 
@@ -111,10 +128,6 @@ drift analyze --repo . --format json  # full report
 
 📖 [Full workflow guide →](https://mick-gsk.github.io/drift/getting-started/quickstart/)
 
-> [!TIP]
-> **Best fit:** Python repos with 20+ files and active AI-assisted development.  
-> Tiny repos produce noisy scores. Drift does not replace your linter, type checker, or security scanner — it covers the layer they cannot: cross-file structural coherence over time.
-
 ---
 
 ## 🔌 Works with
@@ -122,6 +135,8 @@ drift analyze --repo . --format json  # full report
 | AI Tools (MCP) | CI/CD | Git Hooks | Install |
 |:---:|:---:|:---:|:---:|
 | Cursor · Claude Code · Copilot | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker |
+
+> **Language support:** Python (full, primary target) · TypeScript/TSX: 17/24 signals — `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
 
 > **Bootstrap everything:** `drift init --mcp --ci --hooks` scaffolds config for all integrations in one command.
 
@@ -379,15 +394,14 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 
 | Metric | Value | Artifact |
 |---|---|---|
-| Ground-truth precision | 100 % (47 TP, 0 FP) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
-| Ground-truth recall | 100 % (0 FN across 114 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
-| Mutation recall | 100 % (25/25 injected patterns) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 | Wild-repo precision | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
+| Ground-truth regression | 0 FP, 0 FN (47 TP, 114 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
+| Mutation recall | 100 % (25/25 injected patterns) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 | Agent session score delta | 0.495→0.506 (1 live run) ² | [Copilot Autopilot artefacts](demos/copilot-autopilot/) |
 
 ² Single uncontrolled run — see [RESEARCH.md H4/H5](RESEARCH.md#h4--agent-guardrail-compliance-rate) for what a controlled study would require.
 
-- **No LLM in detection.** Same input, same output. Reproducible in CI and auditable.
+- **No LLM in detection.** The deterministic core uses no LLM inference — same input, same output. Optional local embeddings (`pip install drift-analyzer[embeddings]`) improve near-duplicate detection but are not required and do not call external services.
 - **Single-rater caveat:** ground-truth classification is not yet independently replicated.
 - **Small-repo noise:** repositories with few files can produce noisy scores. Calibration mitigates but does not eliminate this.
 - **Temporal signals** depend on clone depth and git history quality.
@@ -397,6 +411,17 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 - **Weight derivation:** Default signal weights for the 6 original signals were derived via rank-correlation (Kendall's τ) against manual architectural assessments on 5 open-source repos (single rater). Weights for the 18 newer signals are conservative heuristic assignments pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [ADR-003](decisions/ADR-003-composite-scoring-model.md).
 
 Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchmarking/) · [Full Study](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) · [Open Research Questions](RESEARCH.md)
+
+---
+
+## 🔧 Sustainability
+
+Drift is maintained by [Mick Gottschalk](https://github.com/mick-gsk) as an independent open-source project.
+
+- **License:** MIT — fork-safe, vendor-lock-free, reproducible CI.
+- **Bus factor mitigation:** All signals, benchmarks, and release automation are fully documented and reproducible without the maintainer. The project has zero external service dependencies for core analysis.
+- **Funding:** Currently unfunded. If your team relies on drift, consider [sponsoring](https://github.com/sponsors/mick-gsk) to support continued development.
+- **Response target:** First reply within 72 hours on issues and discussions.
 
 ---
 

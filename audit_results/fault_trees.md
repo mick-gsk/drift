@@ -1,5 +1,41 @@
 # Fault Tree Analysis
 
+## 2025-07-24 - ADR-068/069: Package-Dekomposition + Protocol Dependency Inversion
+
+### Top Event (TE-ARCH-068-069)
+Import-Regression oder Runtime-Fehler nach Dekomposition von models.py, config.py, errors.py in Packages.
+
+### FT-1: Import-Regression durch fehlende Re-Exports
+
+```
+          TE-IMPORT: from drift.{models,config,errors} import X schlaegt fehl
+                         |
+                      OR-Gate
+               +---------+---------+---------+
+              IE-1      IE-2      IE-3
+```
+
+- **IE-1 (MCS)**: Neues Symbol in Sub-Modul hinzugefuegt aber __init__.py-Shim nicht aktualisiert.
+  - Mitigation: test_model_consistency prueft Schema-Konsistenz; manuelle Review-Pflicht bei neuen Symbolen.
+- **IE-2 (MCS)**: Private Helper (z.B. _default_includes) wird extern verwendet, fehlt aber im Re-Export.
+  - Mitigation: Alle bekannten privaten Helper explizit re-exportiert; Testsuite deckt externe Nutzung ab.
+- **IE-3 (MCS)**: Zirkulaerer Import zwischen Sub-Modulen (z.B. _exceptions → _codes → _exceptions).
+  - Mitigation: Strikte Abhaengigkeitsrichtung: _codes hat keine internen Imports; _exceptions importiert aus _codes.
+
+### FT-2: protocols.py blast radius
+
+```
+          TE-BLAST: Aenderung an EmbeddingServiceProtocol bricht 84 Module
+                         |
+                      AND-Gate
+               +---------+---------+
+              IE-4      IE-5
+```
+
+- **IE-4**: Protocol-Methode umbenannt oder Signatur geaendert.
+- **IE-5**: Aenderung nicht durch Typecheck/Tests erkannt.
+  - Mitigation: Protocol hat 5 stabile Methoden; Aenderungen an Protocol-Interfaces erfordern ADR + Audit.
+
 ## 2026-04-12 - Issue #317-332 follow-up: test-context + CCC precision hardening
 
 ### Top Event (TE-DCA-CCC-317-332)
@@ -2917,3 +2953,24 @@ Weil kein `PatternInstance` mit `category=PatternCategory.RETURN_PATTERN` erzeug
 - Branch A: `_resolve_relative_targets()` callsites/tests still use legacy 2-arg invocation.
 - Branch B: EDS TS dampening reduces score below detection threshold despite explicit missing tests.
 - Mitigation implemented: Backward-compatible optional parameter in CCC helper and conditional dampening in EDS based on test evidence state.
+
+## 2025-07-26 - ARE: Adaptive Recommendation Engine fault tree (ADR-066)
+
+- Risk ID: RISK-ARE-2025-07-26-066
+- Top Event (TE): ARE produces incorrect or harmful recommendation adjustments.
+- Gate: OR (any of 3 minimal cut sets sufficient)
+
+### MCS-1: Fingerprint instability leads to orphaned outcomes
+- Basis events: Symbol rename → FQN changes → new fingerprint → old outcome unreachable
+- Detection: Calibration coverage drops (fewer signal types qualify for min_samples)
+- Mitigation: 180-day archive rotation purges stale entries; fallback to file_path+line
+
+### MCS-2: Sparse data produces miscalibrated effort labels
+- Basis events: < min_samples resolved outcomes → noisy median → wrong effort class
+- Detection: min_calibration_samples threshold (default 10)
+- Mitigation: Signal types below threshold excluded; suppressed outcomes excluded
+
+### MCS-3: Refinement over-enriches recommendation text
+- Basis events: Low reward score → verb replacement + location prepend → awkward description
+- Detection: max_iterations cap (2); reward threshold (0.7) skip
+- Mitigation: Conservative verb map (8 entries); dedup markers prevent double-suffix

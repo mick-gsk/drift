@@ -137,6 +137,26 @@ class SuggestingGroup(click.Group):
 
     _CORE_COMMANDS = ("status", "setup", "analyze", "fix-plan", "check")
 
+    _COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("Investigation", ("explain", "patterns", "timeline", "trend", "visualize", "watch")),
+        (
+            "Agent & MCP",
+            (
+                "scan",
+                "diff",
+                "brief",
+                "mcp",
+                "serve",
+                "copilot-context",
+                "export-context",
+                "session-report",
+            ),
+        ),
+        ("CI & Automation", ("ci", "gate", "badge", "baseline", "validate", "import")),
+        ("Configuration", ("init", "config", "preset", "calibrate", "feedback", "completions")),
+        ("Measurement", ("self", "precision", "roi-estimate", "start")),
+    )
+
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         command = super().get_command(ctx, cmd_name)
         if command is not None:
@@ -188,25 +208,38 @@ class SuggestingGroup(click.Group):
         limit = formatter.width - 6 - max(len(name) for name, _ in commands)
         command_map = {name: cmd for name, cmd in commands}
 
+        # Core commands
         core_rows = [
             (name, command_map[name].get_short_help_str(limit))
             for name in self._CORE_COMMANDS
             if name in command_map
         ]
-
-        advanced_rows = [
-            (name, cmd.get_short_help_str(limit))
-            for name, cmd in commands
-            if name not in self._CORE_COMMANDS
-        ]
-
         if core_rows:
             with formatter.section("Start Here (80% Path)"):
                 formatter.write_dl(core_rows)
 
-        if advanced_rows:
-            with formatter.section("Advanced Commands"):
-                formatter.write_dl(advanced_rows)
+        # Grouped advanced commands
+        grouped_names: set[str] = set(self._CORE_COMMANDS)
+        for section_name, cmd_names in self._COMMAND_GROUPS:
+            rows = [
+                (name, command_map[name].get_short_help_str(limit))
+                for name in cmd_names
+                if name in command_map
+            ]
+            if rows:
+                with formatter.section(section_name):
+                    formatter.write_dl(rows)
+                grouped_names.update(cmd_names)
+
+        # Catch any ungrouped commands
+        ungrouped = [
+            (name, cmd.get_short_help_str(limit))
+            for name, cmd in commands
+            if name not in grouped_names
+        ]
+        if ungrouped:
+            with formatter.section("Other"):
+                formatter.write_dl(ungrouped)
 
 
 @click.group(cls=SuggestingGroup)

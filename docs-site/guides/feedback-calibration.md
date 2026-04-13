@@ -190,7 +190,19 @@ Week 8:  Git correlation adds automatic evidence
 Week 12: GitHub correlation enriches the profile further
 ```
 
-After ~20 observations per signal (configurable via `min_samples`), confidence reaches 100% and your repo has a fully calibrated detection profile.
+### How much feedback is actually needed?
+
+Confidence is a **linear ramp per signal** — it kicks in immediately and grows with every observation:
+
+| TP+FP observations (per signal) | Confidence | Effect on weights |
+|----------------------------------|------------|-------------------|
+| 0 | 0 % | No effect — default weight is used |
+| 5 | 25 % | Minor shift toward observed precision |
+| 10 | 50 % | Weight is a 50/50 blend of default and precision-scaled |
+| 15 | 75 % | Weight mostly follows observed precision |
+| 20 | 100 % | Full calibration: `weight = default × observed_precision` |
+
+The threshold (default `min_samples: 20`) applies **per signal and per repo**. A repo with 6 active signals needs up to 120 individual feedback entries for full coverage across all signals — but partial calibration is already effective from the first few entries.
 
 ## Reset calibration
 

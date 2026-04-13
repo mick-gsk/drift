@@ -81,7 +81,7 @@ baselines per repository and automatically invalidates them when:
 
 ---
 
-## Signals (24 total — 18 scoring-active, 6 report-only)
+## Signals (24 total — 19 scoring-active, 5 report-only)
 
 ### Scoring-active signals
 
@@ -91,7 +91,6 @@ baselines per repository and automatically invalidates them when:
 | **AVS** | Architecture Violation | Imports crossing layer boundaries |
 | **MDS** | Mutant Duplicates | Near-duplicate functions (AST fingerprint) |
 | **EDS** | Explainability Deficit | Complex functions lacking documentation |
-| **TVS** | Temporal Volatility | Unusually high churn in recent commits |
 | **SMS** | System Misalignment | Module-level structural inconsistencies |
 | **DIA** | Doc-Implementation Drift | Documentation claims that diverge from code |
 | **BEM** | Broad Exception Monoculture | Uniform broad exception handling across a module |
@@ -102,20 +101,21 @@ baselines per repository and automatically invalidates them when:
 | **ECM** | Exception Contract Drift | Public functions whose exception profile changed across recent commits (git-based, MVP) |
 | **COD** | Cohesion Deficit | Modules that mix weakly related semantic responsibilities |
 | **CCC** | Co-Change Coupling | Files that repeatedly co-change without explicit import dependency |
-| **HSC** | Hardcoded Secret | Embedded secrets/tokens/credentials in source (CWE-798) |
 | **FOE** | Fan-Out Explosion | Modules/functions with unusually high dependency fan-out |
+| **MAZ** | Missing Authorization | API endpoints lacking auth/authz checks (CWE-862) |
+| **ISD** | Insecure Default | Unsafe default config patterns (CWE-1188) |
+| **HSC** | Hardcoded Secret | Embedded secrets/tokens/credentials in source (CWE-798) |
 | **PHR** | Phantom Reference | Unresolvable function/class references (AI hallucination indicator) |
 
 ### Report-only signals (weight 0.0, pending validation)
 
 | Abbrev | Signal | Detects |
 |--------|--------|---------|
+| **TVS** | Temporal Volatility | Unusually high churn in recent commits |
 | **TSA** | TypeScript Architecture | TS/JS layer leaks, cycles, cross-package imports |
 | **CXS** | Cognitive Complexity | Functions with deeply nested, hard-to-follow control flow |
 | **CIR** | Circular Import | Circular dependency chains in the module import graph |
 | **DCA** | Dead Code Accumulation | Unreferenced functions/classes/symbols accumulating over time |
-| **MAZ** | Missing Authorization | API endpoints lacking auth/authz checks (CWE-862) |
-| **ISD** | Insecure Default | Unsafe default config patterns (CWE-1188) |
 
 Adding a new signal: see [CONTRIBUTING.md → Adding a new signal](CONTRIBUTING.md#adding-a-new-signal).
 

@@ -25,6 +25,11 @@ Quick reference for all drift signals — abbreviation, what it means, and how t
 | **ECM** | Exception Contract Drift | 0.03 | Exception profile changed across commits; callers silently broken | 30–90 min |
 | **COD** | Cohesion Deficit | 0.01 | Module/class bundles unrelated responsibilities (kitchen-sink) | 1–3 h |
 | **CCC** | Co-Change Coupling | 0.005 | File pairs almost always changed together — hidden coupling | 30–90 min |
+| **FOE** | Fan-Out Explosion | 0.005 | Module imports far more than the repo median | 1–3 h |
+| **MAZ** | Missing Authorization | 0.02 | HTTP endpoints without auth check (CWE-862) | 15–30 min |
+| **ISD** | Insecure Default | 0.01 | `DEBUG=True`, `ALLOWED_HOSTS=['*']`, etc. (CWE-1188) | 5–20 min |
+| **HSC** | Hardcoded Secret | 0.01 | Credentials or tokens in source code (CWE-798) | 5–15 min |
+| **PHR** | Phantom Reference | 0.02 | References to functions/modules that no longer exist | 15–30 min |
 
 ## Report-Only Signals `(R)`
 
@@ -33,13 +38,8 @@ Quick reference for all drift signals — abbreviation, what it means, and how t
 | **TVS** (R) | Temporal Volatility | Files changed far more often than peers (z-score anomaly) | 1–4 h |
 | **TSA** (R) | TypeScript Architecture | Layer leaks and cycles in TS/JS code | 30–90 min |
 | **CXS** (R) | Cognitive Complexity | Functions with excessive nesting depth | 30–90 min |
-| **FOE** (R) | Fan-Out Explosion | Module imports far more than the repo median | 1–3 h |
 | **CIR** (R) | Circular Import | Import cycles of any length | 30–90 min |
 | **DCA** (R) | Dead Code Accumulation | Defined symbols never referenced elsewhere | 15–30 min |
-| **MAZ** (R) | Missing Authorization | HTTP endpoints without auth check (CWE-862) | 15–30 min |
-| **ISD** (R) | Insecure Default | `DEBUG=True`, `ALLOWED_HOSTS=['*']`, etc. (CWE-1188) | 5–20 min |
-| **HSC** (R) | Hardcoded Secret | Credentials or tokens in source code (CWE-798) | 5–15 min |
-| **PHR** (R) | Phantom Reference | References to functions/modules that no longer exist | 15–30 min |
 
 ---
 

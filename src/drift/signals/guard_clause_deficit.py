@@ -29,13 +29,11 @@ from drift.models import (
     Severity,
     SignalType,
 )
+from drift.signals._ts_support import ts_node_text, ts_parse_source, ts_walk
 from drift.signals._utils import (
     _SUPPORTED_LANGUAGES,
     _TS_LANGUAGES,
     is_test_file,
-    ts_node_text,
-    ts_parse_source,
-    ts_walk,
 )
 from drift.signals.base import BaseSignal, register_signal
 

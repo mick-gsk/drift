@@ -34,7 +34,7 @@ from drift.signals._utils import is_test_file
 from drift.signals.base import BaseSignal, register_signal
 
 if TYPE_CHECKING:
-    from drift.embeddings import EmbeddingService
+    from drift.protocols import EmbeddingServiceProtocol
 
 logger = logging.getLogger("drift.mds")
 
@@ -637,7 +637,7 @@ class MutantDuplicateSignal(BaseSignal):
         embedding_cache: dict[str, Any],
         ngram_cache: dict[str, list[tuple[str, ...]] | None],
         checked: set[tuple[str, ...]],
-        emb: EmbeddingService,
+        emb: EmbeddingServiceProtocol,
         ast_threshold: float = 0.80,
     ) -> list[Finding]:
         """Find high-embedding-similarity pairs that structural checks miss."""

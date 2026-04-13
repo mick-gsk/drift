@@ -39,7 +39,7 @@ from drift.signals._utils import is_test_file
 from drift.signals.base import BaseSignal, register_signal
 
 if TYPE_CHECKING:
-    from drift.embeddings import EmbeddingService
+    from drift.protocols import EmbeddingServiceProtocol
 
 logger = logging.getLogger("drift.avs")
 
@@ -368,7 +368,7 @@ def _infer_layer(path: Path, extra_omnilayer: set[str] | None = None) -> int | N
 def _infer_layer_with_embeddings(
     path: Path,
     parse_result: ParseResult | None,
-    emb: EmbeddingService,
+    emb: EmbeddingServiceProtocol,
     proto_embeddings: dict[int, Any],
     extra_omnilayer: set[str] | None = None,
 ) -> int | None:
@@ -645,7 +645,7 @@ class ArchitectureViolationSignal(BaseSignal):
         graph: nx.DiGraph,
         parse_results: list[ParseResult],
         pr_by_path: dict[str, ParseResult],
-        emb: EmbeddingService | None,
+        emb: EmbeddingServiceProtocol | None,
         proto_embeddings: dict[int, Any],
         hub_nodes: set[str],
         allowed_patterns: list[str],

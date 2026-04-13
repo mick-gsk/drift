@@ -16,7 +16,7 @@
 
 AI-Code-Generatoren optimieren für den Prompt-Kontext, nicht für den Codebase-Kontext. Das erzeugt Code, der funktioniert, aber nicht passt – Error-Handling fragmentiert, Layer-Grenzen erodieren, beinahe identische Funktionen akkumulieren.
 
-Kein bestehendes Tool misst diese spezifische Erosionsklasse. drift tut das: deterministisch, in Sekunden, mit spezialisierten Signalen (7 Core-Signale im v0.5-Baseline; seit v0.8.0 15 scoring-aktive Signale mit Auto-Kalibrierung), ohne LLM-Infrastruktur.
+Kein bestehendes Tool misst diese spezifische Erosionsklasse. drift tut das: deterministisch, in Sekunden, mit spezialisierten Signalen (7 Core-Signale im v0.5-Baseline; aktuell 19 scoring-aktive Signale mit Auto-Kalibrierung + 5 report-only), ohne LLM-Infrastruktur.
 
 drift wird dann klar besser als alles andere in dieser Nische, wenn jedes einzelne Finding direkt sagt, was zu tun ist – nicht als zusammengefasstes Top-3, sondern pro Finding. Ein Entwickler liest ein Finding und weiß sofort: was ist das Problem, wo genau, und was ist der nächste Schritt.
 
@@ -292,3 +292,31 @@ Files: 490 | Functions: 5,073
 - **Keine PR-Level-Analyse.** `drift check --diff` existiert bereits – das reicht für CI.
 - **Keine Produkt-Infrastruktur** (Telemetrie, Accounts, Dashboards, Remote Services).
 - **Kein Scope-Creep in Richtung generische Code-Qualität.** drift misst Drift, nicht Bugs.
+
+---
+
+## 10. Plattform-Risiko & defensiver Moat
+
+### Risikoszenario
+
+Drifts MCP-Integration (Cursor, Claude Code, VS Code Copilot) ist heute ein wichtiger Adoptionskanal. Anthropic, GitHub und Cursor entwickeln aktiv eigene strukturelle Analyse- und Code-Health-Features. Wenn eine dieser Plattformen drift_nudge-äquivalente Funktionalität nativ implementiert, fällt der primäre Integrationskanal weg.
+
+**Zeithorizont:** 6–18 Monate für erste Überlappungen in Cursor und Copilot Workspace.
+
+### Defensiver Moat
+
+MCP-Integration ist ein Eintrittspunkt, kein Moat. Der echte Moat liegt an drei Stellen:
+
+1. **`drift.yaml`-Commitment einer Organisation:** Wer einmal eine kalibrierte `drift.yaml` in CI eingebunden hat, hat ein repo-spezifisches Profil mit historischen Snapshots, Feedback-Daten und Schwellenwerten. Das ist nicht durch eine generische IDE-Health-Anzeige ersetzbar.
+
+2. **Deterministische, versionierbare Benchmark-Artifacts:** Drifts Benchmark-Artefakte (`benchmark_results/`) sind reproduzierbar, versioniert, und extern prüfbar. Das schafft Glaubwürdigkeit gegenüber LLM-basierten Analysewerkzeugen, die keine nachprüfbaren Precision/Recall-Claims liefern können.
+
+3. **Repo-spezifische Kalibrierung:** Adaptive Gewichte, Feedback-basierte Kalibrierung und `drift.yaml`-Commitment erzeugen ein kontextspezifisches Profil, das generische IDE-Features nicht replizieren können — weil sie keinen Zugriff auf die Repo-History und das organisationsspezifische Feedback haben.
+
+### Strategische Konsequenz
+
+**Kurzfristig (Q2–Q3 2026):** MCP-Integration priorisieren, da die Adoptionsfenster für Cursor/Claude Code offen sind.
+
+**Mittelfristig (Q4 2026+):** Positionierung auf die deterministischen, versionierbaren Benchmark-Artifacts verstärken. Der Pitch ist nicht "MCP-Integration", sondern: "Als einziges Tool in dieser Kategorie liefert drift nachprüfbare Precision/Recall-Metriken — kein Konkurrent, auch keine native IDE-Integration, kann das heute."
+
+**Nicht-Strategie:** drift als IDE-Extension oder SaaS ausbauen — das ist der falsche Wettbewerb. drift bleibt CLI-first, deterministisch, und differenziert durch Messbarkeit.

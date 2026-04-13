@@ -264,4 +264,4 @@ Ruff checks style. Mypy checks types. Semgrep checks patterns. **None of them ch
 - [Quick Start](quickstart.md) — install and run in 2 minutes
 - [Prompts to Try](prompts.md) — copy-paste prompts for your AI assistant
 - [Example Findings](../product/example-findings.md) — signal-level output examples
-- [Signal Reference](../algorithms/signals.md) — all 23 signals explained
+- [Signal Reference](../algorithms/signals.md) — all 24 signals explained

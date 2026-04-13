@@ -1,0 +1,207 @@
+{
+  "description": "Task corpus for ADR-067 A/B study: drift brief effectiveness. 20 realistic coding tasks across 4 Python repos, designed to touch at least one AVS/PFS/MDS/CCC/CIR signal scope. Used by scripts/brief_ab_study.py.",
+  "version": "1.0.0",
+  "schema": "task_id | repo_url | ref | task_description | target_files | seed | expected_signals",
+  "tasks": [
+    {
+      "id": "REQ-01",
+      "repo_url": "https://github.com/psf/requests",
+      "ref": "main",
+      "type": "bugfix",
+      "task_description": "Fix the Session.request() method to correctly merge per-request headers with session-level headers instead of overwriting them. Ensure that removing a header (by passing None) works at both levels.",
+      "target_files": ["requests/sessions.py", "requests/models.py"],
+      "seed": 1001,
+      "expected_signals": ["MDS", "CCC"]
+    },
+    {
+      "id": "REQ-02",
+      "repo_url": "https://github.com/psf/requests",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add a RetryAdapter class in requests/adapters.py that wraps HTTPAdapter and automatically retries idempotent requests (GET, HEAD, OPTIONS, DELETE) up to a configurable max_retries count on connection errors.",
+      "target_files": ["requests/adapters.py", "requests/sessions.py"],
+      "seed": 1002,
+      "expected_signals": ["AVS", "PFS"]
+    },
+    {
+      "id": "REQ-03",
+      "repo_url": "https://github.com/psf/requests",
+      "ref": "main",
+      "type": "bugfix",
+      "task_description": "Resolve the PreparedRequest.prepare_url() method incorrectly encoding IPv6 addresses in URLs. The fix must handle brackets around IPv6 literals and must not double-encode percent signs.",
+      "target_files": ["requests/models.py", "requests/utils.py"],
+      "seed": 1003,
+      "expected_signals": ["MDS", "PFS"]
+    },
+    {
+      "id": "REQ-04",
+      "repo_url": "https://github.com/psf/requests",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Extend the Response class with a from_cache property that returns True if the response was served from a local cache. Add a corresponding cache_info dict property that exposes cache age, source URL, and expiry.",
+      "target_files": ["requests/models.py", "requests/adapters.py"],
+      "seed": 1004,
+      "expected_signals": ["COD", "MDS"]
+    },
+    {
+      "id": "REQ-05",
+      "repo_url": "https://github.com/psf/requests",
+      "ref": "main",
+      "type": "refactor",
+      "task_description": "Extract the cookie handling logic in requests/cookies.py into a separate CookiePolicy class. The new class must expose merge_cookies(), clear_expired(), and to_jar() methods. Existing callers in sessions.py must be updated.",
+      "target_files": ["requests/cookies.py", "requests/sessions.py", "requests/models.py"],
+      "seed": 1005,
+      "expected_signals": ["AVS", "CCC", "MDS"]
+    },
+    {
+      "id": "CLK-01",
+      "repo_url": "https://github.com/pallets/click",
+      "ref": "main",
+      "type": "bugfix",
+      "task_description": "Fix click.option() decorator to correctly pass is_eager=True through when the option is declared on a Command subclass. Currently is_eager is silently dropped when using class-based command definitions.",
+      "target_files": ["src/click/core.py", "src/click/decorators.py"],
+      "seed": 2001,
+      "expected_signals": ["CCC", "MDS"]
+    },
+    {
+      "id": "CLK-02",
+      "repo_url": "https://github.com/pallets/click",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add a RangeParamType to click/types.py that validates numeric parameters within a [min, max] interval and emits a clear error message showing the allowed range. Integrate it into click.option() as a direct shorthand via range=True.",
+      "target_files": ["src/click/types.py", "src/click/decorators.py"],
+      "seed": 2002,
+      "expected_signals": ["PFS", "MDS"]
+    },
+    {
+      "id": "CLK-03",
+      "repo_url": "https://github.com/pallets/click",
+      "ref": "main",
+      "type": "bugfix",
+      "task_description": "Fix the Context.invoke() method to properly forward the obj parameter when calling nested commands. Currently obj is not passed down when the target command defines a different Context type via cls=.",
+      "target_files": ["src/click/core.py"],
+      "seed": 2003,
+      "expected_signals": ["AVS", "CCC"]
+    },
+    {
+      "id": "CLK-04",
+      "repo_url": "https://github.com/pallets/click",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add shell completion support for zsh to click/shell_completion.py. The new ZshComplete class must inherit from ShellComplete and implement source_template and get_completion_args() to match the existing BashComplete structure.",
+      "target_files": ["src/click/shell_completion.py"],
+      "seed": 2004,
+      "expected_signals": ["PFS", "MDS"]
+    },
+    {
+      "id": "CLK-05",
+      "repo_url": "https://github.com/pallets/click",
+      "ref": "main",
+      "type": "refactor",
+      "task_description": "Move the ANSI color helpers (style, unstyle, echo_via_pager) from click/utils.py into a new click/ansi.py module. Update all internal imports. The public API in click/__init__.py must be unchanged.",
+      "target_files": ["src/click/utils.py", "src/click/__init__.py"],
+      "seed": 2005,
+      "expected_signals": ["AVS", "CCC", "CIR"]
+    },
+    {
+      "id": "FAS-01",
+      "repo_url": "https://github.com/tiangolo/fastapi",
+      "ref": "master",
+      "type": "bugfix",
+      "task_description": "Fix FastAPI's dependency injection to correctly handle Annotated types with multiple metadata items. Currently only the first metadata item is used when resolving Depends() inside Annotated.",
+      "target_files": ["fastapi/dependencies/utils.py"],
+      "seed": 3001,
+      "expected_signals": ["MDS", "PFS"]
+    },
+    {
+      "id": "FAS-02",
+      "repo_url": "https://github.com/tiangolo/fastapi",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Add a rate_limit decorator to fastapi/routing.py that accepts requests_per_second and burst parameters and raises HTTP 429 when exceeded. The implementation must be middleware-compatible and must not break existing route registration.",
+      "target_files": ["fastapi/routing.py", "fastapi/middleware/__init__.py"],
+      "seed": 3002,
+      "expected_signals": ["AVS", "CCC"]
+    },
+    {
+      "id": "FAS-03",
+      "repo_url": "https://github.com/tiangolo/fastapi",
+      "ref": "master",
+      "type": "bugfix",
+      "task_description": "Fix FastAPI's OpenAPI schema generation to correctly reflect optional query parameters declared as Optional[str] = None in route functions. Currently the generated schema incorrectly marks them as required.",
+      "target_files": ["fastapi/openapi/utils.py", "fastapi/utils.py"],
+      "seed": 3003,
+      "expected_signals": ["MDS", "COD"]
+    },
+    {
+      "id": "FAS-04",
+      "repo_url": "https://github.com/tiangolo/fastapi",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Implement an APIRouter.prefix_tags() method in fastapi/routing.py that prepends a tag to all routes registered on the router. This should work when the router is included in an app with include_router().",
+      "target_files": ["fastapi/routing.py"],
+      "seed": 3004,
+      "expected_signals": ["PFS", "AVS"]
+    },
+    {
+      "id": "FAS-05",
+      "repo_url": "https://github.com/tiangolo/fastapi",
+      "ref": "master",
+      "type": "refactor",
+      "task_description": "Extract the request body validation logic from fastapi/dependencies/utils.py into a new BodyValidator class in fastapi/validators.py. The class must expose a validate() method and must be callable from the existing dependency resolution pipeline without breaking existing tests.",
+      "target_files": ["fastapi/dependencies/utils.py", "fastapi/routing.py"],
+      "seed": 3005,
+      "expected_signals": ["AVS", "MDS", "CCC"]
+    },
+    {
+      "id": "PYT-01",
+      "repo_url": "https://github.com/pytest-dev/pytest",
+      "ref": "main",
+      "type": "bugfix",
+      "task_description": "Fix pytest's --tb=short traceback formatter to not duplicate the file/line header when a test helper function and the test function itself are in the same file. Currently the header appears twice.",
+      "target_files": ["src/_pytest/python.py", "src/_pytest/tb_output.py"],
+      "seed": 4001,
+      "expected_signals": ["MDS", "PFS"]
+    },
+    {
+      "id": "PYT-02",
+      "repo_url": "https://github.com/pytest-dev/pytest",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add a --fail-on-warning flag to pytest's CLI in src/_pytest/config/__init__.py. When set, any warning captured during the test session causes pytest to exit with code 2 after the run completes.",
+      "target_files": ["src/_pytest/config/__init__.py", "src/_pytest/warnings.py"],
+      "seed": 4002,
+      "expected_signals": ["CCC", "AVS"]
+    },
+    {
+      "id": "PYT-03",
+      "repo_url": "https://github.com/pytest-dev/pytest",
+      "ref": "main",
+      "type": "bugfix",
+      "task_description": "Fix pytest's fixture finalization order when a session-scoped fixture depends on a module-scoped fixture. Currently teardown happens in the wrong order, leaving the session fixture finalized before its dependencies.",
+      "target_files": ["src/_pytest/fixtures.py"],
+      "seed": 4003,
+      "expected_signals": ["CCC", "MDS"]
+    },
+    {
+      "id": "PYT-04",
+      "repo_url": "https://github.com/pytest-dev/pytest",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Implement a pytest.mark.timeout(seconds) marker in src/_pytest/timeout.py that raises a TimeoutError if a test exceeds the given duration. The implementation must use threading.Timer and must not affect non-marked tests.",
+      "target_files": ["src/_pytest/timeout.py", "src/_pytest/mark/structures.py"],
+      "seed": 4004,
+      "expected_signals": ["AVS", "PFS"]
+    },
+    {
+      "id": "PYT-05",
+      "repo_url": "https://github.com/pytest-dev/pytest",
+      "ref": "main",
+      "type": "refactor",
+      "task_description": "Split pytest's Config class in src/_pytest/config/__init__.py by extracting all ini-file parsing methods into a new IniParser class in src/_pytest/config/iniparser.py. Config must delegate all ini calls to IniParser. Existing public API including get_ini_value() must remain unchanged.",
+      "target_files": ["src/_pytest/config/__init__.py"],
+      "seed": 4005,
+      "expected_signals": ["AVS", "CCC", "CIR"]
+    }
+  ]
+}

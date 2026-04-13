@@ -141,11 +141,13 @@ def test_root_help_shows_curated_sections_and_core_path() -> None:
     assert result.exit_code == 0
     output = result.output
     assert "Start Here (80% Path):" in output
-    assert "Advanced Commands:" in output
+    assert "Investigation:" in output
+    assert "Agent & MCP:" in output
+    assert "CI & Automation:" in output
     assert "analyze" in output
     assert "fix-plan" in output
     assert "check" in output
-    assert output.index("Start Here (80% Path):") < output.index("Advanced Commands:")
+    assert output.index("Start Here (80% Path):") < output.index("Investigation:")
 
 
 def test_safe_main_drift_error_emits_json_payload_when_enabled(

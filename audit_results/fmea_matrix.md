@@ -1,5 +1,15 @@
 # FMEA Matrix
 
+## 2025-07-24 - ADR-068/069: Package-Dekomposition models/config/errors + Protocol Dependency Inversion
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| models/__init__.py shim | Import-Regression: externes `from drift.models import X` findet Symbol nicht | Sub-Modul-Export fehlt in `__init__.py` `__all__` | ImportError bei externem Consumer oder interner Signal-Datei | Testsuite 4641 Tests + `test_model_consistency` | Explizite `as`-Re-Exports mit `__all__`; Full-Suite nach jedem Split verifiziert | 5 | 2 | 1 | 10 | Mitigated |
+| config/__init__.py shim | Import-Regression: `from drift.config import DriftConfig` bricht | Private Helper (_default_includes) nicht re-exportiert | ImportError oder AttributeError in CLI oder Tests | `test_config.py::test_default_includes_without_tree_sitter` + Full-Suite | Re-Export aller genutzten Symbole inkl. Private-Helper; Test-Verifizierung | 5 | 2 | 1 | 10 | Mitigated |
+| errors/__init__.py shim | Import-Regression: `from drift.errors import DriftError` bricht | Sub-Modul fehlt oder zirkulaerer Import | ImportError bei Exception-Handling in Signalen/CLI | Full-Suite 4641 Tests | Klare Abhaengigkeitsrichtung _codes → _exceptions; keine Zyklen | 5 | 2 | 1 | 10 | Mitigated |
+| protocols.py blast radius | Neues High-Coupling-Hub: 84 Module transitiv betroffen | EmbeddingServiceProtocol wird von allen Signalen via base.py importiert | Aenderung an Protocol-Interface bricht alle Signale | AVS-Finding zeigt Blast Radius; `test_precision_recall.py` deckt Regressionen | Protocol ist stabil (5 Methoden, read-only Interface); Aenderungen selten | 4 | 1 | 2 | 8 | Accepted (documented) |
+| check_model_consistency.py | Script findet config/_schema.py nicht nach erneutem Refactoring | Hardcodierter Pfad veraltet bei weiterer Umstrukturierung | CI-Check `test_model_consistency` schlaegt fehl | Bestehender Test `test_model_consistency_check_passes` | Pfad bereits aktualisiert; Test faengt Regression sofort | 3 | 2 | 1 | 6 | Mitigated |
+
 ## 2025-07-22 - ADR-064: Shadow-Verify fuer cross-file-risky edit_kinds
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
@@ -695,6 +705,16 @@
 |---|---|---|---|---|---|---:|---:|---:|---:|
 | MDS | FP: semantic-only and intentional variant pairs inflate scoring noise | Semantic-only matching accepted same-file conceptual similarity; sync/async intentional variants looked like duplicates; hybrid threshold was looser than AST threshold | Reduced confidence in MDS as scoring input and lower actionability of findings | Live-scan triage + targeted edge-case regression tests | Precision-first hybrid threshold, sync/async variant suppression, stricter semantic gate, same-file semantic suppression | 6 | 5 | 4 | 120 |
 | MDS | FN: true duplicates in sync/async ecosystems may be suppressed | New suppression treats same-name sync/async path variants as intentional by default | Potential under-reporting of some real copy-paste drift patterns | Control regression keeps non-variant exact duplicates detectable | Conservative path-token gating and regression coverage for non-variant duplicate detection | 4 | 3 | 6 | 72 |
+
+## 2025-07-26 - ARE: Adaptive Recommendation Engine (ADR-066)
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| OutcomeTracker | Fingerprint drift: FQN rename breaks finding linkage | Code renames change fully_qualified_name, creating new fingerprints | Outcome history fragmentation, calibration accuracy degrades over time | Calibration coverage metrics + archive rotation purges stale entries | 180-day archive rotation; fallback to file_path+line when FQN unavailable | 4 | 4 | 4 | 64 | Accepted |
+| RewardChain | Cold-start bias: new repos produce low-confidence scores | No outcome data → fix_speed=0, no_regression=0, confidence<0.5 | Refinement over-triggers on specificity alone | Confidence cap ensures total score is bounded | Confidence cap at 0.3 for missing outcomes; refinement threshold (0.7) prevents bad rewrites | 3 | 6 | 2 | 36 | Mitigated |
+| RecommendationCalibrator | Noisy calibration from sparse data | Signal type with few resolved outcomes produces unreliable median | Incorrect effort labels applied to recommendations | min_calibration_samples threshold (default 10) | Minimum sample gate; suppressed outcomes excluded | 5 | 3 | 2 | 30 | Mitigated |
+| RecommendationRefiner | Generic verb replacement creates awkward text | Contextless verb substitution may not match domain vocabulary | Slightly worse readability in edge cases | Manual review of refined output | Verb map is conservative (8 verbs); max 2 iterations; threshold skip (0.7) | 2 | 4 | 3 | 24 | Accepted |
+| ARE Integration | JSONL file corruption on concurrent writes | Multiple drift processes write outcomes simultaneously | Partial lines in outcomes.jsonl; load() fails or returns partial data | Graceful fallback: malformed lines skipped during load | Single-process design; file-level append; corrupted lines logged and skipped | 5 | 2 | 3 | 30 | Accepted |
 
 ## 2026-04-06 - TPD unexpected source-segment exception hardening (Issue #184)
 

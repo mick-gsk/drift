@@ -27,14 +27,29 @@ pip install -q drift-analyzer    # requires Python 3.11+ (use -q for clean outpu
     ```
     Real findings on a real codebase — no setup, no risk.
 
-## 2. Analyze your repository
+## 2. See your health at a glance
 
 ```bash
 cd /path/to/your/project
+drift status
+```
+
+`drift status` gives you a traffic-light summary with plain-language explanations and copy-paste prompts for your AI assistant. This is the fastest way to understand what drift sees.
+
+!!! note "Two scoring models, two purposes"
+    **`drift status`** uses a traffic-light model on the **overall repo score**: 🟢 GREEN (< 0.35), 🟡 YELLOW (0.35–0.65), 🔴 RED (≥ 0.65). This is a quick health check.
+
+    **`drift analyze`** uses severity levels on **individual findings**: INFO (< 0.20), LOW (≥ 0.20), MEDIUM (≥ 0.40), HIGH (≥ 0.60), CRITICAL (≥ 0.80). These are per-finding confidence levels, not repo health.
+
+    Both use the same underlying scores — they just slice them differently. Use `status` for daily overview, `analyze` for finding-level triage.
+
+## 3. Dive into full findings
+
+```bash
 drift analyze --repo .
 ```
 
-## 3. Turn findings into repair tasks
+## 4. Turn findings into repair tasks
 
 ```bash
 drift fix-plan --repo . --max-tasks 5
@@ -42,7 +57,7 @@ drift fix-plan --repo . --max-tasks 5
 
 `fix-plan` turns your top findings into concrete, ordered tasks with constraints and success criteria.
 
-## 4. What you'll see
+## 5. What you'll see
 
 Here's what a typical first run looks like:
 
@@ -67,7 +82,27 @@ Here's what a typical first run looks like:
 
     **Precision claim (site-wide):** Historical accuracy of drift findings across the benchmark corpus. Currently 77% strict / 95% lenient on the v0.5 baseline. This describes methodology accuracy, not a per-repo promise.
 
-## 5. How to read your first findings
+### Severity thresholds
+
+Drift maps finding scores to severity levels. These thresholds determine what `--fail-on` blocks:
+
+| Score | Severity | Grade | Meaning |
+|-------|----------|-------|---------|
+| ≥ 0.80 | **CRITICAL** | F | Critical structural erosion — fix before shipping |
+| ≥ 0.60 | **HIGH** | D | Significant drift — address in current cycle |
+| ≥ 0.40 | **MEDIUM** | C | Moderate drift — monitor, fix when touching that module |
+| ≥ 0.20 | **LOW** | B | Minor signal — informational |
+| < 0.20 | **INFO** | A | Negligible — healthy |
+
+Example: `drift check --fail-on high` exits non-zero when any finding scores ≥ 0.60.
+
+!!! tip "Understand a specific signal"
+    ```bash
+    drift explain PFS   # Shows detection logic, examples, and fix guidance
+    ```
+    Run this on whichever signal code appears in your highest-scored finding.
+
+## 6. How to read your first findings
 
 My recommendation: start with the highest-scored findings and check if they match what already felt expensive to maintain.
 
@@ -91,7 +126,7 @@ Typical first-run decisions:
 
     False positives are expected on first runs. Drift improves with every report.
 
-## 6. Add a safe CI gate
+## 7. Add a safe CI gate
 
 Start in report-only mode so teams can build trust before blocking merges:
 
@@ -105,7 +140,7 @@ When the output is stable for your team, tighten to:
 drift check --fail-on high
 ```
 
-## 7. Verify your installation
+## 8. Verify your installation
 
 Drift can analyze its own codebase — useful to confirm everything works:
 

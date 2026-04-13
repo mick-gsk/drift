@@ -25,7 +25,8 @@ from drift.models import (
     Severity,
     SignalType,
 )
-from drift.signals._utils import _TS_LANGUAGES, ts_node_text, ts_parse_source, ts_walk
+from drift.signals._ts_support import ts_node_text, ts_parse_source, ts_walk
+from drift.signals._utils import _TS_LANGUAGES
 from drift.signals.base import BaseSignal, register_signal
 
 _TS_DIRECTIVE_RE = re.compile(r"@ts-(ignore|expect-error)")

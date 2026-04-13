@@ -19,7 +19,7 @@ These are cross-file coherence problems. They are not the same as syntax errors,
 
 ## What drift detects
 
-Drift currently uses 18 scoring signals in the composite model and keeps 6 additional signals report-only while validation and re-validation continue. The most visible categories for architecture-drift work are:
+Drift currently uses 19 scoring signals in the composite model and keeps 5 additional signals report-only while validation and re-validation continue. The most visible categories for architecture-drift work are:
 
 - pattern fragmentation
 - architecture violations

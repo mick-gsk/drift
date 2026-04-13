@@ -59,3 +59,13 @@ See [POLICY.md §18](../POLICY.md) for the full risk-audit matrix.
 ## CITATION.cff sync
 
 `CITATION.cff` version and date are updated automatically by the release workflow. If a manual release is performed, update `CITATION.cff` to match.
+
+## Succession & delegation
+
+Drift is currently maintained by a single maintainer. To mitigate single-point-of-failure risk:
+
+- **Trusted contributor role:** Any contributor with ≥3 merged PRs and demonstrated familiarity with POLICY.md may be nominated as a trusted reviewer. Open a discussion to propose.
+- **Minimum response level:** Issues and PRs must receive a first response within 72 hours. If the maintainer is unavailable for >7 days, a pinned notice should be posted in Discussions.
+- **PyPI publish rights:** The primary maintainer holds publish rights. A second trusted committer with upload access is needed before drift reaches CI-critical adoption (>10 teams). This is tracked as a distribution milestone.
+- **Continuity documents:** All signal logic, benchmark artifacts, and release automation are self-contained and reproducible. A successor maintainer can operate the project using this runbook, [DEVELOPER.md](../DEVELOPER.md), and [POLICY.md](../POLICY.md) without access to any external service.
+- **Sponsorship:** See [SUPPORT.md](../SUPPORT.md) and [GitHub Sponsors](https://github.com/sponsors/mick-gsk).

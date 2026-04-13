@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from drift.config import DriftConfig, PluginConfig
+from drift.config._schema import SignalWeights
 from drift.signal_registry import (
     SignalMeta,
     _reset_registry,
@@ -72,7 +73,25 @@ class TestSignalRegistryCore:
         weights = get_weight_defaults()
         assert weights["pattern_fragmentation"] == pytest.approx(0.16)
         assert weights["temporal_volatility"] == pytest.approx(0.0)
-        assert weights["hardcoded_secret"] == pytest.approx(0.0)
+        assert weights["hardcoded_secret"] == pytest.approx(0.01)
+
+    def test_registry_default_weights_match_runtime_defaults(self):
+        registry_weights = get_weight_defaults()
+        runtime_weights = SignalWeights().as_dict()
+        only_in_registry = sorted(set(registry_weights) - set(runtime_weights))
+        only_in_runtime = sorted(set(runtime_weights) - set(registry_weights))
+        differing = {
+            key: (registry_weights[key], runtime_weights[key])
+            for key in sorted(set(registry_weights) & set(runtime_weights))
+            if registry_weights[key] != runtime_weights[key]
+        }
+
+        assert registry_weights == runtime_weights, (
+            "signal registry weights diverged from runtime defaults: "
+            f"only_in_registry={only_in_registry}, "
+            f"only_in_runtime={only_in_runtime}, "
+            f"differing={differing}"
+        )
 
     def test_get_meta_known_signal(self):
         m = get_meta("pattern_fragmentation")

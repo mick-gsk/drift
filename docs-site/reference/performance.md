@@ -5,7 +5,7 @@ Drift's analysis time depends on repository size (files and functions). This pag
 ## Benchmark matrix
 
 !!! info "Measurement context"
-    Single-threaded, cold start, all 23 signals enabled, embeddings on, default configuration, measured on a single developer workstation. Times include AST parsing, git history extraction, all signal detectors, and scoring. Score column omitted where timing is the primary metric.
+    Single-threaded, cold start, all 24 signals enabled, embeddings on, default configuration, measured on a single developer workstation. Times include AST parsing, git history extraction, all signal detectors, and scoring. Score column omitted where timing is the primary metric.
 
 | Repository | Files | Functions | Duration (s) | Score |
 |-----------|------:|----------:|-------------:|------:|

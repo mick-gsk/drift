@@ -92,8 +92,8 @@
 
 ---
 
-> **Scope note:** This inventory covers the 18 scoring-active signals only.
-> The 6 report-only signals (TSA, CXS, CIR, DCA, MAZ, ISD) are
+> **Scope note:** This inventory covers the 19 scoring-active signals only.
+> The 5 report-only signals (TVS, TSA, CXS, CIR, DCA) are
 > visible in findings but do not contribute to the composite score. Their
 > detection behaviour is documented in the
 > [signal reference](https://mick-gsk.github.io/drift/reference/signals/).

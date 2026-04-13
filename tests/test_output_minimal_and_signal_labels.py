@@ -18,6 +18,11 @@ class _DummyConfig:
     embedding_model = None
     language = None
 
+    class _RecsOff:
+        enabled = False
+
+    recommendations = _RecsOff()
+
     def severity_gate(self) -> str:
         return "high"
 

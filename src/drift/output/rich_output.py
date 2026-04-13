@@ -533,6 +533,19 @@ def render_summary(
             " changes to establish trend.[/dim]",
         )
 
+    # Score orientation hint — helps first-time users interpret the score
+    if analysis.drift_score > 0.30:
+        console.print(
+            f"  [dim]→ Score {analysis.drift_score:.2f} above target"
+            " (\u2264 0.30) \u2014 run [bold]drift fix-plan --max-tasks 3[/bold]"
+            " for prioritized next steps.[/dim]"
+        )
+    else:
+        console.print(
+            f"  [dim]→ Score {analysis.drift_score:.2f}"
+            " at or below target (\u2264 0.30) \u2713[/dim]"
+        )
+
     console.print()
     _render_first_run_panel(analysis, console=console, language=language)
 

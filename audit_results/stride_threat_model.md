@@ -428,3 +428,14 @@ No new trust-boundary changes introduced by Issue #121.
         - I (Information Disclosure): No new sensitive data; field contains only structural code identifiers already visible in source.
         - D (Denial of Service): Negligible runtime impact — interval-index lookup is O(n) over existing ParseResult.
         - E (Elevation of Privilege): No privilege boundary change.
+
+## 2025-07-26 - ARE: Adaptive Recommendation Engine (ADR-066)
+
+- Scope: New opt-in subsystem — outcome tracking (JSONL), reward chain, effort calibration, recommendation refinement. New CLI subcommands under `drift calibrate`. New `RecommendationsConfig` in config model. Integration hook in `analyze` command.
+- STRIDE review:
+        - S (Spoofing): No identity boundary change. Outcomes contain only structural fingerprints, not user identities.
+        - T (Tampering): New write target: `.drift/outcomes.jsonl` and `.drift/effort_calibration.json`. Both are local, repo-scoped files with append-only (JSONL) or overwrite (JSON) semantics. No remote writes.
+        - R (Repudiation): Outcomes carry ISO-8601 timestamps for reported_at and resolved_at. Calibration entries carry calibrated_at timestamp. Sufficient for audit trail.
+        - I (Information Disclosure): No PII stored — no author names, emails, commit hashes, or file content. Only signal types, fingerprints (SHA-256 of structural identifiers), and timing data.
+        - D (Denial of Service): Outcome file grows linearly with findings × runs. Archive rotation (180 days) bounds growth. Calibration is O(n) over resolved outcomes, bounded by min_samples threshold.
+        - E (Elevation of Privilege): No privilege boundary change. All operations are local filesystem reads/writes within the repo working directory.

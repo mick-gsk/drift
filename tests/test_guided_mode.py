@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from drift.config._schema import SignalWeights
 from drift.output.guided_output import (
     SCORING_ACTIVE_SIGNALS,
     TrafficLight,
@@ -160,6 +161,19 @@ class TestSeverityLabels:
 
 
 class TestSignalPlainText:
+    def test_scoring_active_signals_follow_runtime_defaults(self) -> None:
+        expected = {
+            signal_type
+            for signal_type, weight in SignalWeights().as_dict().items()
+            if weight > 0.0
+        }
+        missing = sorted(expected - SCORING_ACTIVE_SIGNALS)
+        unexpected = sorted(SCORING_ACTIVE_SIGNALS - expected)
+        assert expected == SCORING_ACTIVE_SIGNALS, (
+            "guided output scoring-active set diverged from runtime defaults: "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+
     def test_all_scoring_signals_have_plain_text(self) -> None:
         """Every scoring-active signal MUST have a plain-text description."""
         for sig in SCORING_ACTIVE_SIGNALS:

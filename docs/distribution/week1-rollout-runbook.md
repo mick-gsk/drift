@@ -42,7 +42,7 @@ Increase discovery and drive measurable PyPI download growth within 7 days.
 
 ### Day 5
 
-- Publish Show HN with hard proof points: deterministic, 23 signals, 97.3% precision, 15 real repositories.
+- Publish Show HN with hard proof points: deterministic, 24 signals, 77–95% precision, 15 real repositories.
 - Keep copy value-oriented and non-promotional.
 
 ### Day 6

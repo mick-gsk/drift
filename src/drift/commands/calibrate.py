@@ -296,3 +296,137 @@ def _write_calibrated_weights(
         yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False),
         encoding="utf-8",
     )
+
+
+# ---------------------------------------------------------------------------
+# effort-* subcommands — Adaptive Recommendation Engine (ARE)
+# ---------------------------------------------------------------------------
+
+
+@calibrate.command(name="effort-run")
+@click.option(
+    "--repo",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=".",
+    help="Path to the repository root.",
+)
+@click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
+def effort_run(repo: Path, config: Path | None, fmt: str) -> None:
+    """Calibrate recommendation effort labels from outcome history."""
+    from drift.calibration.recommendation_calibrator import (
+        calibrate_efforts,
+        save_calibration,
+    )
+    from drift.config import DriftConfig
+    from drift.outcome_tracker import OutcomeTracker
+
+    cfg = DriftConfig.load(repo, config)
+    outcome_path = repo / cfg.recommendations.outcome_path
+    cal_path = repo / cfg.recommendations.calibration_path
+
+    tracker = OutcomeTracker(outcome_path)
+    outcomes = tracker.load()
+
+    if not outcomes:
+        if fmt == "json":
+            click.echo(json.dumps({"status": "no_data", "message": "No outcome data found."}))
+        else:
+            console.print("[dim]No outcome data found. Run 'drift analyze' first.[/dim]")
+        return
+
+    calibrations = calibrate_efforts(
+        outcomes,
+        min_samples=cfg.recommendations.min_calibration_samples,
+    )
+
+    if not calibrations:
+        if fmt == "json":
+            click.echo(json.dumps({
+                "status": "insufficient_data",
+                "message": "Not enough resolved outcomes for calibration.",
+            }))
+        else:
+            console.print(
+                "[dim]Not enough resolved outcomes per signal type "
+                f"(min {cfg.recommendations.min_calibration_samples}).[/dim]"
+            )
+        return
+
+    save_calibration(calibrations, cal_path)
+
+    if fmt == "json":
+        from dataclasses import asdict
+
+        click.echo(json.dumps({
+            "status": "calibrated",
+            "calibrations": [asdict(c) for c in calibrations],
+        }, indent=2))
+    else:
+        console.print(f"\n[bold]Effort Calibration[/bold] ({len(calibrations)} signals)\n")
+        console.print(f"{'Signal':<35} {'Effort':>8} {'Samples':>8} {'Median d':>9}")
+        console.print("-" * 62)
+        for cal in calibrations:
+            console.print(
+                f"{cal.signal_type:<35} {cal.effort:>8}"
+                f" {cal.sample_size:>8} {cal.median_days_to_fix:>8.1f}d"
+            )
+        console.print(f"\n[green]Calibration saved to {cal_path}[/green]")
+
+
+@calibrate.command(name="effort-report")
+@click.option(
+    "--repo",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=".",
+    help="Path to the repository root.",
+)
+@click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
+@click.option("--format", "fmt", type=click.Choice(["text", "json"]), default="text")
+def effort_report(repo: Path, config: Path | None, fmt: str) -> None:
+    """Show current effort calibration status."""
+    from drift.calibration.recommendation_calibrator import load_calibration
+    from drift.config import DriftConfig
+
+    cfg = DriftConfig.load(repo, config)
+    cal_path = repo / cfg.recommendations.calibration_path
+    mapping = load_calibration(cal_path)
+
+    if fmt == "json":
+        click.echo(json.dumps({"calibrations": mapping, "path": str(cal_path)}, indent=2))
+    else:
+        if not mapping:
+            console.print(
+                "[dim]No effort calibration found."
+                " Run 'drift calibrate effort-run'.[/dim]"
+            )
+            return
+        console.print(f"\n[bold]Effort Calibration[/bold] ({len(mapping)} signals)\n")
+        for signal, effort in sorted(mapping.items()):
+            console.print(f"  {signal:<35} → {effort}")
+        console.print(f"\n[dim]Source: {cal_path}[/dim]")
+
+
+@calibrate.command(name="effort-reset")
+@click.option(
+    "--repo",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=".",
+    help="Path to the repository root.",
+)
+@click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
+def effort_reset(repo: Path, config: Path | None) -> None:
+    """Remove effort calibration file and revert to default effort labels."""
+    from drift.config import DriftConfig
+
+    cfg = DriftConfig.load(repo, config)
+    cal_path = repo / cfg.recommendations.calibration_path
+
+    if cal_path.exists():
+        cal_path.unlink()
+        console.print("[green]Effort calibration removed. Default efforts will be used.[/green]")
+    else:
+        console.print("[dim]No effort calibration file found.[/dim]")

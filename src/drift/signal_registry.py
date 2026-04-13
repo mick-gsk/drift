@@ -181,8 +181,8 @@ _CORE_SIGNALS: Final[list[SignalMeta]] = [
     ),
     SignalMeta(
         "fan_out_explosion", "FOE", "Fan-Out Explosion",
-        "architecture_boundary", 0.0,
-        "Detects modules with excessive outgoing dependencies (report-only).",
+        "architecture_boundary", 0.005,
+        "Detects modules with excessive outgoing dependencies.",
         repair_level="plannable",
         has_recommender=False, has_fix_field=True, has_verify_plan=True,
         benchmark_coverage="none",
@@ -247,24 +247,24 @@ _CORE_SIGNALS: Final[list[SignalMeta]] = [
     # ── security ──────────────────────────────────────────────────────────
     SignalMeta(
         "missing_authorization", "MAZ", "Missing Authorization",
-        "security", 0.0,
-        "Detects endpoints or functions lacking authorization checks (report-only).",
+        "security", 0.02,
+        "Detects endpoints or functions lacking authorization checks.",
         repair_level="example_based",
         has_recommender=False, has_fix_field=True, has_verify_plan=True,
         benchmark_coverage="none",
     ),
     SignalMeta(
         "insecure_default", "ISD", "Insecure Default",
-        "security", 0.0,
-        "Detects insecure default configurations (report-only).",
+        "security", 0.01,
+        "Detects insecure default configurations.",
         repair_level="example_based",
         has_recommender=False, has_fix_field=True, has_verify_plan=False,
         benchmark_coverage="none",
     ),
     SignalMeta(
         "hardcoded_secret", "HSC", "Hardcoded Secret",
-        "security", 0.0,
-        "Detects hardcoded secrets and credentials (report-only).",
+        "security", 0.01,
+        "Detects hardcoded secrets and credentials.",
         repair_level="example_based",
         has_recommender=False, has_fix_field=True, has_verify_plan=True,
         benchmark_coverage="none",
@@ -272,8 +272,8 @@ _CORE_SIGNALS: Final[list[SignalMeta]] = [
     # ── ai_quality ────────────────────────────────────────────────────────
     SignalMeta(
         "phantom_reference", "PHR", "Phantom Reference",
-        "ai_quality", 0.0,
-        "Detects unresolvable function/class references (AI hallucination indicator, report-only).",
+        "ai_quality", 0.02,
+        "Detects unresolvable function/class references (AI hallucination indicator).",
         repair_level="example_based",
         has_recommender=False, has_fix_field=True, has_verify_plan=True,
         benchmark_coverage="none",

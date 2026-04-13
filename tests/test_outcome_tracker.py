@@ -1,0 +1,202 @@
+"""Tests for outcome_tracker — finding lifecycle tracking."""
+
+from __future__ import annotations
+
+import json
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+from drift.models import Finding, FindingStatus, LogicalLocation, Severity
+from drift.outcome_tracker import OutcomeTracker, compute_fingerprint
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _make_finding(
+    *,
+    signal_type: str = "pattern_fragmentation",
+    file_path: str = "src/app.py",
+    start_line: int = 10,
+    symbol: str | None = None,
+    fqn: str | None = None,
+    status: FindingStatus = FindingStatus.ACTIVE,
+) -> Finding:
+    logical = None
+    if fqn:
+        logical = LogicalLocation(
+            fully_qualified_name=fqn,
+            name=fqn.rsplit(".", 1)[-1],
+            kind="function",
+        )
+    return Finding(
+        signal_type=signal_type,
+        severity=Severity.MEDIUM,
+        score=0.7,
+        title=f"Test finding in {file_path}",
+        description="A test finding.",
+        file_path=Path(file_path),
+        start_line=start_line,
+        symbol=symbol,
+        status=status,
+        logical_location=logical,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Fingerprint tests (F-02)
+# ---------------------------------------------------------------------------
+
+class TestFingerprint:
+    def test_uses_fqn_when_available(self) -> None:
+        finding = _make_finding(fqn="src.app.MyClass.method")
+        fp = compute_fingerprint(finding)
+        # Changing line number should NOT change fingerprint when fqn is set
+        finding2 = _make_finding(fqn="src.app.MyClass.method", start_line=999)
+        assert fp == compute_fingerprint(finding2)
+
+    def test_falls_back_to_path_line(self) -> None:
+        f1 = _make_finding(file_path="src/a.py", start_line=10)
+        f2 = _make_finding(file_path="src/a.py", start_line=20)
+        assert compute_fingerprint(f1) != compute_fingerprint(f2)
+
+    def test_different_signal_types_different_fingerprint(self) -> None:
+        f1 = _make_finding(signal_type="pattern_fragmentation", fqn="a.b")
+        f2 = _make_finding(signal_type="cohesion_deficit", fqn="a.b")
+        assert compute_fingerprint(f1) != compute_fingerprint(f2)
+
+    def test_deterministic(self) -> None:
+        finding = _make_finding(fqn="x.y.z")
+        assert compute_fingerprint(finding) == compute_fingerprint(finding)
+
+
+# ---------------------------------------------------------------------------
+# OutcomeTracker tests
+# ---------------------------------------------------------------------------
+
+class TestOutcomeTracker:
+    def test_record_creates_jsonl_file(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        tracker = OutcomeTracker(path)
+        tracker.record(_make_finding())
+        assert path.exists()
+        lines = path.read_text(encoding="utf-8").strip().splitlines()
+        assert len(lines) == 1
+        data = json.loads(lines[0])
+        assert data["signal_type"] == "pattern_fragmentation"
+        assert data["resolved_at"] is None
+
+    def test_record_idempotent_same_session(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        tracker = OutcomeTracker(path)
+        finding = _make_finding()
+        tracker.record(finding)
+        tracker.record(finding)  # same session → ignored (F-06)
+        lines = path.read_text(encoding="utf-8").strip().splitlines()
+        assert len(lines) == 1
+
+    def test_resolve_marks_missing_findings(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        tracker = OutcomeTracker(path)
+        finding = _make_finding(fqn="a.b.c")
+        tracker.record(finding)
+
+        # Resolve with empty set → finding disappeared
+        resolved = tracker.resolve(set())
+        assert len(resolved) == 1
+        assert resolved[0].resolved_at is not None
+
+    def test_resolve_calculates_days_to_fix(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        # Write an outcome with a known reported_at in the past
+        old_time = (datetime.now(UTC) - timedelta(days=3)).isoformat()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps({"fingerprint": "abc123", "signal_type": "pattern_fragmentation",
+                        "recommendation_title": "Fix it", "reported_at": old_time,
+                        "resolved_at": None, "days_to_fix": None,
+                        "effort_estimate": "medium", "was_suppressed": False}) + "\n",
+            encoding="utf-8",
+        )
+
+        tracker = OutcomeTracker(path)
+        resolved = tracker.resolve(set())  # abc123 not present → resolved
+        assert len(resolved) == 1
+        assert resolved[0].days_to_fix is not None
+        assert resolved[0].days_to_fix >= 2.9  # ~3 days
+
+    def test_suppressed_findings_marked(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        tracker = OutcomeTracker(path)
+        finding = _make_finding(status=FindingStatus.SUPPRESSED)
+        tracker.record(finding)
+        outcomes = tracker.load()
+        assert len(outcomes) == 1
+        assert outcomes[0].was_suppressed is True
+
+    def test_load_missing_file_no_error(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        tracker = OutcomeTracker(path)
+        assert tracker.load() == []
+
+    def test_archive_moves_old_entries(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        old_time = (datetime.now(UTC) - timedelta(days=200)).isoformat()
+        recent_time = datetime.now(UTC).isoformat()
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as f:
+            # Old resolved entry → should be archived
+            f.write(json.dumps({
+                "fingerprint": "old1", "signal_type": "pfs",
+                "recommendation_title": "Fix", "reported_at": old_time,
+                "resolved_at": old_time, "days_to_fix": 1.0,
+                "effort_estimate": "low", "was_suppressed": False,
+            }) + "\n")
+            # Recent entry → should stay
+            f.write(json.dumps({
+                "fingerprint": "new1", "signal_type": "avs",
+                "recommendation_title": "Fix", "reported_at": recent_time,
+                "resolved_at": None, "days_to_fix": None,
+                "effort_estimate": "medium", "was_suppressed": False,
+            }) + "\n")
+
+        tracker = OutcomeTracker(path)
+        archived = tracker.archive(max_age_days=180)
+        assert archived == 1
+
+        remaining = tracker.load()
+        assert len(remaining) == 1
+        assert remaining[0].fingerprint == "new1"
+
+        archive_path = path.with_suffix(".archive.jsonl")
+        assert archive_path.exists()
+
+    def test_no_pii_in_outcomes(self, tmp_path: Path) -> None:
+        """Outcomes must not contain author names or emails (NF-08)."""
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        tracker = OutcomeTracker(path)
+        tracker.record(_make_finding(fqn="src.app.Handler.process"))
+        content = path.read_text(encoding="utf-8")
+        # Check no PII-like fields leaked
+        data = json.loads(content.strip())
+        assert "author" not in data
+        assert "email" not in data
+        assert "@" not in content  # no email addresses
+
+    def test_resolve_does_not_touch_already_resolved(self, tmp_path: Path) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        old_time = datetime.now(UTC).isoformat()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps({
+                "fingerprint": "resolved1", "signal_type": "pfs",
+                "recommendation_title": "Fix", "reported_at": old_time,
+                "resolved_at": old_time, "days_to_fix": 2.0,
+                "effort_estimate": "low", "was_suppressed": False,
+            }) + "\n",
+            encoding="utf-8",
+        )
+        tracker = OutcomeTracker(path)
+        resolved = tracker.resolve(set())
+        assert len(resolved) == 0  # already resolved, not touched again

@@ -118,7 +118,7 @@ That's the proof. Not our proof — yours.
 
 ## 6. What if a finding is wrong?
 
-False positives exist. Drift is at 97.3% precision — which means roughly 1 in 37 findings may be inaccurate.
+False positives exist. Drift is at 77% strict / 95% lenient precision — which means some findings may need human judgment.
 
 If you spot one:
 

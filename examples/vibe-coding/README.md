@@ -34,24 +34,23 @@ drift detects the **exact patterns** that vibe-coding produces:
 | High-churn files | **TVS** (Temporal Volatility) | Z-score anomaly on 30-day window |
 | Hidden coupling | **CCC** (Co-Change Coupling) | Co-change frequency without import |
 
-## Quick Start (5 Minutes)
+## Quick Start (2 Minutes)
 
 ```bash
-# 1. Install
+# 1. Install and configure
 pip install drift-analyzer
+drift init --profile vibe-coding
 
-# 2. Copy configuration
-cp examples/vibe-coding/drift.yaml drift.yaml
+# 2. See your health
+drift status
 
-# 3. Validate setup
-drift validate --config drift.yaml
-
-# 4. Run first analysis (your Day 0 baseline)
-drift analyze
-
-# 5. Create baseline for ratchet gate
-drift baseline --output .drift-baseline.json
+# 3. Dive into findings
+drift analyze --repo .
 ```
+
+That's it. `drift status` gives you a traffic-light summary. `drift analyze` shows every finding with file, line, and next step.
+
+When you're ready to act on findings: `drift fix-plan --repo . --max-tasks 3` turns your top findings into concrete tasks.
 
 ## Practical Remediation Loop (triage -> fix -> baseline update)
 
@@ -91,7 +90,7 @@ Concrete before/after example:
 - Before: `PFS` reports fragmented connector error handling as a high-severity finding.
 - After: one shared error handler lowers fragmentation and reduces PFS severity in the next scan.
 
-Related docs: [Getting Started](../../docs-site/getting-started/quickstart.md) · [Finding Triage](../../docs-site/getting-started/finding-triage.md) · [Team Rollout](../../docs-site/getting-started/team-rollout.md)
+Related docs: [Getting Started](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Finding Triage](https://mick-gsk.github.io/drift/getting-started/finding-triage/) · [Team Rollout](https://mick-gsk.github.io/drift/getting-started/team-rollout/)
 
 ## 30-Day Rollout Plan
 

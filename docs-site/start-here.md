@@ -1,16 +1,16 @@
 # Evaluate Drift
 
-Four paths depending on what you need right now.
+Pick the path that matches where you are right now.
 
-## I want to prove it on my own code (3 minutes)
+## I just want to see what it does (30 seconds)
 
-1. [Prove It Yourself](prove-it.md) — one command, your repo, your results. No config, no sign-up.
+→ [Prove It Yourself](prove-it.md) — paste a GitHub URL, see results in your browser. No install.
 
-## I want to try it (2 minutes)
+## I want to try it on my code (2 minutes)
 
-1. [Quick Start](getting-started/quickstart.md) — install, run, read your first findings.
+→ [Quick Start](getting-started/quickstart.md) — install, run `drift status`, read your first findings.
 
-## I want to check the evidence first
+## I need to convince my team
 
 1. [Trust and Evidence](trust-evidence.md) — conservative claims, known limits, raw artifacts.
 2. [Example Findings](product/example-findings.md) — 5 concrete findings with code, result, and fix path.

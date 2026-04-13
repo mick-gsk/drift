@@ -488,7 +488,7 @@ _SIGNAL_INFO: dict[str, dict[str, Any]] = {
     "FOE": {
         "signal_type": "fan_out_explosion",
         "name": "Fan-Out Explosion",
-        "weight": "0.0 (report-only)",
+        "weight": "0.005",
         "description": (
             "Detects modules or functions that import or depend on an "
             "excessive number of other modules — high fan-out indicating "
@@ -559,7 +559,7 @@ _SIGNAL_INFO: dict[str, dict[str, Any]] = {
     "MAZ": {
         "signal_type": "missing_authorization",
         "name": "Missing Authorization",
-        "weight": "0.0 (report-only)",
+        "weight": "0.02",
         "description": (
             "Detects HTTP/API endpoints that lack any form of "
             "authentication or authorization check (CWE-862)."
@@ -583,7 +583,7 @@ _SIGNAL_INFO: dict[str, dict[str, Any]] = {
     "ISD": {
         "signal_type": "insecure_default",
         "name": "Insecure Default",
-        "weight": "0.0 (report-only)",
+        "weight": "0.01",
         "description": (
             "Detects insecure configuration defaults that are commonly "
             "copy-pasted from tutorials or scaffolding (CWE-1188)."
@@ -608,7 +608,7 @@ _SIGNAL_INFO: dict[str, dict[str, Any]] = {
     "HSC": {
         "signal_type": "hardcoded_secret",
         "name": "Hardcoded Secret",
-        "weight": "0.0 (report-only)",
+        "weight": "0.01",
         "description": (
             "Detects hardcoded secrets, API tokens, and credentials "
             "in Python source code (CWE-798)."

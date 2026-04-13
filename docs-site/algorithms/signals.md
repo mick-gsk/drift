@@ -1,6 +1,6 @@
 # Signal Reference
 
-Drift tracks 24 total signals across architectural erosion and security-by-default patterns. 14 signals are currently scoring-active and 10 are report-only until precision/recall validation is complete or re-validation is finished. Signals are grouped by origin: 6 core signals from the historical v0.5 baseline (with TVS currently held report-only in the composite score), 4 consistency proxy signals (promoted from report-only in v0.7.0 via [ADR-007](https://github.com/mick-gsk/drift/blob/main/docs/adr/007-consistency-proxy-signals.md)), 3 contract signals (added in v0.7.0/v0.7.1 via [ADR-008](https://github.com/mick-gsk/drift/blob/main/docs/adr/008-adr-008-signal-promotion.md)), 1 cohesion signal (COD), 1 co-change coupling signal (CCC), 1 TypeScript architecture signal (TSA), 4 structural report-only signals, 3 security report-only signals, and 1 AI-hallucination report-only signal (PHR).
+Drift tracks 24 configured signals across architectural erosion, security-by-default, and AI-quality patterns. 19 signals are currently scoring-active and 5 remain report-only. The current report-only set is TVS, TSA, CXS, CIR, and DCA; FOE, MAZ, ISD, HSC, and PHR are now part of the scoring model.
 
 ## Signal Table (All 24)
 
@@ -23,13 +23,13 @@ Drift tracks 24 total signals across architectural erosion and security-by-defau
 | CCC | Co-Change Coupling | Scoring | Files that repeatedly change together without explicit dependency. |
 | TSA | TypeScript Architecture | Report-only | TS/JS architecture violations (layer leaks, cycles, cross-package imports, UI-to-infra imports). |
 | CXS | Cognitive Complexity | Report-only | Functions with deeply nested, hard-to-follow control flow. |
-| FOE | Fan-Out Explosion | Report-only | Modules/functions with unusually high dependency fan-out. |
+| FOE | Fan-Out Explosion | Scoring | Modules/functions with unusually high dependency fan-out. |
 | CIR | Circular Import | Report-only | Circular dependency chains in the module import graph. |
 | DCA | Dead Code Accumulation | Report-only | Unreferenced functions/classes/symbols accumulating over time. |
-| MAZ | Missing Authorization | Report-only | API endpoints lacking auth/authz checks (CWE-862). |
-| ISD | Insecure Default | Report-only | Unsafe default config patterns (CWE-1188). |
-| HSC | Hardcoded Secret | Report-only | Embedded secrets/tokens/credentials in source (CWE-798). |
-| PHR | Phantom Reference | Report-only | Unresolvable function/class references — AI hallucination indicator. |
+| MAZ | Missing Authorization | Scoring | API endpoints lacking auth/authz checks (CWE-862). |
+| ISD | Insecure Default | Scoring | Unsafe default config patterns (CWE-1188). |
+| HSC | Hardcoded Secret | Scoring | Embedded secrets/tokens/credentials in source (CWE-798). |
+| PHR | Phantom Reference | Scoring | Unresolvable function/class references — AI hallucination indicator. |
 
 ## Signal-derived negative context
 

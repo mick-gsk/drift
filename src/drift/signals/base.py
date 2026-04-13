@@ -12,7 +12,7 @@ from drift.config import DriftConfig
 from drift.models import AnalyzerWarning, CommitInfo, FileHistory, Finding, ParseResult, SignalType
 
 if TYPE_CHECKING:
-    from drift.embeddings import EmbeddingService
+    from drift.protocols import EmbeddingServiceProtocol
 
 
 @dataclass
@@ -27,7 +27,7 @@ class AnalysisContext:
     config: DriftConfig
     parse_results: list[ParseResult] = field(default_factory=list)
     file_histories: dict[str, FileHistory] = field(default_factory=dict)
-    embedding_service: EmbeddingService | None = None
+    embedding_service: EmbeddingServiceProtocol | None = None
     commits: list[CommitInfo] = field(default_factory=list)
 
 
@@ -36,7 +36,7 @@ class SignalCapabilities:
     """Explicit runtime capabilities provided by the analyzer to each signal."""
 
     repo_path: Path
-    embedding_service: EmbeddingService | None
+    embedding_service: EmbeddingServiceProtocol | None
     commits: list[CommitInfo]
 
     @classmethod
@@ -66,14 +66,14 @@ class BaseSignal(ABC):
     uses_embeddings: ClassVar[bool] = False
 
     _repo_path: Path | None
-    _embedding_service: EmbeddingService | None
+    _embedding_service: EmbeddingServiceProtocol | None
     _commits: list[CommitInfo]
 
     def __init__(
         self,
         *,
         repo_path: Path | None = None,
-        embedding_service: EmbeddingService | None = None,
+        embedding_service: EmbeddingServiceProtocol | None = None,
         commits: list[CommitInfo] | None = None,
     ) -> None:
         self._repo_path = repo_path
@@ -103,7 +103,7 @@ class BaseSignal(ABC):
         return self._repo_path
 
     @property
-    def embedding_service(self) -> EmbeddingService | None:
+    def embedding_service(self) -> EmbeddingServiceProtocol | None:
         """Embedding service if enabled for the current analysis run."""
         return self._embedding_service
 
