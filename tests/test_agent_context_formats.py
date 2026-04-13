@@ -59,6 +59,7 @@ class TestValidTargets:
     def test_contains_expected(self) -> None:
         assert "copilot" in VALID_TARGETS
         assert "cursor" in VALID_TARGETS
+        assert "windsurf" in VALID_TARGETS
         assert "claude" in VALID_TARGETS
 
     def test_excludes_all(self) -> None:
@@ -135,6 +136,11 @@ class TestGenerateForTarget:
         result = generate_for_target("cursor", analysis)
         assert result.startswith("# Architectural constraints")
 
+    def test_windsurf_uses_cursorrules_format(self) -> None:
+        analysis = _make_analysis()
+        result = generate_for_target("windsurf", analysis)
+        assert result.startswith("# Architectural constraints")
+
     def test_claude_uses_claude_format(self) -> None:
         analysis = _make_analysis()
         result = generate_for_target("claude", analysis)
@@ -149,6 +155,10 @@ class TestTargetDefaultPath:
     def test_cursor_path(self) -> None:
         p = target_default_path("cursor", Path("/repo"))
         assert p == Path("/repo/.cursorrules")
+
+    def test_windsurf_path(self) -> None:
+        p = target_default_path("windsurf", Path("/repo"))
+        assert p == Path("/repo/.windsurfrules")
 
     def test_claude_path(self) -> None:
         p = target_default_path("claude", Path("/repo"))

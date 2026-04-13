@@ -190,6 +190,10 @@ class TestTargetDefaultPath:
         p = target_default_path("cursor", Path("/repo"))
         assert p == Path("/repo/.cursorrules")
 
+    def test_windsurf(self):
+        p = target_default_path("windsurf", Path("/repo"))
+        assert p == Path("/repo/.windsurfrules")
+
     def test_claude(self):
         p = target_default_path("claude", Path("/repo"))
         assert p == Path("/repo/CLAUDE.md")
@@ -208,6 +212,11 @@ class TestGenerateForTarget:
     def test_cursor_delegation(self):
         a = _analysis()
         result = generate_for_target("cursor", a)
+        assert "drift-generated" in result
+
+    def test_windsurf_delegation(self):
+        a = _analysis()
+        result = generate_for_target("windsurf", a)
         assert "drift-generated" in result
 
     def test_claude_delegation(self):

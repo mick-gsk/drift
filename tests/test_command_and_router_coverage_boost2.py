@@ -316,6 +316,11 @@ def test_baseline_and_copilot_context(monkeypatch, tmp_path: Path) -> None:
     )
     assert cone.exit_code == 0
 
+    cwind = runner.invoke(
+        copilot_context, ["--repo", str(tmp_path), "--target", "windsurf", "--write"]
+    )
+    assert cwind.exit_code == 0
+
 
 def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
     import click

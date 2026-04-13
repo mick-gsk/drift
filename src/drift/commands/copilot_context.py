@@ -63,11 +63,14 @@ from drift.commands import console
 @click.option(
     "--target",
     "-t",
-    type=click.Choice(["copilot", "cursor", "claude", "all"], case_sensitive=False),
+    type=click.Choice(
+        ["copilot", "cursor", "windsurf", "claude", "all"],
+        case_sensitive=False,
+    ),
     default="copilot",
     help=(
         "Target agent platform: copilot (.github/copilot-instructions.md), "
-        "cursor (.cursorrules), claude (CLAUDE.md), or all."
+        "cursor (.cursorrules), windsurf (.windsurfrules), claude (CLAUDE.md), or all."
     ),
 )
 def copilot_context(
@@ -94,6 +97,7 @@ def copilot_context(
         drift copilot-context --write         # merge into .github/copilot-instructions.md
         drift copilot-context -w -o docs/ai.md  # write to custom path
         drift copilot-context --target cursor   # generate .cursorrules format
+        drift copilot-context --target windsurf # generate .windsurfrules format
         drift copilot-context --target claude   # generate CLAUDE.md format
         drift copilot-context --target all -w   # write all formats at once
     """
@@ -133,17 +137,17 @@ def copilot_context(
         )
         return
 
-    # --target all: write all three formats
+    # --target all: write all supported target formats
     if target == "all":
         if not write:
             # Preview: show copilot format to stdout
             click.echo(generate_instructions(analysis))
             return
-        targets = ["copilot", "cursor", "claude"]
+        targets = ["copilot", "cursor", "windsurf", "claude"]
         for t in targets:
             rendered_t = generate_for_target(t, analysis)
             t_path = target_default_path(t, repo_path)
-            # Cursor and Claude don't use merge markers
+            # Only Copilot uses marker-based merge
             use_merge = t == "copilot"
             if use_merge:
                 changed = merge_into_file(t_path, rendered_t, no_merge=no_merge)
