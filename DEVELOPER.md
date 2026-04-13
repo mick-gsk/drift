@@ -29,11 +29,13 @@ ingestion/          signals/            scoring/           output/
 │ ts_parser    │    │ DIA  BEM  TPD│    │ impact      │    │ sarif       │
 │ git_history  │───▶│ GCD  NBV  BAT│    │ module      │    │             │
 │              │    │ ECM COD CCC  │    │             │    │             │
+│              │    │ PHR MAZ HSC  │    │             │    │             │
+│              │    │ ISD FOE      │    │             │    │             │
 └──────────────┘    └──────────────┘    └─────────────┘    └─────────────┘
      Parse              Detect              Score              Format
 ```
 
-**Data flow:** File Discovery → AST Parsing (parallel, cached) + Git History (concurrent) → 15 Signals (all scoring) → Auto-Calibration → Composite Scoring → Output Rendering
+**Data flow:** File Discovery → AST Parsing (parallel, cached) + Git History (concurrent) → 24 Signals (19 scoring-active, 5 report-only) → Auto-Calibration → Composite Scoring → Output Rendering
 
 ### Incremental Analysis (Temporal Model)
 
@@ -72,7 +74,7 @@ baselines per repository and automatically invalidates them when:
 | Directory | Purpose |
 |---|---|
 | `src/drift/ingestion/` | File discovery, AST parsing (Python + TypeScript), git log parsing |
-| `src/drift/signals/` | 15 detection signals, each implementing `BaseSignal` |
+| `src/drift/signals/` | 24 detection signals (19 scoring-active, 5 report-only), each implementing `BaseSignal` |
 | `src/drift/scoring/` | Weighted composite score, severity gating, module scores |
 | `src/drift/output/` | Rich terminal dashboard, JSON, SARIF formatters |
 | `src/drift/commands/` | Click CLI subcommands |
