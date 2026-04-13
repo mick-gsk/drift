@@ -13,7 +13,7 @@ from drift.models import (
     Severity,
     SignalType,
 )
-from drift.negative_context_export import (
+from drift.negative_context.export import (
     MARKER_BEGIN,
     MARKER_END,
     render_negative_context_markdown,
@@ -536,7 +536,7 @@ class TestExportContextCLI:
             lambda *_args, **_kwargs: [],
         )
         monkeypatch.setattr(
-            "drift.negative_context_export.render_negative_context_markdown",
+            "drift.negative_context.export.render_negative_context_markdown",
             lambda *_args, **_kwargs: '{"format":"drift-negative-context-v1"}',
         )
 

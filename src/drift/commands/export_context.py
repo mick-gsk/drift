@@ -100,7 +100,7 @@ def export_context(
     from drift.analyzer import analyze_repo
     from drift.config import DriftConfig
     from drift.negative_context import findings_to_negative_context
-    from drift.negative_context_export import render_negative_context_markdown
+    from drift.negative_context.export import render_negative_context_markdown
 
     repo_path = repo.resolve()
     cfg = DriftConfig.load(config or repo_path)

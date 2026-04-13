@@ -78,7 +78,7 @@ def test_export_context_paths(monkeypatch, tmp_path: Path) -> None:
         "drift.negative_context.findings_to_negative_context", lambda *args, **kwargs: ["x", "y"]
     )
     monkeypatch.setattr(
-        "drift.negative_context_export.render_negative_context_markdown",
+        "drift.negative_context.export.render_negative_context_markdown",
         lambda *args, **kwargs: "{}" if kwargs.get("fmt") == "raw" else "NEG",
     )
     monkeypatch.setattr("drift.copilot_context.generate_instructions", lambda *_a, **_k: "POS")

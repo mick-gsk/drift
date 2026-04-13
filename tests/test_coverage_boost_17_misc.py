@@ -122,7 +122,7 @@ def _make_nc(
 
 def test_group_by_category_standalone() -> None:
     """Lines 162-165: _group_by_category in negative_context_export.py."""
-    from drift.negative_context_export import _group_by_category
+    from drift.negative_context.export import _group_by_category
 
     items = [
         _make_nc(NegativeContextCategory.ARCHITECTURE),
