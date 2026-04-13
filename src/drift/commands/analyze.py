@@ -507,7 +507,7 @@ def analyze(
         # Adaptive Recommendation Engine (ARE) — opt-in via config
         if cfg.recommendations.enabled and recs:
             from drift.calibration.recommendation_calibrator import load_calibration
-            from drift.outcome_tracker import OutcomeTracker, compute_fingerprint
+            from drift.outcome_tracker import Outcome, OutcomeTracker, compute_fingerprint
             from drift.recommendation_refiner import refine
             from drift.reward_chain import compute_reward
 
@@ -523,22 +523,22 @@ def analyze(
             tracker.archive(max_age_days=cfg.recommendations.archive_after_days)
 
             outcomes = tracker.load()
-            outcome_by_fp: dict[str, object] = {o.fingerprint: o for o in outcomes}
+            outcome_by_fp: dict[str, Outcome] = {o.fingerprint: o for o in outcomes}
             effort_map = load_calibration(cal_path)
 
             refined_recs: list[object] = []
             for rec in recs:
                 related = rec.related_findings or []
-                finding = related[0] if related else None
-                if finding is None:
+                primary_finding = related[0] if related else None
+                if primary_finding is None:
                     refined_recs.append(rec)
                     continue
-                fp = compute_fingerprint(finding)
+                fp = compute_fingerprint(primary_finding)
                 outcome = outcome_by_fp.get(fp)
-                if effort_map.get(finding.signal_type):
-                    rec.effort = effort_map[finding.signal_type]
-                reward = compute_reward(outcome, rec, finding, all_outcomes=outcomes)
-                refined_recs.append(refine(rec, finding, reward))
+                if effort_map.get(primary_finding.signal_type):
+                    rec.effort = effort_map[primary_finding.signal_type]
+                reward = compute_reward(outcome, rec, primary_finding, all_outcomes=outcomes)
+                refined_recs.append(refine(rec, primary_finding, reward))
             recs = refined_recs  # type: ignore[assignment]
 
         if recs:
