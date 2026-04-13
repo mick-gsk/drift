@@ -45,6 +45,20 @@ from drift.api import to_json
     default=None,
     help="Optional baseline file for new/resolved comparison.",
 )
+@click.option(
+    "--from-file",
+    "from_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Offline diff: source analyze JSON snapshot.",
+)
+@click.option(
+    "--to-file",
+    "to_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Offline diff: target analyze JSON snapshot.",
+)
 @click.option("--max-findings", type=int, default=10, help="Maximum findings to return.")
 @click.option(
     "--response-detail",
@@ -76,6 +90,8 @@ def diff(
     staged_only: bool,
     target_path: str | None,
     baseline_file: Path | None,
+    from_file: Path | None,
+    to_file: Path | None,
     max_findings: int,
     response_detail: str,
     output: Path | None,
@@ -85,6 +101,8 @@ def diff(
     """Run agent-native diff analysis and emit structured JSON."""
     if uncommitted and staged_only:
         raise click.UsageError("Use either --uncommitted or --staged-only, not both.")
+    if (from_file is None) ^ (to_file is None):
+        raise click.UsageError("Use --from-file and --to-file together.")
 
     signal_list = (
         [s.strip() for s in signals.split(",") if s.strip()]
@@ -103,6 +121,8 @@ def diff(
         uncommitted=uncommitted,
         staged_only=staged_only,
         baseline_file=str(baseline_file) if baseline_file else None,
+        from_file=str(from_file) if from_file else None,
+        to_file=str(to_file) if to_file else None,
         target_path=target_path,
         max_findings=max_findings,
         response_detail=response_detail,
@@ -115,3 +135,9 @@ def diff(
         click.echo(f"Output written to {output}", err=True)
     else:
         click.echo(text)
+
+    # Offline mode follows issue #355 success criterion:
+    # exit 1 when newly introduced HIGH/CRITICAL findings are present.
+    if from_file is not None and to_file is not None:
+        if int(result.get("new_high_or_critical", 0)) > 0:
+            raise click.exceptions.Exit(1)

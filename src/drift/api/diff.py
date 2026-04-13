@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -44,6 +45,278 @@ class _DiffDecisionState:
     in_scope_accept: bool
     decision_reason_code: str
     decision_reason: str
+
+
+@dataclass(frozen=True)
+class _SnapshotFinding:
+    """Normalized finding entry parsed from saved JSON analysis output."""
+
+    fingerprint: str
+    severity: str
+    severity_level: int
+    signal: str | None
+    title: str | None
+    file: str | None
+    start_line: int | None
+
+
+_SEVERITY_LEVELS: dict[str, int] = {
+    "info": 0,
+    "low": 1,
+    "medium": 2,
+    "high": 3,
+    "critical": 4,
+}
+
+
+def _severity_level(value: str) -> int:
+    """Return numeric severity level for stable cross-run comparisons."""
+    return _SEVERITY_LEVELS.get(value.lower().strip(), _SEVERITY_LEVELS["info"])
+
+
+def _highest_snapshot_severity(findings: list[_SnapshotFinding]) -> str:
+    """Return highest severity value across snapshot findings."""
+    if not findings:
+        return "low"
+    top = max(findings, key=lambda item: item.severity_level)
+    return top.severity
+
+
+def _snapshot_finding_dict(
+    finding: _SnapshotFinding,
+    *,
+    response_detail: str,
+) -> dict[str, Any]:
+    """Serialize normalized snapshot findings for API output."""
+    payload: dict[str, Any] = {
+        "finding_id": finding.fingerprint,
+        "fingerprint": finding.fingerprint,
+        "severity": finding.severity,
+        "signal": finding.signal,
+        "title": finding.title,
+        "file": finding.file,
+        "start_line": finding.start_line,
+    }
+    if response_detail == "detailed":
+        payload["source"] = "snapshot"
+    return payload
+
+
+def _load_snapshot_findings(path: Path) -> tuple[dict[str, _SnapshotFinding], float]:
+    """Load a saved ``drift analyze --format json`` file by finding fingerprint."""
+    raw = path.read_text(encoding="utf-8")
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        msg = f"Invalid analyze JSON in {path}: root object must be a JSON object."
+        raise ValueError(msg)
+
+    findings_raw = data.get("findings")
+    if not isinstance(findings_raw, list):
+        msg = f"Invalid analyze JSON in {path}: missing 'findings' array."
+        raise ValueError(msg)
+
+    score_raw = data.get("drift_score", 0.0)
+    try:
+        drift_score = float(score_raw)
+    except (TypeError, ValueError):
+        drift_score = 0.0
+
+    findings: dict[str, _SnapshotFinding] = {}
+    for entry in findings_raw:
+        if not isinstance(entry, dict):
+            continue
+        fingerprint_raw = entry.get("fingerprint") or entry.get("finding_id")
+        fingerprint = str(fingerprint_raw or "").strip()
+        if not fingerprint:
+            continue
+
+        severity_value = str(entry.get("severity") or "info").strip().lower()
+        if severity_value not in _SEVERITY_LEVELS:
+            severity_value = "info"
+
+        line_value = entry.get("start_line", entry.get("line"))
+        start_line: int | None = None
+        try:
+            if line_value is not None:
+                start_line = int(line_value)
+        except (TypeError, ValueError):
+            start_line = None
+
+        signal_raw = entry.get("signal") or entry.get("signal_type") or entry.get("rule_id")
+        file_raw = entry.get("file") or entry.get("file_path")
+
+        findings[fingerprint] = _SnapshotFinding(
+            fingerprint=fingerprint,
+            severity=severity_value,
+            severity_level=_severity_level(severity_value),
+            signal=str(signal_raw) if signal_raw is not None else None,
+            title=str(entry.get("title")) if entry.get("title") is not None else None,
+            file=str(file_raw) if file_raw is not None else None,
+            start_line=start_line,
+        )
+
+    return findings, drift_score
+
+
+def _build_snapshot_diff_response(
+    *,
+    from_path: Path,
+    to_path: Path,
+    from_findings: dict[str, _SnapshotFinding],
+    to_findings: dict[str, _SnapshotFinding],
+    score_before: float,
+    score_after: float,
+    max_findings: int,
+    response_detail: str,
+) -> dict[str, Any]:
+    """Build diff response for offline comparison of two saved JSON snapshots."""
+    new_fps = sorted(set(to_findings) - set(from_findings))
+    resolved_fps = sorted(set(from_findings) - set(to_findings))
+    shared_fps = sorted(set(from_findings) & set(to_findings))
+
+    new_items = [to_findings[fp] for fp in new_fps]
+    resolved_items = [from_findings[fp] for fp in resolved_fps]
+
+    changed_entries: list[dict[str, Any]] = []
+    for fp in shared_fps:
+        before = from_findings[fp]
+        after = to_findings[fp]
+        level_delta = after.severity_level - before.severity_level
+        if abs(level_delta) >= 1:
+            changed_entries.append(
+                {
+                    "finding_id": fp,
+                    "fingerprint": fp,
+                    "signal": after.signal or before.signal,
+                    "title": after.title or before.title,
+                    "file": after.file or before.file,
+                    "start_line": after.start_line or before.start_line,
+                    "severity_before": before.severity,
+                    "severity_after": after.severity,
+                    "severity_delta_levels": level_delta,
+                }
+            )
+
+    new_items_sorted = sorted(new_items, key=lambda item: item.severity_level, reverse=True)
+    resolved_items_sorted = sorted(
+        resolved_items,
+        key=lambda item: item.severity_level,
+        reverse=True,
+    )
+    changed_sorted = sorted(
+        changed_entries,
+        key=lambda item: abs(int(item["severity_delta_levels"])),
+        reverse=True,
+    )
+
+    new_high_or_critical = sum(
+        1 for item in new_items if item.severity in ("high", "critical")
+    )
+
+    delta = round(score_after - score_before, 4)
+    status = "stable"
+    if new_high_or_critical > 0:
+        status = "new_critical"
+    elif delta > 0.01 or changed_entries:
+        status = "degraded"
+    elif delta < -0.01 or resolved_items:
+        status = "improved"
+
+    blocking_reasons: list[str] = []
+    if new_high_or_critical > 0:
+        blocking_reasons.append("new_high_or_critical_findings")
+    if delta > 0.0:
+        blocking_reasons.append("drift_score_regressed")
+
+    accept_change = not blocking_reasons
+    decision_reason_code, decision_reason = _diff_decision_reason(
+        accept_change=accept_change,
+        in_scope_accept=accept_change,
+        has_out_of_scope_noise=False,
+    )
+
+    summary_parts = [
+        f"{len(new_items)} new",
+        f"{len(resolved_items)} resolved",
+        f"{len(changed_entries)} changed",
+        f"drift score {'+' if delta >= 0 else ''}{delta:.3f}",
+    ]
+
+    response = _base_response(
+        drift_detected=bool(new_items or resolved_items or changed_entries),
+        status=status,
+        severity=_highest_snapshot_severity(list(to_findings.values())),
+        score_before=round(score_before, 4),
+        score_after=round(score_after, 4),
+        delta=delta,
+        score_basis="snapshot",
+        score_regressed=delta > 0.0,
+        confidence="high",
+        diff_ref="snapshot",
+        diff_mode="file",
+        from_file=from_path.as_posix(),
+        to_file=to_path.as_posix(),
+        new_findings=[
+            _snapshot_finding_dict(item, response_detail=response_detail)
+            for item in new_items_sorted[:max_findings]
+        ],
+        resolved_findings=[
+            _snapshot_finding_dict(item, response_detail=response_detail)
+            for item in resolved_items_sorted[:max_findings]
+        ],
+        changed_findings=changed_sorted[:max_findings],
+        new_finding_count=len(new_items),
+        new_high_or_critical=new_high_or_critical,
+        resolved_count=len(resolved_items),
+        changed_count=len(changed_entries),
+        out_of_scope_new_count=0,
+        noise_context={
+            "pre_existing_count": 0,
+            "explanation": "Offline snapshot comparison mode.",
+        },
+        baseline_recommended=False,
+        baseline_reason="none",
+        drift_categories=[],
+        affected_components=sorted(
+            {
+                item.file.rsplit("/", 1)[0]
+                for item in new_items
+                if item.file and "/" in item.file
+            }
+        ),
+        summary=", ".join(summary_parts),
+        accept_change=accept_change,
+        in_scope_accept=accept_change,
+        blocking_reasons=blocking_reasons,
+        decision_reason_code=decision_reason_code,
+        decision_reason=decision_reason,
+        suggested_next_batch_targets=[],
+        recommended_next_actions=(
+            ["Review new HIGH/CRITICAL findings before merge"]
+            if new_high_or_critical > 0
+            else ["No immediate action required"]
+        ),
+        response_truncated=(
+            len(new_items) > max_findings
+            or len(resolved_items) > max_findings
+            or len(changed_entries) > max_findings
+        ),
+        agent_instruction=(
+            "Offline diff shows new HIGH/CRITICAL findings. Resolve them before proceeding."
+            if new_high_or_critical > 0
+            else "Offline diff is within threshold. Safe to proceed."
+        ),
+    )
+    response.update(
+        _diff_next_step_contract(
+            status=status,
+            accept_change=accept_change,
+            no_staged_files=False,
+            decision_reason_code=decision_reason_code,
+            batch_targets=[],
+        )
+    )
+    return response
 
 
 def _scope_findings(
@@ -158,6 +431,8 @@ def diff(
     uncommitted: bool = False,
     staged_only: bool = False,
     baseline_file: str | None = None,
+    from_file: str | None = None,
+    to_file: str | None = None,
     target_path: str | None = None,
     max_findings: int = 10,
     response_detail: str = "concise",
@@ -198,6 +473,8 @@ def diff(
         "uncommitted": uncommitted,
         "staged_only": staged_only,
         "baseline_file": baseline_file,
+        "from_file": from_file,
+        "to_file": to_file,
         "target_path": target_path,
         "max_findings": max_findings,
         "response_detail": response_detail,
@@ -211,6 +488,78 @@ def diff(
 
         if uncommitted and staged_only:
             raise ValueError("Options 'uncommitted' and 'staged_only' are mutually exclusive.")
+
+        if (from_file is None) ^ (to_file is None):
+            result = _error_response(
+                "DRIFT-1003",
+                "Options 'from_file' and 'to_file' must be provided together.",
+                invalid_fields=[
+                    {
+                        "field": "from_file/to_file",
+                        "value": {"from_file": from_file, "to_file": to_file},
+                        "reason": "Both snapshot files are required for offline diff mode",
+                    }
+                ],
+            )
+            _emit_api_telemetry(
+                tool_name="api.diff",
+                params=params,
+                status="ok",
+                elapsed_ms=elapsed_ms(),
+                result=result,
+                error=None,
+                repo_root=repo_path,
+            )
+            return result
+
+        if from_file and to_file:
+            try:
+                from_path = Path(from_file).resolve()
+                to_path = Path(to_file).resolve()
+                from_findings, score_before = _load_snapshot_findings(from_path)
+                to_findings, score_after = _load_snapshot_findings(to_path)
+                result = _build_snapshot_diff_response(
+                    from_path=from_path,
+                    to_path=to_path,
+                    from_findings=from_findings,
+                    to_findings=to_findings,
+                    score_before=score_before,
+                    score_after=score_after,
+                    max_findings=max_findings,
+                    response_detail=response_detail,
+                )
+                _emit_api_telemetry(
+                    tool_name="api.diff",
+                    params=params,
+                    status="ok",
+                    elapsed_ms=elapsed_ms(),
+                    result=result,
+                    error=None,
+                    repo_root=repo_path,
+                )
+                return shape_for_profile(result, response_profile)
+            except (OSError, json.JSONDecodeError, ValueError) as exc:
+                result = _error_response(
+                    "DRIFT-1003",
+                    f"Failed to read snapshot diff input: {exc}",
+                    invalid_fields=[
+                        {
+                            "field": "from_file/to_file",
+                            "value": {"from_file": from_file, "to_file": to_file},
+                            "reason": "Files must be valid drift analyze JSON reports",
+                        }
+                    ],
+                )
+                _emit_api_telemetry(
+                    tool_name="api.diff",
+                    params=params,
+                    status="ok",
+                    elapsed_ms=elapsed_ms(),
+                    result=result,
+                    error=None,
+                    repo_root=repo_path,
+                )
+                return result
 
         if not uncommitted and not staged_only and diff_ref.startswith("--"):
             result = _error_response(
