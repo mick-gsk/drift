@@ -31,6 +31,9 @@ Common entry points:
 - `drift check --fail-on high`
 - `drift analyze --format json`
 - `drift analyze --format sarif`
+- `drift analyze --format pr-comment` (Markdown summary for PR comments)
+- `drift analyze --format junit` (JUnit XML for CI test dashboards)
+- `drift analyze --format llm` (LLM-oriented compact output; deprecated, prefer `drift mcp`)
 - `drift trend --last 90`
 
 See [Quick Start](getting-started/quickstart.md) for first-run guidance.

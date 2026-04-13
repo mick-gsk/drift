@@ -20,7 +20,7 @@ drift analyze --select PFS,AVS --max-findings 10 --since 180
 | `--repo, -r` | `.` | Repository root path |
 | `--path, -p` | — | Restrict to subdirectory |
 | `--since, -s` | `90` | Days of git history |
-| `--format, -f` | `rich` | `rich`, `json`, `sarif`, `csv`, `agent-tasks`, `github` |
+| `--format, -f` | `rich` | `rich`, `json`, `sarif`, `csv`, `markdown`, `agent-tasks`, `github`, `pr-comment`, `junit`, `llm` |
 | `--fail-on` | `none` | Exit 1 if findings exceed: `critical`, `high`, `medium`, `low` |
 | `--exit-zero` | — | Always exit 0 |
 | `--select` | — | Comma-separated signal IDs (e.g. `PFS,AVS,MDS`) |
@@ -39,6 +39,8 @@ drift analyze --select PFS,AVS --max-findings 10 --since 180
 | `--json` | — | Shortcut for `--format json` |
 | `--compact` | — | Compact JSON for agents/CI |
 | `--no-color` | — | Disable colored output |
+
+`--format junit` and `--format llm` are currently supported for compatibility and emit a deprecation warning at runtime.
 
 ### `drift status`
 
@@ -82,6 +84,40 @@ drift check --format json --baseline .drift-baseline.json
 | `--output, -o` | — | Write output to file |
 | `--quiet, -q` | — | Minimal output |
 | `--no-code` | — | Suppress code snippets |
+
+### `drift gate`
+
+Alias for `drift check`.
+
+```bash
+drift gate --fail-on high
+drift gate --format json
+```
+
+Supports the same options and behavior as `drift check`.
+
+### `drift ci`
+
+Zero-config CI command with auto environment detection.
+
+```bash
+drift ci
+drift ci --fail-on high
+drift ci --format sarif -o drift.sarif
+```
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--repo, -r` | `.` | Repository root |
+| `--fail-on` | `drift.yaml` / `none` | Exit non-zero if findings exceed threshold |
+| `--format, -f` | auto | `rich`, `json`, `sarif`, `csv`, `junit`, `github`, `llm` |
+| `--baseline` | — | Baseline file path |
+| `--output, -o` | — | Write output to file |
+| `--exit-zero` | — | Always exit 0 |
+| `--diff-ref` | auto | Override base ref for diff analysis |
+| `--config, -c` | — | Config file path |
+| `--since, -s` | `90` | Days of git history |
+| `--quiet, -q` | — | Minimal output |
 
 ### `drift start`
 
@@ -453,6 +489,22 @@ drift setup                    # Interactive
 drift setup --non-interactive  # Vibe-coding defaults
 drift setup --json             # JSON for agents/CI
 ```
+
+### `drift completions`
+
+Generate shell tab-completion scripts.
+
+```bash
+drift completions bash > ~/.drift-completion.bash
+source ~/.drift-completion.bash
+
+drift completions zsh > ~/.zfunc/_drift
+drift completions fish > ~/.config/fish/completions/drift.fish
+```
+
+| Argument | Description |
+|----------|-------------|
+| `shell`  | Target shell: `bash`, `zsh`, `fish` |
 
 ### `drift config validate`
 

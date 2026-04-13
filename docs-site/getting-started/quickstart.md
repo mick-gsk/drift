@@ -197,6 +197,15 @@ drift analyze --format json
 # GitHub Code Scanning (SARIF)
 drift analyze --format sarif
 
+# PR-ready Markdown summary
+drift analyze --format pr-comment
+
+# JUnit XML for CI test reporters
+drift analyze --format junit
+
+# LLM-oriented output (deprecated, prefer MCP server workflows)
+drift analyze --format llm
+
 # Track drift score over time
 drift trend --last 90
 
