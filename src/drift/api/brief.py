@@ -215,6 +215,15 @@ def _build_brief_result(
         },
     )
     result.update(_brief_next_step_contract(level))
+
+    # Warn agent when scope confidence is low — the scope may miss relevant files
+    if scope.confidence < 0.5:
+        result["scope_warning"] = (
+            f"Scope confidence is {scope.confidence:.0%}. "
+            "The resolved paths may not cover all relevant files. "
+            "Consider specifying an explicit --scope path."
+        )
+
     return result
 
 

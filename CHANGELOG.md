@@ -1,8 +1,28 @@
 ## [Unreleased]
 
+### Added
+
+- `drift init --interactive` flag — delegates to setup's onboarding questions for profile-driven scaffolding.
+- `drift trend --json` flag — emit trend data as machine-readable JSON.
+- `drift feedback` N column shows total observations per signal.
+- `scope_warning` field in brief API response when scope confidence < 50%.
+
 ### Changed
 
 - Decompose legacy `config`, `errors`, and `models` monolith modules into package-scoped submodules and align recommendation/adaptation flow wiring across CLI, calibration, and docs.
+- Extract shared analysis-pipeline helpers (`_shared.py`) from `check` and `analyze` commands, removing ~300 LOC of duplication.
+- `drift feedback` summary prints low-sample warning when total observations < 20.
+- `nudge` API docstring documents first-call warm-up cost (2–10 s vs 0.1–0.5 s incremental).
+
+### Deprecated
+
+- `drift setup` command — use `drift init --interactive` instead (removal in v3.0).
+- `--format junit` — use `--format sarif` for CI integrations (removal in v3.0).
+- `--format llm` — use `drift mcp` for LLM-optimized output (removal in v3.0).
+- `drift_shadow_verify` MCP tool (removal in v3.0).
+- MCP task-management tools: `drift_task_claim`, `drift_task_renew`, `drift_task_release`, `drift_task_complete`, `drift_task_status` (removal in v3.0).
+- `drift_session_update` MCP tool — use `drift_session_start(autopilot=true)` instead (removal in v3.0).
+- Calibration modules: `outcome_correlator`, `github_correlator`, `threshold_adapter` — use `drift calibrate` with Bayesian Weight Calibration (removal in v3.0).
 
 ### Fixed
 

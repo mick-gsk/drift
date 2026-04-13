@@ -1,5 +1,9 @@
 """Threshold adapter for signal-specific score threshold adjustment.
 
+.. deprecated:: 2.9
+    This module will be removed in v3.0. Threshold adaptation was never
+    activated and is superseded by Bayesian Weight Calibration (ADR-035).
+
 Prepares infrastructure for adaptive threshold calibration based on
 accumulated feedback metrics.  **Disabled by default** — activation
 requires ``calibration.threshold_adaptation_enabled: true`` in the
@@ -12,9 +16,17 @@ with no I/O so that it can be tested deterministically.
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 
 from drift.calibration.feedback import SignalFeedbackMetrics
+
+warnings.warn(
+    "drift.calibration.threshold_adapter is deprecated and will be removed "
+    "in v3.0. Threshold adaptation was never activated; use 'drift calibrate' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 @dataclass(frozen=True)

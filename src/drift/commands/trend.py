@@ -19,8 +19,11 @@ from drift.trend_history import load_history, snapshot_scope
 )
 @click.option("--last", "-l", "days", default=90, type=int, help="Number of days to trend.")
 @click.option("--config", "-c", type=click.Path(path_type=Path), default=None)
-def trend(repo: Path, days: int, config: Path | None) -> None:
+@click.option("--json", "as_json", is_flag=True, default=False, help="Output trend data as JSON.")
+def trend(repo: Path, days: int, config: Path | None, as_json: bool) -> None:
     """Show drift score trend over time (requires git history)."""
+    import json as json_mod
+
     from rich.table import Table
 
     from drift.analyzer import analyze_repo
@@ -44,6 +47,22 @@ def trend(repo: Path, days: int, config: Path | None) -> None:
         s for s in snapshots
         if isinstance(s.get("drift_score"), (int, float)) and isinstance(s.get("timestamp"), str)
     ]
+
+    # JSON output: structured machine-readable trend data
+    if as_json:
+        payload = {
+            "current_score": analysis.drift_score,
+            "total_files": analysis.total_files,
+            "total_findings": len(analysis.findings),
+            "snapshot_count": len(snapshots),
+            "snapshots": snapshots,
+        }
+        if len(snapshots) >= 2:
+            first_score = snapshots[0]["drift_score"]
+            latest_score = snapshots[-1]["drift_score"]
+            payload["overall_delta"] = round(latest_score - first_score, 6)
+        click.echo(json_mod.dumps(payload, default=str))
+        return
 
     # Display trend table
     if len(snapshots) < 2:

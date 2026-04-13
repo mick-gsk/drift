@@ -274,6 +274,13 @@ def _plan_file(
     help="Output dry-run preview as JSON (implies --dry-run).",
 )
 @click.option(
+    "--interactive",
+    "-i",
+    is_flag=True,
+    default=False,
+    help="Ask 3 simple questions to choose the best profile (like drift setup).",
+)
+@click.option(
     "--repo",
     "-r",
     type=click.Path(exists=True, file_okay=False, path_type=Path),
@@ -289,6 +296,7 @@ def init(
     full: bool,
     dry_run: bool,
     json_output: bool,
+    interactive: bool,
     repo: Path,
 ) -> None:
     """Scaffold drift configuration and CI integration.
@@ -305,6 +313,7 @@ def init(
             drift init --mcp --claude           # scaffold VS Code + Claude MCP configs
       drift init --full --dry-run         # preview without writing
       drift init --full --json            # JSON preview for agents
+      drift init --interactive --full     # guided profile + full scaffolding
     """
     repo = repo.resolve()
 
@@ -313,6 +322,29 @@ def init(
 
     if full:
         ci = hooks = mcp = claude = True
+
+    # --interactive: use setup questions to derive best-fit profile
+    if interactive and not json_output:
+        from drift.commands.setup import (
+            _ask_ai_usage,
+            _ask_project_type,
+            _ask_strictness,
+            _derive_profile,
+            _detect_language,
+        )
+
+        lang = _detect_language()
+        console.print()
+        if lang.startswith("de"):
+            console.print("  [bold]drift init --interactive[/bold] — Profil in 3 Fragen")
+        else:
+            console.print("  [bold]drift init --interactive[/bold] — choose profile in 3 questions")
+        console.print("  " + "\u2500" * 45)
+        console.print()
+        project_type = _ask_project_type(lang)
+        ai_usage = _ask_ai_usage(lang)
+        strictness = _ask_strictness(lang)
+        profile = _derive_profile(project_type, ai_usage, strictness)
 
     prof = get_profile(profile)
     launcher_command, launcher_args, launcher_source = _resolve_mcp_launcher()

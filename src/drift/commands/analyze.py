@@ -10,8 +10,6 @@ from typing import Literal, cast
 import click
 from rich.console import Console
 
-from drift.commands import console
-from drift.commands._io import _emit_machine_output
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 
 
@@ -262,35 +260,27 @@ def analyze(
 
     from drift.analyzer import analyze_repo
     from drift.api_helpers import build_drift_score_scope, signal_scope_label
+    from drift.commands._shared import (
+        apply_baseline_filtering,
+        build_effective_console,
+        configure_machine_output_console,
+        render_or_emit_output,
+    )
     from drift.config import DriftConfig
 
     # Positional [REPO] argument takes precedence over --repo option
     if repo_arg is not None:
         repo = repo_arg
 
-    def _recompute_summary() -> None:
-        from drift.scoring.engine import (
-            composite_score,
-            compute_module_scores,
-            compute_signal_scores,
-        )
-
-        signal_scores = compute_signal_scores(analysis.findings)
-        analysis.drift_score = composite_score(signal_scores, cfg.weights)
-        analysis.module_scores = compute_module_scores(analysis.findings, cfg.weights)
-
     if json_shortcut:
         output_format = "json"
 
     # For machine-readable formats, redirect the shared console to stderr
     # so stray console.print() calls never pollute the JSON payload.  (#75, #77)
-    if output_format != "rich":
-        import drift.commands as _cmds
-
-        _cmds.console = Console(stderr=True)
+    configure_machine_output_console(output_format)
 
     # Apply --no-color: create a color-disabled console for rich output
-    effective_console = Console(no_color=True) if no_color else console
+    effective_console = build_effective_console(no_color)
 
     cfg = DriftConfig.load(repo, config)
     if worker_strategy is not None:
@@ -399,13 +389,7 @@ def analyze(
             progress.update(task_id, completed=_last_total)
 
     # Baseline filtering: remove known findings if --baseline is provided
-    if baseline_file is not None:
-        from drift.baseline import baseline_diff, load_baseline
-
-        fingerprints = load_baseline(baseline_file)
-        new, known = baseline_diff(analysis.findings, fingerprints)
-        analysis.findings = new
-        _recompute_summary()
+    apply_baseline_filtering(analysis, cfg, baseline_file)
 
     if quiet:
         sev = analysis.severity.value.upper()
@@ -414,66 +398,7 @@ def analyze(
         click.echo(
             f"score: {analysis.drift_score:.3f}  grade: {grade}  severity: {sev}  findings: {n}"
         )
-    elif output_format == "json":
-        from drift.output.json_output import analysis_to_json
-
-        json_text = analysis_to_json(
-            analysis,
-            compact=compact_json,
-            response_detail=response_detail,
-            drift_score_scope=drift_score_scope,
-            language=cfg.language,
-            group_by=group_by,
-        )
-        _emit_machine_output(json_text, output_file)
-    elif output_format == "sarif":
-        from drift.output.json_output import findings_to_sarif
-
-        sarif_text = findings_to_sarif(analysis)
-        _emit_machine_output(sarif_text, output_file)
-    elif output_format == "csv":
-        from drift.output.csv_output import analysis_to_csv
-
-        csv_text = analysis_to_csv(analysis)
-        _emit_machine_output(csv_text, output_file)
-    elif output_format == "agent-tasks":
-        from drift.output.agent_tasks import analysis_to_agent_tasks_json
-
-        tasks_text = analysis_to_agent_tasks_json(analysis)
-        _emit_machine_output(tasks_text, output_file)
-    elif output_format == "markdown":
-        from drift.output.markdown_report import analysis_to_markdown
-
-        md_text = analysis_to_markdown(
-            analysis,
-            max_findings=5 if compact_json else max_findings,
-            include_modules=not compact_json,
-            include_signal_coverage=not compact_json,
-        )
-        _emit_machine_output(md_text, output_file)
-    elif output_format == "pr-comment":
-        from drift.output.pr_comment import analysis_to_pr_comment
-
-        pr_text = analysis_to_pr_comment(analysis, max_findings=5)
-        _emit_machine_output(pr_text, output_file)
-    elif output_format == "github":
-        from drift.output.github_format import findings_to_github_annotations
-
-        gh_text = findings_to_github_annotations(analysis)
-        _emit_machine_output(gh_text, output_file)
-    elif output_format == "junit":
-        from drift.output.junit_output import analysis_to_junit
-
-        junit_text = analysis_to_junit(analysis)
-        _emit_machine_output(junit_text, output_file)
-    elif output_format == "llm":
-        from drift.output.llm_output import analysis_to_llm
-
-        llm_text = analysis_to_llm(analysis)
-        _emit_machine_output(llm_text, output_file)
     else:
-        from drift.output.rich_output import render_full_report, render_recommendations
-
         # Auto-detect first-run: no drift.yaml and no .drift/ in repo
         is_first_run = (
             not no_first_run
@@ -481,15 +406,20 @@ def analyze(
             and not (repo / ".drift").exists()
         )
 
-        render_full_report(
-            analysis,
-            effective_console,
-            sort_by=sort_by,
+        render_or_emit_output(
+            analysis=analysis,
+            output_format=output_format,
+            compact_json=compact_json,
+            drift_score_scope=drift_score_scope,
+            output_file=output_file,
+            effective_console=effective_console,
             max_findings=max_findings,
-            show_code=not no_code,
+            no_code=no_code,
+            response_detail=response_detail,
             language=cfg.language,
-            explain=explain,
             group_by=group_by,
+            sort_by=sort_by,
+            explain=explain,
             first_run=is_first_run,
         )
 
@@ -499,50 +429,52 @@ def analyze(
                 f"via drift:ignore comments.[/dim italic]"
             )
 
-        # Actionable recommendations
-        from drift.recommendations import generate_recommendations
+        # Actionable recommendations (only for rich terminal output)
+        if output_format == "rich":
+            from drift.output.rich_output import render_recommendations
+            from drift.recommendations import generate_recommendations
 
-        recs = generate_recommendations(analysis.findings)
+            recs = generate_recommendations(analysis.findings)
 
-        # Adaptive Recommendation Engine (ARE) — opt-in via config
-        if cfg.recommendations.enabled and recs:
-            from drift.calibration.recommendation_calibrator import load_calibration
-            from drift.outcome_tracker import Outcome, OutcomeTracker, compute_fingerprint
-            from drift.recommendation_refiner import refine
-            from drift.reward_chain import compute_reward
+            # Adaptive Recommendation Engine (ARE) — opt-in via config
+            if cfg.recommendations.enabled and recs:
+                from drift.calibration.recommendation_calibrator import load_calibration
+                from drift.outcome_tracker import Outcome, OutcomeTracker, compute_fingerprint
+                from drift.recommendation_refiner import refine
+                from drift.reward_chain import compute_reward
 
-            repo_root = Path(repo)
-            outcome_path = repo_root / cfg.recommendations.outcome_path
-            cal_path = repo_root / cfg.recommendations.calibration_path
+                repo_root = Path(repo)
+                outcome_path = repo_root / cfg.recommendations.outcome_path
+                cal_path = repo_root / cfg.recommendations.calibration_path
 
-            tracker = OutcomeTracker(outcome_path)
-            for finding in analysis.findings:
-                tracker.record(finding)
-            current_fps = {compute_fingerprint(f) for f in analysis.findings}
-            tracker.resolve(current_fps)
-            tracker.archive(max_age_days=cfg.recommendations.archive_after_days)
+                tracker = OutcomeTracker(outcome_path)
+                for finding in analysis.findings:
+                    tracker.record(finding)
+                current_fps = {compute_fingerprint(f) for f in analysis.findings}
+                tracker.resolve(current_fps)
+                tracker.archive(max_age_days=cfg.recommendations.archive_after_days)
 
-            outcomes = tracker.load()
-            outcome_by_fp: dict[str, Outcome] = {o.fingerprint: o for o in outcomes}
-            effort_map = load_calibration(cal_path)
+                outcomes = tracker.load()
+                outcome_by_fp: dict[str, Outcome] = {o.fingerprint: o for o in outcomes}
+                effort_map = load_calibration(cal_path)
 
-            refined_recs: list[object] = []
-            for rec in recs:
-                related = rec.related_findings or []
-                primary_finding = related[0] if related else None
-                if primary_finding is None:
-                    refined_recs.append(rec)
-                    continue
-                fp = compute_fingerprint(primary_finding)
-                outcome = outcome_by_fp.get(fp)
-                if effort_map.get(primary_finding.signal_type):
-                    rec.effort = effort_map[primary_finding.signal_type]
-                reward = compute_reward(outcome, rec, primary_finding, all_outcomes=outcomes)
-                refined_recs.append(refine(rec, primary_finding, reward))
-            recs = refined_recs  # type: ignore[assignment]
+                refined_recs: list[object] = []
+                for rec in recs:
+                    related = rec.related_findings or []
+                    primary_finding = related[0] if related else None
+                    if primary_finding is None:
+                        refined_recs.append(rec)
+                        continue
+                    fp = compute_fingerprint(primary_finding)
+                    outcome = outcome_by_fp.get(fp)
+                    if effort_map.get(primary_finding.signal_type):
+                        rec.effort = effort_map[primary_finding.signal_type]
+                    reward = compute_reward(outcome, rec, primary_finding, all_outcomes=outcomes)
+                    refined_recs.append(refine(rec, primary_finding, reward))
+                recs = refined_recs  # type: ignore[assignment]
 
-        if recs:
-            render_recommendations(recs, effective_console)
+            if recs:
+                render_recommendations(recs, effective_console)
 
     # Save baseline if requested (--save-baseline)
     if save_baseline_path is not None:

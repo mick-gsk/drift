@@ -159,6 +159,13 @@ def nudge(
     dict
         Nudge response with direction, delta, safe_to_commit, confidence map,
         new/resolved findings, and agent instruction.
+
+    Performance
+    -----------
+    The **first call** for a repository performs a full scan to establish a
+    baseline (typically 2–10 s depending on repo size).  Subsequent calls are
+    incremental and usually complete in 0.1–0.5 s.  Callers should expect
+    the warm-up cost on the initial invocation.
     """
     import time as _time
 

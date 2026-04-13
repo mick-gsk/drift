@@ -10,138 +10,14 @@ from typing import Literal, cast
 import click
 from rich.console import Console
 
-from drift.commands import console
-from drift.commands._io import _emit_machine_output
+from drift.commands._shared import (
+    apply_baseline_filtering,
+    apply_signal_filtering,
+    build_effective_console,
+    configure_machine_output_console,
+    render_or_emit_output,
+)
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
-
-
-def _recompute_analysis_summary(analysis, cfg) -> None:
-    from drift.scoring.engine import (
-        composite_score,
-        compute_module_scores,
-        compute_signal_scores,
-    )
-
-    signal_scores = compute_signal_scores(analysis.findings)
-    analysis.drift_score = composite_score(signal_scores, cfg.weights)
-    analysis.module_scores = compute_module_scores(analysis.findings, cfg.weights)
-
-
-def _configure_machine_output_console(output_format: str) -> None:
-    if output_format != "rich":
-        import drift.commands as _cmds
-
-        _cmds.console = Console(stderr=True)
-
-
-def _build_effective_console(no_color: bool) -> Console:
-    return Console(no_color=True) if no_color else console
-
-
-def _apply_signal_filtering(
-    analysis,
-    cfg,
-    select_signals: str | None,
-    ignore_signals: str | None,
-) -> None:
-    if not (select_signals or ignore_signals):
-        return
-
-    from drift.config import SignalWeights
-    from drift.models import SignalType
-
-    active_signals = {
-        SignalType(field)
-        for field in SignalWeights.model_fields
-        if getattr(cfg.weights, field, 0.0) > 0.0
-    }
-    analysis.findings = [f for f in analysis.findings if f.signal_type in active_signals]
-    _recompute_analysis_summary(analysis, cfg)
-
-
-def _apply_baseline_filtering(analysis, cfg, baseline_file: Path | None) -> None:
-    if baseline_file is None:
-        return
-
-    from drift.baseline import baseline_diff, load_baseline
-
-    fingerprints = load_baseline(baseline_file)
-    new, known = baseline_diff(analysis.findings, fingerprints)
-    analysis.findings = new
-    analysis.suppressed_count += len(known)
-    analysis.baseline_new_count = len(new)
-    analysis.baseline_matched_count = len(known)
-    _recompute_analysis_summary(analysis, cfg)
-
-
-def _render_or_emit_output(
-    analysis,
-    output_format: str,
-    compact_json: bool,
-    drift_score_scope: str,
-    output_file: Path | None,
-    effective_console: Console,
-    max_findings: int,
-    no_code: bool,
-) -> None:
-    if output_format == "json":
-        from drift.output.json_output import analysis_to_json
-
-        json_text = analysis_to_json(
-            analysis,
-            compact=compact_json,
-            drift_score_scope=drift_score_scope,
-        )
-        _emit_machine_output(json_text, output_file)
-        return
-
-    if output_format == "sarif":
-        from drift.output.json_output import findings_to_sarif
-
-        sarif_text = findings_to_sarif(analysis)
-        _emit_machine_output(sarif_text, output_file)
-        return
-
-    if output_format == "csv":
-        from drift.output.csv_output import analysis_to_csv
-
-        csv_text = analysis_to_csv(analysis)
-        _emit_machine_output(csv_text, output_file)
-        return
-
-    if output_format == "agent-tasks":
-        from drift.output.agent_tasks import analysis_to_agent_tasks_json
-
-        tasks_text = analysis_to_agent_tasks_json(analysis)
-        _emit_machine_output(tasks_text, output_file)
-        return
-
-    if output_format == "github":
-        from drift.output.github_format import findings_to_github_annotations
-
-        gh_text = findings_to_github_annotations(analysis)
-        _emit_machine_output(gh_text, output_file)
-        return
-
-    if output_format == "junit":
-        from drift.output.junit_output import analysis_to_junit
-
-        junit_text = analysis_to_junit(analysis)
-        _emit_machine_output(junit_text, output_file)
-        return
-
-    if output_format == "llm":
-        from drift.output.llm_output import analysis_to_llm
-
-        llm_text = analysis_to_llm(analysis)
-        _emit_machine_output(llm_text, output_file)
-        return
-
-    from drift.output.rich_output import render_full_report
-
-    render_full_report(
-        analysis, effective_console, max_findings=max_findings, show_code=not no_code,
-    )
 
 
 def _print_check_result(
@@ -361,8 +237,8 @@ def check(
         output_format = "json"
 
     # Keep machine-readable payloads clean by routing shared console to stderr.
-    _configure_machine_output_console(output_format)
-    effective_console = _build_effective_console(no_color)
+    configure_machine_output_console(output_format)
+    effective_console = build_effective_console(no_color)
 
     cfg = DriftConfig.load(repo, config)
     if worker_strategy is not None:
@@ -404,15 +280,15 @@ def check(
             target_path=target_path,
         )
 
-    _apply_signal_filtering(analysis, cfg, select_signals, ignore_signals)
-    _apply_baseline_filtering(analysis, cfg, baseline_file)
+    apply_signal_filtering(analysis, cfg, select_signals, ignore_signals)
+    apply_baseline_filtering(analysis, cfg, baseline_file)
 
     if quiet:
         sev = analysis.severity.value.upper()
         n = len(analysis.findings)
         click.echo(f"score: {analysis.drift_score:.3f}  severity: {sev}  findings: {n}")
     else:
-        _render_or_emit_output(
+        render_or_emit_output(
             analysis=analysis,
             output_format=output_format,
             compact_json=compact_json,

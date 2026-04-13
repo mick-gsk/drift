@@ -1,5 +1,9 @@
 """GitHub issue/PR → signal correlation for calibration evidence.
 
+.. deprecated:: 2.9
+    This module will be removed in v3.0. Use ``drift calibrate``
+    with Bayesian Weight Calibration (ADR-035) instead.
+
 Maps closed bug-issues to their fix-commits, then correlates affected
 files with historical drift findings to produce TP/FN evidence.
 """
@@ -8,11 +12,19 @@ from __future__ import annotations
 
 import logging
 import re
+import warnings
 from pathlib import Path
 from typing import Any
 
 from drift.calibration.feedback import FeedbackEvent
 from drift.calibration.history import ScanSnapshot
+
+warnings.warn(
+    "drift.calibration.github_correlator is deprecated and will be removed "
+    "in v3.0. Use 'drift calibrate' with Bayesian Weight Calibration instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -196,11 +196,28 @@ def setup(
 ) -> None:
     """Set up drift for your project in under a minute.
 
+    .. deprecated:: 2.9
+        Use ``drift init --interactive`` instead. This command will be
+        removed in v3.0.
+
     Asks 2\u20133 simple questions and generates a drift.yaml tailored to your
     project. No architectural expertise required.
 
     Use --non-interactive for defaults without questions.
     """
+    import warnings
+
+    if not output_json:
+        warnings.warn(
+            "drift setup is deprecated. Use 'drift init --interactive' instead.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+        click.echo(
+            "DEPRECATION: drift setup will be removed in v3.0. "
+            "Use 'drift init --interactive' instead.",
+            err=True,
+        )
     repo = repo.resolve()
     config_path = repo / "drift.yaml"
     lang = _detect_language()

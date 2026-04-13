@@ -1,5 +1,9 @@
 """Git-outcome correlation engine for calibration evidence.
 
+.. deprecated:: 2.9
+    This module will be removed in v3.0. Use ``drift calibrate``
+    with Bayesian Weight Calibration (ADR-035) instead.
+
 Correlates historical drift findings with subsequent defect-fix commits
 to generate TP/FP evidence for signal weight calibration.
 """
@@ -7,11 +11,19 @@ to generate TP/FP evidence for signal weight calibration.
 from __future__ import annotations
 
 import re
+import warnings
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from drift.calibration.feedback import FeedbackEvent
 from drift.calibration.history import ScanSnapshot
+
+warnings.warn(
+    "drift.calibration.outcome_correlator is deprecated and will be removed "
+    "in v3.0. Use 'drift calibrate' with Bayesian Weight Calibration instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 # Matches commit messages indicating a bug fix (same as git_history.py)
 _DEFECT_PATTERN = re.compile(

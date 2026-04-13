@@ -30,6 +30,7 @@ import hashlib
 import io
 import json
 import os
+import re
 from pathlib import Path
 from typing import Annotated, Any, cast
 
@@ -452,6 +453,12 @@ _BASE_INSTRUCTIONS = (
 )
 
 
+# Maximum file size accepted for negative-context injection (guards against gigantic files)
+_MAX_NEGATIVE_CONTEXT_BYTES = 10 * 1024  # 10 KB
+# Allowlist for extracted DO NOT lines: printable ASCII minus control characters
+_SAFE_DO_NOT_RE = re.compile(r"^[\w\s.,;:!?()'\"/@#%&\-+=<>|\\\[\]{}~^`]{1,200}$")
+
+
 def _load_negative_context_instructions() -> str:
     """Build MCP instructions, enriching with cached anti-patterns if available.
 
@@ -468,8 +475,12 @@ def _load_negative_context_instructions() -> str:
     except OSError:
         return _BASE_INSTRUCTIONS
 
+    # Guard against oversized files that could be used for prompt injection
+    if len(content.encode("utf-8")) > _MAX_NEGATIVE_CONTEXT_BYTES:
+        return _BASE_INSTRUCTIONS
+
     # Extract anti-pattern bullet points (lines starting with "- " under markers)
-    from drift.negative_context_export import MARKER_BEGIN, MARKER_END
+    from drift.negative_context.export import MARKER_BEGIN, MARKER_END
 
     begin = content.find(MARKER_BEGIN)
     end = content.find(MARKER_END)
@@ -480,12 +491,14 @@ def _load_negative_context_instructions() -> str:
     if not section:
         return _BASE_INSTRUCTIONS
 
-    # Extract DO NOT lines (compact summary)
+    # Extract DO NOT lines (compact summary) — sanitise each line before use
     do_not_lines: list[str] = []
     for line in section.splitlines():
         stripped = line.strip()
         if stripped.startswith("- **DO NOT:**"):
-            do_not_lines.append(stripped.removeprefix("- **DO NOT:** "))
+            candidate = stripped.removeprefix("- **DO NOT:** ")[:200]
+            if _SAFE_DO_NOT_RE.match(candidate):
+                do_not_lines.append(candidate)
 
     if not do_not_lines:
         return _BASE_INSTRUCTIONS
@@ -1239,6 +1252,11 @@ async def drift_shadow_verify(
     fan_out_explosion, architecture_violation, …) are evaluated with exact
     confidence rather than incremental estimation.
 
+    .. deprecated:: 2.9
+        This tool will be removed in v3.0.
+        Use ``drift_scan`` with a ``scope`` filter instead.
+        ``drift_scan`` provides equivalent full non-incremental analysis.
+
     Required after editing tasks whose completion_evidence.tool is
     'drift_shadow_verify' (i.e. tasks with shadow_verify=true in the fix_plan
     response — those have a cross-file-risky edit_kind such as remove_import,
@@ -1253,6 +1271,14 @@ async def drift_shadow_verify(
             affects baseline freshness context.
         session_id: Optional session ID for stateful workflows.
     """
+    import warnings
+
+    warnings.warn(
+        "drift_shadow_verify is deprecated and will be removed in v3.0. "
+        "Use drift_scan with a scope filter instead.",
+        DeprecationWarning,
+        stacklevel=1,
+    )
     from drift.api.shadow_verify import shadow_verify
 
     session = _resolve_session(session_id)
@@ -1271,6 +1297,83 @@ async def drift_shadow_verify(
     if session:
         session.touch()
     return _enrich_response_with_session(raw, session, "drift_shadow_verify")
+
+
+@mcp.tool()
+async def drift_verify(
+    path: Annotated[str, Field(description="Repository path to analyze.")] = ".",
+    fail_on: Annotated[
+        str,
+        Field(
+            description=(
+                "Severity threshold for FAIL verdict. "
+                "One of: critical, high, medium, low, none. Default: high."
+            ),
+        ),
+    ] = "high",
+    scope_files: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Comma-separated posix-relative file paths to restrict "
+                "verification scope. When omitted, all findings are compared."
+            ),
+        ),
+    ] = None,
+    uncommitted: Annotated[
+        bool,
+        Field(
+            description="Analyze working-tree changes vs HEAD (default: true).",
+        ),
+    ] = True,
+    response_profile: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Response profile: 'verifier' (deltas/criteria),"
+                " 'merge_readiness' (score/blocking). Omit for full response."
+            ),
+        ),
+    ] = None,
+    session_id: Annotated[
+        str,
+        Field(description="Optional session ID from drift_session_start for stateful workflows."),
+    ] = "",
+) -> str:
+    """Verify structural coherence after edits — binary pass/fail verdict (ADR-070).
+
+    Returns a single boolean ``pass`` field suitable for CI gating and agent
+    decision-making. Wraps shadow_verify with a severity-threshold gate.
+
+    Use after LLM-generated edits, agentic code generation, or any automated
+    code change to confirm no structural coherence degradation occurred.
+
+    Args:
+        path: Repository path (default: current directory).
+        fail_on: Severity threshold — findings at or above this level cause FAIL.
+        scope_files: Comma-separated file paths to restrict scope.
+        uncommitted: Analyze working-tree changes vs HEAD.
+        session_id: Optional session ID for stateful workflows.
+    """
+    from drift.api.verify import verify
+
+    session = _resolve_session(session_id)
+    resolved_path = path
+    if session and (not path or path == "."):
+        resolved_path = session.repo_path
+
+    raw = await _run_api_tool(
+        "drift_verify",
+        verify,
+        path=resolved_path,
+        fail_on=fail_on,
+        scope_files=_parse_csv_ids(scope_files),
+        uncommitted=uncommitted,
+        response_profile=response_profile,
+    )
+    if session:
+        session.touch()
+    return _enrich_response_with_session(raw, session, "drift_verify")
 
 
 @mcp.tool()
@@ -1911,6 +2014,10 @@ async def drift_session_update(
 ) -> str:
     """Update session scope, mark tasks complete, or save to disk.
 
+    .. deprecated:: 2.9
+        Use ``drift_session_start(autopilot=true)`` for automatic session
+        orchestration.  ``drift_session_update`` will be removed in v3.0.
+
     Args:
         session_id: The session ID to update.
         signals: New signal filter (replaces current).
@@ -1919,6 +2026,14 @@ async def drift_session_update(
         mark_tasks_complete: Comma-separated task IDs to mark complete.
         save_to_disk: Persist session to a JSON file.
     """
+    import warnings
+
+    warnings.warn(
+        "drift_session_update is deprecated and will be removed in v3.0. "
+        "Use drift_session_start(autopilot=true) for automatic session orchestration.",
+        DeprecationWarning,
+        stacklevel=1,
+    )
     from drift.session import SessionManager
 
     mgr = SessionManager.instance()
@@ -2003,7 +2118,15 @@ async def drift_session_end(
 
 # ---------------------------------------------------------------------------
 # MCP Tools — Task-queue leasing (multi-agent coordination)
+# DEPRECATED: These tools will be removed in v3.0.
+# Use drift_session_end(completed_tasks=[...]) instead.
 # ---------------------------------------------------------------------------
+
+_TASK_DEPRECATION_MSG = (
+    "DEPRECATED: Task leasing tools (drift_task_claim, drift_task_renew, "
+    "drift_task_release, drift_task_complete, drift_task_status) will be "
+    "removed in v3.0. Use drift_session_end(completed_tasks=[...]) instead."
+)
 
 
 @mcp.tool()
@@ -2050,6 +2173,10 @@ async def drift_task_claim(
 ) -> str:
     """Claim a pending task from the session's fix-plan queue.
 
+    .. deprecated:: 2.9
+        Task leasing tools will be removed in v3.0.
+        Use drift_session_end(completed_tasks=[...]) instead.
+
     Atomically acquires a lease on the next pending task (FIFO) or a
     specific task by ID.  While a task is claimed, other agents cannot
     claim the same task.  The lease expires after ``lease_ttl_seconds``;
@@ -2064,6 +2191,9 @@ async def drift_task_claim(
         lease_ttl_seconds: Lease lifetime before task reverts (default: 300s).
         max_reclaim: Max reclaims before task is marked failed (default: 3).
     """
+    import warnings
+
+    warnings.warn(_TASK_DEPRECATION_MSG, DeprecationWarning, stacklevel=1)
     from drift.session import SessionManager
 
     session = SessionManager.instance().get(session_id)
@@ -2133,6 +2263,9 @@ async def drift_task_renew(
 ) -> str:
     """Extend an active task lease to prevent it from expiring.
 
+    .. deprecated:: 2.9
+        Task leasing tools will be removed in v3.0.
+
     Call this while still working on a claimed task if the original
     ``lease_ttl_seconds`` is about to expire.  Only the agent that holds
     the lease can renew it.
@@ -2143,6 +2276,9 @@ async def drift_task_renew(
         task_id: Task ID whose lease should be extended.
         extend_seconds: Seconds to add to the current deadline (default: 300s).
     """
+    import warnings
+
+    warnings.warn(_TASK_DEPRECATION_MSG, DeprecationWarning, stacklevel=1)
     from drift.session import SessionManager
 
     session = SessionManager.instance().get(session_id)
@@ -2196,6 +2332,9 @@ async def drift_task_release(
 ) -> str:
     """Release a claimed task back to the pending pool.
 
+    .. deprecated:: 2.9
+        Task leasing tools will be removed in v3.0.
+
     Use this when a task cannot be completed (e.g. blocked, out of scope).
     The task's reclaim count is incremented; after ``max_reclaim`` releases
     the task is marked as failed instead of re-queued.
@@ -2206,6 +2345,9 @@ async def drift_task_release(
         task_id: Task ID to release.
         max_reclaim: Max releases before marking failed (default: 3).
     """
+    import warnings
+
+    warnings.warn(_TASK_DEPRECATION_MSG, DeprecationWarning, stacklevel=1)
     from drift.session import SessionManager
 
     session = SessionManager.instance().get(session_id)
@@ -2268,6 +2410,9 @@ async def drift_task_complete(
 ) -> str:
     """Mark a claimed task as completed and release its lease.
 
+    .. deprecated:: 2.9
+        Task leasing tools will be removed in v3.0.
+
     Only the agent holding the active lease can complete the task.
     Completed tasks are excluded from future drift_task_claim calls.
 
@@ -2283,6 +2428,9 @@ async def drift_task_complete(
         verify_evidence: drift_nudge result (dict with safe_to_commit=true).
             Required when the task has a verify_plan.
     """
+    import warnings
+
+    warnings.warn(_TASK_DEPRECATION_MSG, DeprecationWarning, stacklevel=1)
     from drift.session import SessionManager
 
     session = SessionManager.instance().get(session_id)
@@ -2332,12 +2480,18 @@ async def drift_task_status(
 ) -> str:
     """Return a full queue overview: pending, claimed, completed, failed tasks.
 
+    .. deprecated:: 2.9
+        Task leasing tools will be removed in v3.0.
+
     Use this to understand the current distribution of work across agents
     and to decide which tasks still need attention.
 
     Args:
         session_id: Active session ID from drift_session_start.
     """
+    import warnings
+
+    warnings.warn(_TASK_DEPRECATION_MSG, DeprecationWarning, stacklevel=1)
     from drift.session import SessionManager
 
     session = SessionManager.instance().get(session_id)

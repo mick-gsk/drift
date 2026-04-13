@@ -129,14 +129,29 @@ def summary(repo: Path, config: Path | None) -> None:
     console.print(f"\n[bold]Feedback Summary[/bold] ({len(events)} events)\n")
     console.print(
         f"{'Signal':<30} {'TP':>5} {'FP':>5} {'FN':>5}"
-        f" {'Prec':>6} {'Rec':>6} {'F1':>6}"
+        f" {'Prec':>6} {'Rec':>6} {'F1':>6} {'N':>5}"
     )
-    console.print("-" * 70)
+    console.print("-" * 76)
+    low_sample_signals: list[str] = []
     for signal_type in sorted(metrics):
         m = metrics[signal_type]
+        n = getattr(m, "total_observations", m.tp + m.fp)
         console.print(
             f"{signal_type:<30} {m.tp:>5} {m.fp:>5} {m.fn:>5}"
-            f" {m.precision:>6.2f} {m.recall:>6.2f} {m.f1:>6.2f}"
+            f" {m.precision:>6.2f} {m.recall:>6.2f} {m.f1:>6.2f} {n:>5}"
+        )
+        if n < 20:
+            low_sample_signals.append(signal_type)
+
+    if low_sample_signals:
+        console.print()
+        console.print(
+            f"[bold yellow]\u26a0 {len(low_sample_signals)} signal(s) have "
+            f"<20 observations — calibration confidence will be low.[/bold yellow]"
+        )
+        console.print(
+            "[dim]Calibration needs \u226520 TP+FP events per signal for "
+            "full confidence (see drift calibrate explain).[/dim]"
         )
 
 

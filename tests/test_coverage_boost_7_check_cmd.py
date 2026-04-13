@@ -6,10 +6,14 @@ from unittest.mock import MagicMock, patch
 
 from rich.console import Console
 
-from drift.commands.check import (
-    _apply_baseline_filtering,
-    _apply_signal_filtering,
-    _render_or_emit_output,
+from drift.commands._shared import (
+    apply_baseline_filtering as _apply_baseline_filtering,
+)
+from drift.commands._shared import (
+    apply_signal_filtering as _apply_signal_filtering,
+)
+from drift.commands._shared import (
+    render_or_emit_output as _render_or_emit_output,
 )
 
 
@@ -39,7 +43,7 @@ def test_render_sarif_calls_emit(tmp_path: Path) -> None:
         with patch(
             "drift.output.json_output.findings_to_sarif", return_value='{"sarif":"ok"}'
         ) as mock_sarif, patch(
-            "drift.commands.check._emit_machine_output"
+            "drift.commands._shared._emit_machine_output"
         ) as mock_emit:
             _render_or_emit_output(
                 analysis=analysis,
@@ -67,7 +71,7 @@ def test_render_csv_calls_emit(tmp_path: Path) -> None:
         with patch(
             "drift.output.csv_output.analysis_to_csv", return_value="col1,col2\n"
         ) as mock_csv, patch(
-            "drift.commands.check._emit_machine_output"
+            "drift.commands._shared._emit_machine_output"
         ) as mock_emit:
             _render_or_emit_output(
                 analysis=analysis,
@@ -95,7 +99,7 @@ def test_render_agent_tasks_calls_emit(tmp_path: Path) -> None:
         with patch(
             "drift.output.agent_tasks.analysis_to_agent_tasks_json", return_value="[]"
         ) as mock_at, patch(
-            "drift.commands.check._emit_machine_output"
+            "drift.commands._shared._emit_machine_output"
         ) as mock_emit:
             _render_or_emit_output(
                 analysis=analysis,
@@ -123,7 +127,7 @@ def test_render_github_calls_emit(tmp_path: Path) -> None:
         with patch(
             "drift.output.github_format.findings_to_github_annotations", return_value="::notice::"
         ) as mock_gh, patch(
-            "drift.commands.check._emit_machine_output"
+            "drift.commands._shared._emit_machine_output"
         ) as mock_emit:
             _render_or_emit_output(
                 analysis=analysis,
@@ -153,7 +157,7 @@ def test_apply_baseline_filtering_updates_suppressed(tmp_path: Path) -> None:
 
     with patch("drift.baseline.load_baseline", return_value=set()), patch(
         "drift.baseline.baseline_diff", return_value=([f1], [f2, f3])
-    ), patch("drift.commands.check._recompute_analysis_summary"):
+    ), patch("drift.commands._shared.recompute_analysis_summary"):
         _apply_baseline_filtering(analysis, cfg, baseline_file=baseline)
 
     assert analysis.findings == [f1]
@@ -190,6 +194,6 @@ def test_apply_signal_filtering_filters_findings() -> None:
     f2.signal_type = "unknown_xyz"
     analysis = _make_analysis(findings=[f1, f2])
     cfg = _make_cfg()
-    with patch("drift.commands.check._recompute_analysis_summary") as mock_recompute:
+    with patch("drift.commands._shared.recompute_analysis_summary") as mock_recompute:
         _apply_signal_filtering(analysis, cfg, select_signals="PFS", ignore_signals=None)
     mock_recompute.assert_called_once()
