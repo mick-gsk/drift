@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import time
 from contextlib import suppress
 from pathlib import Path
@@ -42,6 +43,10 @@ class ParseCache:
     def __init__(self, cache_dir: Path) -> None:
         self._cache_dir = cache_dir / "parse"
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            os.chmod(self._cache_dir, 0o700)
+        except OSError:
+            pass  # Best-effort: Windows does not support POSIX permissions
         self._evict_stale()
 
     def _evict_stale(self) -> None:

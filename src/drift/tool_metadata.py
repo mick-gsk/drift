@@ -132,6 +132,17 @@ def _build_catalog() -> dict[str, ToolMetadataEntry]:
             phases=("verify",),
         ),
         ToolMetadataEntry(
+            name="drift_verify",
+            cost=ToolCostMetadata("high", "none", 3000, 800),
+            context=ToolContextHint(
+                when_to_use="Binary pass/fail coherence check after edits or in CI.",
+                when_not_to_use="Between small edits (use drift_nudge).",
+                prerequisite_tools=("drift_scan",),
+                follow_up_tools=("drift_fix_plan",),
+            ),
+            phases=("verify",),
+        ),
+        ToolMetadataEntry(
             name="drift_explain",
             cost=ToolCostMetadata("low", "none", 300, 500),
             context=ToolContextHint(

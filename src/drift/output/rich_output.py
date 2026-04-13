@@ -546,6 +546,14 @@ def render_summary(
             " at or below target (\u2264 0.30) \u2713[/dim]"
         )
 
+    # Small-repo hint — signal precision improves with more files
+    if 0 < analysis.total_files < 20:
+        console.print(
+            f"  [dim]⚠ Small repo ({analysis.total_files} files) — "
+            "signal precision improves with 20+ files. "
+            "Results are indicative, not definitive.[/dim]"
+        )
+
     console.print()
     _render_first_run_panel(analysis, console=console, language=language)
 

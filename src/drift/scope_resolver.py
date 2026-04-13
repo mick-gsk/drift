@@ -120,6 +120,9 @@ def _collect_symbols(
     result: dict[str, str] = {}
     count = 0
     for py_file in sorted(repo_path.rglob("*.py")):
+        # Skip symlinks to avoid traversal outside repository boundary
+        if py_file.is_symlink():
+            continue
         # Skip noise directories
         parts = py_file.relative_to(repo_path).parts
         if any(p.lower() in _SYMBOL_SCAN_NOISE for p in parts):
@@ -174,12 +177,21 @@ def _extract_paths(task: str) -> list[str]:
 def _validate_paths(candidates: list[str], repo_path: Path) -> list[str]:
     """Keep only candidates that resolve to an existing file or directory."""
     valid: list[str] = []
+    repo_resolved = repo_path.resolve()
     for cand in candidates:
         normalised = PurePosixPath(cand).as_posix().strip("/")
         if not normalised:
             continue
+        # Reject any path containing traversal components
+        if ".." in normalised:
+            continue
         full = repo_path / normalised
         if full.exists():
+            try:
+                if not full.resolve().is_relative_to(repo_resolved):
+                    continue
+            except OSError:
+                continue
             valid.append(normalised)
     return valid
 
@@ -217,7 +229,8 @@ def _collect_directories(repo_path: Path, max_depth: int = 4) -> dict[str, str]:
         except PermissionError:
             return
         for entry in entries:
-            if not entry.is_dir():
+            # Skip symlinks to prevent escaping the repository boundary
+            if entry.is_symlink() or not entry.is_dir():
                 continue
             name_lower = entry.name.lower()
             if name_lower.startswith(".") and name_lower not in {".github"}:
