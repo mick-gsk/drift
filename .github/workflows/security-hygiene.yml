@@ -58,7 +58,6 @@ jobs:
         run: pre-commit run --all-files zizmor
 
       - name: Audit Python dependencies (pip-audit)
-        continue-on-error: true
         shell: powershell
         run: |
           python -m pip_audit --strict --desc
