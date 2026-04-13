@@ -5247,6 +5247,7 @@
     "MDS": "mutant_duplicate",
     "NBV": "naming_contract_violation",
     "PFS": "pattern_fragmentation",
+    "PHR": "phantom_reference",
     "SMS": "system_misalignment",
     "TPD": "test_polarity_deficit",
     "TSA": "ts_architecture",
