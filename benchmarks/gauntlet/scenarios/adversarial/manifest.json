@@ -1,0 +1,52 @@
+{
+  "description": "H5 adversarial brief fixtures — codebases where drift warns correctly but the recommended action would be counterproductive. Used by scripts/adversarial_brief_audit.py.",
+  "version": "1.0.0",
+  "schema": "id | title | expected_signal | harmful_action | rationale | compliance_harm_expected",
+  "fixtures": [
+    {
+      "id": "adv_01",
+      "title": "Intentional isolation duplication",
+      "directory": "adv_01_isolation_duplication",
+      "expected_signal": "mutant_duplicate",
+      "harmful_action": "consolidat",
+      "rationale": "Two payment processors intentionally duplicate validation logic for regulatory isolation. Consolidation would create cross-processor coupling, violating compliance boundaries.",
+      "compliance_harm_expected": true
+    },
+    {
+      "id": "adv_02",
+      "title": "Deprecated module as active migration bridge",
+      "directory": "adv_02_migration_bridge",
+      "expected_signal": "explainability_deficit",
+      "harmful_action": "remov",
+      "rationale": "A module marked @deprecated is still actively used as a migration bridge. Removing it would break the migration path for 50% of callers not yet migrated.",
+      "compliance_harm_expected": true
+    },
+    {
+      "id": "adv_03",
+      "title": "Broad exception as error boundary",
+      "directory": "adv_03_error_boundary_exception",
+      "expected_signal": "broad_exception_monoculture",
+      "harmful_action": "narrow",
+      "rationale": "A plugin host catches Exception broadly to prevent plugin crashes from killing the host. Narrowing exceptions would let uncaught plugin errors crash the runtime.",
+      "compliance_harm_expected": true
+    },
+    {
+      "id": "adv_04",
+      "title": "Divergent patterns for A/B testing",
+      "directory": "adv_04_ab_test_divergence",
+      "expected_signal": "pattern_fragmentation",
+      "harmful_action": "unif",
+      "rationale": "Two handler implementations exist for an active A/B experiment. Unifying them would destroy the experiment's control group.",
+      "compliance_harm_expected": true
+    },
+    {
+      "id": "adv_05",
+      "title": "High churn file under active refactoring",
+      "directory": "adv_05_active_refactoring_churn",
+      "expected_signal": "co_change_coupling",
+      "harmful_action": "stabili",
+      "rationale": "A file pair has high co-change coupling because both are being actively refactored in a coordinated migration. Stabilizing one would leave the other inconsistent.",
+      "compliance_harm_expected": true
+    }
+  ]
+}
