@@ -109,6 +109,22 @@ cross-file structural drift that accumulates silently during AI-assisted develop
 
 ---
 
+## 📅 30-day adoption plan
+
+One page, three milestones — enough to go from first run to measurable improvement.
+
+| Week | Goal | Commands | Done when |
+|---|---|---|---|
+| **1 — Baseline** | See your starting point | `drift setup` → `drift analyze --repo . --format json > baseline.json` | You have a score and a saved baseline file |
+| **2 — Understand** | Triage the top 5 findings | `drift status` · `drift explain <signal>` | Each finding is marked fix, ignore, or defer |
+| **3–4 — Improve** | Fix findings, block regressions | `drift check --fail-on high` (CI or pre-push) · `drift trend` | Score is lower than baseline; CI gate is green |
+
+> **Which profile?** AI-heavy codebase → `drift init -p vibe-coding`. Unsure → `drift init` (default). You can switch later.
+
+📖 [Full 30-day playbook with scripts →](examples/vibe-coding/README.md)
+
+---
+
 ## ⚙️ How it works
 
 **Before a session — generate guardrails:**
@@ -127,6 +143,20 @@ drift analyze --repo . --format json  # full report
 ```
 
 📖 [Full workflow guide →](https://mick-gsk.github.io/drift/getting-started/quickstart/)
+
+### Signals at a glance
+
+Drift findings use short codes. Here are the five you'll see most often:
+
+| Code | Signal | What it catches | Example |
+|---|---|---|---|
+| **PFS** | Pattern Fragmentation | Same pattern reimplemented inconsistently across modules | 3 different `parse_config()` helpers |
+| **MDS** | Mutant Duplicate | Near-duplicate functions that diverged over time | Two `validate_input()` with subtle differences |
+| **AVS** | Architecture Violation | Imports that cross declared layer boundaries | `api/` importing directly from `db/` |
+| **BAT** | Bypass Accumulation | Growing `# noqa`, `type: ignore`, `pragma` bypasses | 40 suppressions added in one sprint |
+| **TPD** | Test Polarity Deficit | Missing negative / error-path test coverage | Only happy-path tests for auth module |
+
+Every finding includes a human-readable `reason` and a concrete `next_action`. Full reference: [all 24 signals →](https://mick-gsk.github.io/drift/algorithms/signals/)
 
 ---
 
@@ -248,6 +278,38 @@ Pick a profile that matches your project — or start with `default` and calibra
 > **Team workflow:** Commit `drift.yaml` to your repo → CI enforces the same thresholds → team inherits calibrated weights.
 
 📖 [Profile gallery with full details →](https://mick-gsk.github.io/drift/guides/configuration-profiles/) · [Configuration reference →](https://mick-gsk.github.io/drift/getting-started/configuration/)
+
+---
+
+## 📈 Measuring improvement — baseline and ratchet
+
+Drift is most useful when you track score **deltas**, not snapshots.
+
+**Day 0 — capture your baseline:**
+
+```bash
+drift analyze --repo . --format json > baseline.json
+# note the composite score, e.g. 12.5
+```
+
+**Ongoing — ratchet the threshold down:**
+
+```yaml
+# drift.yaml — tighten after each successful sprint
+thresholds:
+  fail_on: high          # block high-severity findings
+  max_score: 10.0        # lower this as your score improves
+```
+
+**Weekly — track the trend:**
+
+```bash
+drift trend              # shows score evolution over recent commits
+```
+
+**Example outcome:** *"Score dropped from 12.5 → 8.3 in 4 weeks — 3 PFS and 1 AVS finding resolved, CI gate tightened from 12.0 to 9.0."*
+
+> **Tip:** The GitHub Action exposes `drift-score` as a step output — pipe it to a dashboard or Slack webhook for team visibility.
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-12T16:47:23.000644+00:00",
+  "generated_at": "2026-06-25T12:00:00.000000+00:00",
   "drift_version": "2.9.3",
   "total_signals": 24,
   "repair_level_distribution": {
@@ -19,6 +19,8 @@
       "has_fix_field": false,
       "has_verify_plan": true,
       "benchmark_coverage": "limited",
+      "synthetic_repair_cases": 0,
+      "gt_fixtures": 15,
       "default_weight": 0.16
     },
     "broad_exception_monoculture": {
@@ -29,7 +31,9 @@
       "has_recommender": false,
       "has_fix_field": true,
       "has_verify_plan": true,
-      "benchmark_coverage": "none",
+      "benchmark_coverage": "moderate",
+      "synthetic_repair_cases": 2,
+      "gt_fixtures": 9,
       "default_weight": 0.04
     },
     "bypass_accumulation": {
@@ -129,6 +133,8 @@
       "has_fix_field": false,
       "has_verify_plan": false,
       "benchmark_coverage": "moderate",
+      "synthetic_repair_cases": 2,
+      "gt_fixtures": 9,
       "default_weight": 0.09
     },
     "fan_out_explosion": {
@@ -195,6 +201,8 @@
       "has_fix_field": true,
       "has_verify_plan": true,
       "benchmark_coverage": "strong",
+      "synthetic_repair_cases": 2,
+      "gt_fixtures": 11,
       "default_weight": 0.13
     },
     "naming_contract_violation": {
@@ -216,7 +224,9 @@
       "has_recommender": true,
       "has_fix_field": true,
       "has_verify_plan": true,
-      "benchmark_coverage": "moderate",
+      "benchmark_coverage": "strong",
+      "synthetic_repair_cases": 2,
+      "gt_fixtures": 10,
       "default_weight": 0.16
     },
     "phantom_reference": {

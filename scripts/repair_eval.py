@@ -135,22 +135,32 @@ def _per_signal_scores(findings: list[dict]) -> dict[str, float]:
     return scores
 
 
-def _init_git(d: Path) -> None:
+def _init_git(d: Path, *, multi_commit: bool = True) -> None:
+    """Initialize a git repo with realistic multi-commit history."""
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "test",
+        "GIT_AUTHOR_EMAIL": "t@t.com",
+        "GIT_COMMITTER_NAME": "test",
+        "GIT_COMMITTER_EMAIL": "t@t.com",
+    }
     subprocess.run(["git", "init"], cwd=d, capture_output=True, check=True)
     subprocess.run(["git", "add", "."], cwd=d, capture_output=True, check=True)
     subprocess.run(
-        ["git", "commit", "-m", "initial", "--allow-empty"],
-        cwd=d,
-        capture_output=True,
-        check=True,
-        env={
-            **os.environ,
-            "GIT_AUTHOR_NAME": "test",
-            "GIT_AUTHOR_EMAIL": "t@t.com",
-            "GIT_COMMITTER_NAME": "test",
-            "GIT_COMMITTER_EMAIL": "t@t.com",
-        },
+        ["git", "commit", "-m", "initial"],
+        cwd=d, capture_output=True, check=True, env=env,
     )
+    if not multi_commit:
+        return
+    # Add a few more commits so temporal / co-change signals have context
+    readme = d / "README.md"
+    for i in range(3):
+        readme.write_text(f"# Project\n\nVersion {i}\n", encoding="utf-8")
+        subprocess.run(["git", "add", "."], cwd=d, capture_output=True, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", f"docs: update readme v{i}"],
+            cwd=d, capture_output=True, check=True, env=env,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -159,12 +169,13 @@ def _init_git(d: Path) -> None:
 
 
 def _create_mds_repo(tmp: Path) -> tuple[RepairCase, RepairCase]:
-    """Create a repo with mutant duplicate, and correct + incorrect repair."""
+    """Create a realistic repo with mutant duplicate for repair evaluation."""
     src = tmp / "src"
     src.mkdir(parents=True)
+    tests_dir = tmp / "tests"
+    tests_dir.mkdir(parents=True)
 
-    # Create duplicate functions in two files
-    func_body = '''def process_order(order_id: int, items: list) -> dict:
+    shared_body = '''def process_order(order_id: int, items: list) -> dict:
     """Process an order and return its summary."""
     total = sum(item["price"] * item["quantity"] for item in items)
     tax = total * 0.08
@@ -177,9 +188,44 @@ def _create_mds_repo(tmp: Path) -> tuple[RepairCase, RepairCase]:
         "total": total + tax - discount,
     }
 '''
-    (src / "service_a.py").write_text(func_body, encoding="utf-8")
-    (src / "service_b.py").write_text(func_body, encoding="utf-8")
+    # Duplicate function in two service files
+    (src / "service_a.py").write_text(
+        f'"""Service A — order processing."""\n\n{shared_body}\n\n'
+        'def get_service_name():\n    return "service_a"\n',
+        encoding="utf-8",
+    )
+    (src / "service_b.py").write_text(
+        f'"""Service B — fulfillment processing."""\n\n{shared_body}\n\n'
+        'def get_service_name():\n    return "service_b"\n',
+        encoding="utf-8",
+    )
     (src / "__init__.py").write_text("", encoding="utf-8")
+
+    # Add supporting files so drift has context
+    (src / "config.py").write_text(
+        '"""Application configuration."""\n\nDEBUG = False\nTAX_RATE = 0.08\n',
+        encoding="utf-8",
+    )
+    (src / "models.py").write_text(
+        '"""Data models."""\n\nclass Order:\n    def __init__(self, id, items):\n'
+        '        self.id = id\n        self.items = items\n',
+        encoding="utf-8",
+    )
+    (src / "utils.py").write_text(
+        '"""Shared utilities."""\n\ndef format_currency(value):\n'
+        '    return f"${value:.2f}"\n',
+        encoding="utf-8",
+    )
+    (tests_dir / "__init__.py").write_text("", encoding="utf-8")
+    (tests_dir / "test_service_a.py").write_text(
+        'from src.service_a import process_order\n\n'
+        'def test_basic():\n    result = process_order(1, [{"price": 10, "quantity": 2}])\n'
+        '    assert result["total"] > 0\n',
+        encoding="utf-8",
+    )
+    (tmp / "README.md").write_text(
+        "# Order Service\n\nA multi-module order service.\n", encoding="utf-8"
+    )
 
     correct = RepairCase(
         id="mds_correct_01",
@@ -234,23 +280,44 @@ def _apply_mds_incorrect(repo_dir: Path) -> None:
 
 
 def _create_pfs_repo(tmp: Path) -> tuple[RepairCase, RepairCase]:
-    """Create repo with pattern fragmentation."""
+    """Create a realistic repo with pattern fragmentation for repair evaluation."""
     src = tmp / "src" / "handlers"
     src.mkdir(parents=True)
-
     (tmp / "src" / "__init__.py").write_text("", encoding="utf-8")
     (src / "__init__.py").write_text("", encoding="utf-8")
 
-    for i, style in enumerate(["dict", "tuple", "exception", "none"], 1):
-        code = f'''def handle_error_{style}(error):
-    """Handle error using {style} pattern."""
-    if isinstance(error, ValueError):
-        return {{"error": str(error)}} if "{style}" == "dict" else None
-    if isinstance(error, TypeError):
-        return ("{style}", str(error)) if "{style}" == "tuple" else None
-    raise RuntimeError(str(error)) if "{style}" == "exception" else None
-'''
-        (src / f"handler_{style}.py").write_text(code, encoding="utf-8")
+    # Pattern fragmentation: 4 different error handling styles
+    for style, body in [
+        ("dict", 'def handle_error_dict(error):\n'
+         '    """Handle error with dict pattern."""\n'
+         '    if isinstance(error, ValueError):\n'
+         '        return {"error": str(error), "code": 400}\n'
+         '    return {"error": "unknown", "code": 500}\n'),
+        ("tuple", 'def handle_error_tuple(error):\n'
+         '    """Handle error with tuple pattern."""\n'
+         '    if isinstance(error, ValueError):\n'
+         '        return ("error", str(error))\n'
+         '    return ("error", "unknown")\n'),
+        ("exception", 'def handle_error_exception(error):\n'
+         '    """Handle error with exception pattern."""\n'
+         '    if isinstance(error, ValueError):\n'
+         '        raise RuntimeError(str(error)) from error\n'
+         '    raise RuntimeError("unknown")\n'),
+        ("none", 'import logging\nlogger = logging.getLogger(__name__)\n\n'
+         'def handle_error_none(error):\n'
+         '    """Handle error with logging-only pattern."""\n'
+         '    logger.error("Error: %s", error)\n'
+         '    return None\n'),
+    ]:
+        (src / f"handler_{style}.py").write_text(body, encoding="utf-8")
+
+    # Supporting files
+    (tmp / "src" / "config.py").write_text(
+        '"""Application config."""\nLOG_LEVEL = "INFO"\n', encoding="utf-8"
+    )
+    (tmp / "README.md").write_text(
+        "# Error handlers\n\nMultiple error handling approaches.\n", encoding="utf-8"
+    )
 
     correct = RepairCase(
         id="pfs_correct_01",
@@ -300,12 +367,226 @@ def _apply_pfs_incorrect(repo_dir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# EDS (Explainability Deficit) synthetic repo
+# ---------------------------------------------------------------------------
+
+
+def _create_eds_repo(tmp: Path) -> tuple[RepairCase, RepairCase]:
+    """Create a repo with unexplained complex functions → should fire EDS."""
+    src = tmp / "src"
+    src.mkdir(parents=True)
+    (src / "__init__.py").write_text("", encoding="utf-8")
+
+    # Complex function without docstring or tests
+    (src / "processor.py").write_text(
+        'def transform_dataset(records, config, db, cache):\n'
+        '    results = []\n'
+        '    for record in records:\n'
+        '        if record.get("type") == "A":\n'
+        '            for field in record.get("fields", []):\n'
+        '                if field.get("value") is not None:\n'
+        '                    if config.get("normalize"):\n'
+        '                        val = field["value"]\n'
+        '                        if isinstance(val, str):\n'
+        '                            val = val.strip().lower()\n'
+        '                        elif isinstance(val, (int, float)):\n'
+        '                            val = val / config.get("scale", 1)\n'
+        '                        else:\n'
+        '                            val = str(val)\n'
+        '                        field["value"] = val\n'
+        '                    results.append(field)\n'
+        '        elif record.get("type") == "B":\n'
+        '            merged = {}\n'
+        '            for k, v in record.items():\n'
+        '                if k != "type":\n'
+        '                    merged[k] = v\n'
+        '            results.append(merged)\n'
+        '    return results\n',
+        encoding="utf-8",
+    )
+
+    # Another complex undocumented function
+    (src / "analytics.py").write_text(
+        'def aggregate_metrics(data, window, filters, thresholds):\n'
+        '    buckets = {}\n'
+        '    for entry in data:\n'
+        '        key = entry.get("category", "other")\n'
+        '        if key not in buckets:\n'
+        '            buckets[key] = []\n'
+        '        for metric in entry.get("metrics", []):\n'
+        '            if metric.get("name") in filters:\n'
+        '                if metric.get("value", 0) > thresholds.get(metric["name"], 0):\n'
+        '                    buckets[key].append(metric)\n'
+        '    aggregated = {}\n'
+        '    for key, items in buckets.items():\n'
+        '        if items:\n'
+        '            total = sum(m.get("value", 0) for m in items)\n'
+        '            aggregated[key] = total / len(items)\n'
+        '    return aggregated\n',
+        encoding="utf-8",
+    )
+
+    # Simple clean file for contrast
+    (src / "utils.py").write_text(
+        '"""Shared utility functions."""\n\n'
+        'def format_name(first: str, last: str) -> str:\n'
+        '    """Format a full name."""\n'
+        '    return f"{first} {last}"\n',
+        encoding="utf-8",
+    )
+    (tmp / "README.md").write_text(
+        "# Data Pipeline\n\nData transformation and analytics.\n", encoding="utf-8"
+    )
+
+    correct = RepairCase(
+        id="eds_correct_01",
+        repo="synthetic_eds",
+        signal="explainability_deficit",
+        description="Add docstrings and type hints to complex functions",
+        correct=True,
+    )
+    incorrect = RepairCase(
+        id="eds_incorrect_01",
+        repo="synthetic_eds",
+        signal="explainability_deficit",
+        description="Add comment at top of file (no docstring on function)",
+        correct=False,
+    )
+    return correct, incorrect
+
+
+def _apply_eds_correct(repo_dir: Path) -> None:
+    """Add proper docstrings to complex functions."""
+    src = repo_dir / "src"
+    content = (src / "processor.py").read_text(encoding="utf-8")
+    content = content.replace(
+        "def transform_dataset(records, config, db, cache):\n",
+        'def transform_dataset(records, config, db, cache):\n'
+        '    """Transform dataset records applying normalization and merging.\n\n'
+        '    Args:\n'
+        '        records: Input records with type A or B.\n'
+        '        config: Normalization config with "normalize" and "scale" keys.\n'
+        '        db: Database connection (unused, for future extension).\n'
+        '        cache: Cache layer (unused, for future extension).\n\n'
+        '    Returns:\n'
+        '        List of processed field dicts.\n'
+        '    """\n',
+    )
+    (src / "processor.py").write_text(content, encoding="utf-8")
+
+    content2 = (src / "analytics.py").read_text(encoding="utf-8")
+    content2 = content2.replace(
+        "def aggregate_metrics(data, window, filters, thresholds):\n",
+        'def aggregate_metrics(data, window, filters, thresholds):\n'
+        '    """Aggregate metrics by category within the given window.\n\n'
+        '    Args:\n'
+        '        data: List of entries with category and metrics.\n'
+        '        window: Time window for aggregation.\n'
+        '        filters: Set of metric names to include.\n'
+        '        thresholds: Min value thresholds per metric name.\n\n'
+        '    Returns:\n'
+        '        Dict mapping category to average metric value.\n'
+        '    """\n',
+    )
+    (src / "analytics.py").write_text(content2, encoding="utf-8")
+
+
+def _apply_eds_incorrect(repo_dir: Path) -> None:
+    """Add only a file-level comment (doesn't fix the signal)."""
+    src = repo_dir / "src"
+    for fname in ("processor.py", "analytics.py"):
+        content = (src / fname).read_text(encoding="utf-8")
+        if not content.startswith("# "):
+            (src / fname).write_text(f"# Refactored module\n{content}", encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# BEM (Broad Exception Monoculture) synthetic repo
+# ---------------------------------------------------------------------------
+
+
+def _create_bem_repo(tmp: Path) -> tuple[RepairCase, RepairCase]:
+    """Create a repo with broad exception monoculture → should fire BEM."""
+    src = tmp / "src" / "connectors"
+    src.mkdir(parents=True)
+    (tmp / "src" / "__init__.py").write_text("", encoding="utf-8")
+    (src / "__init__.py").write_text("", encoding="utf-8")
+
+    # Multiple handlers all catching bare Exception
+    for name in ("db", "cache", "api", "queue", "storage"):
+        (src / f"{name}_connector.py").write_text(
+            f'import logging\nlogger = logging.getLogger(__name__)\n\n'
+            f'def connect_{name}(config):\n'
+            f'    """Connect to {name} service."""\n'
+            f'    try:\n'
+            f'        host = config["{name}_host"]\n'
+            f'        port = config.get("{name}_port", 5432)\n'
+            f'        return {{"host": host, "port": port, "connected": True}}\n'
+            f'    except Exception as e:\n'
+            f'        logger.error("Failed to connect to {name}: %s", e)\n'
+            f'        return None\n',
+            encoding="utf-8",
+        )
+
+    (tmp / "src" / "app.py").write_text(
+        '"""Application entry point."""\n\nfrom src.connectors import db_connector\n\n'
+        'def main():\n    return db_connector.connect_db({"db_host": "localhost"})\n',
+        encoding="utf-8",
+    )
+    (tmp / "README.md").write_text(
+        "# Connector Service\n\nService connector layer.\n", encoding="utf-8"
+    )
+
+    correct = RepairCase(
+        id="bem_correct_01",
+        repo="synthetic_bem",
+        signal="broad_exception_monoculture",
+        description="Replace bare Exception with specific exception types",
+        correct=True,
+    )
+    incorrect = RepairCase(
+        id="bem_incorrect_01",
+        repo="synthetic_bem",
+        signal="broad_exception_monoculture",
+        description="Add pass instead of logger (still bare Exception)",
+        correct=False,
+    )
+    return correct, incorrect
+
+
+def _apply_bem_correct(repo_dir: Path) -> None:
+    """Replace bare Exception catches with specific exception types."""
+    src = repo_dir / "src" / "connectors"
+    for f in src.glob("*_connector.py"):
+        content = f.read_text(encoding="utf-8")
+        content = content.replace(
+            "except Exception as e:",
+            "except (KeyError, ConnectionError, TimeoutError) as e:",
+        )
+        f.write_text(content, encoding="utf-8")
+
+
+def _apply_bem_incorrect(repo_dir: Path) -> None:
+    """Replace logger with pass (still catches bare Exception)."""
+    src = repo_dir / "src" / "connectors"
+    for f in src.glob("*_connector.py"):
+        content = f.read_text(encoding="utf-8")
+        content = content.replace(
+            '        logger.error("Failed to connect',
+            '        pass  # TODO: handle error\n        # logger.error("Failed to connect',
+        )
+        f.write_text(content, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # Evaluation engine
 # ---------------------------------------------------------------------------
 
 SYNTHETIC_CASES = [
     ("mds", _create_mds_repo, _apply_mds_correct, _apply_mds_incorrect),
     ("pfs", _create_pfs_repo, _apply_pfs_correct, _apply_pfs_incorrect),
+    ("eds", _create_eds_repo, _apply_eds_correct, _apply_eds_incorrect),
+    ("bem", _create_bem_repo, _apply_bem_correct, _apply_bem_incorrect),
 ]
 
 

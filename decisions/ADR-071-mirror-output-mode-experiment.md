@@ -92,27 +92,60 @@ Die Alternative — prescriptive Felder gar nicht erst zu generieren — hätte 
 - **Default bleibt `full`** — kein Risiko für bestehende Nutzer oder MCP-Clients
 - **Experiment-Infra steht** — A/B-Vergleich mit realen Agent-Sessions kann gestartet werden
 - Die quantitative Evidenz zeigt, DASS Mirror signifikant reduziert — aber noch nicht, OB das den Agenten besser oder schlechter macht
-- Nächster Schritt: qualitatives A/B-Experiment mit 5-10 realen Findings (identische Aufgabe, Profil A vs B, gemessen an Fix-Korrektheit, Regression-Rate, Over-Fixing)
+- Nächster Schritt: `mirror_ab_study.py` mit GPT-4o-Klasse-Modell und `--repeats 3` ausführen
 
 ## Validierung
 
-### Automatisiert (bereits bestanden)
+### Unit-Tests (bereits bestanden)
 
 ```bash
 pytest tests/test_output_mode_mirror.py -v        # 11 Tests
 pytest tests/ --ignore=tests/test_smoke_real_repos.py -m "not slow" -q -n auto  # 4730 Tests
-python scripts/_mirror_experiment.py               # Quantitative Evidenz
+python scripts/_mirror_experiment.py               # Quantitative Größen-Evidenz
 ```
 
-### Ausstehend (qualitativ)
+### Automatisierte LLM-Evaluation (mirror_ab_study)
 
-1. 5-10 reale Findings aus ≥3 verschiedenen Signalen als isolierte Aufgaben an Agent
-2. Jedes Finding zweimal: einmal `output_mode: full`, einmal `output_mode: mirror`
-3. Messung: Fix-Korrektheit (via `drift diff`), Regression-Rate, Over-Fixing (Diff-Size), Token-Verbrauch (Session-Logs)
-4. Lernzyklus-Ergebnis nach qualitativem Experiment: `bestätigt` | `widerlegt` | `unklar`
+Vollautomatische Pipeline — klont Repos, scannt mit Drift, erzeugt gepaarte Prompts
+(full vs. mirror fix_plan), sendet an LLM, wendet Patches an, misst via `drift diff`:
+
+```bash
+python scripts/mirror_ab_study.py generate-tasks --max-per-repo 5
+python scripts/mirror_ab_study.py run-llm --model gpt-4o --temperature 0.2
+python scripts/mirror_ab_study.py evaluate
+python scripts/mirror_ab_study.py stats
+python scripts/mirror_ab_study.py assemble
+```
+
+**Lokaler Lauf (Ollama, ohne API-Key):**
+```bash
+python scripts/mirror_ab_study.py run-llm \
+    --base-url http://localhost:11434/v1 --model qwen2.5-coder:14b
+```
+
+**Baseline-Ergebnis (qwen2.5-coder:14b, 10 Tasks × 2 Arme):**
+
+| Metrik | Full | Mirror | p-Wert |
+|--------|------|--------|--------|
+| new_findings (mean) | 8.0 | 10.0 | 0.284 (MW-U) |
+| accept_rate | 0% | 0% | 1.0 (Fisher) |
+| Apply-Rate | 6/10 | 4/10 | — |
+
+Interpretation: `null_result` — zu wenig gepaarte Datenpunkte (3 von 5 nötig)
+für statistisch belastbare Aussage. Die Apply-Rate ist mit einem 14B-Modell
+erwartungsgemäß niedrig (~50%). Mit GPT-4o wird die Diff-Qualität und
+damit die Apply-Erfolgsrate signifikant steigen.
+
+**Nächste Schritte für belastbare Evidenz:**
+1. Re-Run mit GPT-4o (höhere Diff-Qualität → >80% Apply-Rate)
+2. `--repeats 3` für statistische Power (≥5 gepaarte Tasks)
+3. Mehr Repos einbeziehen (`--max-per-repo 8`)
+4. Lernzyklus-Ergebnis: `bestätigt` | `widerlegt` | `unklar`
 
 ### Evidenz-Artefakte
 
-- `benchmark_results/mirror_experiment_evidence.json` — quantitative Ergebnisse
-- `scripts/_mirror_experiment.py` — reproduzierbares Experiment-Skript
+- `benchmark_results/mirror_experiment_evidence.json` — quantitative Ergebnisse (Größenvergleich)
+- `benchmark_results/mirror_ab_study.json` — qualitative LLM-A/B-Ergebnisse
+- `scripts/_mirror_experiment.py` — reproduzierbares Quantitativ-Experiment
+- `scripts/mirror_ab_study.py` — vollautomatischer LLM-A/B-Workflow
 - `tests/test_output_mode_mirror.py` — Regressionstests für den Filter

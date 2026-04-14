@@ -2401,8 +2401,7 @@ NBV_STUB_TN = GroundTruthFixture(
 NBV_TS_ASYNC_BOOL_TN = GroundTruthFixture(
     name="nbv_ts_async_bool_tn",
     description=(
-        "TypeScript is_*/has_* with PromiseLike/Observable<boolean> wrappers "
-        "should NOT fire NBV"
+        "TypeScript is_*/has_* with PromiseLike/Observable<boolean> wrappers should NOT fire NBV"
     ),
     files={
         "src/checks.ts": """\
@@ -2432,8 +2431,7 @@ NBV_TS_ASYNC_BOOL_TN = GroundTruthFixture(
 NBV_TS_ENSURE_UPSERT_TN = GroundTruthFixture(
     name="nbv_ts_ensure_upsert_tn",
     description=(
-        "TypeScript ensure_* upsert/get-or-create pattern with return value "
-        "should NOT fire NBV"
+        "TypeScript ensure_* upsert/get-or-create pattern with return value should NOT fire NBV"
     ),
     files={
         "src/config.ts": """\
@@ -6704,7 +6702,7 @@ GCD_TS_TRUE_POSITIVE = GroundTruthFixture(
             "    for (const col of columns) {\n"
             "      const val = row[col] ?? '';\n"
             "      if (fmt === 'quoted') {\n"
-            "        cells.push(`\"${val}\"`);\n"
+            '        cells.push(`"${val}"`);\n'
             "      } else if (fmt === 'raw') {\n"
             "        cells.push(String(val));\n"
             "      } else {\n"
@@ -6807,12 +6805,7 @@ TSA_CLEAN_TN = GroundTruthFixture(
     name="tsa_clean_tn",
     description="TS files with acyclic imports → should NOT fire TSA",
     files={
-        "src/types.ts": (
-            "export interface Config {\n"
-            "  host: string;\n"
-            "  port: number;\n"
-            "}\n"
-        ),
+        "src/types.ts": ("export interface Config {\n  host: string;\n  port: number;\n}\n"),
         "src/utils.ts": (
             "import { Config } from './types';\n"
             "\n"
@@ -6879,9 +6872,7 @@ BEM_TS_TRUE_POSITIVE = GroundTruthFixture(
             "}\n"
         ),
         "connectors/logger.ts": (
-            "export const logger = {\n"
-            "  error: (msg: string) => console.error(msg),\n"
-            "};\n"
+            "export const logger = {\n  error: (msg: string) => console.error(msg),\n};\n"
         ),
     },
     expected=[
@@ -7453,6 +7444,331 @@ MAZ_TS_EXPRESS_AUTH_TN = GroundTruthFixture(
 )
 
 
+# ── Circular Import (CIR) ───────────────────────────────────────────────
+
+CIR_TRUE_POSITIVE = GroundTruthFixture(
+    name="cir_tp",
+    description="Two modules with mutual imports → should fire CIR",
+    kind=FixtureKind.POSITIVE,
+    files={
+        "pkg/__init__.py": "",
+        "pkg/module_a.py": textwrap.dedent("""\
+            from pkg.module_b import helper_b
+
+            def compute_a(x):
+                return helper_b(x) + 1
+        """),
+        "pkg/module_b.py": textwrap.dedent("""\
+            from pkg.module_a import compute_a
+
+            def helper_b(x):
+                return compute_a(x) * 2
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.CIRCULAR_IMPORT,
+            file_path="pkg/module_a.py",
+            should_detect=True,
+            description="pkg.module_a → pkg.module_b → pkg.module_a cycle",
+        ),
+    ],
+)
+
+CIR_TRUE_NEGATIVE = GroundTruthFixture(
+    name="cir_tn",
+    description="Linear import chain with no cycles → should NOT fire CIR",
+    kind=FixtureKind.NEGATIVE,
+    files={
+        "lib/__init__.py": "",
+        "lib/base.py": textwrap.dedent("""\
+            def base_func(x):
+                return x * 2
+        """),
+        "lib/utils.py": textwrap.dedent("""\
+            from lib.base import base_func
+
+            def util_func(x):
+                return base_func(x) + 10
+        """),
+        "lib/app.py": textwrap.dedent("""\
+            from lib.utils import util_func
+
+            def run():
+                return util_func(5)
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.CIRCULAR_IMPORT,
+            file_path="lib/utils.py",
+            should_detect=False,
+            description="Clean A → B → C chain, no cycle",
+        ),
+    ],
+)
+
+CIR_TRIANGLE_TP = GroundTruthFixture(
+    name="cir_triangle_tp",
+    description="Three-module circular chain A → B → C → A → should fire CIR",
+    kind=FixtureKind.POSITIVE,
+    files={
+        "core/__init__.py": "",
+        "core/auth.py": textwrap.dedent("""\
+            from core.permissions import check_access
+
+            def authenticate(user):
+                return check_access(user, "login")
+        """),
+        "core/permissions.py": textwrap.dedent("""\
+            from core.roles import get_role
+
+            def check_access(user, action):
+                role = get_role(user)
+                return action in role.permissions
+        """),
+        "core/roles.py": textwrap.dedent("""\
+            from core.auth import authenticate
+
+            def get_role(user):
+                if not authenticate(user):
+                    return None
+                return user.role
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.CIRCULAR_IMPORT,
+            file_path="core/auth.py",
+            should_detect=True,
+            description="3-module cycle: auth → permissions → roles → auth",
+        ),
+    ],
+)
+
+CIR_CONFOUNDER_TN = GroundTruthFixture(
+    name="cir_confounder_tn",
+    description="Imports from external packages only (no local cycles) → should NOT fire CIR",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "app/__init__.py": "",
+        "app/server.py": textwrap.dedent("""\
+            import os
+            import json
+            from pathlib import Path
+
+            def start():
+                config = json.loads(Path("config.json").read_text())
+                return config
+        """),
+        "app/client.py": textwrap.dedent("""\
+            import os
+            import json
+            from pathlib import Path
+
+            def connect():
+                return json.dumps({"host": os.getenv("HOST", "localhost")})
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.CIRCULAR_IMPORT,
+            file_path="app/server.py",
+            should_detect=False,
+            description="Only stdlib imports, no local circular dependency",
+        ),
+    ],
+)
+
+
+# ── Dead Code Accumulation (DCA) ────────────────────────────────────────
+
+DCA_TRUE_POSITIVE = GroundTruthFixture(
+    name="dca_tp",
+    description="Module with multiple exported functions never imported → should fire DCA",
+    kind=FixtureKind.POSITIVE,
+    files={
+        "services/__init__.py": "",
+        "services/legacy.py": textwrap.dedent("""\
+            def old_parser(data):
+                tokens = data.split(",")
+                return [t.strip() for t in tokens]
+
+            def deprecated_transform(records):
+                return [r.upper() for r in records]
+
+            def unused_formatter(value):
+                return f"<{value}>"
+
+            def stale_validator(item):
+                return len(item) > 0
+        """),
+        "services/active.py": textwrap.dedent("""\
+            def current_parser(data):
+                return data.split(";")
+        """),
+        "main.py": textwrap.dedent("""\
+            from services.active import current_parser
+
+            def run():
+                return current_parser("a;b;c")
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.DEAD_CODE_ACCUMULATION,
+            file_path="services/legacy.py",
+            should_detect=True,
+            description="4 exported functions, none imported anywhere",
+        ),
+    ],
+)
+
+DCA_TRUE_NEGATIVE = GroundTruthFixture(
+    name="dca_tn",
+    description="All exported functions are imported and used → should NOT fire DCA",
+    kind=FixtureKind.NEGATIVE,
+    files={
+        "utils/__init__.py": "",
+        "utils/helpers.py": textwrap.dedent("""\
+            def format_name(first, last):
+                return f"{first} {last}"
+
+            def parse_date(text):
+                parts = text.split("-")
+                return tuple(int(p) for p in parts)
+        """),
+        "app.py": textwrap.dedent("""\
+            from utils.helpers import format_name, parse_date
+
+            def main():
+                name = format_name("John", "Doe")
+                date = parse_date("2026-04-13")
+                return name, date
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.DEAD_CODE_ACCUMULATION,
+            file_path="utils/helpers.py",
+            should_detect=False,
+            description="Both exports are imported in app.py",
+        ),
+    ],
+)
+
+DCA_BOUNDARY_TP = GroundTruthFixture(
+    name="dca_boundary_tp",
+    description="Exactly 2 dead exports (minimum threshold) → should fire DCA at boundary",
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "lib/__init__.py": "",
+        "lib/compat.py": textwrap.dedent("""\
+            def old_encode(data):
+                return data.encode("ascii", errors="replace")
+
+            def old_decode(data):
+                return data.decode("ascii", errors="replace")
+
+            def current_encode(data):
+                return data.encode("utf-8")
+        """),
+        "lib/main.py": textwrap.dedent("""\
+            from lib.compat import current_encode
+
+            def process(text):
+                return current_encode(text)
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.DEAD_CODE_ACCUMULATION,
+            file_path="lib/compat.py",
+            should_detect=True,
+            description="2 dead exports (old_encode, old_decode) at min threshold",
+        ),
+    ],
+)
+
+DCA_CONFOUNDER_TN = GroundTruthFixture(
+    name="dca_confounder_tn",
+    description="Schema classes (BaseModel) look dead but are framework-consumed → should NOT fire",
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "models/__init__.py": "",
+        "models/schemas.py": textwrap.dedent("""\
+            from pydantic import BaseModel
+
+            class UserSchema(BaseModel):
+                name: str
+                email: str
+
+            class OrderSchema(BaseModel):
+                item: str
+                quantity: int
+        """),
+        "app.py": textwrap.dedent("""\
+            from models.schemas import UserSchema
+
+            def create_user(data):
+                return UserSchema(**data)
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.DEAD_CODE_ACCUMULATION,
+            file_path="models/schemas.py",
+            should_detect=False,
+            description="Schema classes are suppressed by DCA heuristics",
+        ),
+    ],
+)
+
+
+# ── AVS transitive layer violation (mutation gap avs_002) ───────────────
+
+AVS_TRANSITIVE_TP = GroundTruthFixture(
+    name="avs_transitive_tp",
+    description=(
+        "Repositories layer imports from controllers layer (upward violation) → should fire AVS"
+    ),
+    kind=FixtureKind.BOUNDARY,
+    files={
+        "controllers/__init__.py": "",
+        "controllers/user_controller.py": textwrap.dedent("""\
+            def create_user(name, email):
+                return {"name": name, "email": email}
+        """),
+        "services/__init__.py": "",
+        "services/user_service.py": textwrap.dedent("""\
+            from repositories.user_repo import save_user
+
+            def register_user(name, email):
+                return save_user(name, email)
+        """),
+        "repositories/__init__.py": "",
+        "repositories/user_repo.py": textwrap.dedent("""\
+            from controllers.user_controller import create_user
+
+            def save_user(name, email):
+                user = create_user(name, email)
+                return user
+        """),
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.ARCHITECTURE_VIOLATION,
+            file_path="repositories/user_repo.py",
+            should_detect=True,
+            description=(
+                "Repositories layer (layer 2) imports from controllers layer "
+                "(layer 0) — upward violation"
+            ),
+        ),
+    ],
+)
+
+
 # Append NBV + BAT + PHR fixtures to ALL_FIXTURES
 ALL_FIXTURES.extend(
     [
@@ -7619,6 +7935,18 @@ ALL_FIXTURES.extend(
         ISD_TS_SECURE_TN,
         MAZ_TS_EXPRESS_NO_AUTH_TP,
         MAZ_TS_EXPRESS_AUTH_TN,
+        # ── Circular Import (CIR) — new signal coverage ──
+        CIR_TRUE_POSITIVE,
+        CIR_TRUE_NEGATIVE,
+        CIR_TRIANGLE_TP,
+        CIR_CONFOUNDER_TN,
+        # ── Dead Code Accumulation (DCA) — new signal coverage ──
+        DCA_TRUE_POSITIVE,
+        DCA_TRUE_NEGATIVE,
+        DCA_BOUNDARY_TP,
+        DCA_CONFOUNDER_TN,
+        # ── AVS transitive layer violation (mutation gap avs_002) ──
+        AVS_TRANSITIVE_TP,
     ]
 )
 

@@ -10,14 +10,20 @@ Usage:
     python scripts/brief_ab_study.py stats
     python scripts/brief_ab_study.py assemble
 
+    # With local Ollama (no API key needed):
+    ollama serve                          # start Ollama in separate terminal
+    ollama pull qwen2.5-coder:7b          # pull a coding model
+    python scripts/brief_ab_study.py run-llm --base-url http://localhost:11434/v1 \
+        --model qwen2.5-coder:7b --temperature 0.2 --repeats 3
+
     # Dry-run without LLM calls or git clones:
     python scripts/brief_ab_study.py generate-prompts --dry-run
     python scripts/brief_ab_study.py evaluate --dry-run
 
 Environment variables:
-    OPENAI_API_KEY        Required for run-llm subcommand
+    OPENAI_API_KEY        Required for run-llm (unless --base-url is set)
     DRIFT_STUDY_MODEL     Override model (default: gpt-4o)
-    DRIFT_STUDY_BASE_URL  Optional OpenAI-compatible base URL (e.g. for Azure)
+    DRIFT_STUDY_BASE_URL  Optional OpenAI-compatible base URL (e.g. for Ollama, Azure)
 """
 
 from __future__ import annotations
@@ -49,6 +55,7 @@ OUTCOMES_FILE = WORK_DIR / "outcomes.json"
 ARTIFACT_FILE = REPO_ROOT / "benchmark_results" / "drift_brief_ab_study.json"
 
 MAX_CONTEXT_CHARS = 16_000  # ~4000 tokens at 4 chars/token
+MAX_CONTEXT_CHARS_TREATMENT = 10_000  # Smaller context for treatment to leave room for brief JSON
 
 # ---------------------------------------------------------------------------
 # Error-cost model (ADR-067 extension: severity-weighted cost function)
@@ -147,6 +154,182 @@ def _patch_line_count(diff_text: str) -> int:
     return count
 
 
+# Patterns matching hallucinated placeholder context lines in LLM-generated diffs.
+_PLACEHOLDER_PATTERNS = re.compile(
+    r"^[ ]("
+    r"\.\.\.$"
+    r"|# ?\.\.\."
+    r"|# existing .*"
+    r"|# rest of .*"
+    r"|# \.\.\. ?\(.*\)"
+    r"|pass\s*# placeholder"
+    r"|# omitted"
+    r"|# \(truncated\)"
+    r"|# \(unchanged\)"
+    r")"
+)
+
+
+def _is_placeholder_context(line: str) -> bool:
+    """Return True if *line* is a hallucinated placeholder that never appears in real source."""
+    return bool(_PLACEHOLDER_PATTERNS.match(line))
+
+
+def _recount_hunks(diff_text: str) -> str:
+    """Recompute @@ line-count headers from actual hunk content.
+
+    LLMs frequently emit wrong counts because they don't track additions/removals.
+    ``git apply`` is strict about this, so we recount.
+    """
+    out_lines: list[str] = []
+    hunk_start_idx: int | None = None
+    old_start = new_start = 0
+
+    def _flush_hunk() -> None:
+        nonlocal hunk_start_idx
+        if hunk_start_idx is None:
+            return
+        # Count actual context/add/del lines between hunk_start_idx+1 and current pos
+        old_count = new_count = 0
+        for hl in out_lines[hunk_start_idx + 1 :]:
+            if hl.startswith("+"):
+                new_count += 1
+            elif hl.startswith("-"):
+                old_count += 1
+            elif hl.startswith(" ") or hl == "":
+                old_count += 1
+                new_count += 1
+            # Skip \ No newline at end of file
+        # Rewrite the @@ header
+        out_lines[hunk_start_idx] = f"@@ -{old_start},{old_count} +{new_start},{new_count} @@"
+        hunk_start_idx = None
+
+    for line in diff_text.splitlines():
+        m = re.match(r"^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@", line)
+        if m:
+            _flush_hunk()
+            old_start = int(m.group(1))
+            new_start = int(m.group(2))
+            hunk_start_idx = len(out_lines)
+            out_lines.append(line)  # placeholder — will be rewritten by _flush_hunk
+            continue
+        out_lines.append(line)
+    _flush_hunk()
+    return "\n".join(out_lines) + "\n"
+
+
+def _normalize_diff(diff_text: str, repo_path: Path) -> str:
+    """Normalize LLM-generated diffs for ``git apply`` compatibility.
+
+    Fixes common issues:
+    - CRLF → LF
+    - Missing trailing newline
+    - Hallucinated ``index xxxx..yyyy`` lines (removed)
+    - ``new file mode`` for files that already exist in the repo
+    - Strips preamble / postamble text outside diff blocks
+    - Removes placeholder context lines (``...``, ``# existing ...``)
+    - Recounts @@ hunk line numbers
+    - Converts ``# FILE: path`` markers to proper ``diff --git`` headers
+    """
+    # 1. Normalize line endings
+    text = diff_text.replace("\r\n", "\n").replace("\r", "\n")
+
+    # 2. Ensure trailing newline
+    if not text.endswith("\n"):
+        text += "\n"
+
+    lines = text.split("\n")
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+
+        # Skip lines before the first diff header
+        if not out and not line.startswith("diff "):
+            i += 1
+            continue
+
+        # Remove hallucinated index lines
+        if re.match(r"^index [0-9a-f]+\.\.[0-9a-f]+ ", line):
+            i += 1
+            continue
+        if re.match(r"^index [0-9a-f]+\.\.[0-9a-f]+$", line):
+            i += 1
+            continue
+
+        # Fix "new file mode" for existing files
+        if line.startswith("new file mode"):
+            if out and out[-1].startswith("diff --git"):
+                parts = out[-1].split()
+                if len(parts) >= 4:
+                    fpath = parts[3].lstrip("b/")
+                    if (repo_path / fpath).exists():
+                        i += 1
+                        continue
+            out.append(line)
+            i += 1
+            continue
+
+        # Fix --- /dev/null for files that exist (after new file mode removal)
+        if line == "--- /dev/null" and out:
+            for prev in reversed(out):
+                if prev.startswith("diff --git"):
+                    parts = prev.split()
+                    if len(parts) >= 3:
+                        fpath = parts[2].lstrip("a/")
+                        if (repo_path / fpath).exists():
+                            line = f"--- a/{fpath}"
+                    break
+
+        # Convert ``# FILE: path/to/new.py`` + following ``+`` lines into a new-file diff
+        if re.match(r"^[# ]*FILE:\s+(.+)", line):
+            m = re.match(r"^[# ]*FILE:\s+(.+)", line)
+            if m:
+                new_file_path = m.group(1).strip()
+                out.append(f"diff --git a/{new_file_path} b/{new_file_path}")
+                out.append("new file mode 100644")
+                out.append("--- /dev/null")
+                out.append(f"+++ b/{new_file_path}")
+                # Collect following + lines
+                plus_lines: list[str] = []
+                j = i + 1
+                while j < len(lines):
+                    nl = lines[j]
+                    if nl.startswith("+"):
+                        plus_lines.append(nl)
+                        j += 1
+                    elif nl.startswith(" ") and not nl.startswith("diff "):
+                        # Might be LLM emitting context for new file — treat as added
+                        plus_lines.append("+" + nl[1:])
+                        j += 1
+                    else:
+                        break
+                if plus_lines:
+                    out.append(f"@@ -0,0 +1,{len(plus_lines)} @@")
+                    out.extend(plus_lines)
+                i = j
+                continue
+
+        # Remove placeholder context lines that would cause context mismatch
+        if _is_placeholder_context(line):
+            i += 1
+            continue
+
+        out.append(line)
+        i += 1
+
+    # Strip postamble (non-diff lines after last hunk)
+    result = "\n".join(out)
+    # Ensure final newline
+    if result and not result.endswith("\n"):
+        result += "\n"
+
+    # Recount hunk line numbers (LLMs often get them wrong)
+    result = _recount_hunks(result)
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -167,7 +350,9 @@ def _shallow_clone(url: str, ref: str, dest: Path) -> None:
     )
 
 
-def _read_files_as_context(repo_path: Path, target_files: list[str]) -> str:
+def _read_files_as_context(
+    repo_path: Path, target_files: list[str], *, max_chars: int = MAX_CONTEXT_CHARS
+) -> str:
     parts: list[str] = []
     for rel in target_files:
         p = repo_path / rel
@@ -181,8 +366,8 @@ def _read_files_as_context(repo_path: Path, target_files: list[str]) -> str:
             continue
         parts.append(f"# FILE: {rel}\n{content}")
     combined = "\n\n".join(parts)
-    if len(combined) > MAX_CONTEXT_CHARS:
-        combined = combined[:MAX_CONTEXT_CHARS] + "\n\n# ... (truncated)"
+    if len(combined) > max_chars:
+        combined = combined[:max_chars] + "\n\n# ... (truncated)"
     return combined
 
 
@@ -197,6 +382,53 @@ def _extract_diff_block(text: str) -> str | None:
     if bare:
         return text[bare.start() :].strip()
     return None
+
+
+def _extract_file_block(text: str, target_files: list[str]) -> tuple[str, str] | None:
+    """Extract file path and complete content from an LLM whole-file response.
+
+    Looks for fenced code blocks with a file path as language tag, e.g.::
+
+        ```path/to/file.py
+        <content>
+        ```
+
+    Falls back to ``python`` language tag using the primary target file path.
+    Returns ``(rel_path, content)`` or ``None``.
+    """
+    # 1. Try fenced block with explicit .py path
+    m = re.search(r"```(\S+\.py)\s*\n(.*?)```", text, re.DOTALL)
+    if m:
+        return (m.group(1), m.group(2))
+    # 2. Try ```python — use primary target file as path
+    m = re.search(r"```python\s*\n(.*?)```", text, re.DOTALL)
+    if m and target_files:
+        return (target_files[0], m.group(1))
+    # 3. Try any fenced block
+    m = re.search(r"```\w*\s*\n(.*?)```", text, re.DOTALL)
+    if m and target_files:
+        return (target_files[0], m.group(1))
+    return None
+
+
+def _compress_brief(brief: dict[str, Any]) -> dict[str, Any]:
+    """Strip verbose prose from brief output to save tokens.
+
+    Keeps only fields that provide actionable coding guardrails.
+    """
+    keep_keys = {
+        "guardrails",
+        "constraints",
+        "scope_files",
+        "warnings",
+        "scope_confidence",
+        "affected_signals",
+    }
+    compressed: dict[str, Any] = {}
+    for k, v in brief.items():
+        if k in keep_keys and v:
+            compressed[k] = v
+    return compressed or brief  # Fallback to full if nothing matched
 
 
 def _drift_version() -> str:
@@ -246,14 +478,23 @@ def cmd_generate_prompts(args: argparse.Namespace) -> None:
 
             code_context = _read_files_as_context(repo_path, task["target_files"])
 
+            primary_file = task["target_files"][0]
             system_msg = (
                 "You are a precise Python code editing agent. "
-                "When given a task and code context, produce a minimal unified diff "
-                "(git diff format) that implements the requested change. "
-                "Output ONLY the diff block, fenced in ```diff ... ```. "
-                "Do not explain or add prose outside the fenced block."
+                "When given a task and code context, output the COMPLETE modified file. "
+                "Use the target file path as the language tag in a fenced code block:\n\n"
+                f"```{primary_file}\n"
+                "<entire file content with your changes applied>\n"
+                "```\n\n"
+                "If the task creates a new file, output its complete content in the same format. "
+                "Focus on the primary target file only. "
+                "Do not add prose or explanations outside the code block."
             )
-            user_msg = f"Task: {task['task_description']}\n\nCode context:\n{code_context}"
+            user_msg = (
+                f"Task: {task['task_description']}\n\n"
+                f"Primary target file: {primary_file}\n\n"
+                f"Code context:\n{code_context}"
+            )
 
             control_payload = {
                 "task_id": tid,
@@ -279,15 +520,23 @@ def cmd_generate_prompts(args: argparse.Namespace) -> None:
                 from drift.api.brief import brief as api_brief  # noqa: PLC0415
 
                 brief_result = api_brief(repo_path, task=task["task_description"])
-                brief_block = json.dumps(brief_result, indent=2, ensure_ascii=False)
+                brief_compact = _compress_brief(brief_result)
+                brief_block = json.dumps(brief_compact, indent=2, ensure_ascii=False)
             except Exception as exc:  # noqa: BLE001
                 print(f"  [{tid}] drift brief failed: {exc}")
                 brief_block = '{"error": "drift brief unavailable"}'
 
+            # Use reduced context for treatment to leave room for brief
+            treatment_context = _read_files_as_context(
+                repo_path,
+                task["target_files"],
+                max_chars=MAX_CONTEXT_CHARS_TREATMENT,
+            )
             treatment_user_msg = (
                 f"Task: {task['task_description']}\n\n"
+                f"Primary target file: {primary_file}\n\n"
                 f"<drift_brief>\n{brief_block}\n</drift_brief>\n\n"
-                f"Code context:\n{code_context}"
+                f"Code context:\n{treatment_context}"
             )
             treatment_payload = {
                 "task_id": tid,
@@ -465,12 +714,20 @@ def cmd_run_llm(args: argparse.Namespace) -> None:
     except ImportError:
         sys.exit("openai package not installed. Run: uv add --dev openai")
 
+    base_url = getattr(args, "base_url", None) or os.environ.get("DRIFT_STUDY_BASE_URL") or None
     api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key and not base_url:
+        sys.exit(
+            "OPENAI_API_KEY environment variable not set.\n"
+            "Alternatively, use --base-url for a local backend (e.g. Ollama):\n"
+            "  python scripts/brief_ab_study.py run-llm "
+            "--base-url http://localhost:11434/v1 --model qwen2.5-coder:7b"
+        )
+    # Local backends (Ollama etc.) don't need a real key; use placeholder.
     if not api_key:
-        sys.exit("OPENAI_API_KEY environment variable not set.")
+        api_key = "local"
 
     model = os.environ.get("DRIFT_STUDY_MODEL", args.model)
-    base_url = os.environ.get("DRIFT_STUDY_BASE_URL") or None
     client = OpenAI(api_key=api_key, base_url=base_url)
 
     if not PROMPTS_DIR.exists():
@@ -512,17 +769,19 @@ def cmd_run_llm(args: argparse.Namespace) -> None:
                     model=model,
                     temperature=args.temperature,
                     messages=payload["messages"],  # type: ignore[arg-type]
-                    max_tokens=2048,
+                    max_tokens=4096,
                     **extra_kwargs,
                 )
                 text = response.choices[0].message.content or ""
-                diff_block = _extract_diff_block(text)
-                if diff_block is None:
+                target_files = payload.get("meta", {}).get("target_files", [])
+                file_result = _extract_file_block(text, target_files)
+                if file_result is None:
                     status = "parse_error"
                     diff_out.write_text(text, encoding="utf-8")
                 else:
+                    _fpath, file_content = file_result
                     status = "ok"
-                    diff_out.write_text(diff_block, encoding="utf-8")
+                    diff_out.write_text(file_content, encoding="utf-8")
             except Exception as exc:  # noqa: BLE001
                 status = f"api_error: {exc}"
                 diff_out.write_text("", encoding="utf-8")
@@ -535,6 +794,7 @@ def cmd_run_llm(args: argparse.Namespace) -> None:
                         "model": model,
                         "temperature": args.temperature,
                         "status": status,
+                        "response_format": "whole_file",
                         "repeat": r,
                     },
                     indent=2,
@@ -614,13 +874,13 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
                     "patch_size_loc": None,
                 }
             )
-            print(f"  [{stem}] empty diff, skipping")
+            print(f"  [{stem}] empty response, skipping")
             continue
 
-        patch_loc = _patch_line_count(diff_content)
+        response_format = meta.get("response_format", "diff")
 
         if args.dry_run:
-            print(f"  [{stem}] DRY-RUN: would apply diff and run drift diff")
+            print(f"  [{stem}] DRY-RUN: would apply changes and run drift diff")
             outcomes.append(
                 {
                     "task_id": task_id,
@@ -631,7 +891,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
                     "accept_change": None,
                     "error_cost_default": None,
                     "error_cost_robust": None,
-                    "patch_size_loc": patch_loc,
+                    "patch_size_loc": 0,
                 }
             )
             continue
@@ -654,22 +914,70 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
                         "accept_change": None,
                         "error_cost_default": None,
                         "error_cost_robust": None,
-                        "patch_size_loc": patch_loc,
+                        "patch_size_loc": 0,
                     }
                 )
                 continue
 
-            diff_file = Path(tmpdir) / "patch.diff"
-            diff_file.write_text(diff_content, encoding="utf-8")
+            applied = False
+            if response_format == "whole_file":
+                # --- Whole-file approach: write LLM output directly ---
+                primary_file = task["target_files"][0]
+                target_path = repo_path / primary_file
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_text(diff_content, encoding="utf-8")
+                # Stage all changes so drift can see new files
+                subprocess.run(
+                    ["git", "add", "-A"],
+                    cwd=str(repo_path),
+                    capture_output=True,
+                )
+                applied = True
+            else:
+                # --- Legacy diff approach: normalize and git apply ---
+                normalized = _normalize_diff(diff_content, repo_path)
+                diff_file = Path(tmpdir) / "patch.diff"
+                diff_file.write_text(normalized, encoding="utf-8", newline="\n")
 
-            apply_result = subprocess.run(
-                ["git", "apply", "--reject", str(diff_file)],
-                cwd=str(repo_path),
-                capture_output=True,
-            )
-            if apply_result.returncode != 0:
+                for apply_args in [
+                    ["git", "apply", "--ignore-whitespace", str(diff_file)],
+                    ["git", "apply", "--ignore-whitespace", "--3way", str(diff_file)],
+                    ["git", "apply", "--ignore-whitespace", "--reject", str(diff_file)],
+                ]:
+                    apply_result = subprocess.run(
+                        apply_args,
+                        cwd=str(repo_path),
+                        capture_output=True,
+                    )
+                    if apply_result.returncode == 0:
+                        applied = True
+                        break
+
+                # Last resort: try `patch` with fuzz factor (more tolerant)
+                if not applied:
+                    import shutil  # noqa: PLC0415
+
+                    patch_bin = shutil.which("patch")
+                    if not patch_bin:
+                        git_bin = shutil.which("git")
+                        if git_bin:
+                            candidate = (
+                                Path(git_bin).resolve().parent.parent / "usr" / "bin" / "patch.exe"
+                            )
+                            if candidate.exists():
+                                patch_bin = str(candidate)
+                    if patch_bin:
+                        apply_result = subprocess.run(
+                            [patch_bin, "-p1", "--fuzz=3", "--force", "-i", str(diff_file)],
+                            cwd=str(repo_path),
+                            capture_output=True,
+                        )
+                        if apply_result.returncode == 0:
+                            applied = True
+
+            if not applied:
                 err = apply_result.stderr.decode(errors="replace")[:200]
-                print(f"  [{stem}] git apply failed: {err[:80]}")
+                print(f"  [{stem}] apply failed: {err[:80]}")
                 outcomes.append(
                     {
                         "task_id": task_id,
@@ -680,11 +988,22 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
                         "accept_change": None,
                         "error_cost_default": None,
                         "error_cost_robust": None,
-                        "patch_size_loc": patch_loc,
+                        "patch_size_loc": 0,
                         "apply_stderr": err,
                     }
                 )
                 continue
+
+            # Calculate patch size from actual git diff
+            git_diff_result = subprocess.run(
+                ["git", "diff", "--staged"] if response_format == "whole_file" else ["git", "diff"],
+                cwd=str(repo_path),
+                capture_output=True,
+                text=True,
+            )
+            patch_loc = (
+                _patch_line_count(git_diff_result.stdout) if git_diff_result.returncode == 0 else 0
+            )
 
             print(f"  [{stem}] running drift diff ...")
             try:
@@ -890,9 +1209,9 @@ def cmd_stats(args: argparse.Namespace) -> None:  # noqa: ARG001
         ctrl_patch = [task_agg[t]["control"]["patch_size_loc"] for t in paired_tasks]
         treat_patch = [task_agg[t]["treatment"]["patch_size_loc"] for t in paired_tasks]
 
-        diffs_cost_r = [c - t for c, t in zip(ctrl_cost_r, treat_cost_r)]
-        diffs_cost_d = [c - t for c, t in zip(ctrl_cost_d, treat_cost_d)]
-        diffs_patch = [c - t for c, t in zip(ctrl_patch, treat_patch)]
+        diffs_cost_r = [c - t for c, t in zip(ctrl_cost_r, treat_cost_r, strict=True)]
+        diffs_cost_d = [c - t for c, t in zip(ctrl_cost_d, treat_cost_d, strict=True)]
+        diffs_patch = [c - t for c, t in zip(ctrl_patch, treat_patch, strict=True)]
 
         def _safe_wilcoxon(diffs: list[float]) -> tuple[float, float]:
             nonzero = [x for x in diffs if x != 0]
@@ -1112,7 +1431,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "run-llm",
         help="Call LLM for each prompt and save diffs.",
     )
-    p_llm.add_argument("--model", default="gpt-4o", help="OpenAI model (default: gpt-4o).")
+    p_llm.add_argument("--model", default="gpt-4o", help="LLM model name (default: gpt-4o).")
+    p_llm.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "OpenAI-compatible base URL for local backends "
+            "(e.g. http://localhost:11434/v1 for Ollama)."
+        ),
+    )
     p_llm.add_argument(
         "--temperature",
         type=float,

@@ -1,6 +1,6 @@
 {
-  "description": "Task corpus for ADR-067 A/B study: drift brief effectiveness. 20 realistic coding tasks across 4 Python repos, designed to touch at least one AVS/PFS/MDS/CCC/CIR signal scope. Used by scripts/brief_ab_study.py.",
-  "version": "1.0.0",
+  "description": "Task corpus for ADR-067 A/B study: drift brief effectiveness. 40 realistic coding tasks across 8 Python repos, designed to touch signal scopes AVS/PFS/MDS/CCC/CIR. v2: fixed REQ paths (src/), added 20 harder tasks on httpx/rich/flask/pydantic. Used by scripts/brief_ab_study.py.",
+  "version": "2.0.0",
   "schema": "task_id | repo_url | ref | task_description | target_files | seed | expected_signals",
   "tasks": [
     {
@@ -9,7 +9,7 @@
       "ref": "main",
       "type": "bugfix",
       "task_description": "Fix the Session.request() method to correctly merge per-request headers with session-level headers instead of overwriting them. Ensure that removing a header (by passing None) works at both levels.",
-      "target_files": ["requests/sessions.py", "requests/models.py"],
+      "target_files": ["src/requests/sessions.py", "src/requests/models.py"],
       "seed": 1001,
       "expected_signals": ["MDS", "CCC"]
     },
@@ -18,8 +18,8 @@
       "repo_url": "https://github.com/psf/requests",
       "ref": "main",
       "type": "feature",
-      "task_description": "Add a RetryAdapter class in requests/adapters.py that wraps HTTPAdapter and automatically retries idempotent requests (GET, HEAD, OPTIONS, DELETE) up to a configurable max_retries count on connection errors.",
-      "target_files": ["requests/adapters.py", "requests/sessions.py"],
+      "task_description": "Add a RetryAdapter class in src/requests/adapters.py that wraps HTTPAdapter and automatically retries idempotent requests (GET, HEAD, OPTIONS, DELETE) up to a configurable max_retries count on connection errors.",
+      "target_files": ["src/requests/adapters.py", "src/requests/sessions.py"],
       "seed": 1002,
       "expected_signals": ["AVS", "PFS"]
     },
@@ -29,7 +29,7 @@
       "ref": "main",
       "type": "bugfix",
       "task_description": "Resolve the PreparedRequest.prepare_url() method incorrectly encoding IPv6 addresses in URLs. The fix must handle brackets around IPv6 literals and must not double-encode percent signs.",
-      "target_files": ["requests/models.py", "requests/utils.py"],
+      "target_files": ["src/requests/models.py", "src/requests/utils.py"],
       "seed": 1003,
       "expected_signals": ["MDS", "PFS"]
     },
@@ -39,7 +39,7 @@
       "ref": "main",
       "type": "feature",
       "task_description": "Extend the Response class with a from_cache property that returns True if the response was served from a local cache. Add a corresponding cache_info dict property that exposes cache age, source URL, and expiry.",
-      "target_files": ["requests/models.py", "requests/adapters.py"],
+      "target_files": ["src/requests/models.py", "src/requests/adapters.py"],
       "seed": 1004,
       "expected_signals": ["COD", "MDS"]
     },
@@ -48,8 +48,8 @@
       "repo_url": "https://github.com/psf/requests",
       "ref": "main",
       "type": "refactor",
-      "task_description": "Extract the cookie handling logic in requests/cookies.py into a separate CookiePolicy class. The new class must expose merge_cookies(), clear_expired(), and to_jar() methods. Existing callers in sessions.py must be updated.",
-      "target_files": ["requests/cookies.py", "requests/sessions.py", "requests/models.py"],
+      "task_description": "Extract the cookie handling logic in src/requests/cookies.py into a separate CookiePolicy class. The new class must expose merge_cookies(), clear_expired(), and to_jar() methods. Existing callers in sessions.py must be updated.",
+      "target_files": ["src/requests/cookies.py", "src/requests/sessions.py", "src/requests/models.py"],
       "seed": 1005,
       "expected_signals": ["AVS", "CCC", "MDS"]
     },
@@ -202,6 +202,210 @@
       "target_files": ["src/_pytest/config/__init__.py"],
       "seed": 4005,
       "expected_signals": ["AVS", "CCC", "CIR"]
+    },
+
+    {
+      "id": "HTX-01",
+      "repo_url": "https://github.com/encode/httpx",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Add request middleware support to httpx. Create a new file httpx/_middleware.py with a Middleware base class and a MiddlewareStack. Each middleware must be able to modify the request before sending and the response after receiving. Wire the middleware stack into Client.__init__() and Client._send_single_request() in httpx/_client.py. Include a RetryMiddleware skeleton as an example middleware.",
+      "target_files": ["httpx/_client.py", "httpx/_models.py"],
+      "seed": 5001,
+      "expected_signals": ["AVS", "PFS", "CCC", "MDS"]
+    },
+    {
+      "id": "HTX-02",
+      "repo_url": "https://github.com/encode/httpx",
+      "ref": "master",
+      "type": "refactor",
+      "task_description": "Extract all URL parsing and encoding logic from httpx/_urls.py into a new httpx/_url_parser.py module. The new module must not have circular imports back to httpx._urls. Update all internal callers in httpx/_client.py and httpx/_urls.py. The public URL class API must remain unchanged.",
+      "target_files": ["httpx/_urls.py", "httpx/_client.py"],
+      "seed": 5002,
+      "expected_signals": ["AVS", "PFS", "CCC"]
+    },
+    {
+      "id": "HTX-03",
+      "repo_url": "https://github.com/encode/httpx",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Add an HTTP response caching system to httpx. Create httpx/_cache.py with a CacheStore abstract base class and an InMemoryCache implementation that respects cache-control max-age headers. Wire it into Client.__init__() as an optional cache= parameter and check the cache in Client._send_single_request() before making network calls.",
+      "target_files": ["httpx/_client.py", "httpx/_models.py"],
+      "seed": 5003,
+      "expected_signals": ["AVS", "CCC", "MDS"]
+    },
+    {
+      "id": "HTX-04",
+      "repo_url": "https://github.com/encode/httpx",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Add request/response event hooks to httpx similar to the requests library hook system. Create an EventDispatcher class in httpx/_events.py supporting 'request', 'response', and 'error' events. Wire it into Client and AsyncClient by adding an event_hooks parameter to __init__ and dispatching at appropriate points in _send_single_request().",
+      "target_files": ["httpx/_client.py", "httpx/_models.py", "httpx/_transports/default.py"],
+      "seed": 5004,
+      "expected_signals": ["AVS", "PFS", "CCC"]
+    },
+    {
+      "id": "HTX-05",
+      "repo_url": "https://github.com/encode/httpx",
+      "ref": "master",
+      "type": "refactor",
+      "task_description": "Split httpx/_transports/default.py into two modules: httpx/_transports/sync.py for HTTPTransport and httpx/_transports/async_.py for AsyncHTTPTransport. Create a shared httpx/_transports/_base.py for common utility functions. Update all imports in httpx/_client.py and httpx/__init__.py. The public API must not change.",
+      "target_files": ["httpx/_transports/default.py", "httpx/_client.py", "httpx/__init__.py"],
+      "seed": 5005,
+      "expected_signals": ["AVS", "PFS", "CCC", "MDS"]
+    },
+
+    {
+      "id": "RCH-01",
+      "repo_url": "https://github.com/Textualize/rich",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Add a Table.export_csv() method to rich/table.py that exports the table data as CSV format. Create a new rich/exporters.py module with a CSVExporter class that extracts cell data from a Table, strips Rich markup, handles multi-line cells by joining with spaces, and returns a string. Wire export_csv() to delegate to CSVExporter.",
+      "target_files": ["rich/table.py", "rich/console.py"],
+      "seed": 6001,
+      "expected_signals": ["AVS", "PFS", "MDS"]
+    },
+    {
+      "id": "RCH-02",
+      "repo_url": "https://github.com/Textualize/rich",
+      "ref": "master",
+      "type": "refactor",
+      "task_description": "Extract all ANSI escape sequence logic from rich/color.py into a new rich/ansi_codes.py module. Move parse_rgb_hex(), color_index_to_rgb(), and all ANSI escape string builders to the new module. Update rich/color.py and rich/style.py to import from rich.ansi_codes. No public API changes.",
+      "target_files": ["rich/color.py", "rich/style.py"],
+      "seed": 6002,
+      "expected_signals": ["AVS", "PFS", "CCC", "MDS"]
+    },
+    {
+      "id": "RCH-03",
+      "repo_url": "https://github.com/Textualize/rich",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Add theme inheritance to Rich. Modify rich/theme.py so that a Theme can accept a parent=Theme parameter. When a style is requested via Theme.styles, check the current theme first, then walk up the parent chain. Add a Theme.extend() classmethod that creates a child theme. Update Console.__init__ to support a chain of themes.",
+      "target_files": ["rich/theme.py", "rich/console.py"],
+      "seed": 6003,
+      "expected_signals": ["CCC", "AVS", "MDS"]
+    },
+    {
+      "id": "RCH-04",
+      "repo_url": "https://github.com/Textualize/rich",
+      "ref": "master",
+      "type": "feature",
+      "task_description": "Create a progress column plugin system for Rich. Add rich/progress_plugins.py with a PluginColumn base class. Implement SpeedColumn and MemoryColumn as example plugins. Modify Progress.__init__() in rich/progress.py to accept column specifications by string name (e.g. 'speed', 'memory') that resolve to plugin classes via a registry dict.",
+      "target_files": ["rich/progress.py", "rich/table.py"],
+      "seed": 6004,
+      "expected_signals": ["PFS", "AVS", "MDS"]
+    },
+    {
+      "id": "RCH-05",
+      "repo_url": "https://github.com/Textualize/rich",
+      "ref": "master",
+      "type": "refactor",
+      "task_description": "Split the Console class in rich/console.py by extracting all print/log/rule/status output methods into a new rich/output.py module with a ConsolePrinter mixin class. Console must inherit from ConsolePrinter to retain backward compatibility. Move all output-related private helpers along with the methods. No public API changes.",
+      "target_files": ["rich/console.py", "rich/style.py"],
+      "seed": 6005,
+      "expected_signals": ["AVS", "CCC", "PFS", "MDS"]
+    },
+
+    {
+      "id": "FLK-01",
+      "repo_url": "https://github.com/pallets/flask",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add an error handler chain to Flask. Create src/flask/error_chain.py with an ErrorHandlerChain class that supports registering multiple error handlers with priority ordering and fallthrough semantics. Wire it into Flask.handle_exception() in src/flask/app.py as an alternative to the existing @errorhandler decorator. Both systems must coexist.",
+      "target_files": ["src/flask/app.py", "src/flask/blueprints.py"],
+      "seed": 7001,
+      "expected_signals": ["AVS", "PFS", "CCC"]
+    },
+    {
+      "id": "FLK-02",
+      "repo_url": "https://github.com/pallets/flask",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Implement request rate limiting in Flask. Create src/flask/ratelimit.py with a RateLimiter class using a token bucket algorithm and an in-memory store keyed by client IP. Add a @ratelimit(requests_per_minute=60) decorator. Wire it into Flask.preprocess_request() in src/flask/app.py.",
+      "target_files": ["src/flask/app.py", "src/flask/wrappers.py"],
+      "seed": 7002,
+      "expected_signals": ["AVS", "PFS", "CCC", "MDS"]
+    },
+    {
+      "id": "FLK-03",
+      "repo_url": "https://github.com/pallets/flask",
+      "ref": "main",
+      "type": "refactor",
+      "task_description": "Extract the URL routing logic from src/flask/app.py into a new src/flask/routing.py module. Move url_rule_class, url_map, add_url_rule(), and all route-matching helpers. Flask.route() must delegate to the routing module. All existing public API behavior must be preserved.",
+      "target_files": ["src/flask/app.py", "src/flask/blueprints.py", "src/flask/wrappers.py"],
+      "seed": 7003,
+      "expected_signals": ["AVS", "PFS", "CCC", "MDS"]
+    },
+    {
+      "id": "FLK-04",
+      "repo_url": "https://github.com/pallets/flask",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Implement lazy blueprint loading in Flask. Modify src/flask/blueprints.py to support a lazy=True parameter on Blueprint.__init__. When lazy, the blueprint's view module is not imported until the first request to one of its routes. Create src/flask/lazy_loader.py for the deferred import mechanism. Update Flask.register_blueprint() to handle lazy blueprints.",
+      "target_files": ["src/flask/blueprints.py", "src/flask/app.py"],
+      "seed": 7004,
+      "expected_signals": ["AVS", "PFS", "CCC"]
+    },
+    {
+      "id": "FLK-05",
+      "repo_url": "https://github.com/pallets/flask",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add content negotiation to Flask responses. Create src/flask/negotiation.py with a ContentNegotiator class that selects the best response format (JSON, HTML, XML) based on the Accept header. Add a Flask.negotiate_response() method in src/flask/app.py and wire it into Flask.make_response() so routes can return dicts that auto-negotiate format.",
+      "target_files": ["src/flask/app.py", "src/flask/wrappers.py"],
+      "seed": 7005,
+      "expected_signals": ["AVS", "PFS", "CCC", "MDS"]
+    },
+
+    {
+      "id": "PYD-01",
+      "repo_url": "https://github.com/pydantic/pydantic",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add a validation event system to Pydantic. Create pydantic/_internal/_events.py with a ValidationEventBus class that emits 'pre_validate', 'post_validate', and 'validation_error' events per field. Wire it into the validate_call pipeline in pydantic/_internal/_validate_call.py. Allow subscribing to events via model_config = ConfigDict(validation_hooks=[...]).",
+      "target_files": ["pydantic/_internal/_validate_call.py", "pydantic/main.py"],
+      "seed": 8001,
+      "expected_signals": ["AVS", "PFS", "CCC"]
+    },
+    {
+      "id": "PYD-02",
+      "repo_url": "https://github.com/pydantic/pydantic",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Implement a FieldAuditTrail feature for Pydantic models. Create pydantic/_internal/_audit.py that tracks which fields were explicitly set, which used defaults, and which were coerced during validation. Add a model_audit_trail() method to BaseModel in pydantic/main.py that returns the audit data as a dict.",
+      "target_files": ["pydantic/main.py", "pydantic/_internal/_validate_call.py"],
+      "seed": 8002,
+      "expected_signals": ["AVS", "CCC", "MDS"]
+    },
+    {
+      "id": "PYD-03",
+      "repo_url": "https://github.com/pydantic/pydantic",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add recursive model diff to Pydantic. Create pydantic/_internal/_diff.py with a model_diff(a, b) function that produces a structured diff of two BaseModel instances. Handle nested models, lists of models, and Optional fields. Wire it as BaseModel.diff(other) in pydantic/main.py returning a list of FieldChange objects.",
+      "target_files": ["pydantic/main.py"],
+      "seed": 8003,
+      "expected_signals": ["PFS", "CCC", "MDS"]
+    },
+    {
+      "id": "PYD-04",
+      "repo_url": "https://github.com/pydantic/pydantic",
+      "ref": "main",
+      "type": "refactor",
+      "task_description": "Implement a TypeAdapter registry in Pydantic. Create pydantic/_internal/_adapter_registry.py with a global TypeAdapterRegistry that caches TypeAdapter instances by type annotation. Add registry lookup to TypeAdapter.__init__() in pydantic/type_adapter.py so repeated TypeAdapter(SomeModel) reuses cached instances. Add a TypeAdapterRegistry.clear() method for testing.",
+      "target_files": ["pydantic/type_adapter.py", "pydantic/main.py"],
+      "seed": 8004,
+      "expected_signals": ["AVS", "PFS", "CCC"]
+    },
+    {
+      "id": "PYD-05",
+      "repo_url": "https://github.com/pydantic/pydantic",
+      "ref": "main",
+      "type": "feature",
+      "task_description": "Add serialization plugin support to Pydantic. Create pydantic/_internal/_serial_plugins.py with a SerializerPlugin base class exposing serialize(model, data) and a PluginRegistry for registration. Implement CSVSerializer and YAMLSerializer as example plugins. Wire plugin selection into BaseModel.model_dump() in pydantic/main.py via a format='json'|'csv'|'yaml' parameter.",
+      "target_files": ["pydantic/main.py", "pydantic/type_adapter.py"],
+      "seed": 8005,
+      "expected_signals": ["AVS", "PFS", "CCC", "MDS"]
     }
   ]
 }
