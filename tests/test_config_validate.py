@@ -117,6 +117,21 @@ class TestConfigShow:
         assert result.exit_code == 0
         assert "pattern_fragmentation" in result.output
 
+    def test_show_includes_onboarding_summary(self, runner: CliRunner, valid_config: Path) -> None:
+        result = runner.invoke(main, ["config", "show", "--repo", str(valid_config)])
+        assert result.exit_code == 0
+        assert "Configuration overview" in result.output
+        assert "Non-default values" in result.output
+        assert "Recommended next" in result.output
+        assert "drift analyze --repo" in result.output
+        assert "fail_on = none" in result.output
+
+    def test_show_raw_skips_summary(self, runner: CliRunner, valid_config: Path) -> None:
+        result = runner.invoke(main, ["config", "show", "--repo", str(valid_config), "--raw"])
+        assert result.exit_code == 0
+        assert "Configuration overview" not in result.output
+        assert "fail_on: none" in result.output
+
     def test_show_custom_config(self, runner: CliRunner, valid_config: Path) -> None:
         result = runner.invoke(main, ["config", "show", "--repo", str(valid_config)])
         assert result.exit_code == 0
