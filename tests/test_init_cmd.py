@@ -152,6 +152,14 @@ class TestInitCommand:
         data = json.loads(mcp_path.read_text())
         assert "drift" in data["servers"]
 
+    def test_init_mcp_output_preserves_extra_brackets(self, tmp_path: Path) -> None:
+        """The onboarding hint must show the full MCP install command literally."""
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--mcp", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "Requires MCP extra:" in result.output
+        assert "drift-analyzer[mcp]" in result.output
+
     def test_init_claude_creates_config_snippet(self, tmp_path: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(main, ["init", "--claude", "--repo", str(tmp_path)])

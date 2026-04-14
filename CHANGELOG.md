@@ -16,6 +16,7 @@ Short version: Add verify and interactive init flows, trend JSON output, and fix
 
 ### Fixed
 
+- Preserve the literal MCP install hint in drift init output so onboarding shows drift-analyzer[mcp] correctly.
 - Resolve adaptive recommendation typing and add managed inline suppression tooling for ignore comments.
 
 ## [2.9.16] - 2026-04-13

@@ -457,8 +457,9 @@ def init(
                 "claude_desktop_config.json",
             }:
                 console.print(
-                    "  [dim]Requires MCP extra: "
-                    "pip install drift-analyzer[mcp][/dim]"
+                    "  Requires MCP extra: pip install drift-analyzer[mcp]",
+                    style="dim",
+                    markup=False,
                 )
                 if launcher_source == "python-module":
                     console.print(
