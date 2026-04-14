@@ -1,35 +1,22 @@
-## [Unreleased]
+## [2.10.0] - 2026-04-14
+
+Short version: Add verify and interactive init flows, trend JSON output, and fix-plan dismissal support.
 
 ### Added
 
-- `drift verify` subcommand — binary pass/fail coherence gate for post-edit CI workflows (ADR-070). Wraps `shadow_verify()` with a severity-threshold gate; returns `pass`/`fail` verdict, `blocking_reasons`, and `score_delta`. Available as CLI (`--fail-on`, `--scope-files`, `--format json/rich`) and as `drift_verify` MCP tool.
-- `drift init --interactive` flag — delegates to setup's onboarding questions for profile-driven scaffolding.
-- `drift trend --json` flag — emit trend data as machine-readable JSON.
-- `drift feedback` N column shows total observations per signal.
-- `scope_warning` field in brief API response when scope confidence < 50%.
-- `drift fix-plan` dismissal workflow: `--dismiss <task-id>`, `--show-dismissed`, and `--reset` with default 7-day TTL backed by `.drift-cache/fix-plan-dismissed.json`.
+- Add `drift verify`, `drift init --interactive`, `drift trend --json`, and fix-plan dismissal support for safer agent workflows.
 
 ### Changed
 
-- Decompose legacy `config`, `errors`, and `models` monolith modules into package-scoped submodules and align recommendation/adaptation flow wiring across CLI, calibration, and docs.
-- Extract shared analysis-pipeline helpers (`_shared.py`) from `check` and `analyze` commands, removing ~300 LOC of duplication.
-- `drift feedback` summary prints low-sample warning when total observations < 20.
-- `nudge` API docstring documents first-call warm-up cost (2–10 s vs 0.1–0.5 s incremental).
+- Refactor shared analysis/config internals and improve feedback visibility plus `nudge` warm-up guidance.
 
 ### Deprecated
 
-- `drift setup` command — use `drift init --interactive` instead (removal in v3.0).
-- `--format junit` — use `--format sarif` for CI integrations (removal in v3.0).
-- `--format llm` — use `drift mcp` for LLM-optimized output (removal in v3.0).
-- `drift_shadow_verify` MCP tool (removal in v3.0).
-- MCP task-management tools: `drift_task_claim`, `drift_task_renew`, `drift_task_release`, `drift_task_complete`, `drift_task_status` (removal in v3.0).
-- `drift_session_update` MCP tool — use `drift_session_start(autopilot=true)` instead (removal in v3.0).
-- Calibration modules: `outcome_correlator`, `github_correlator`, `threshold_adapter` — use `drift calibrate` with Bayesian Weight Calibration (removal in v3.0).
+- Begin deprecating older setup, format, MCP, and calibration paths in favor of the newer init and calibration flows.
 
 ### Fixed
 
-- Resolve mypy typing in adaptive recommendation refinement within `analyze` command outcome/reward processing.
-- Add managed inline suppression tooling via `drift suppress list` and `drift suppress audit` with optional `until:`/`reason:` metadata support for `drift:ignore` comments.
+- Resolve adaptive recommendation typing and add managed inline suppression tooling for ignore comments.
 
 ## [2.9.16] - 2026-04-13
 
