@@ -23,6 +23,7 @@ Short version: Add verify and interactive init flows, trend JSON output, fix-pla
 - Resolve adaptive recommendation typing and add managed inline suppression tooling for ignore comments.
 - Reject duplicate abbreviation registrations in `register_signal_meta` with a `ValueError` instead of silently overwriting core signal mappings (#368).
 - Fix `BaselineManager._git_state_changed` bypass TTL cache on the invalidation path so rapid HEAD changes within the 5-second window are no longer silently hidden by a stale cached git state (#372).
+- **Graceful parser degradation in IngestionPhase (#374)**: A single parse-worker exception no longer aborts the entire ingestion phase. Failures are now caught per-file, recorded as a `parser_failure` degradation event, and the affected file is replaced with an empty `ParseResult` carrying the error in `parse_errors`; the rest of the repository continues to be analyzed normally.
 
 ## [2.9.16] - 2026-04-13
 

@@ -560,12 +560,41 @@ class IngestionPhase:
                         finfo.path,
                         repo_path,
                         finfo.language,
-                    ): (idx, content_hash)
+                    ): (idx, finfo, content_hash)
                     for idx, finfo, content_hash in to_parse
                 }
                 for future in as_completed(futures):
-                    idx, content_hash = futures[future]
-                    result = future.result()
+                    idx, finfo, content_hash = futures[future]
+                    try:
+                        result = future.result()
+                    except Exception as exc:
+                        logging.getLogger("drift").warning(
+                            "Parser failure for %s; file skipped in degraded mode.",
+                            finfo.path,
+                            exc_info=True,
+                        )
+                        degradation.causes.add("parser_failure")
+                        degradation.components.add("parser")
+                        degradation.events.append(
+                            make_degradation_event(
+                                cause="parser_failure",
+                                component="parser",
+                                message=(
+                                    f"Parser failed for {finfo.path.as_posix()};"
+                                    " file skipped in degraded mode."
+                                ),
+                                details={
+                                    "error": str(exc),
+                                    "file": finfo.path.as_posix(),
+                                },
+                            ),
+                        )
+                        parse_results_opt[idx] = ParseResult(
+                            file_path=finfo.path,
+                            language=finfo.language,
+                            parse_errors=[str(exc)],
+                        )
+                        continue
                     parse_results_opt[idx] = result
                     if content_hash is not None:
                         new_results.append((idx, content_hash, result))

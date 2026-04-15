@@ -759,3 +759,46 @@ def test_analysis_pipeline_exposes_phase_timings() -> None:
     assert analysis.phase_timings["signals_seconds"] == 0.3
     assert analysis.phase_timings["output_seconds"] >= 0.0
     assert analysis.phase_timings["total_seconds"] == 0.75
+
+
+def test_ingestion_phase_continues_in_degraded_mode_on_parser_exception(
+    tmp_path: Path,
+) -> None:
+    """Single parser failure must not abort the ingestion phase (#374)."""
+    cfg = _config()
+    (tmp_path / "good.py").write_text("def ok():\n    pass\n", encoding="utf-8")
+    (tmp_path / "bad.py").write_text("def bad():\n    syntax error\n", encoding="utf-8")
+
+    files = [_file_info("good.py"), _file_info("bad.py")]
+
+    def _parse(path: Path, _repo_path: Path, language: str) -> ParseResult:
+        if path == Path("bad.py"):
+            raise RuntimeError("synthetic parser crash")
+        return ParseResult(file_path=path, language=language)
+
+    degradation = DegradationInfo(causes=set(), components=set(), events=[])
+    phase = IngestionPhase(parse_file_fn=_parse, is_git_repo_fn=lambda _p: False)
+    out = phase.run(
+        tmp_path,
+        files,
+        cfg,
+        since_days=30,
+        workers=1,
+        degradation=degradation,
+    )
+
+    # Analysis must complete and return results for both slots
+    assert len(out.parse_results) == 2
+    # Good file parsed normally
+    good = out.parse_results[0]
+    assert good.file_path == Path("good.py")
+    assert good.parse_errors == []
+    # Failed file present as empty stub with error recorded
+    bad = out.parse_results[1]
+    assert bad.file_path == Path("bad.py")
+    assert bad.parse_errors != []
+    assert "synthetic parser crash" in bad.parse_errors[0]
+    # Degradation metadata recorded
+    assert "parser_failure" in degradation.causes
+    assert "parser" in degradation.components
+    assert any(e["cause"] == "parser_failure" for e in degradation.events)
