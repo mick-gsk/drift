@@ -84,6 +84,66 @@ def _parse_csv_ids(raw: str | None) -> list[str] | None:
 _AUTOPILOT_PAYLOAD_MODES = frozenset({"summary", "full"})
 _AUTOPILOT_PREVIEW_LIMIT = 3
 
+_RESPONSE_DETAIL_VALUES = frozenset({"concise", "detailed"})
+_RESPONSE_PROFILE_VALUES = frozenset({"planner", "coder", "verifier", "merge_readiness"})
+_FAIL_ON_VALUES = frozenset({"critical", "high", "medium", "low", "none"})
+_AUTOMATION_FIT_MIN_VALUES = frozenset({"low", "medium", "high"})
+
+
+def _validate_enum_param(
+    param_name: str,
+    value: str | None,
+    valid_values: frozenset[str],
+    tool_name: str,
+    *,
+    required: bool = False,
+) -> dict[str, Any] | None:
+    """Validate a single enum parameter at the MCP tool boundary.
+
+    Returns a structured DRIFT-1003 error dict if invalid, or None if valid.
+    Allows None when ``required=False``.
+    """
+    if value is None:
+        if required:
+            from drift.api_helpers import _error_response
+
+            return _error_response(
+                "DRIFT-1003",
+                f"Missing required parameter '{param_name}' in {tool_name}",
+                invalid_fields=[{
+                    "field": param_name,
+                    "value": None,
+                    "reason": f"Required. Expected one of: {', '.join(sorted(valid_values))}",
+                }],
+                suggested_fix={
+                    "action": f"Supply a valid value for '{param_name}'.",
+                    "valid_values": sorted(valid_values),
+                },
+            )
+        return None
+    normalised = str(value).strip().lower()
+    if normalised not in valid_values:
+        from drift.api_helpers import _error_response
+
+        return _error_response(
+            "DRIFT-1003",
+            f"Invalid value '{value}' for '{param_name}' in {tool_name}",
+            invalid_fields=[{
+                "field": param_name,
+                "value": value,
+                "reason": f"Expected one of: {', '.join(sorted(valid_values))}",
+            }],
+            suggested_fix={
+                "action": f"Use a supported value for '{param_name}'.",
+                "valid_values": sorted(valid_values),
+                "example_call": {
+                    "tool": tool_name,
+                    "params": {param_name: next(iter(sorted(valid_values)))},
+                },
+            },
+        )
+    return None
+
 
 def _payload_checksum(payload: Any) -> str:
     """Return a stable short checksum for payload references."""
@@ -611,6 +671,18 @@ async def drift_scan(
 
     from drift.api import scan
 
+    for _err in [
+        _validate_enum_param(
+            "response_detail", response_detail, _RESPONSE_DETAIL_VALUES, "drift_scan"
+        ),
+        _validate_enum_param(
+            "response_profile", response_profile, _RESPONSE_PROFILE_VALUES, "drift_scan"
+        ),
+    ]:
+        if _err is not None:
+            _err["tool"] = "drift_scan"
+            return json.dumps(_err, default=str)
+
     session = _resolve_session(session_id)
     kwargs = _session_defaults(session, {
         "path": path,
@@ -738,6 +810,18 @@ async def drift_diff(
     """
 
     from drift.api import diff
+
+    for _err in [
+        _validate_enum_param(
+            "response_detail", response_detail, _RESPONSE_DETAIL_VALUES, "drift_diff"
+        ),
+        _validate_enum_param(
+            "response_profile", response_profile, _RESPONSE_PROFILE_VALUES, "drift_diff"
+        ),
+    ]:
+        if _err is not None:
+            _err["tool"] = "drift_diff"
+            return json.dumps(_err, default=str)
 
     session = _resolve_session(session_id)
     blocked = _strict_guardrail_block_response("drift_diff", session)
@@ -925,6 +1009,21 @@ async def drift_fix_plan(
     """
 
     from drift.api import fix_plan
+
+    for _err in [
+        _validate_enum_param(
+            "automation_fit_min",
+            automation_fit_min,
+            _AUTOMATION_FIT_MIN_VALUES,
+            "drift_fix_plan",
+        ),
+        _validate_enum_param(
+            "response_profile", response_profile, _RESPONSE_PROFILE_VALUES, "drift_fix_plan"
+        ),
+    ]:
+        if _err is not None:
+            _err["tool"] = "drift_fix_plan"
+            return json.dumps(_err, default=str)
 
     session = _resolve_session(session_id)
     blocked = _strict_guardrail_block_response("drift_fix_plan", session)
@@ -1357,6 +1456,16 @@ async def drift_verify(
         session_id: Optional session ID for stateful workflows.
     """
     from drift.api.verify import verify
+
+    for _err in [
+        _validate_enum_param("fail_on", fail_on, _FAIL_ON_VALUES, "drift_verify"),
+        _validate_enum_param(
+            "response_profile", response_profile, _RESPONSE_PROFILE_VALUES, "drift_verify"
+        ),
+    ]:
+        if _err is not None:
+            _err["tool"] = "drift_verify"
+            return json.dumps(_err, default=str)
 
     session = _resolve_session(session_id)
     resolved_path = path

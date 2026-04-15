@@ -17,6 +17,7 @@ Short version: Add verify and interactive init flows, trend JSON output, fix-pla
 
 ### Fixed
 
+- **MCP enum validation at tool boundary (#375)**: `drift_scan`, `drift_diff`, `drift_verify`, and `drift_fix_plan` now validate `response_detail`, `response_profile`, `fail_on`, and `automation_fit_min` at the MCP tool entry point. Invalid values immediately return a structured `DRIFT-1003` error with `invalid_fields` and `suggested_fix` instead of propagating failures from deep internal call frames. A shared `_validate_enum_param` helper centralises the pattern already used by `drift_session_start`.
 - Preserve the literal MCP install hint in drift init output so onboarding shows drift-analyzer[mcp] correctly.
 - **Session mutable input isolation (#373)**: `SessionManager.create` and `SessionManager.update` now defensively copy all caller-supplied list arguments (`signals`, `exclude_signals`, `exclude_paths`, `selected_tasks`, `completed_task_ids`, `last_scan_top_signals`, `guardrails`). External mutation of the original lists after a create or update call no longer affects the stored session state, preventing cross-session bleed in MCP multi-agent workflows.
 - Make `drift config show` print a newcomer-friendly overview of the active profile, globs, non-defaults, and recommended next command while keeping YAML-only output available via `--raw`.
