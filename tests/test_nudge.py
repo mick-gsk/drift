@@ -835,6 +835,7 @@ class TestGitEventInvalidation:
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
+        monkeypatch.setattr("drift.incremental._capture_git_state_uncached", _fake_capture)
 
         mgr = BaselineManager.instance()
         mgr.store(
@@ -868,6 +869,7 @@ class TestGitEventInvalidation:
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
+        monkeypatch.setattr("drift.incremental._capture_git_state_uncached", _fake_capture)
 
         mgr = BaselineManager.instance()
         mgr.store(
@@ -904,6 +906,7 @@ class TestGitEventInvalidation:
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
+        monkeypatch.setattr("drift.incremental._capture_git_state_uncached", _fake_capture)
 
         mgr = BaselineManager.instance()
         mgr.store(
@@ -933,6 +936,10 @@ class TestGitEventInvalidation:
             "drift.incremental._capture_git_state",
             lambda *a, **kw: stable_state,
         )
+        monkeypatch.setattr(
+            "drift.incremental._capture_git_state_uncached",
+            lambda *a, **kw: stable_state,
+        )
 
         mgr = BaselineManager.instance()
         mgr.store(
@@ -957,6 +964,10 @@ class TestGitEventInvalidation:
         )
         monkeypatch.setattr(
             "drift.incremental._capture_git_state",
+            lambda *a, **kw: stable_state,
+        )
+        monkeypatch.setattr(
+            "drift.incremental._capture_git_state_uncached",
             lambda *a, **kw: stable_state,
         )
 
@@ -986,6 +997,46 @@ class TestGitEventInvalidation:
             {},
         )
         assert mgr.get(tmp_path) is not None
+
+    def test_rapid_head_change_not_hidden_by_ttl_cache(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Regression: HEAD change within TTL window must still invalidate baseline.
+
+        Before the fix for issue #372, _git_state_changed called _capture_git_state
+        which could return a stale cached snapshot.  A commit that arrived within
+        the 5-second TTL was therefore invisible and the stale baseline was kept.
+
+        The fix makes _git_state_changed call _capture_git_state_uncached so the
+        invalidation path always sees the true current HEAD.
+        """
+        from drift.incremental import _GitState
+
+        # Simulates: cache (used by store) sees HEAD=commit_A ...
+        cached_state = _GitState(head_commit="commit_A", stash_hash="s1", changed_file_count=0)
+        # ... but the real subprocess (uncached, used by _git_state_changed) already
+        # sees the new commit that arrived within the TTL window.
+        fresh_state = _GitState(head_commit="commit_B", stash_hash="s1", changed_file_count=0)
+
+        monkeypatch.setattr(
+            "drift.incremental._capture_git_state",
+            lambda *a, **kw: cached_state,
+        )
+        monkeypatch.setattr(
+            "drift.incremental._capture_git_state_uncached",
+            lambda *a, **kw: fresh_state,
+        )
+
+        mgr = BaselineManager.instance()
+        mgr.store(
+            tmp_path,
+            BaselineSnapshot(file_hashes={}, score=0.0),
+            [],
+            {},
+        )
+        # Despite the cached path still showing commit_A, the uncached check
+        # reveals commit_B → baseline must be invalidated.
+        assert mgr.get(tmp_path) is None
 
 
 class TestNudgeUsesBaselineManager:
@@ -1087,6 +1138,7 @@ class TestNudgeUsesBaselineManager:
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
+        monkeypatch.setattr("drift.incremental._capture_git_state_uncached", _fake_capture)
 
         nudge(tmp_path, changed_files=[])
         phase["stash"] = "stash_2"
@@ -1114,6 +1166,7 @@ class TestNudgeUsesBaselineManager:
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
+        monkeypatch.setattr("drift.incremental._capture_git_state_uncached", _fake_capture)
 
         nudge(tmp_path, changed_files=[])
         phase["count"] = _MAX_CHANGED_FILES_BEFORE_INVALIDATION + 1

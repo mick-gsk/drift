@@ -402,9 +402,18 @@ class BaselineManager:
             # No git state recorded — cannot detect changes
             return None
 
-        current = _capture_git_state(repo_path)
+        # Bypass the TTL cache on the invalidation path: a HEAD change that
+        # occurs within the 5-second window would otherwise be invisible here
+        # and cause stale incremental results (issue #372).
+        current = _capture_git_state_uncached(repo_path)
         if current is None:
             return None
+
+        # Keep the shared TTL cache consistent with the fresh capture so that
+        # non-invalidation callers (e.g. _compute_nudge_key_meta) benefit from
+        # the up-to-date state without spawning additional subprocesses.
+        with _GIT_STATE_CACHE_LOCK:
+            _GIT_STATE_CACHE[repo_key] = (time.monotonic(), current)
 
         # (a) Branch switch or new commit
         if current.head_commit != previous.head_commit:

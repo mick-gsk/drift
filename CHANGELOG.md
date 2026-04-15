@@ -21,6 +21,7 @@ Short version: Add verify and interactive init flows, trend JSON output, fix-pla
 - Make `drift config show` print a newcomer-friendly overview of the active profile, globs, non-defaults, and recommended next command while keeping YAML-only output available via `--raw`.
 - Resolve adaptive recommendation typing and add managed inline suppression tooling for ignore comments.
 - Reject duplicate abbreviation registrations in `register_signal_meta` with a `ValueError` instead of silently overwriting core signal mappings (#368).
+- Fix `BaselineManager._git_state_changed` bypass TTL cache on the invalidation path so rapid HEAD changes within the 5-second window are no longer silently hidden by a stale cached git state (#372).
 
 ## [2.9.16] - 2026-04-13
 
