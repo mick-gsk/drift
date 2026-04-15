@@ -42,6 +42,9 @@ from drift.config._schema import (
     FindingContextRule as FindingContextRule,
 )
 from drift.config._schema import (
+    GradeBandConfig as GradeBandConfig,
+)
+from drift.config._schema import (
     LanguagesConfig as LanguagesConfig,
 )
 from drift.config._schema import (
@@ -64,6 +67,9 @@ from drift.config._schema import (
 )
 from drift.config._schema import (
     RecommendationsConfig as RecommendationsConfig,
+)
+from drift.config._schema import (
+    ScoringConfig as ScoringConfig,
 )
 from drift.config._schema import (
     SignalWeights as SignalWeights,
@@ -92,6 +98,7 @@ __all__ = [
     "DeferredArea",
     "FindingContextRule",
     "FindingContextPolicy",
+    "GradeBandConfig",
     "AgentEffectivenessThresholds",
     "AgentObjective",
     "BriefConfig",
@@ -101,6 +108,7 @@ __all__ = [
     "PerformanceConfig",
     "CalibrationConfig",
     "RecommendationsConfig",
+    "ScoringConfig",
     "AttributionConfig",
     # Loader
     "DriftConfig",

@@ -471,7 +471,7 @@ def test_scoring_phase_applies_small_repo_kwargs_and_post_processing() -> None:
     impact_calls: list[dict] = []
     score_kwargs: list[dict[str, int]] = []
 
-    def _impact_assigner(_findings: list[Finding], weights: dict) -> None:
+    def _impact_assigner(_findings: list[Finding], weights: dict, **_kw: object) -> None:
         impact_calls.append(weights)
 
     def _suppression_filter(

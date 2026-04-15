@@ -193,6 +193,9 @@ class SignalWeights(BaseModel):
     missing_authorization: float = 0.02
     insecure_default: float = 0.01
 
+    # TypeScript quality signals
+    type_safety_bypass: float = 0.0
+
     def as_dict(self) -> dict[str, float]:
         return self.model_dump()
 
@@ -604,4 +607,88 @@ class AttributionConfig(BaseModel):
     include_branch_hint: bool = Field(
         default=True,
         description="Attempt to extract branch name from merge-commit messages.",
+    )
+
+
+class GradeBandConfig(BaseModel):
+    """A single grade band entry for the composite drift score.
+
+    Grade bands map score ranges to letter grades and human-readable labels.
+    Thresholds are evaluated in order; the first entry whose ``threshold``
+    exceeds the score is selected.
+
+    Example::
+
+        - threshold: 0.20
+          grade: A
+          label: "Excellent"
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    threshold: float = Field(gt=0.0, description="Upper boundary (exclusive) for this grade.")
+    grade: str = Field(description="Letter grade, e.g. 'A', 'B', …, 'F'.")
+    label: str = Field(description="Human-readable label, e.g. 'Excellent'.")
+
+
+class ScoringConfig(BaseModel):
+    """Tunable scoring-engine parameters (drift.yaml → ``scoring:``)
+
+    All settings default to the validated ADR-003/ADR-041 values and are
+    backward-compatible — changing these knobs only affects repos that
+    explicitly set them.
+
+    Example drift.yaml::
+
+        scoring:
+          dampening_k: 10
+          breadth_cap: 3.0
+          feedback_blend_alpha: 0.3
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    dampening_k: int = Field(
+        default=20,
+        ge=1,
+        description=(
+            "Count-dampening constant for signal aggregation (ADR-041). "
+            "Finding counts above this value produce a dampening factor near 1.0. "
+            "Lower values increase sensitivity to high-finding signals."
+        ),
+    )
+    breadth_cap: float = Field(
+        default=4.0,
+        gt=0.0,
+        description=(
+            "Ceiling for the log-based breadth multiplier applied to impact scores (ADR-041). "
+            "Prevents very large related-file clusters from inflating scores unboundedly."
+        ),
+    )
+    grade_bands: list[GradeBandConfig] = Field(
+        default_factory=lambda: [
+            GradeBandConfig(threshold=0.20, grade="A", label="Excellent"),
+            GradeBandConfig(threshold=0.40, grade="B", label="Good"),
+            GradeBandConfig(threshold=0.60, grade="C", label="Moderate Drift"),
+            GradeBandConfig(threshold=0.80, grade="D", label="Significant Drift"),
+            GradeBandConfig(threshold=1.01, grade="F", label="Critical Drift"),
+        ],
+        description=(
+            "Ordered list of score thresholds that map drift scores to letter grades. "
+            "Each entry selects the grade when ``score < threshold``. "
+            "The last entry should have a threshold above 1.0 as a catch-all."
+        ),
+    )
+    feedback_blend_alpha: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Blend factor for feedback-informed weight adjustment. "
+            "0.0 = pure auto-calibrate from finding distribution (default). "
+            "1.0 = weights fully driven by persisted feedback metrics. "
+            "Values between 0 and 1 linearly interpolate both approaches. "
+            "Effective only when ``calibration.enabled = true`` and feedback "
+            "data exists at ``calibration.feedback_path``."
+        ),
     )

@@ -42,14 +42,22 @@ _DAMPENING_K = 20
 _BREADTH_CAP = 4.0
 
 
-def assign_impact_scores(findings: list[Finding], weights: SignalWeights) -> None:
+def assign_impact_scores(
+    findings: list[Finding],
+    weights: SignalWeights,
+    *,
+    breadth_cap: float = _BREADTH_CAP,
+) -> None:
     """Compute and assign impact scores to each finding in-place.
 
-    impact = signal_weight × score × min(BREADTH_CAP, 1 + log(1 + related_file_count))
+    impact = signal_weight × score × min(breadth_cap, 1 + log(1 + related_file_count))
 
     The logarithmic factor rewards findings that span many files without
     creating an unbounded multiplier for very large clusters.  The cap
     prevents extreme inflation beyond ~50 related files (see ADR-041).
+
+    The ``breadth_cap`` parameter can be tuned via ``scoring.breadth_cap``
+    in drift.yaml (default: 4.0).
 
     Also computes ``score_contribution`` — the fraction of the composite
     score attributable to this finding.  Useful for prioritising which
@@ -61,7 +69,7 @@ def assign_impact_scores(findings: list[Finding], weights: SignalWeights) -> Non
     for f in findings:
         key = _SIGNAL_WEIGHT_KEYS.get(f.signal_type, f.signal_type)
         w = weight_dict.get(key, 0.1)
-        breadth = min(_BREADTH_CAP, 1 + math.log(1 + len(f.related_files)))
+        breadth = min(breadth_cap, 1 + math.log(1 + len(f.related_files)))
         f.impact = round(w * f.score * breadth, 4)
 
         # score_contribution: estimated share of the composite score
@@ -97,6 +105,8 @@ def apply_path_overrides(
     findings: list[Finding],
     overrides: dict[str, PathOverride],
     weights: SignalWeights,
+    *,
+    breadth_cap: float = _BREADTH_CAP,
 ) -> list[Finding]:
     """Filter findings and re-weight impacts based on per-path overrides.
 
@@ -126,7 +136,7 @@ def apply_path_overrides(
             wd = override.weights.as_dict()
             key = _SIGNAL_WEIGHT_KEYS.get(f.signal_type, f.signal_type)
             w = wd.get(key, 0.1)
-            breadth = min(_BREADTH_CAP, 1 + math.log(1 + len(f.related_files)))
+            breadth = min(breadth_cap, 1 + math.log(1 + len(f.related_files)))
             f.impact = round(w * f.score * breadth, 4)
 
         kept.append(f)
@@ -204,12 +214,27 @@ _GRADE_BANDS: tuple[tuple[float, str, str], ...] = (
 )
 
 
-def score_to_grade(score: float) -> tuple[str, str]:
+def score_to_grade(
+    score: float,
+    *,
+    grade_bands: "list | None" = None,
+) -> tuple[str, str]:
     """Map a 0.0–1.0 drift score to a letter grade with description.
 
     Returns a ``(grade, label)`` tuple, e.g. ``("B", "Good")``.
     Lower scores are better — ``A`` means almost no drift.
+
+    The ``grade_bands`` parameter accepts a list of objects with
+    ``threshold``, ``grade``, and ``label`` attributes (e.g.
+    ``GradeBandConfig`` instances from ``scoring.grade_bands`` in
+    drift.yaml).  Defaults to the built-in ADR-003 bands when ``None``.
     """
+    if grade_bands is not None:
+        for band in grade_bands:
+            if score < band.threshold:
+                return band.grade, band.label
+        last = grade_bands[-1]
+        return last.grade, last.label
     for threshold, grade, label in _GRADE_BANDS:
         if score < threshold:
             return grade, label

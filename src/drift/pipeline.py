@@ -65,7 +65,7 @@ from drift.suppression import filter_findings, scan_suppressions
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from drift.config import DriftConfig
+    from drift.config import DriftConfig, SignalWeights
 
 ProgressCallback = Callable[[str, int, int], None]
 
@@ -893,6 +893,26 @@ class SignalPhase:
         )
 
 
+def _blend_weights(
+    w1: SignalWeights,
+    w2: SignalWeights,
+    alpha: float,
+) -> SignalWeights:
+    """Linear interpolation between two weight sets.
+
+    Returns ``(1 - alpha) * w1 + alpha * w2`` clamped to non-negative values.
+    Used by ``ScoringPhase`` to blend auto-calibrated weights with
+    feedback-informed weights when ``scoring.feedback_blend_alpha > 0``.
+    """
+    d1 = w1.as_dict()
+    d2 = w2.as_dict()
+    blended = {
+        k: round((1.0 - alpha) * d1.get(k, 0.0) + alpha * d2.get(k, d1.get(k, 0.0)), 4)
+        for k in d1
+    }
+    return w1.model_copy(update=blended)
+
+
 class ScoringPhase:
     """Impact scoring, suppression, context tags, and final score aggregation."""
 
@@ -933,8 +953,9 @@ class ScoringPhase:
         findings: list[Finding],
         parse_results: list[ParseResult] | None = None,
     ) -> ScoredFindings:
+        breadth_cap = config.scoring.breadth_cap
         all_findings = findings
-        self._impact_assigner(all_findings, config.weights)
+        self._impact_assigner(all_findings, config.weights, breadth_cap=breadth_cap)
 
         suppressions = self._suppression_scanner(files, repo_path)
         all_findings, suppressed_findings = self._suppression_filter(all_findings, suppressions)
@@ -946,12 +967,35 @@ class ScoringPhase:
             ctx_tags,
             dampening=config.context_dampening,
         )
-        self._impact_assigner(all_findings, config.weights)
+        self._impact_assigner(all_findings, config.weights, breadth_cap=breadth_cap)
 
         effective_weights = config.weights
         if config.auto_calibrate:
             effective_weights = self._calibrator(all_findings, config.weights)
-            self._impact_assigner(all_findings, effective_weights)
+
+            # Optionally blend with feedback-informed weights (scoring.feedback_blend_alpha).
+            alpha = config.scoring.feedback_blend_alpha
+            if alpha > 0.0 and config.calibration.enabled:
+                from drift.calibration import load_feedback
+                from drift.calibration.feedback import resolve_feedback_paths
+                from drift.calibration.profile_builder import build_profile
+
+                feedback_path, _local, _shared = resolve_feedback_paths(repo_path, config)
+                events = load_feedback(feedback_path)
+                if events:
+                    fb_result = build_profile(
+                        events,
+                        config.weights,
+                        min_samples=config.calibration.min_samples,
+                        fn_boost_factor=config.calibration.fn_boost_factor,
+                    )
+                    effective_weights = _blend_weights(
+                        effective_weights,
+                        fb_result.calibrated_weights,
+                        alpha,
+                    )
+
+            self._impact_assigner(all_findings, effective_weights, breadth_cap=breadth_cap)
 
         # Apply per-path overrides (filter + re-weight) before scoring
         if config.path_overrides:
@@ -959,6 +1003,7 @@ class ScoringPhase:
                 all_findings,
                 config.path_overrides,
                 effective_weights,
+                breadth_cap=breadth_cap,
             )
 
         # Tag findings in deferred areas (still analysed, but flagged)
@@ -987,9 +1032,8 @@ class ScoringPhase:
 
         n_modules = len({f.path.parent.as_posix() for f in files})
         is_small_repo = n_modules < config.thresholds.small_repo_module_threshold
-        scoring_kwargs: dict[str, int] = {}
+        scoring_kwargs: dict[str, int] = {"dampening_k": config.scoring.dampening_k}
         if is_small_repo:
-            scoring_kwargs["dampening_k"] = 20
             scoring_kwargs["min_findings"] = config.thresholds.small_repo_min_findings
 
         signal_scores = self._signal_score_fn(all_findings, **scoring_kwargs)

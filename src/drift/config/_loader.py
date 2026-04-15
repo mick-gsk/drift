@@ -26,6 +26,12 @@ from drift.config._schema import (
     SignalWeights,
     ThresholdsConfig,
 )
+from drift.config._schema import (
+    GradeBandConfig as GradeBandConfig,
+)
+from drift.config._schema import (
+    ScoringConfig as ScoringConfig,
+)
 
 
 def _default_includes() -> list[str]:
@@ -133,6 +139,7 @@ class DriftConfig(BaseModel):
     brief: BriefConfig = Field(default_factory=BriefConfig)
     plugins: PluginConfig = Field(default_factory=PluginConfig)
     dia: DocImplDriftConfig = Field(default_factory=DocImplDriftConfig)
+    scoring: ScoringConfig = Field(default_factory=ScoringConfig)
     calibration: CalibrationConfig = Field(default_factory=CalibrationConfig)
     recommendations: RecommendationsConfig = Field(default_factory=RecommendationsConfig)
     attribution: AttributionConfig = Field(default_factory=AttributionConfig)

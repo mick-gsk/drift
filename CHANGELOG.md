@@ -1,10 +1,11 @@
 ## [2.10.0] - 2026-04-14
 
-Short version: Add verify and interactive init flows, trend JSON output, and fix-plan dismissal support.
+Short version: Add verify and interactive init flows, trend JSON output, fix-plan dismissal support, and configurable scoring thresholds.
 
 ### Added
 
 - Add `drift verify`, `drift init --interactive`, `drift trend --json`, and fix-plan dismissal support for safer agent workflows.
+- **Configurable scoring thresholds (#371)**: `dampening_k`, `breadth_cap`, and `grade_bands` are now tunable via the new `scoring:` section in `drift.yaml`. Optionally blend `auto_calibrate_weights()` output with persisted feedback using `scoring.feedback_blend_alpha` (requires `calibration.enabled: true`). All defaults preserve existing behavior.
 
 ### Changed
 
