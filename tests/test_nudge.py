@@ -893,6 +893,29 @@ class TestBaselineManager:
         )
         assert mgr.has_baseline(tmp_path)
 
+    def test_instance_thread_safety(self) -> None:
+        """instance() must return the same object from concurrent threads (issue #405)."""
+        import threading
+
+        results: list[BaselineManager] = []
+        lock = threading.Lock()
+
+        def get_instance() -> None:
+            inst = BaselineManager.instance()
+            with lock:
+                results.append(inst)
+
+        threads = [threading.Thread(target=get_instance) for _ in range(50)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        unique_ids = {id(i) for i in results}
+        assert len(unique_ids) == 1, (
+            f"Expected exactly one BaselineManager instance, got {len(unique_ids)}"
+        )
+
 
 class TestGitEventInvalidation:
     """Test that BaselineManager detects git-state changes."""
