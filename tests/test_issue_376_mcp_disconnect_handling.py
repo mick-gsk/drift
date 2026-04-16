@@ -25,8 +25,8 @@ class TestRunApiToolAbandonOnCancel:
             called_with["abandon_on_cancel"] = abandon_on_cancel
             return fn()
 
-        with patch("drift.mcp_server._run_sync_in_thread", _fake_run_sync_in_thread):
-            from drift.mcp_server import _run_api_tool
+        with patch("drift.mcp_utils._run_sync_in_thread", _fake_run_sync_in_thread):
+            from drift.mcp_utils import _run_api_tool
             asyncio.run(_run_api_tool("test_tool", lambda: {"ok": True}))
 
         assert called_with.get("abandon_on_cancel") is True, (
@@ -45,17 +45,17 @@ class TestRunApiToolAbandonOnCancel:
                 session_touched.append(True)
 
         async def _task():
-            import drift.mcp_server as ms
+            import drift.mcp_utils as mu
 
             # Simulate: thread callable always raises CancelledError on the async side
             async def _cancelling_run_sync(fn, *, abandon_on_cancel=False):
                 raise asyncio.CancelledError
 
-            with patch("drift.mcp_server._run_sync_in_thread", _cancelling_run_sync):
+            with patch("drift.mcp_utils._run_sync_in_thread", _cancelling_run_sync):
                 # This mimics _run_api_tool raising CancelledError
                 session = _FakeSession()
                 try:
-                    await ms._run_api_tool("drift_scan", lambda: {"score": 0.5})
+                    await mu._run_api_tool("drift_scan", lambda: {"score": 0.5})
                     # If we reach here, mutations would happen:
                     session.last_scan_score = 0.5
                     session.touch()
@@ -101,26 +101,37 @@ class TestDriftFeedbackAndCalibrateAbandonOnCancel:
     """drift_feedback and drift_calibrate must also use abandon_on_cancel=True."""
 
     def _collect_abandon_flag(self, fn_name: str) -> bool | None:
-        """Check that fn_name in mcp_server passes abandon_on_cancel=True to _run_sync_in_thread."""
+        """Check that fn_name (or its router handler) passes abandon_on_cancel=True."""
         import ast
         from pathlib import Path
 
-        src = Path("src/drift/mcp_server.py").read_text(encoding="utf-8")
-        tree = ast.parse(src)
+        # After the mcp_server refactor (#378), tool functions delegate to router
+        # modules. Map the MCP tool name to the handler function in its router.
+        _router_map = {
+            "drift_feedback": ("src/drift/mcp_router_calibration.py", "run_feedback"),
+            "drift_calibrate": ("src/drift/mcp_router_calibration.py", "run_calibrate"),
+        }
 
-        # Find the function definition
-        for node in ast.walk(tree):
-            if isinstance(node, ast.AsyncFunctionDef) and node.name == fn_name:
-                # Look for _run_sync_in_thread calls in the function body
-                for sub in ast.walk(node):
-                    if isinstance(sub, ast.Call):
-                        func = sub.func
-                        if isinstance(func, ast.Name) and func.id == "_run_sync_in_thread":
-                            for kw in sub.keywords:
-                                if kw.arg == "abandon_on_cancel" and isinstance(  # noqa: SIM102
-                                    kw.value, ast.Constant
-                                ):
-                                    return kw.value.value
+        candidates = [("src/drift/mcp_server.py", fn_name)]
+        if fn_name in _router_map:
+            candidates.append(_router_map[fn_name])
+
+        for src_path, search_fn in candidates:
+            src = Path(src_path).read_text(encoding="utf-8")
+            tree = ast.parse(src)
+
+            for node in ast.walk(tree):
+                is_fn = isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef))
+                if is_fn and node.name == search_fn:
+                    for sub in ast.walk(node):
+                        if isinstance(sub, ast.Call):
+                            func = sub.func
+                            if isinstance(func, ast.Name) and func.id == "_run_sync_in_thread":
+                                for kw in sub.keywords:
+                                    if kw.arg == "abandon_on_cancel" and isinstance(  # noqa: SIM102
+                                        kw.value, ast.Constant
+                                    ):
+                                        return kw.value.value
         return None
 
     def test_drift_feedback_uses_abandon_on_cancel_true(self) -> None:
