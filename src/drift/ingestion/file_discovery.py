@@ -223,6 +223,8 @@ def _mtime_fingerprint(
 
         for file_name in files:
             file_path = root_path / file_name
+            if file_path.is_symlink():
+                continue
             rel = file_path.relative_to(repo_path).as_posix()
             if _matches_any_prepared(rel, prepared_exclude):
                 continue
