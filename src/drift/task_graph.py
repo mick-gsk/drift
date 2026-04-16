@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import heapq
+import logging
 import subprocess
 import uuid
 import warnings
@@ -23,6 +24,9 @@ from drift.signal_mapping import signal_abbrev
 
 if TYPE_CHECKING:
     from drift.models import AgentTask
+
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -619,7 +623,15 @@ def _git_cmd(repo_path: str, *args: str) -> str:
             timeout=10,
         )
         return result.stdout.strip() if result.returncode == 0 else ""
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return ""
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Unexpected error running git %s in %r: %s",
+            " ".join(args),
+            repo_path,
+            exc,
+        )
         return ""
 
 
