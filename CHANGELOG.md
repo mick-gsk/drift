@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixed
+
+- **`extends: vibe-coding` crash (#382)**: `_apply_extends` injected `profile.guided_thresholds` as `thresholds.guided`, but `ThresholdsConfig` has `extra="forbid"` and no `guided` field, causing `DriftConfigError [DRIFT-1001]`. Fix promotes `guided_thresholds` to a first-class `GuidedThresholds | None` field on `DriftConfig`; `_apply_extends` now sets it at the top level. All profiles with non-empty `guided_thresholds` (currently: `vibe-coding`) are now usable via `extends:`.
+
 ## [2.10.0] - 2026-04-14
 
 Short version: Add verify and interactive init flows, trend JSON output, fix-plan dismissal support, and configurable scoring thresholds.

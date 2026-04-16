@@ -692,3 +692,28 @@ class ScoringConfig(BaseModel):
             "data exists at ``calibration.feedback_path``."
         ),
     )
+
+
+class GuidedThresholds(BaseModel):
+    """Score band thresholds for guided-mode traffic light (green / yellow / red).
+
+    These thresholds determine how the composite drift score maps to a
+    traffic-light status in ``drift status`` / guided mode.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    green_max: float = Field(
+        default=0.35,
+        ge=0.0,
+        le=1.0,
+        description="Scores at or below this value are shown as green (healthy).",
+    )
+    yellow_max: float = Field(
+        default=0.65,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Scores above green_max and at or below this value are shown as yellow (caution)."
+        ),
+    )

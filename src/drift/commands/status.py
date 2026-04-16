@@ -82,7 +82,11 @@ def status(
     except KeyError:
         prof = get_profile("vibe-coding")
 
-    thresholds = prof.guided_thresholds if prof.guided_thresholds else None
+    # cfg.guided_thresholds takes precedence (set via `extends:` profile or explicit config)
+    if cfg.guided_thresholds is not None:
+        thresholds = cfg.guided_thresholds.model_dump()
+    else:
+        thresholds = prof.guided_thresholds if prof.guided_thresholds else None
     language = cfg.language or prof.output_language or "en"
 
     # --- Run analysis (reuses existing engine) ---

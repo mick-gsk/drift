@@ -189,7 +189,8 @@ def test_patterns_and_status_commands(monkeypatch, tmp_path: Path) -> None:
     analysis.pattern_catalog = {_Cat("logging"): [pi]}
 
     monkeypatch.setattr(
-        "drift.config.DriftConfig.load", lambda *_a, **_k: SimpleNamespace(language="de")
+        "drift.config.DriftConfig.load",
+        lambda *_a, **_k: SimpleNamespace(language="de", guided_thresholds=None),
     )
     monkeypatch.setattr("drift.analyzer.analyze_repo", lambda *_a, **_k: analysis)
 

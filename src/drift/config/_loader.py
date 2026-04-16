@@ -17,6 +17,7 @@ from drift.config._schema import (
     DeferredArea,
     DocImplDriftConfig,
     FindingContextPolicy,
+    GuidedThresholds,
     LanguagesConfig,
     PathOverride,
     PerformanceConfig,
@@ -91,6 +92,13 @@ class DriftConfig(BaseModel):
     policies: PolicyConfig = Field(default_factory=PolicyConfig)
     weights: SignalWeights = Field(default_factory=SignalWeights)
     thresholds: ThresholdsConfig = Field(default_factory=ThresholdsConfig)
+    guided_thresholds: GuidedThresholds | None = Field(
+        default=None,
+        description=(
+            "Score band thresholds for guided-mode traffic light. "
+            "When set via 'extends:', the profile's guided thresholds are applied automatically."
+        ),
+    )
     cache_dir: str = ".drift-cache"
     test_file_handling: str | None = Field(
         default=None,
@@ -276,8 +284,7 @@ class DriftConfig(BaseModel):
         if profile.policies:
             base["policies"] = dict(profile.policies)
         if profile.guided_thresholds:
-            base.setdefault("thresholds", {})
-            base["thresholds"]["guided"] = dict(profile.guided_thresholds)
+            base["guided_thresholds"] = dict(profile.guided_thresholds)
 
         # Deep-merge: user data wins over preset base
         for key, value in data.items():

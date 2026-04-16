@@ -45,6 +45,9 @@ from drift.config._schema import (
     GradeBandConfig as GradeBandConfig,
 )
 from drift.config._schema import (
+    GuidedThresholds as GuidedThresholds,
+)
+from drift.config._schema import (
     LanguagesConfig as LanguagesConfig,
 )
 from drift.config._schema import (
@@ -99,6 +102,7 @@ __all__ = [
     "FindingContextRule",
     "FindingContextPolicy",
     "GradeBandConfig",
+    "GuidedThresholds",
     "AgentEffectivenessThresholds",
     "AgentObjective",
     "BriefConfig",
