@@ -93,9 +93,10 @@ def get_active_dismissals(
     now: datetime | None = None,
 ) -> list[dict[str, str]]:
     now_utc = now.astimezone(UTC) if now else _utcnow()
+    entries = _read_entries(repo_path, cache_dir)
     active: list[dict[str, str]] = []
 
-    for entry in _read_entries(repo_path, cache_dir):
+    for entry in entries:
         expires = _parse_iso8601(entry.get("expires_at"))
         if expires is None:
             continue
@@ -103,8 +104,10 @@ def get_active_dismissals(
             continue
         active.append(entry)
 
-    # Keep storage self-cleaning by dropping expired/invalid entries.
-    _write_entries(repo_path, active, cache_dir)
+    # Keep storage self-cleaning by dropping expired/invalid entries —
+    # but only write back when entries were actually removed.
+    if len(active) != len(entries):
+        _write_entries(repo_path, active, cache_dir)
     return active
 
 
