@@ -15,6 +15,7 @@
 - **`_task_graph_topological_sort` O(n²) and non-determinism (#391)**: Replaced `queue.sort()` + `list.pop(0)` (O(n² log n)) with `heapq` (O(n log n)). Initial queue is now `sorted(…)` + `heapify`, children are iterated in sorted order, so `execution_phases` is identical for the same task set regardless of the input list order.
 - **`extends: vibe-coding` crash (#382)**: `_apply_extends` injected `profile.guided_thresholds` as `thresholds.guided`, but `ThresholdsConfig` has `extra="forbid"` and no `guided` field, causing `DriftConfigError [DRIFT-1001]`. Fix promotes `guided_thresholds` to a first-class `GuidedThresholds | None` field on `DriftConfig`; `_apply_extends` now sets it at the top level. All profiles with non-empty `guided_thresholds` (currently: `vibe-coding`) are now usable via `extends:`.
 - **Symlink mtime included in cache fingerprint but excluded from file discovery (#399)**: `_mtime_fingerprint()` now skips symbolic links (adds `if file_path.is_symlink(): continue`) to match `discover_files()`. Prevents spurious full re-discovery on repositories with symlinked source files (e.g. monorepos).
+- **`_finding_key` ignores finding content — changed findings silently treated as stable (#409)**: `_finding_key()` in `incremental.py` now includes 8-character SHA-1 hashes of `description` and `fix` in the key. Findings at the same location whose `description` or `fix` changed now correctly appear as resolved + new in `IncrementalResult` instead of being silently classified as stable.
 
 ## [2.10.1] - 2026-04-14
 

@@ -279,6 +279,54 @@ class TestFindingKey:
         key = _finding_key(f)
         assert "::" in key  # still produces a valid key
 
+    def test_different_description_produces_different_key(self) -> None:
+        """Regression test for issue #409: changed description must yield a different key."""
+        f1 = Finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.HIGH,
+            score=0.5,
+            title="Fragment",
+            description="old desc",
+            file_path=Path("src/foo.py"),
+            start_line=10,
+            fix="fix",
+        )
+        f2 = Finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.HIGH,
+            score=0.5,
+            title="Fragment",
+            description="new desc — signal was improved",
+            file_path=Path("src/foo.py"),
+            start_line=10,
+            fix="fix",
+        )
+        assert _finding_key(f1) != _finding_key(f2)
+
+    def test_different_fix_produces_different_key(self) -> None:
+        """Regression test for issue #409: changed fix must yield a different key."""
+        f1 = Finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.HIGH,
+            score=0.5,
+            title="Fragment",
+            description="desc",
+            file_path=Path("src/foo.py"),
+            start_line=10,
+            fix="old fix",
+        )
+        f2 = Finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.HIGH,
+            score=0.5,
+            title="Fragment",
+            description="desc",
+            file_path=Path("src/foo.py"),
+            start_line=10,
+            fix="new fix",
+        )
+        assert _finding_key(f1) != _finding_key(f2)
+
 
 # ---------------------------------------------------------------------------
 # Phase 3 — IncrementalResult
