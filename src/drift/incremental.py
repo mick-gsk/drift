@@ -767,7 +767,7 @@ class IncrementalSignalRunner:
                     cls.__name__,
                     type(exc).__name__,
                     exc,
-                    exc_info=logger.isEnabledFor(logging.DEBUG),
+                    exc_info=True,
                 )
 
         # 4. Carry forward non-file-local findings from baseline
