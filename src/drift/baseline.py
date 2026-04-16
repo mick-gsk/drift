@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,8 @@ from typing import Any
 from drift import __version__
 from drift.models import Finding, RepoAnalysis
 from drift.response_shaping import build_drift_score_scope
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Finding fingerprint
@@ -79,6 +82,15 @@ def load_baseline(path: Path) -> set[str]:
     if not isinstance(data, dict) or "findings" not in data:
         msg = f"Invalid baseline file: {path}"
         raise ValueError(msg)
+    stored_version = data.get("drift_version")
+    if stored_version and stored_version != __version__:
+        logger.warning(
+            "Baseline was created with drift %s but running drift %s. "
+            "Fingerprints may not match — consider regenerating the baseline "
+            "with 'drift baseline save'.",
+            stored_version,
+            __version__,
+        )
     return {entry["fingerprint"] for entry in data["findings"]}
 
 
