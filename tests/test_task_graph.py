@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Any
 
 import pytest
@@ -13,6 +14,7 @@ from drift.api_helpers import (
     shape_for_profile,
 )
 from drift.models import AgentTask, Severity, SignalType
+from drift.task_graph import _task_graph_critical_path
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -238,8 +240,42 @@ class TestTopologicalSortDeterminism:
 
 
 # ---------------------------------------------------------------------------
-# Batch groups
+# Critical-path edge cases (issue #393)
 # ---------------------------------------------------------------------------
+
+
+class TestCriticalPathEdgeCases:
+    """Regression tests for _task_graph_critical_path(): empty input and tie-breaking."""
+
+    def test_empty_sorted_ids_returns_empty_list(self) -> None:
+        result = _task_graph_critical_path([], defaultdict(list), set())
+        assert result == []
+
+    def test_tie_breaking_is_deterministic_lexicographic(self) -> None:
+        """Two independent tasks with equal dist: lexicographically smallest wins."""
+        children: dict = defaultdict(list)
+        task_ids = {"task-a", "task-b"}
+
+        path_a = _task_graph_critical_path(["task-b", "task-a"], children, task_ids)
+        path_b = _task_graph_critical_path(["task-a", "task-b"], children, task_ids)
+
+        assert path_a == path_b
+        assert path_a == ["task-a"]
+
+    def test_tie_breaking_prefers_smallest_id(self) -> None:
+        """Three independent tasks: lexicographically smallest end_node selected."""
+        children: dict = defaultdict(list)
+        task_ids = {"z", "a", "m"}
+        result = _task_graph_critical_path(["z", "m", "a"], children, task_ids)
+        assert result == ["a"]
+
+    def test_build_task_graph_empty_critical_path(self) -> None:
+        """build_task_graph([]) must still return critical_path == []."""
+        g = build_task_graph([])
+        assert g.critical_path == []
+
+
+
 
 
 class TestBatchGroups:

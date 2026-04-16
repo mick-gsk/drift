@@ -386,6 +386,9 @@ def _task_graph_critical_path(
     task_ids: set[str],
 ) -> list[str]:
     """Compute the longest dependency path in the DAG."""
+    if not sorted_ids:
+        return []
+
     dist: dict[str, float] = {task_id: 0.0 for task_id in sorted_ids}
     pred: dict[str, str | None] = {task_id: None for task_id in sorted_ids}
     for task_id in sorted_ids:
@@ -396,7 +399,8 @@ def _task_graph_critical_path(
                     dist[child] = new_dist
                     pred[child] = task_id
 
-    end_node = max(sorted_ids, key=lambda task_id: dist[task_id])
+    max_dist = max(dist[tid] for tid in sorted_ids)
+    end_node = min(tid for tid in sorted_ids if dist[tid] == max_dist)
     critical: list[str] = []
     current: str | None = end_node
     while current is not None:
