@@ -79,3 +79,40 @@ class TestQualityDriftFromHistory:
         assert qd is not None
         # Compares last two: 45→48, degrading
         assert qd.direction == "degrading"
+
+    def test_missing_score_in_prev_raises_valueerror(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="run_history\\[0\\].*score"):
+            quality_drift_from_history([
+                {"finding_count": 5},
+                {"score": 38.0, "finding_count": 5},
+            ])
+
+    def test_missing_finding_count_in_prev_raises_valueerror(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="run_history\\[0\\].*finding_count"):
+            quality_drift_from_history([
+                {"score": 42.0},
+                {"score": 38.0, "finding_count": 5},
+            ])
+
+    def test_missing_score_in_curr_raises_valueerror(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="run_history\\[1\\].*score"):
+            quality_drift_from_history([
+                {"score": 42.0, "finding_count": 3},
+                {"finding_count": 5},
+            ])
+
+    def test_error_message_names_missing_keys(self):
+        import pytest
+
+        with pytest.raises(ValueError, match="finding_count") as exc_info:
+            quality_drift_from_history([
+                {"score": 42.0},
+                {"score": 38.0, "finding_count": 5},
+            ])
+        assert "run_history[0]" in str(exc_info.value)

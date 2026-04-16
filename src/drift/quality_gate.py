@@ -98,6 +98,13 @@ def quality_drift_from_history(
         return None
     prev = run_history[-2]
     curr = run_history[-1]
+    required = ("score", "finding_count")
+    for idx, entry in ((len(run_history) - 2, prev), (len(run_history) - 1, curr)):
+        missing = [k for k in required if k not in entry]
+        if missing:
+            raise ValueError(
+                f"run_history[{idx}] is missing required keys: {missing!r}"
+            )
     return compare_runs(
         RunSnapshot(
             score=prev["score"],
