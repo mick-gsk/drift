@@ -330,7 +330,8 @@ def test_record_outcome_regressing_appends(tmp_path: Path, seed_file: Path):
     assert rec["direction"] == "regressing"
 
 
-def test_record_outcome_stable_not_recorded(tmp_path: Path, seed_file: Path):
+def test_record_outcome_stable_is_recorded(tmp_path: Path, seed_file: Path):
+    """stable outcomes must be persisted so stable_count survives a reload (#380)."""
     outcomes = tmp_path / "outcomes.jsonl"
     r = RepairTemplateRegistry()
     r.load(seed_path=seed_file, outcomes_path=outcomes)
@@ -344,8 +345,35 @@ def test_record_outcome_stable_not_recorded(tmp_path: Path, seed_file: Path):
         outcomes_path=outcomes,
     )
 
-    # File must NOT be created (stable is silently ignored)
-    assert not outcomes.exists()
+    assert outcomes.exists()
+    rec = json.loads(outcomes.read_text(encoding="utf-8").strip())
+    assert rec["direction"] == "stable"
+
+
+def test_stable_count_persists_after_reload(tmp_path: Path, seed_file: Path):
+    """Regression test for #380: stable_count must not reset to 0 after reload."""
+    outcomes = tmp_path / "outcomes.jsonl"
+    r = RepairTemplateRegistry()
+    r.load(seed_path=seed_file, outcomes_path=outcomes)
+
+    r.record_outcome(
+        signal="pattern_fragmentation",
+        edit_kind="normalize_pattern",
+        context_class="production",
+        direction="stable",
+        outcomes_path=outcomes,
+    )
+
+    entry_before = r.lookup("pattern_fragmentation", "normalize_pattern", "production")
+    assert entry_before is not None
+    assert entry_before.stable_count == 1
+
+    # Reload from disk — stable_count must survive
+    r2 = RepairTemplateRegistry()
+    r2.load(seed_path=seed_file, outcomes_path=outcomes)
+    entry_after = r2.lookup("pattern_fragmentation", "normalize_pattern", "production")
+    assert entry_after is not None
+    assert entry_after.stable_count == 1
 
 
 def test_record_outcome_updates_in_memory(tmp_path: Path, seed_file: Path):

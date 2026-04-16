@@ -292,14 +292,14 @@ class RepairTemplateRegistry:
     ) -> None:
         """Append one outcome record to outcomes.jsonl and update in-memory state.
 
-        Only ``improving`` and ``regressing`` directions are recorded.
-        ``stable`` and ``unknown`` are silently ignored (too ambiguous for
-        template confidence computation).
+        ``improving``, ``regressing``, and ``stable`` directions are recorded.
+        ``unknown`` is silently ignored (too ambiguous for template confidence
+        computation).
 
         Failures are swallowed silently so that a write error never blocks
         the agent fix-loop.
         """
-        if direction not in ("improving", "regressing"):
+        if direction not in ("improving", "regressing", "stable"):
             return
 
         outcomes = outcomes_path or _DEFAULT_OUTCOMES_PATH
