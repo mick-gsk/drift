@@ -19,6 +19,10 @@ class _FakeSession:
         self.completed_task_ids = ["done-1"]
         self.trace = [{"tool": "scan"}]
         self.phase = "fixing"
+        self._async_lock = asyncio.Lock()
+
+    def get_async_lock(self):
+        return self._async_lock
 
     def summary(self):
         return {"session_id": "sid", "tool_calls": 2, "duration_seconds": 12}
@@ -210,7 +214,7 @@ def test_drift_map_success_and_error(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(mcp_server, "_resolve_session", lambda _sid: None)
     monkeypatch.setattr(mcp_server, "_session_defaults", lambda _s, d: d)
 
-    async def _ok(fn):
+    async def _ok(fn, **_kwargs):
         return fn()
 
     monkeypatch.setattr(mcp_server, "_run_sync_in_thread", _ok)
@@ -231,7 +235,7 @@ def test_feedback_and_calibrate(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     monkeypatch.setattr(mcp_server, "_resolve_session", lambda _sid: None)
     monkeypatch.setattr(mcp_server, "_enrich_response_with_session", lambda raw, *_a, **_k: raw)
 
-    async def _ok(fn):
+    async def _ok(fn, **_kwargs):
         return fn()
 
     monkeypatch.setattr(mcp_server, "_run_sync_in_thread", _ok)

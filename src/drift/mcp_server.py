@@ -700,24 +700,25 @@ async def drift_scan(
     })
 
     try:
-        raw = await _run_api_tool(
-            "drift_scan",
-            scan,
-            path=kwargs["path"],
-            target_path=kwargs["target_path"],
-            since_days=since_days,
-            signals=kwargs["signals"],
-            exclude_signals=kwargs["exclude_signals"],
-            max_findings=max_findings,
-            max_per_signal=max_per_signal,
-            response_detail=response_detail,
-            include_non_operational=include_non_operational,
-            response_profile=response_profile,
-        )
-        if session:
-            with contextlib.suppress(json.JSONDecodeError, TypeError):
-                _update_session_from_scan(session, json.loads(raw))
-        return _enrich_response_with_session(raw, session, "drift_scan")
+        async with session_call_lock(session):
+            raw = await _run_api_tool(
+                "drift_scan",
+                scan,
+                path=kwargs["path"],
+                target_path=kwargs["target_path"],
+                since_days=since_days,
+                signals=kwargs["signals"],
+                exclude_signals=kwargs["exclude_signals"],
+                max_findings=max_findings,
+                max_per_signal=max_per_signal,
+                response_detail=response_detail,
+                include_non_operational=include_non_operational,
+                response_profile=response_profile,
+            )
+            if session:
+                with contextlib.suppress(json.JSONDecodeError, TypeError):
+                    _update_session_from_scan(session, json.loads(raw))
+            return _enrich_response_with_session(raw, session, "drift_scan")
     except Exception as exc:
         from drift.api_helpers import _error_response
 
@@ -852,23 +853,24 @@ async def drift_diff(
     if bl_file is None and session and session.baseline_file:
         bl_file = session.baseline_file
 
-    raw = await _run_api_tool(
-        "drift_diff",
-        diff,
-        path=kwargs["path"],
-        diff_ref=diff_ref,
-        uncommitted=uncommitted,
-        staged_only=staged_only,
-        baseline_file=bl_file,
-        max_findings=max_findings,
-        response_detail=response_detail,
-        signals=kwargs["signals"],
-        exclude_signals=kwargs["exclude_signals"],
-        response_profile=response_profile,
-    )
-    if session:
-        with contextlib.suppress(json.JSONDecodeError, TypeError):
-            _update_session_from_diff(session, json.loads(raw))
+    async with session_call_lock(session):
+        raw = await _run_api_tool(
+            "drift_diff",
+            diff,
+            path=kwargs["path"],
+            diff_ref=diff_ref,
+            uncommitted=uncommitted,
+            staged_only=staged_only,
+            baseline_file=bl_file,
+            max_findings=max_findings,
+            response_detail=response_detail,
+            signals=kwargs["signals"],
+            exclude_signals=kwargs["exclude_signals"],
+            response_profile=response_profile,
+        )
+        if session:
+            with contextlib.suppress(json.JSONDecodeError, TypeError):
+                _update_session_from_diff(session, json.loads(raw))
     with contextlib.suppress(json.JSONDecodeError, TypeError):
         parsed = json.loads(raw)
         if isinstance(parsed, dict):
@@ -1050,13 +1052,14 @@ async def drift_fix_plan(
         include_non_operational=include_non_operational,
         response_profile=response_profile,
     ):
-        cached_result = _session_fix_plan_fast_response(session, max_tasks=max_tasks)
-        _update_session_from_fix_plan(session, cached_result)
-        return _enrich_response_with_session(
-            json.dumps(cached_result, default=str),
-            session,
-            "drift_fix_plan",
-        )
+        async with session_call_lock(session):
+            cached_result = _session_fix_plan_fast_response(session, max_tasks=max_tasks)
+            _update_session_from_fix_plan(session, cached_result)
+            return _enrich_response_with_session(
+                json.dumps(cached_result, default=str),
+                session,
+                "drift_fix_plan",
+            )
 
     kwargs = _session_defaults(session, {
         "path": path,
@@ -1065,23 +1068,24 @@ async def drift_fix_plan(
         "exclude_signals": None,
     })
 
-    raw = await _run_api_tool(
-        "drift_fix_plan",
-        fix_plan,
-        path=kwargs["path"],
-        signal=signal,
-        max_tasks=max_tasks,
-        automation_fit_min=automation_fit_min,
-        target_path=kwargs["target_path"],
-        exclude_paths=parsed_exclude_paths,
-        include_deferred=include_deferred,
-        include_non_operational=include_non_operational,
-        response_profile=response_profile,
-    )
-    if session:
-        with contextlib.suppress(json.JSONDecodeError, TypeError):
-            _update_session_from_fix_plan(session, json.loads(raw))
-    return _enrich_response_with_session(raw, session, "drift_fix_plan")
+    async with session_call_lock(session):
+        raw = await _run_api_tool(
+            "drift_fix_plan",
+            fix_plan,
+            path=kwargs["path"],
+            signal=signal,
+            max_tasks=max_tasks,
+            automation_fit_min=automation_fit_min,
+            target_path=kwargs["target_path"],
+            exclude_paths=parsed_exclude_paths,
+            include_deferred=include_deferred,
+            include_non_operational=include_non_operational,
+            response_profile=response_profile,
+        )
+        if session:
+            with contextlib.suppress(json.JSONDecodeError, TypeError):
+                _update_session_from_fix_plan(session, json.loads(raw))
+        return _enrich_response_with_session(raw, session, "drift_fix_plan")
 
 
 @mcp.tool()
@@ -1287,15 +1291,16 @@ async def drift_nudge(
         task_edit_kind=task_edit_kind,
         task_context_class=task_context_class,
     )
-    if session:
-        try:
-            result = json.loads(raw)
-            score = result.get("score")
-            if score is not None:
-                session.last_scan_score = score
-        except (json.JSONDecodeError, TypeError):
-            pass
-        session.touch()
+    async with session_call_lock(session):
+        if session:
+            try:
+                result = json.loads(raw)
+                score = result.get("score")
+                if score is not None:
+                    session.last_scan_score = score
+            except (json.JSONDecodeError, TypeError):
+                pass
+            session.touch()
     with contextlib.suppress(json.JSONDecodeError, TypeError):
         parsed = json.loads(raw)
         if isinstance(parsed, dict):
@@ -1596,10 +1601,11 @@ async def drift_brief(
             return json.dumps(error, default=str)
 
     payload: str = await asyncio.to_thread(_sync)
-    if session:
-        with contextlib.suppress(json.JSONDecodeError, TypeError):
-            _update_session_from_brief(session, json.loads(payload))
-    return _enrich_response_with_session(payload, session)
+    async with session_call_lock(session):
+        if session:
+            with contextlib.suppress(json.JSONDecodeError, TypeError):
+                _update_session_from_brief(session, json.loads(payload))
+        return _enrich_response_with_session(payload, session)
 
 
 @mcp.tool()
@@ -1777,6 +1783,7 @@ from drift.mcp_orchestration import (  # noqa: E402
     _update_session_from_fix_plan,
     _update_session_from_scan,
     _update_session_from_verification_result,  # noqa: F401
+    session_call_lock,
 )
 
 # Keep legacy re-exports visible to static analyzers and test imports.
@@ -2175,9 +2182,10 @@ async def drift_session_update(
 
     if mark_tasks_complete:
         task_ids = _parse_csv_ids(mark_tasks_complete) or []
-        existing = list(session.completed_task_ids)
-        existing.extend(tid for tid in task_ids if tid not in existing)
-        updates["completed_task_ids"] = existing
+        async with session_call_lock(session):
+            existing = list(session.completed_task_ids)
+            existing.extend(tid for tid in task_ids if tid not in existing)
+            updates["completed_task_ids"] = existing
 
     if updates:
         mgr.update(session_id, **updates)

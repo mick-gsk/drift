@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from drift.mcp_orchestration import (
@@ -49,6 +50,13 @@ class _FakeSession:
 
     def begin_call(self) -> None:
         pass
+
+    def get_async_lock(self) -> asyncio.Lock:
+        lock: asyncio.Lock | None = getattr(self, "_async_lock", None)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._async_lock: asyncio.Lock = lock
+        return lock
 
     def touch(self) -> None:
         pass

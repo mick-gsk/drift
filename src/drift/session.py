@@ -20,6 +20,7 @@ Decision: ADR-022
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import threading
@@ -335,6 +336,23 @@ class DriftSession:
         if self.target_path:
             parts.append(f"path={self.target_path}")
         return "; ".join(parts) if parts else "all"
+
+    def get_async_lock(self) -> "asyncio.Lock":
+        """Return the per-session asyncio.Lock, creating it on first call.
+
+        The lock serialises concurrent tool calls on the same session_id so
+        that state mutations (phase advances, score writes, trace appends) are
+        never interleaved across in-flight async coroutines.
+
+        The instance is stored as a plain attribute (not a dataclass field) to
+        avoid asyncio.Lock being created outside an event loop on older Python
+        versions, and to keep ``__repr__``/``__eq__`` clean.
+        """
+        lock: asyncio.Lock | None = getattr(self, "_async_lock_instance", None)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._async_lock_instance: asyncio.Lock = lock
+        return lock
 
     def advance_phase(self, new_phase: str) -> str:
         """Advance to a new workflow phase and return the previous phase."""

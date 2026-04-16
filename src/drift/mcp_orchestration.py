@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,32 @@ def _resolve_session(session_id: str | None) -> Any:
     if session is not None:
         session.begin_call()
     return session
+
+
+@asynccontextmanager
+async def session_call_lock(session: Any):
+    """Async context manager that serialises state mutations for one session.
+
+    Acquires the per-session ``asyncio.Lock`` before yielding so that
+    concurrent tool calls on the same ``session_id`` cannot interleave
+    writes to shared fields such as ``last_scan_score``, ``phase``,
+    ``selected_tasks``, ``trace``, and ``completed_task_ids``.
+
+    Usage in MCP tool handlers::
+
+        async with session_call_lock(session):
+            raw = await _run_api_tool(...)
+            _update_session_from_xxx(session, json.loads(raw))
+            return _enrich_response_with_session(raw, session, ...)
+
+    When *session* is ``None`` the context manager is a no-op so callers
+    need not branch on the session being present.
+    """
+    if session is None:
+        yield
+        return
+    async with session.get_async_lock():
+        yield
 
 
 def _session_defaults(session: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
