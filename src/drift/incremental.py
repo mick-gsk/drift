@@ -156,9 +156,11 @@ def _direction_for_delta(delta: float) -> Literal["improving", "stable", "degrad
 
 
 def _finding_key(f: Finding) -> str:
-    """Deterministic identity key for a finding (signal + file + location)."""
+    """Deterministic identity key for a finding (signal + file + location + content)."""
     fp = f.file_path.as_posix() if f.file_path else ""
-    return f"{f.signal_type}::{fp}::{f.start_line}::{f.title}"
+    desc_hash = hashlib.sha1((f.description or "").encode()).hexdigest()[:8]
+    fix_hash = hashlib.sha1((f.fix or "").encode()).hexdigest()[:8]
+    return f"{f.signal_type}::{fp}::{f.start_line}::{f.title}::{desc_hash}::{fix_hash}"
 
 
 # ---------------------------------------------------------------------------
