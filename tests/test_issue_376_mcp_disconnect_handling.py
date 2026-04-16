@@ -117,9 +117,10 @@ class TestDriftFeedbackAndCalibrateAbandonOnCancel:
                         func = sub.func
                         if isinstance(func, ast.Name) and func.id == "_run_sync_in_thread":
                             for kw in sub.keywords:
-                                if kw.arg == "abandon_on_cancel":
-                                    if isinstance(kw.value, ast.Constant):
-                                        return kw.value.value
+                                if kw.arg == "abandon_on_cancel" and isinstance(  # noqa: SIM102
+                                    kw.value, ast.Constant
+                                ):
+                                    return kw.value.value
         return None
 
     def test_drift_feedback_uses_abandon_on_cancel_true(self) -> None:

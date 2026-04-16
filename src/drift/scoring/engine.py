@@ -217,7 +217,7 @@ _GRADE_BANDS: tuple[tuple[float, str, str], ...] = (
 def score_to_grade(
     score: float,
     *,
-    grade_bands: "list | None" = None,
+    grade_bands: list | None = None,
 ) -> tuple[str, str]:
     """Map a 0.0–1.0 drift score to a letter grade with description.
 

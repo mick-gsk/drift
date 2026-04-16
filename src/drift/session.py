@@ -337,7 +337,7 @@ class DriftSession:
             parts.append(f"path={self.target_path}")
         return "; ".join(parts) if parts else "all"
 
-    def get_async_lock(self) -> "asyncio.Lock":
+    def get_async_lock(self) -> asyncio.Lock:
         """Return the per-session asyncio.Lock, creating it on first call.
 
         The lock serialises concurrent tool calls on the same session_id so

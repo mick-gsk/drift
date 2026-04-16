@@ -40,10 +40,12 @@ def test_signal_crash_surfaces_warning(tmp_path: Path, fixture) -> None:
         broken.analyze.side_effect = boom
         return [broken] + real_signals
 
-    with patch.object(precision_mod, "create_signals", side_effect=patched_create):
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            findings, analyzer_warnings = run_fixture(fixture, tmp_path)
+    with (
+        patch.object(precision_mod, "create_signals", side_effect=patched_create),
+        warnings.catch_warnings(record=True) as caught,
+    ):
+        warnings.simplefilter("always")
+        findings, analyzer_warnings = run_fixture(fixture, tmp_path)
 
     runtime_warnings = [w for w in caught if issubclass(w.category, RuntimeWarning)]
     assert runtime_warnings, "Expected a RuntimeWarning for the crashing signal"

@@ -143,9 +143,9 @@ def _context_score(
     ownership_score = min(1.0, authors / 5.0)
 
     if last_modified is not None:
-        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        now = datetime.datetime.now(tz=datetime.UTC)
         if last_modified.tzinfo is None:
-            last_modified = last_modified.replace(tzinfo=datetime.timezone.utc)
+            last_modified = last_modified.replace(tzinfo=datetime.UTC)
         days_since = max(0.0, (now - last_modified).total_seconds() / 86400.0)
         recency_score = max(0.0, 1.0 - days_since / 365.0)
     else:
@@ -174,8 +174,8 @@ def _composite_sort_key(
 
     # Use the string .value to stay robust against fake/duck-typed severity objects.
     severity_str = getattr(finding.severity, "value", str(finding.severity)).lower()
-    _SRANK_STR = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
-    srank = _SRANK_STR.get(severity_str, 4)
+    _srank_str = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    srank = _srank_str.get(severity_str, 4)
 
     return (
         _priority_rank(pclass),
