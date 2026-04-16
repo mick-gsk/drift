@@ -170,13 +170,22 @@ def load_external_report(path: Path, fmt: str) -> list[Finding]:
     Raises
     ------
     ValueError
-        If the format is unsupported.
+        If the format is unsupported or the file is not valid UTF-8.
+    OSError
+        If the file cannot be read (missing, permission denied, etc.).
     json.JSONDecodeError
         If the file is not valid JSON.
     """
     if fmt not in _ADAPTERS:
         raise ValueError(f"Unsupported format '{fmt}'. Supported: {', '.join(SUPPORTED_FORMATS)}")
-    raw = path.read_text(encoding="utf-8")
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(
+            f"Cannot read '{path}': file is not valid UTF-8. Re-export as UTF-8."
+        ) from exc
+    except OSError as exc:
+        raise OSError(f"Cannot read '{path}': {exc}") from exc
     data = json.loads(raw)
     adapter = _ADAPTERS[fmt]
     result: list[Finding] = adapter(data)

@@ -174,6 +174,22 @@ class TestLoadExternalReport:
         assert "pylint" in SUPPORTED_FORMATS
         assert "codeclimate" in SUPPORTED_FORMATS
 
+    def test_non_utf8_file_raises_value_error(self, tmp_path: Path) -> None:
+        report = tmp_path / "report_utf16.json"
+        data = {
+            "issues": [
+                {"component": "proj:src/main.py", "rule": "python:S1234", "severity": "MAJOR", "message": "test"},  # noqa: E501
+            ]
+        }
+        report.write_bytes(json.dumps(data).encode("utf-16"))
+        with pytest.raises(ValueError, match="not valid UTF-8"):
+            load_external_report(report, "sonarqube")
+
+    def test_missing_file_raises_oserror(self, tmp_path: Path) -> None:
+        missing = tmp_path / "does_not_exist.json"
+        with pytest.raises(OSError):
+            load_external_report(missing, "sonarqube")
+
 
 # ---------------------------------------------------------------------------
 # CLI integration tests
