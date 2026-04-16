@@ -261,6 +261,7 @@ class BaselineManager:
     """
 
     _instance: ClassVar[BaselineManager | None] = None
+    _instance_lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self) -> None:
         self._store: dict[
@@ -273,15 +274,22 @@ class BaselineManager:
 
     @classmethod
     def instance(cls) -> BaselineManager:
-        """Return the module-level singleton (created on first call)."""
+        """Return the module-level singleton (created on first call).
+
+        Thread-safe via double-checked locking; safe under Python 3.13+
+        free-threaded mode (PEP 703, PYTHON_GIL=0).
+        """
         if cls._instance is None:
-            cls._instance = cls()
+            with cls._instance_lock:
+                if cls._instance is None:
+                    cls._instance = cls()
         return cls._instance
 
     @classmethod
     def reset_instance(cls) -> None:
         """Destroy the singleton (for testing only)."""
-        cls._instance = None
+        with cls._instance_lock:
+            cls._instance = None
 
     # -- public API ----------------------------------------------------------
 
