@@ -620,7 +620,6 @@ class IngestionPhase:
             if git_future is not None:
                 commits, file_histories, git_seconds, git_error = git_future.result()
                 if git_error is not None:
-                    exc = git_error
                     logging.getLogger("drift").warning(
                         "Git history fetch failed; continuing without history.",
                         exc_info=True,
@@ -634,7 +633,7 @@ class IngestionPhase:
                             message=(
                                 "Git history parsing failed; temporal/git-based context omitted."
                             ),
-                            details={"error": str(exc)},
+                            details={"error": str(git_error)},
                         ),
                     )
             else:

@@ -11,6 +11,7 @@ import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -83,6 +84,7 @@ def status(
         prof = get_profile("vibe-coding")
 
     # cfg.guided_thresholds takes precedence (set via `extends:` profile or explicit config)
+    thresholds: dict[str, Any] | None
     if cfg.guided_thresholds is not None:
         thresholds = cfg.guided_thresholds.model_dump()
     else:
