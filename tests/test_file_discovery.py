@@ -16,6 +16,7 @@ import pytest
 
 from drift.ingestion.file_discovery import (
     _matches_any,
+    _mtime_fingerprint,
     _prepare_patterns,
     detect_language,
     discover_files,
@@ -331,3 +332,60 @@ class TestDiscoverFiles:
         (tmp_path / "b.py").write_text("y = 2")
         second = discover_files(tmp_path, cache_dir=".drift-cache")
         assert {f.path.as_posix() for f in second} == {"a.py", "b.py"}
+
+
+class TestMtimeFingerprint:
+    """_mtime_fingerprint must mirror the symlink-skip logic of discover_files."""
+
+    def test_symlink_excluded_from_fingerprint(self, tmp_path):
+        """A symlink to a .py file must not affect the fingerprint."""
+        real = tmp_path / "real.py"
+        real.write_text("x = 1", encoding="utf-8")
+        link = tmp_path / "link.py"
+        try:
+            link.symlink_to(real)
+        except (OSError, NotImplementedError):
+            pytest.skip(
+                "Symlink creation not available in this environment"
+                " (requires elevated privileges on Windows)"
+            )
+
+        fp_without = _mtime_fingerprint(tmp_path, ["**/*.py"], (), {"python"})
+
+        import os
+
+        os.utime(
+            link,
+            ns=(link.lstat().st_atime_ns + 1, link.lstat().st_mtime_ns + 1),
+            follow_symlinks=False,
+        )
+
+        fp_after_touch = _mtime_fingerprint(tmp_path, ["**/*.py"], (), {"python"})
+
+        assert fp_without == fp_after_touch, (
+            "Fingerprint changed after touching symlink inode — symlinks are not excluded"
+        )
+
+    def test_fingerprint_candidate_count_ignores_symlinks(self, tmp_path):
+        """candidate_count in the fingerprint must not include symlinked .py files."""
+        real = tmp_path / "only.py"
+        real.write_text("x = 1", encoding="utf-8")
+
+        fp_before = _mtime_fingerprint(tmp_path, ["**/*.py"], (), {"python"})
+        count_before = int(fp_before.split(":")[1])
+
+        link = tmp_path / "linked.py"
+        try:
+            link.symlink_to(real)
+        except (OSError, NotImplementedError):
+            pytest.skip(
+                "Symlink creation not available in this environment"
+                " (requires elevated privileges on Windows)"
+            )
+
+        fp_after = _mtime_fingerprint(tmp_path, ["**/*.py"], (), {"python"})
+        count_after = int(fp_after.split(":")[1])
+
+        assert count_before == count_after, (
+            f"candidate_count grew from {count_before} to {count_after} after adding a symlink"
+        )
