@@ -8,6 +8,7 @@ plan-invalidation checks against live repository state.
 from __future__ import annotations
 
 import hashlib
+import heapq
 import subprocess
 import uuid
 from collections import defaultdict
@@ -297,16 +298,16 @@ def _task_graph_topological_sort(
     in_degree: dict[str, int],
 ) -> list[str]:
     """Return deterministic topological order for tasks."""
-    queue = [task_id for task_id, degree in in_degree.items() if degree == 0]
+    queue: list[str] = sorted(task_id for task_id, degree in in_degree.items() if degree == 0)
+    heapq.heapify(queue)
     sorted_ids: list[str] = []
     while queue:
-        queue.sort()
-        node = queue.pop(0)
+        node = heapq.heappop(queue)
         sorted_ids.append(node)
-        for child in children[node]:
+        for child in sorted(children[node]):
             in_degree[child] -= 1
             if in_degree[child] == 0:
-                queue.append(child)
+                heapq.heappush(queue, child)
 
     if len(sorted_ids) != len(task_ids):
         visited = set(sorted_ids)

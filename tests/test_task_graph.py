@@ -196,6 +196,48 @@ class TestIndependentTasks:
 
 
 # ---------------------------------------------------------------------------
+# Topological sort determinism (issue #391)
+# ---------------------------------------------------------------------------
+
+
+class TestTopologicalSortDeterminism:
+    def test_execution_phases_stable_regardless_of_input_order(self) -> None:
+        """execution_phases must be identical for the same task set
+        regardless of the order the tasks are passed to build_task_graph."""
+        tasks_fwd = [_task("a"), _task("b"), _task("c"), _task("d")]
+        tasks_rev = list(reversed(tasks_fwd))
+
+        g_fwd = build_task_graph(tasks_fwd)
+        g_rev = build_task_graph(tasks_rev)
+
+        assert g_fwd.execution_phases == g_rev.execution_phases
+
+    def test_preferred_order_stable_regardless_of_input_order(self) -> None:
+        """preferred_order on each task must be the same no matter the input order."""
+        tasks_fwd = [_task("x"), _task("y"), _task("z")]
+        tasks_rev = list(reversed(tasks_fwd))
+
+        g_fwd = build_task_graph(tasks_fwd)
+        g_rev = build_task_graph(tasks_rev)
+
+        order_fwd = {t.id: t.preferred_order for t in g_fwd.tasks}
+        order_rev = {t.id: t.preferred_order for t in g_rev.tasks}
+        assert order_fwd == order_rev
+
+    def test_sequential_chain_stable(self) -> None:
+        """A linear dependency chain must always resolve in dependency order."""
+        a = _task("a")
+        b = _task("b", depends_on=["a"])
+        c = _task("c", depends_on=["b"])
+
+        g1 = build_task_graph([a, b, c])
+        g2 = build_task_graph([c, b, a])
+
+        assert g1.execution_phases == [["a"], ["b"], ["c"]]
+        assert g2.execution_phases == [["a"], ["b"], ["c"]]
+
+
+# ---------------------------------------------------------------------------
 # Batch groups
 # ---------------------------------------------------------------------------
 
