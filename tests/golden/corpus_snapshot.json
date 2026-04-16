@@ -5251,6 +5251,7 @@
     "SMS": "system_misalignment",
     "TPD": "test_polarity_deficit",
     "TSA": "ts_architecture",
+    "TSB": "type_safety_bypass",
     "TVS": "temporal_volatility"
   },
   "summary": {

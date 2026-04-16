@@ -575,53 +575,45 @@ def _generate_mock_diff(
     rng: random.Random,
     brief_result: dict[str, Any] | None = None,
 ) -> str:
-    """Generate a deterministic mock diff simulating agent edits.
+    """Generate a deterministic mock whole-file content simulating agent edits.
 
     Treatment group: attempts to follow brief constraints (fewer violations).
-    Control group: naive edits (more pattern violations).
+    Control group: naive edits that introduce structural issues.
+    Returns complete Python source content for the primary target file.
     """
-    target = task["target_files"][0] if task["target_files"] else "file.py"
+    target = task["target_files"][0] if task["target_files"] else "file.py"  # noqa: F841
 
     if treatment == "treatment" and brief_result:
         # Treatment: cleaner edits inspired by brief constraints
-        new_lines = [
-            "# Refactored per drift brief constraints",
-            f"def {task['id'].lower().replace('-', '_')}_fix():",
-            f'    """Fix for: {task["task_description"][:60]}"""',
-            "    pass  # Minimal, constraint-aware implementation",
-            "",
-        ]
+        return (
+            '"""Module refactored per drift brief constraints."""\n'
+            "from __future__ import annotations\n\n"
+            f"def {task['id'].lower().replace('-', '_')}_fix() -> None:\n"
+            f'    """Fix for: {task["task_description"][:60]}"""\n'
+            "    pass  # Minimal, constraint-aware implementation\n"
+        )
     else:
-        # Control: naive edits that introduce structural issues
-        dup_func = f"def handle_{rng.randint(1000, 9999)}():"
-        new_lines = [
-            "# Quick fix attempt",
-            dup_func,
-            '    """Auto-generated handler."""',
-            "    try:",
-            "        result = do_something()",
-            "    except Exception:",
-            "        pass  # TODO: handle properly",
-            "    return result",
-            "",
-            f"def handle_{rng.randint(1000, 9999)}():",
-            '    """Another handler — similar pattern."""',
-            "    try:",
-            "        result = do_something()",
-            "    except Exception:",
-            "        pass  # TODO: handle properly",
-            "    return result",
-            "",
-        ]
-
-    added = "\n".join(f"+{line}" for line in new_lines)
-    return (
-        f"diff --git a/{target} b/{target}\n"
-        f"--- a/{target}\n"
-        f"+++ b/{target}\n"
-        f"@@ -1,0 +1,{len(new_lines)} @@\n"
-        f"{added}\n"
-    )
+        # Control: naive edits that introduce structural issues (duplicate funcs, broad except)
+        id1 = rng.randint(1000, 9999)
+        id2 = rng.randint(1000, 9999)
+        return (
+            '"""Quick fix attempt."""\n'
+            "from __future__ import annotations\n\n"
+            f"def handle_{id1}():\n"
+            '    """Auto-generated handler."""\n'
+            "    try:\n"
+            "        result = do_something()\n"
+            "    except Exception:\n"
+            "        pass  # TODO: handle properly\n"
+            "    return result\n\n\n"
+            f"def handle_{id2}():\n"
+            '    """Another handler - similar pattern."""\n'
+            "    try:\n"
+            "        result = do_something()\n"
+            "    except Exception:\n"
+            "        pass  # TODO: handle properly\n"
+            "    return result\n"
+        )
 
 
 def cmd_run_mock(args: argparse.Namespace) -> None:
@@ -691,6 +683,7 @@ def cmd_run_mock(args: argparse.Namespace) -> None:
                         "model": "mock-agent",
                         "temperature": 0.0,
                         "status": "ok",
+                        "response_format": "whole_file",
                         "seed": args.seed,
                         "repeat": r,
                     },
@@ -698,7 +691,7 @@ def cmd_run_mock(args: argparse.Namespace) -> None:
                 ),
                 encoding="utf-8",
             )
-            print(f"  [{stem}] mock diff written")
+            print(f"  [{stem}] mock file written")
 
     print(f"\nMock responses written to: {RESPONSES_DIR} ({total} total)")
 

@@ -8,14 +8,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from drift.mcp_autopilot import AUTOPILOT_PAYLOAD_MODES, build_autopilot_summary
 from drift.mcp_orchestration import _strict_guardrail_block_response
-
-
-def _parse_csv_ids(raw: str | None) -> list[str] | None:
-    if not raw:
-        return None
-    values = [part.strip() for part in raw.split(",") if part.strip()]
-    return values or None
+from drift.mcp_utils import _parse_csv_ids, _run_sync_in_thread
 
 
 async def run_session_start(
@@ -29,13 +24,11 @@ async def run_session_start(
     autopilot: bool,
     autopilot_payload: str,
     response_profile: str | None,
-    payload_modes: set[str],
-    build_autopilot_summary: Any,
 ) -> str:
     from drift.session import SessionManager
 
     payload_mode = str(autopilot_payload).strip().lower()
-    if payload_mode not in payload_modes:
+    if payload_mode not in AUTOPILOT_PAYLOAD_MODES:
         from drift.api_helpers import _error_response
 
         error = _error_response(
@@ -352,3 +345,75 @@ async def run_session_end(
         f"tool calls: {summary.get('tool_calls', 0)}."
     )
     return json.dumps(summary, default=str)
+
+
+async def run_session_trace(
+    *,
+    session_id: str,
+    last_n: int,
+    session_error_response: Callable[[str, str, str], str],
+) -> str:
+    from drift.session import SessionManager
+
+    session = SessionManager.instance().get(session_id)
+    if session is None:
+        return session_error_response(
+            "DRIFT-6001",
+            f"Session {session_id[:8]} not found or expired.",
+            session_id,
+        )
+
+    session_trace = getattr(session, "trace", [])
+    session_phase = getattr(session, "phase", "unknown")
+    entries = session_trace[-last_n:] if last_n > 0 else session_trace
+    result: dict[str, Any] = {
+        "session_id": session_id,
+        "total_entries": len(session_trace),
+        "returned_entries": len(entries),
+        "trace": entries,
+        "current_phase": session_phase,
+        "agent_instruction": (
+            f"Trace contains {len(session_trace)} entries."
+            f" Session phase: {session_phase}."
+        ),
+    }
+    return json.dumps(result, default=str)
+
+
+async def run_map(
+    *,
+    path: str,
+    target_path: str | None,
+    max_modules: int,
+    session_id: str | None,
+) -> str:
+    from drift.api import drift_map as api_drift_map
+    from drift.mcp_enrichment import _enrich_response_with_session
+    from drift.mcp_orchestration import _resolve_session, _session_defaults
+
+    session = _resolve_session(session_id)
+    kwargs = _session_defaults(session, {"path": path, "target_path": target_path})
+
+    try:
+        result = await _run_sync_in_thread(
+            lambda: api_drift_map(
+                kwargs.get("path", path),
+                target_path=kwargs.get("target_path"),
+                max_modules=max_modules,
+            ),
+            abandon_on_cancel=True,
+        )
+        raw = json.dumps(result, default=str)
+        if session is not None:
+            raw = _enrich_response_with_session(raw, session, "drift_map")
+        return raw
+    except Exception as exc:  # noqa: BLE001
+        return json.dumps(
+            {
+                "type": "error",
+                "error_code": "DRIFT-7001",
+                "message": str(exc),
+                "recoverable": True,
+            },
+            default=str,
+        )

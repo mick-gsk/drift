@@ -9,6 +9,8 @@ import datetime
 import json
 import subprocess
 import textwrap
+import traceback
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -207,8 +209,19 @@ def run_fixture(
             findings = signal.analyze(parse_results, file_histories, config)
             all_findings.extend(findings)
             all_warnings.extend(signal._warnings)
-        except Exception:
-            pass
+        except Exception as exc:
+            tb = traceback.format_exc()
+            msg = (
+                f"Signal {signal.signal_type!r} raised an exception during "
+                f"precision evaluation: {exc!r}\n{tb}"
+            )
+            warnings.warn(msg, RuntimeWarning, stacklevel=2)
+            all_warnings.append(
+                AnalyzerWarning(
+                    signal_type=str(signal.signal_type),
+                    message=msg,
+                )
+            )
 
     return all_findings, all_warnings
 

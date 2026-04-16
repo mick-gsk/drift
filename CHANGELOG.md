@@ -1,7 +1,13 @@
 ## [Unreleased]
 
+### Added
+
+- **Defect corpus benchmark**: ground-truth fixture set and recall benchmark (`scripts/defect_corpus_benchmark.py`, `benchmarks/defect_corpus/`, `benchmark_results/defect_corpus_recall.json`) for externally validated signal recall measurement.
+- **Drift skills**: add `brainstorming`, `systematic-debugging`, `test-driven-development`, and `writing-plans` skill files under `.github/skills/` for structured agent workflows.
+
 ### Fixed
 
+- **Signal exception surfacing in precision evaluation (#369)**: `run_fixture` previously swallowed all signal exceptions with a bare `except Exception: pass`. Exceptions are now caught, formatted with a traceback, and emitted as both a `RuntimeWarning` and an `AnalyzerWarning` so callers can observe and triage failing signals.
 - **`extends: vibe-coding` crash (#382)**: `_apply_extends` injected `profile.guided_thresholds` as `thresholds.guided`, but `ThresholdsConfig` has `extra="forbid"` and no `guided` field, causing `DriftConfigError [DRIFT-1001]`. Fix promotes `guided_thresholds` to a first-class `GuidedThresholds | None` field on `DriftConfig`; `_apply_extends` now sets it at the top level. All profiles with non-empty `guided_thresholds` (currently: `vibe-coding`) are now usable via `extends:`.
 
 ## [2.10.0] - 2026-04-14

@@ -196,6 +196,12 @@ class SuggestingGroup(click.Group):
                 pass
         super().invoke(ctx)
 
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
+        """Prepend a version header to help output."""
+        from drift import __version__
+        formatter.write(f"drift v{__version__}\n\n")
+        super().format_help(ctx, formatter)
+
     def format_commands(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Render curated command sections for faster onboarding."""
         commands: list[tuple[str, click.Command]] = []
@@ -399,6 +405,11 @@ def safe_main() -> None:
             )
         else:
             click.echo(exc.detail, err=True)
+            if exc.code and exc.code.startswith("DRIFT-"):
+                click.echo(
+                    f"  Hint: run 'drift explain {exc.code}' for details and suggested fixes.",
+                    err=True,
+                )
         sys.exit(exc.exit_code)
     except FileNotFoundError as exc:
         if machine_errors:
@@ -411,6 +422,10 @@ def safe_main() -> None:
             )
         else:
             click.echo(f"[DRIFT-2001] {exc}", err=True)
+            click.echo(
+                "  Hint: run 'drift explain DRIFT-2001' for details and suggested fixes.",
+                err=True,
+            )
         sys.exit(EXIT_SYSTEM_ERROR)
     except Exception as exc:
         if machine_errors:
@@ -429,7 +444,11 @@ def safe_main() -> None:
 
                 traceback.print_exc()
             else:
-                click.echo("Hint: run with -v for the full traceback.", err=True)
+                click.echo(
+                    "  Hint: run with -v for the full traceback, or "
+                    "'drift explain DRIFT-3002' for common causes.",
+                    err=True,
+                )
         sys.exit(EXIT_ANALYSIS_ERROR)
 
 

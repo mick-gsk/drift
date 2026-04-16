@@ -13,13 +13,7 @@ from drift.mcp_orchestration import (
     _strict_guardrail_block_response,
     _update_session_from_fix_plan,
 )
-
-
-def _parse_csv_ids(raw: str | None) -> list[str] | None:
-    if not raw:
-        return None
-    values = [part.strip() for part in raw.split(",") if part.strip()]
-    return values or None
+from drift.mcp_utils import _parse_csv_ids, _run_api_tool
 
 
 def _can_use_session_fix_plan_fast_path(
@@ -116,7 +110,6 @@ async def run_fix_plan(
     include_non_operational: bool,
     response_profile: str | None,
     session_id: str,
-    run_api_tool: Any,
 ) -> str:
     from drift.api import fix_plan
 
@@ -155,7 +148,7 @@ async def run_fix_plan(
         },
     )
 
-    raw = await run_api_tool(
+    raw = await _run_api_tool(
         "drift_fix_plan",
         fix_plan,
         path=kwargs["path"],
@@ -182,7 +175,6 @@ async def run_verify(
     uncommitted: bool,
     response_profile: str | None,
     session_id: str,
-    run_api_tool: Any,
 ) -> str:
     from drift.api.verify import verify
 
@@ -191,7 +183,7 @@ async def run_verify(
     if session and (not path or path == "."):
         resolved_path = session.repo_path
 
-    raw = await run_api_tool(
+    raw = await _run_api_tool(
         "drift_verify",
         verify,
         path=resolved_path,

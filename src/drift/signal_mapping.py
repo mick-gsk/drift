@@ -33,6 +33,7 @@ _ABBREV_TO_SIGNAL: dict[str, SignalType] = {
     "ISD": SignalType.INSECURE_DEFAULT,
     "HSC": SignalType.HARDCODED_SECRET,
     "PHR": SignalType.PHANTOM_REFERENCE,
+    "TSB": SignalType.TYPE_SAFETY_BYPASS,
 }
 
 _SIGNAL_TO_ABBREV: dict[str, str] = {str(v): k for k, v in _ABBREV_TO_SIGNAL.items()}

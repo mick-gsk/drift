@@ -1,8 +1,10 @@
-"""Bounded-context router for scan/diff/nudge MCP tool implementations."""
+"""Bounded-context router for MCP analysis tools.
+
+Covers: scan, diff, nudge, explain, validate, brief, shadow_verify, negative_context.
+"""
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import io
 import json
@@ -15,36 +17,16 @@ from drift.mcp_orchestration import (
     _session_defaults,
     _strict_guardrail_block_response,
     _trace_meta_from_hypothesis_result,
+    _update_session_from_brief,
     _update_session_from_diff,
     _update_session_from_scan,
 )
-
-
-def _parse_csv_ids(raw: str | None) -> list[str] | None:
-    if not raw:
-        return None
-    values = [part.strip() for part in raw.split(",") if part.strip()]
-    return values or None
-
-
-async def _run_sync_in_thread(fn: Any, *args: object) -> Any:
-    return await asyncio.to_thread(fn, *args)
-
-
-async def _run_api_tool(tool_name: str, api_fn: Any, **kwargs: Any) -> str:
-    def _sync() -> str:
-        try:
-            with contextlib.redirect_stdout(io.StringIO()):
-                result = api_fn(**kwargs)
-            return json.dumps(result, default=str)
-        except Exception as exc:
-            from drift.api_helpers import _error_response
-
-            error = _error_response("DRIFT-5001", str(exc), recoverable=True)
-            error["tool"] = tool_name
-            return json.dumps(error, default=str)
-
-    return cast(str, await _run_sync_in_thread(_sync))
+from drift.mcp_utils import (
+    _parse_csv_ids,
+    _run_api_tool,
+    _run_sync_in_thread,
+    _run_sync_with_timeout,
+)
 
 
 async def run_scan(
@@ -250,3 +232,213 @@ async def run_nudge(
         "drift_nudge",
         trace_meta=_trace_meta_from_hypothesis_result("drift_nudge", raw),
     )
+
+
+async def run_explain(
+    *,
+    topic: str,
+    response_profile: str | None,
+    session_id: str,
+) -> str:
+    from drift.api import explain
+
+    session = _resolve_session(session_id)
+    raw = await _run_api_tool(
+        "drift_explain",
+        explain,
+        topic=topic,
+        response_profile=response_profile,
+    )
+    if session:
+        session.touch()
+    return _enrich_response_with_session(raw, session, "drift_explain")
+
+
+async def run_validate(
+    *,
+    path: str,
+    config_file: str | None,
+    response_profile: str | None,
+    session_id: str,
+) -> str:
+    from drift.api import validate
+
+    session = _resolve_session(session_id)
+    resolved_path = path
+    if session and (not path or path == "."):
+        resolved_path = session.repo_path
+
+    raw = await _run_api_tool(
+        "drift_validate",
+        validate,
+        path=resolved_path,
+        config_file=config_file,
+        response_profile=response_profile,
+    )
+    if session:
+        session.touch()
+        if session.score_at_start is not None and session.last_scan_score is not None:
+            try:
+                parsed = json.loads(raw)
+                parsed["session_progress"] = {
+                    "score_at_start": session.score_at_start,
+                    "last_scan_score": session.last_scan_score,
+                    "score_delta": round(
+                        session.last_scan_score - session.score_at_start, 2
+                    ),
+                    "tasks_total": len(session.selected_tasks or []),
+                    "tasks_completed": len(session.completed_task_ids),
+                    "tasks_remaining": session.tasks_remaining(),
+                }
+                raw = json.dumps(parsed, indent=2)
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return _enrich_response_with_session(raw, session, "drift_validate")
+
+
+async def run_brief(
+    *,
+    path: str,
+    task: str,
+    scope: str | None,
+    max_guardrails: int,
+    response_detail: str,
+    response_profile: str | None,
+    session_id: str,
+) -> str:
+    session = _resolve_session(session_id)
+    resolved_path = path
+    if session and (not path or path == "."):
+        resolved_path = session.repo_path
+
+    def _sync() -> str:
+        from drift.api import brief
+
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                result = brief(
+                    resolved_path,
+                    task=task,
+                    scope_override=scope,
+                    max_guardrails=max_guardrails,
+                    response_profile=response_profile,
+                )
+            if response_detail == "concise":
+                result.pop("landscape", None)
+                result.pop("meta", None)
+            return json.dumps(result, default=str)
+        except Exception as exc:
+            from drift.api_helpers import _error_response
+
+            error = _error_response("DRIFT-5010", str(exc), recoverable=True)
+            error["tool"] = "drift_brief"
+            error["agent_instruction"] = (
+                "Check that the repository path exists and the task string is not empty. "
+                "If the error persists, try passing an explicit --scope."
+            )
+            return json.dumps(error, default=str)
+
+    payload: str = cast(str, await _run_sync_in_thread(_sync, abandon_on_cancel=True))
+    if session:
+        with contextlib.suppress(json.JSONDecodeError, TypeError):
+            _update_session_from_brief(session, json.loads(payload))
+    return _enrich_response_with_session(payload, session)
+
+
+async def run_shadow_verify(
+    *,
+    path: str,
+    scope_files: str | None,
+    uncommitted: bool,
+    response_profile: str | None,
+    session_id: str,
+) -> str:
+    from drift.api.shadow_verify import shadow_verify
+
+    session = _resolve_session(session_id)
+    resolved_path = path
+    if session and (not path or path == "."):
+        resolved_path = session.repo_path
+
+    raw = await _run_api_tool(
+        "drift_shadow_verify",
+        shadow_verify,
+        path=resolved_path,
+        scope_files=_parse_csv_ids(scope_files),
+        uncommitted=uncommitted,
+        response_profile=response_profile,
+    )
+    if session:
+        session.touch()
+    return _enrich_response_with_session(raw, session, "drift_shadow_verify")
+
+
+async def run_negative_context(
+    *,
+    path: str,
+    scope: str | None,
+    target_file: str | None,
+    max_items: int,
+    response_profile: str | None,
+    session_id: str,
+    timeout_seconds: float,
+) -> str:
+    session = _resolve_session(session_id)
+    resolved_path = path
+    if session and (not path or path == "."):
+        resolved_path = session.repo_path
+
+    def _sync() -> str:
+        from drift.api import negative_context
+
+        kwargs: dict[str, Any] = {
+            "scope": scope,
+            "target_file": target_file,
+            "max_items": max_items,
+            "disable_embeddings": True,
+        }
+        if response_profile is not None:
+            kwargs["response_profile"] = response_profile
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = negative_context(resolved_path, **kwargs)
+        if not isinstance(result, dict):
+            return json.dumps({
+                "status": "error",
+                "error_code": "DRIFT-2032",
+                "message": "MCP tool returned no structured response.",
+                "recoverable": True,
+                "agent_instruction": "Retry the call once; if it repeats, run drift_validate.",
+            }, default=str)
+        return json.dumps(result, default=str)
+
+    try:
+        raw = cast(str, await _run_sync_with_timeout(_sync, timeout_seconds))
+        if session:
+            session.touch()
+        return _enrich_response_with_session(raw, session, "drift_negative_context")
+    except TimeoutError:
+        return json.dumps({
+            "status": "error",
+            "error_code": "DRIFT-2031",
+            "message": (
+                "MCP tool 'drift_negative_context' timed out before producing a "
+                "response. This guard prevents silent chat hangs."
+            ),
+            "recoverable": True,
+            "timeout_seconds": timeout_seconds,
+            "path": path,
+            "scope": scope,
+            "target_file": target_file,
+            "max_items": max_items,
+            "agent_instruction": (
+                "Retry with a narrower target_file or lower max_items. "
+                "If timeout persists, run drift export-context offline and use the "
+                "cached .drift-negative-context.md."
+            ),
+        }, default=str)
+    except Exception as exc:
+        from drift.api_helpers import _error_response
+
+        error = _error_response("DRIFT-5001", str(exc), recoverable=True)
+        error["tool"] = "drift_negative_context"
+        return json.dumps(error, default=str)

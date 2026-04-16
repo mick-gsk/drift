@@ -252,9 +252,23 @@ def analyze(
     group_by: str | None,
     no_first_run: bool,
 ) -> None:
-    """Detailed drift analysis \u2014 produces comprehensive findings for investigation and triage.
+    """Detailed drift analysis — produces comprehensive findings for investigation and triage.
 
     For CI-compatible exit codes on diffs, use ``check``.
+
+    \b
+    Common patterns:
+      drift analyze                         # rich output, current directory
+      drift analyze --format json           # machine-readable, agent-friendly
+      drift analyze --select PFS,AVS        # only specific signals
+      drift analyze --fail-on high          # exit 1 when high/critical findings exist
+      drift analyze --quiet                 # score + count only (fast CI check)
+
+    \b
+    Progress modes (--progress):
+      auto    Rich bar in terminal, auto-switches to json when output is piped (default)
+      json    JSON-lines on stderr — useful for CI log parsing: --progress json
+      none    Silent — no progress output at all
     """
     from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 from typing import TYPE_CHECKING
 
 from drift.config._schema import SignalWeights
@@ -70,9 +71,13 @@ def resolve_signal_names(raw: str) -> list[str]:
         elif token.lower() in all_known:
             result.append(token.lower())
         else:
-            abbrevs = ", ".join(sorted(SIGNAL_ABBREV))
+            all_abbrevs = sorted(SIGNAL_ABBREV)
+            close = difflib.get_close_matches(upper, all_abbrevs, n=1, cutoff=0.6)
+            hint = f" — did you mean '{close[0]}'?" if close else ""
+            abbrevs = ", ".join(all_abbrevs)
             raise ValueError(
-                f"Unknown signal: {token!r}. Use abbreviations ({abbrevs}) or full names."
+                f"Unknown signal: {token!r}{hint}\n"
+                f"  Valid abbreviations: {abbrevs}"
             )
     return result
 

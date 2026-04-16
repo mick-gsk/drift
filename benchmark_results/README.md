@@ -14,6 +14,7 @@ Use it as an index, not as a single headline metric.
 - `ground_truth_analysis.json`: precision-study support artifact.
 - `all_results.json`: aggregated benchmark summaries.
 - `signal_coverage_matrix.json`: signal-to-evidence coverage overview.
+- `defect_corpus_recall.json`: **external-ground-truth recall benchmark** — measures recall against confirmed real-world bug classes (see `benchmarks/defect_corpus/README.md` for methodology).
 - `archive/`, `mutations/`, `package_kpis/`, `repair/`: supporting raw or derived benchmark material.
 
 ## Recommended reading order

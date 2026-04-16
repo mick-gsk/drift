@@ -494,14 +494,29 @@ def init(
     dash = " - " if ascii_only else " — "
 
     if created:
+        from rich.panel import Panel
+
         console.print(f"[bold green]{ok_marker} {created} file(s) created.[/bold green]")
-        console.print("\nNext steps:")
-        console.print("  1. Review drift.yaml and adjust weights if needed")
-        console.print("  2. Run [bold]drift analyze[/bold] to see your baseline score")
-        console.print("  3. Run [bold]drift baseline save[/bold] to lock the current state")
+        steps = [
+            f"  1. [bold]drift status[/bold]        {arrow} health overview (quick sanity check)",
+            f"  2. [bold]drift analyze[/bold]       {arrow} full findings report",
+            f"  3. [bold]drift baseline save[/bold] {arrow} lock current state as reference",
+        ]
         if profile == "vibe-coding":
-            console.print(
+            steps.append(
                 f"  4. Gradually escalate fail_on: none {arrow} high {arrow} medium over 4 weeks"
+            )
+        next_steps_text = "\n".join(steps)
+        if ascii_only:
+            console.print("\nNext steps:\n" + next_steps_text)
+        else:
+            console.print(
+                Panel(
+                    next_steps_text,
+                    title="[bold]Next steps[/bold]",
+                    border_style="rgb(13,148,136)",
+                    padding=(0, 1),
+                )
             )
     else:
         console.print(f"[yellow]No files created{dash}all targets already exist.[/yellow]")
