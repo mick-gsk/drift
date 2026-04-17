@@ -11,6 +11,7 @@ Short version: generate_skills API for agent-driven SKILL.md briefings, configur
 
 - **LLM format findings cap**: `llm` output format now respects `--max-findings` to avoid token overflow.
 - **`BaselineManager` singleton thread safety**: double-checked locking replaced with `threading.Lock` guard to prevent race conditions under concurrent access.
+- **CI stability**: TypeScript CXS ground-truth fixture now skips gracefully when `tree-sitter-typescript` is not installed; `.secrets.baseline` updated for new source files; release workflow PSR step now exits 0 on successful tag creation even when PSR returns a non-zero exit code on Windows.
 
 ## [2.12.1] - 2026-04-17
 
