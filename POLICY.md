@@ -260,10 +260,45 @@
 
 18.7 Die vier Audit-Artefakte dürfen nicht gelöscht werden. Inhaltliche Änderungen erfordern Begründung im Commit.
 
-## 19. Schlussbestimmung
+## 19. Telemetrie und Datenschutz
 
-19.1 Diese Policy ist verbindlich.
+19.1 Drift-Telemetrie ist standardmäßig deaktiviert (Opt-in).
 
-19.2 Abweichungen von dieser Policy sind nur zulässig, wenn die Abweichung dokumentiert, begründet und als Ausnahme gekennzeichnet ist.
+19.2 Telemetrie wird ausschließlich lokal in eine JSONL-Datei geschrieben und nicht an externe Server übertragen.
 
-19.3 Im Zweifel gilt stets die Regel mit dem geringeren Interpretationsspielraum und dem höheren Erkenntniswert.
+19.3 Aktivierung und Konfiguration erfolgen über Umgebungsvariablen:
+- Aktivieren: `DRIFT_TELEMETRY_ENABLED=1`
+- Speicherpfad überschreiben: `DRIFT_TELEMETRY_FILE=/pfad/zur/datei.jsonl`
+- Lauf-ID optional setzen: `DRIFT_TELEMETRY_RUN_ID=<wert>`
+
+19.4 Ohne `DRIFT_TELEMETRY_FILE` ist der Standard-Speicherort `.drift/agent_usage.jsonl` im aktuellen Repository-Kontext.
+
+19.5 Erfasste Felder und Zweck:
+- `schema_version`: Version des Telemetrieformats für stabile Auswertung.
+- `event_type`: Klassifikation des Ereignistyps (`drift_tool_call`).
+- `event_id`: Zufällige UUID je Ereignis zur eindeutigen Ereignistrennung.
+- `run_id`: Korrelations-ID für zusammenhängende Events eines Prozesses.
+- `timestamp`: UTC-Zeitstempel (ISO 8601) für zeitliche Einordnung.
+- `tool_name`: Name des aufgerufenen Tools (z. B. `api.scan`, `api.verify`).
+- `status`: Ergebnisstatus (`ok` oder `error`).
+- `duration_ms`: Laufzeit in Millisekunden für Performance-Analyse.
+- `params`: Sanitized Aufrufparameter zur Reproduzierbarkeit; sensible Schlüssel werden maskiert, Zeichenketten gekürzt.
+- `input_tokens_est`: Grobe Token-Schätzung der Eingabedaten.
+- `output_tokens_est`: Grobe Token-Schätzung der Ausgabedaten.
+- `result_summary.keys`: Schlüsselliste der Ergebnisstruktur (ohne vollständigen Inhalt).
+- `result_summary.has_error`: Boolescher Marker, ob das Ergebnis als Fehler klassifiziert wurde.
+- `error`: Fehlermeldung (`str(exc)`) bei Exceptions.
+
+19.6 Zugriffsmodell: Zugriff auf Telemetriedateien haben nur Akteure mit Dateisystemzugriff auf die jeweilige Arbeitsumgebung (typischerweise Nutzer oder Prozess-Owner derselben Umgebung).
+
+19.7 Aufbewahrung: Drift erzwingt keine automatische Löschfrist; Speicherung, Rotation und Löschung liegen in der Verantwortung des Nutzers bzw. der CI-Umgebung.
+
+19.8 Identifikationsgrenze: `run_id` ist standardmäßig pro Prozesslauf eine frische UUID und kein persistenter Maschinen- oder Nutzer-Identifier.
+
+## 20. Schlussbestimmung
+
+20.1 Diese Policy ist verbindlich.
+
+20.2 Abweichungen von dieser Policy sind nur zulässig, wenn die Abweichung dokumentiert, begründet und als Ausnahme gekennzeichnet ist.
+
+20.3 Im Zweifel gilt stets die Regel mit dem geringeren Interpretationsspielraum und dem höheren Erkenntniswert.
