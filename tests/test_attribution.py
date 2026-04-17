@@ -359,7 +359,7 @@ class TestJsonAttribution:
                 branch_hint="feature/llm-refactor",
                 ai_attributed=True,
                 ai_confidence=0.85,
-                commit_message_summary="feat: add guard clause",
+                commit_message="feat: add guard clause",
             ),
         )
         d = _finding_to_dict(f)
@@ -368,6 +368,7 @@ class TestJsonAttribution:
         assert d["attribution"]["author"] == "Jane Doe"
         assert d["attribution"]["ai_attributed"] is True
         assert d["attribution"]["date"] == "2024-04-09"
+        assert d["attribution"]["commit_message"] == "feat: add guard clause"
 
     def test_finding_without_attribution_has_null(self) -> None:
         from drift.output.json_output import _finding_to_dict
@@ -491,7 +492,7 @@ class TestAttributionModel:
         assert a.branch_hint is None
         assert a.ai_attributed is False
         assert a.ai_confidence == 0.0
-        assert a.commit_message_summary == ""
+        assert a.commit_message == ""
 
     def test_finding_attribution_field_default_none(self) -> None:
         f = Finding(

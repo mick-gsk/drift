@@ -71,4 +71,4 @@ class Attribution:
     branch_hint: str | None = None
     ai_attributed: bool = False
     ai_confidence: float = 0.0
-    commit_message_summary: str = ""
+    commit_message: str = ""

@@ -201,7 +201,7 @@ def _finding_to_dict(f: Finding, *, impact_rank: int | None = None) -> dict[str,
             "branch_hint": f.attribution.branch_hint,
             "ai_attributed": f.attribution.ai_attributed,
             "ai_confidence": f.attribution.ai_confidence,
-            "commit_message": f.attribution.commit_message_summary,
+            "commit_message": f.attribution.commit_message,
         } if f.attribution else None,
         "remediation": {
             "title": rec.title,

@@ -143,7 +143,7 @@ def enrich_findings(
             branch_hint=branch_hint,
             ai_attributed=ai_attributed,
             ai_confidence=ai_confidence,
-            commit_message_summary=msg_summary,
+            commit_message=msg_summary,
         )
 
     enriched = sum(1 for f in findings if f.attribution is not None)
