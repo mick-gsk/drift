@@ -187,6 +187,102 @@
         }
       }
     },
+    "first_run": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "First-run onboarding summary and fix-first guidance.",
+      "properties": {
+        "headline": {
+          "type": "string"
+        },
+        "why_this_matters": {
+          "type": "string"
+        },
+        "next_step": {
+          "type": "string"
+        },
+        "top_findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "signal": {
+                "type": "string"
+              },
+              "signal_abbrev": {
+                "type": "string"
+              },
+              "signal_id": {
+                "type": "string"
+              },
+              "signal_type": {
+                "type": "string"
+              },
+              "rule_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "info"
+                ]
+              },
+              "severity_rank": {
+                "type": "integer"
+              },
+              "title": {
+                "type": "string"
+              },
+              "file": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "finding_context": {
+                "type": "string"
+              },
+              "detection_method": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "fingerprint": {
+                "type": "string"
+              },
+              "next_step": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "priority_class": {
+                "type": "string"
+              },
+              "expected_benefit": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
     "findings_compact": {
       "type": "array",
       "items": {
