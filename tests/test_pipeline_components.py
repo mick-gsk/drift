@@ -478,7 +478,10 @@ def test_scoring_phase_applies_small_repo_kwargs_and_post_processing() -> None:
         items: list[Finding],
         _suppressions: dict,
     ) -> tuple[list[Finding], list[Finding]]:
-        return items, [_finding()]
+        suppressed = _finding(SignalType.HARDCODED_SECRET)
+        suppressed.metadata["broad_security_suppression"] = True
+        suppressed.metadata["suppression_line"] = 12
+        return items, [suppressed]
 
     def _context_apply(
         items: list[Finding],
@@ -507,6 +510,9 @@ def test_scoring_phase_applies_small_repo_kwargs_and_post_processing() -> None:
 
     assert out.suppressed_count == 1
     assert out.context_tagged_count == 1
+    assert out.broad_security_suppressions == [
+        {"file": "pkg/mod.py", "line": 12, "signal": "hardcoded_secret"}
+    ]
     assert len(impact_calls) == 3
     assert score_kwargs[-1]["dampening_k"] == 20
     assert score_kwargs[-1]["min_findings"] == cfg.thresholds.small_repo_min_findings

@@ -104,6 +104,7 @@ def test_analysis_to_json_contains_expected_structure() -> None:
     assert payload["fix_first"][0]["finding_context"] == "production"
     assert "finding_context_policy" in payload
     assert payload["findings_suppressed"] == []
+    assert payload["broad_security_suppressions"] == []
 
 
 def test_analysis_to_json_exposes_suppressed_findings_separately() -> None:
@@ -123,6 +124,19 @@ def test_analysis_to_json_exposes_suppressed_findings_separately() -> None:
     assert len(payload["findings_suppressed"]) == 1
     assert payload["findings_suppressed"][0]["status"] == "suppressed"
     assert payload["findings_suppressed"][0]["status_set_by"] == "inline_comment"
+
+
+def test_analysis_to_json_exposes_broad_security_suppressions() -> None:
+    analysis = _sample_analysis()
+    analysis.broad_security_suppressions = [
+        {"file": "src/app/service.py", "line": 12, "signal": "hardcoded_secret"}
+    ]
+
+    payload = json.loads(analysis_to_json(analysis))
+
+    assert payload["broad_security_suppressions"] == [
+        {"file": "src/app/service.py", "line": 12, "signal": "hardcoded_secret"}
+    ]
 
 
 def test_findings_to_sarif_deduplicates_rules_and_sets_levels() -> None:

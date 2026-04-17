@@ -168,6 +168,14 @@ def scan(
                 signal_scope=signal_scope_label(selected=signals),
             ),
         )
+        broad_security_suppressions = list(
+            getattr(analysis, "broad_security_suppressions", []) or []
+        )
+        if broad_security_suppressions:
+            result["broad_security_suppressions"] = broad_security_suppressions
+            warnings.append(
+                "Bare drift:ignore suppressed security findings; review " + 
+                "broad_security_suppressions for file/line/signal details"
         if warnings:
             result["warnings"] = warnings
         _emit_api_telemetry(
