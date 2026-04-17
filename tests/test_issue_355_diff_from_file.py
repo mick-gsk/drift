@@ -125,3 +125,81 @@ def test_diff_cli_from_file_sets_exit_code_on_new_high(monkeypatch, tmp_path: Pa
 
     assert res.exit_code == 1
     assert "new_high_or_critical" in res.output
+
+
+def test_diff_cli_live_mode_exits_1_on_new_high(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "drift.commands.diff_cmd.api_diff",
+        lambda *_args, **_kwargs: {
+            "new_findings": [
+                {
+                    "severity": "high",
+                    "signal": "pattern_fragmentation",
+                    "title": "New high finding",
+                }
+            ],
+            "new_high_or_critical": 1,
+            "resolved_findings": [],
+            "changed_findings": [],
+        },
+    )
+    monkeypatch.setattr("drift.commands.diff_cmd.to_json", lambda payload: json.dumps(payload))
+
+    runner = CliRunner()
+    res = runner.invoke(diff_cmd, ["--repo", str(tmp_path), "--uncommitted"])
+
+    assert res.exit_code == 1
+
+
+def test_diff_cli_live_mode_respects_fail_on_medium(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        "drift.commands.diff_cmd.api_diff",
+        lambda *_args, **_kwargs: {
+            "new_findings": [
+                {
+                    "severity": "medium",
+                    "signal": "pattern_fragmentation",
+                    "title": "New medium finding",
+                }
+            ],
+            "new_high_or_critical": 0,
+            "resolved_findings": [],
+            "changed_findings": [],
+        },
+    )
+    monkeypatch.setattr("drift.commands.diff_cmd.to_json", lambda payload: json.dumps(payload))
+
+    runner = CliRunner()
+    res = runner.invoke(
+        diff_cmd,
+        ["--repo", str(tmp_path), "--uncommitted", "--fail-on", "medium"],
+    )
+
+    assert res.exit_code == 1
+
+
+def test_diff_cli_live_mode_default_high_does_not_block_medium(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        "drift.commands.diff_cmd.api_diff",
+        lambda *_args, **_kwargs: {
+            "new_findings": [
+                {
+                    "severity": "medium",
+                    "signal": "pattern_fragmentation",
+                    "title": "New medium finding",
+                }
+            ],
+            "new_high_or_critical": 0,
+            "resolved_findings": [],
+            "changed_findings": [],
+        },
+    )
+    monkeypatch.setattr("drift.commands.diff_cmd.to_json", lambda payload: json.dumps(payload))
+
+    runner = CliRunner()
+    res = runner.invoke(diff_cmd, ["--repo", str(tmp_path), "--uncommitted"])
+
+    assert res.exit_code == 0

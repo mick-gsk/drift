@@ -8,6 +8,34 @@ import click
 
 from drift.api import diff as api_diff
 from drift.api import to_json
+from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
+
+_SEVERITY_ORDER = {
+    "info": 0,
+    "low": 1,
+    "medium": 2,
+    "high": 3,
+    "critical": 4,
+}
+
+
+def _new_findings_at_or_above_threshold(result: dict, threshold: str) -> int:
+    if threshold == "none":
+        return 0
+
+    min_level = _SEVERITY_ORDER.get(threshold, _SEVERITY_ORDER["high"])
+    findings = result.get("new_findings")
+    if not isinstance(findings, list):
+        return 0
+
+    count = 0
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        severity = str(finding.get("severity", "info")).strip().lower()
+        if _SEVERITY_ORDER.get(severity, 0) >= min_level:
+            count += 1
+    return count
 
 
 @click.command("diff")
@@ -83,6 +111,16 @@ from drift.api import to_json
     default=None,
     help="Comma-separated signal abbreviations to exclude (e.g. 'MDS,DIA').",
 )
+@click.option(
+    "--fail-on",
+    type=click.Choice(["critical", "high", "medium", "low", "none"]),
+    default="high",
+    show_default=True,
+    help=(
+        "Exit code 1 if newly introduced findings include this severity "
+        "or higher. Use 'none' for report-only mode."
+    ),
+)
 def diff(
     path: Path,
     diff_ref: str,
@@ -97,6 +135,7 @@ def diff(
     output: Path | None,
     signals: str | None,
     exclude_signals: str | None,
+    fail_on: str,
 ) -> None:
     """Run agent-native diff analysis and emit structured JSON."""
     if uncommitted and staged_only:
@@ -136,11 +175,6 @@ def diff(
     else:
         click.echo(text)
 
-    # Offline mode follows issue #355 success criterion:
-    # exit 1 when newly introduced HIGH/CRITICAL findings are present.
-    if (
-        from_file is not None
-        and to_file is not None
-        and int(result.get("new_high_or_critical", 0)) > 0
-    ):
-        raise click.exceptions.Exit(1)
+    blocking_new_findings = _new_findings_at_or_above_threshold(result, fail_on)
+    if blocking_new_findings > 0:
+        raise click.exceptions.Exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
