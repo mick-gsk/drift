@@ -291,6 +291,9 @@ def test_finding_rendering_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("drift.baseline.finding_fingerprint", lambda f: "fp")
     concise = fr._finding_concise(f1)
     assert concise["fingerprint"] == "fp"
+    assert concise["line"] == f1.start_line
+    assert concise["start_line"] == f1.start_line
+    assert concise["end_line"] == f1.end_line
 
     monkeypatch.setattr(
         "drift.recommendations.generate_recommendation",
@@ -298,6 +301,9 @@ def test_finding_rendering_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     detailed = fr._finding_detailed(f1, rank=1)
     assert detailed["remediation"]["title"] == "t"
+    assert detailed["line"] == f1.start_line
+    assert detailed["start_line"] == f1.start_line
+    assert detailed["end_line"] == f1.end_line
 
     monkeypatch.setattr("drift.recommendations.generate_recommendation", lambda f: None)
     detailed_no_rec = fr._finding_detailed(f2)
