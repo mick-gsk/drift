@@ -31,10 +31,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger("drift")
 
 
-# Version tag embedded in each parse cache entry.  Bump when ParseResult,
-# FunctionInfo, ClassInfo, or any serialized field changes incompatibly.
-# v1: initial versioned entries (adds _v + _drift_v to all stored entries).
-_PARSE_CACHE_VERSION = 1
+# Parse cache schema version used to invalidate stale AST entries.
+# Bump when ParseResult/serializer fields change incompatibly.
+# v2: explicit schema field ``_schema_v`` for stable invalidation contract.
+CACHE_SCHEMA_VERSION = 2
+
+# Backward-compatible internal alias kept for existing imports/tests.
+_PARSE_CACHE_VERSION = CACHE_SCHEMA_VERSION
 
 
 class ParseCache:
@@ -80,7 +83,14 @@ class ParseCache:
             return None
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
-            if data.get("_v") != _PARSE_CACHE_VERSION:
+            schema_version = data.get("_schema_v")
+            legacy_version = data.get("_v")
+            if schema_version is None:
+                schema_version = legacy_version
+            elif legacy_version is not None and legacy_version != schema_version:
+                path.unlink(missing_ok=True)
+                return None
+            if schema_version != CACHE_SCHEMA_VERSION:
                 path.unlink(missing_ok=True)
                 return None
             if data.get("_drift_v") != _drift_version:
@@ -106,6 +116,7 @@ class ParseCache:
 
 def _serialize(pr: ParseResult) -> dict[str, Any]:
     return {
+        "_schema_v": CACHE_SCHEMA_VERSION,
         "_v": _PARSE_CACHE_VERSION,
         "_drift_v": _drift_version,
         "file_path": pr.file_path.as_posix(),

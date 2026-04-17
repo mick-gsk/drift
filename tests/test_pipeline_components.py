@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import datetime
 import importlib
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
-from drift.cache import ParseCache
+from drift import __version__ as drift_version
+from drift.cache import CACHE_SCHEMA_VERSION, ParseCache
 from drift.config import DriftConfig
 from drift.models import (
     ClassInfo,
@@ -169,6 +171,58 @@ def test_ingestion_phase_remaps_all_cached_file_references(tmp_path: Path) -> No
     assert all(method.file_path == Path("new.py") for cls in pr.classes for method in cls.methods)
     assert all(imp.source_file == Path("new.py") for imp in pr.imports)
     assert all(pattern.file_path == Path("new.py") for pattern in pr.patterns)
+
+
+def test_ingestion_phase_reparses_when_parse_cache_schema_is_stale(tmp_path: Path) -> None:
+    cfg = _config()
+    src = tmp_path / "a.py"
+    src.write_text("def a():\n    return 1\n", encoding="utf-8")
+    files = [_file_info("a.py")]
+
+    cache = ParseCache(tmp_path / cfg.cache_dir)
+    content_hash = ParseCache.file_hash(src)
+    cache_file = tmp_path / cfg.cache_dir / "parse" / f"{content_hash}.json"
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text(
+        json.dumps(
+            {
+                "_schema_v": CACHE_SCHEMA_VERSION - 1,
+                "_v": CACHE_SCHEMA_VERSION - 1,
+                "_drift_v": drift_version,
+                "file_path": "a.py",
+                "language": "python",
+                "line_count": 1,
+                "parse_errors": [],
+                "functions": [],
+                "classes": [],
+                "imports": [],
+                "patterns": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    parsed_paths: list[Path] = []
+
+    def _fake_parse(path: Path, _repo_path: Path, language: str) -> ParseResult:
+        parsed_paths.append(path)
+        return ParseResult(file_path=path, language=language)
+
+    phase = IngestionPhase(parse_file_fn=_fake_parse, is_git_repo_fn=lambda _p: False)
+    out = phase.run(
+        tmp_path,
+        files,
+        cfg,
+        since_days=30,
+        workers=1,
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+
+    assert parsed_paths == [Path("a.py")]
+    assert [r.file_path for r in out.parse_results] == [Path("a.py")]
+    refreshed = cache.get(content_hash)
+    assert refreshed is not None
+    assert refreshed.file_path == Path("a.py")
 
 
 def test_fetch_git_history_uses_cache_for_same_head(monkeypatch) -> None:
