@@ -7,6 +7,7 @@
 
 ### Fixed
 
+- **`drift ci --format junit|llm` missing deprecation warnings (#477)**: `ci._emit_output()` now emits the same `DeprecationWarning` and stderr migration guidance as `analyze`/`check` when deprecated `junit` or `llm` formats are used.
 - **Konsistente Zeilenfelder in Finding-Serialisierung (#478)**: `finding_rendering._finding_concise()` emittiert jetzt zusätzlich `start_line` und `end_line`; `finding_rendering._finding_detailed()` emittiert zusätzlich den Alias `line`. Dadurch können Agent-Workflows über concise/detailed hinweg stabil auf dieselben Line-Keys zugreifen.
 - **`drift export-context --write` emits confirmation on stderr (#476)**: write-mode success text now uses stderr (`click.echo(..., err=True)`) so stdout remains clean for machine-readable payloads and command-substitution workflows.
 - **External integrations not wired into pipeline**: `drift init` and the analysis pipeline now discover, validate, and execute registered external integrations via the new `src/drift/integrations/` package (`base.py`, `registry.py`, `runner.py`) and the built-in `superpowers` integration. Integration configuration is declared under a new `integrations:` key in `drift.yaml` and validated at load time.

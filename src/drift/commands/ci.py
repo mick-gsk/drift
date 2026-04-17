@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from pathlib import Path
 
 import click
@@ -186,6 +187,16 @@ def _emit_output(
 
         _emit_machine_output(analysis_to_csv(analysis), output_file)
     elif output_format == "junit":
+        warnings.warn(
+            "--format junit is deprecated and will be removed in v3.0. "
+            "Use --format sarif for CI integrations.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+        click.echo(
+            "Warning: --format junit is deprecated (use --format sarif instead).",
+            err=True,
+        )
         from drift.output.junit_output import analysis_to_junit
 
         _emit_machine_output(analysis_to_junit(analysis), output_file)
@@ -194,6 +205,16 @@ def _emit_output(
 
         _emit_machine_output(findings_to_github_annotations(analysis), output_file)
     elif output_format == "llm":
+        warnings.warn(
+            "--format llm is deprecated and will be removed in v3.0. "
+            "Use the MCP server (drift mcp) for LLM-optimized output.",
+            DeprecationWarning,
+            stacklevel=1,
+        )
+        click.echo(
+            "Warning: --format llm is deprecated (use drift mcp for LLM workflows).",
+            err=True,
+        )
         from drift.output.llm_output import analysis_to_llm
 
         _emit_machine_output(analysis_to_llm(analysis), output_file)
