@@ -17,6 +17,21 @@
 - **`_task_graph_topological_sort` O(n²) and non-determinism (#391)**: Replaced `queue.sort()` + `list.pop(0)` (O(n² log n)) with `heapq` (O(n log n)). Initial queue is now `sorted(…)` + `heapify`, children are iterated in sorted order, so `execution_phases` is identical for the same task set regardless of the input list order.
 - **`extends: vibe-coding` crash (#382)**: `_apply_extends` injected `profile.guided_thresholds` as `thresholds.guided`, but `ThresholdsConfig` has `extra="forbid"` and no `guided` field, causing `DriftConfigError [DRIFT-1001]`. Fix promotes `guided_thresholds` to a first-class `GuidedThresholds | None` field on `DriftConfig`; `_apply_extends` now sets it at the top level. All profiles with non-empty `guided_thresholds` (currently: `vibe-coding`) are now usable via `extends:`.
 
+## [2.11.0] - 2026-04-16
+
+Short version: Configurable scoring thresholds, context-aware finding prioritization, and a wave of precision and stability fixes.
+
+### Added
+
+- **Configurable scoring thresholds (#371)**: `dampening_k`, `breadth_cap`, and `grade_bands` are tunable via a new `scoring:` section in `drift.yaml`; optional `feedback_blend_alpha` blends auto-calibration weights with persisted feedback.
+- **Context-aware finding prioritization (#370)**: findings are now ranked by operational context signals so the most actionable items surface first in agent and CLI output.
+
+### Fixed
+
+- **`load_baseline()` version mismatch warning (#394)**: `load_baseline()` now emits a `WARNING` when the stored `drift_version` differs from the running version; legacy baselines without the field are accepted silently.
+- **`extends: vibe-coding` crash (#382)**: `_apply_extends` now sets `guided_thresholds` at the top-level `DriftConfig` field instead of injecting it into the forbidden `thresholds.guided` key.
+- **Stability hardening**: guard empty-input crash in `_task_graph_critical_path`, fix heapq sort in `_task_graph_topological_sort`, `%0A`-encode newlines in GitHub Actions annotations, and fix missing rich-output signal labels for PHR/TSB/FOE/CXS/CIR/DCA.
+
 ## [2.10.1] - 2026-04-14
 
 Short version: Patch release — fix context_dampening default comment, harden CLI output, config show onboarding, and Windows console encoding fallback.
