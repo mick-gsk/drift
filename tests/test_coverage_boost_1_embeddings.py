@@ -278,6 +278,38 @@ def test_search_index_faiss_empty_index() -> None:
     assert results == []
 
 
+def test_search_index_numpy_dimension_mismatch_raises_value_error() -> None:
+    """NumPy fallback should raise a clear error when query/index dimensions differ."""
+    svc = EmbeddingService()
+    vectors = np.random.rand(10, 384).astype(np.float32)
+    query = np.random.rand(768).astype(np.float32)
+
+    with pytest.raises(ValueError, match="Embedding dimension mismatch") as exc:
+        svc.search_index(vectors, query, top_k=3)
+
+    message = str(exc.value)
+    assert "query has 768 dims" in message
+    assert "index has 384 dims" in message
+
+
+@patch("drift.embeddings._FAISS_AVAILABLE", True)
+def test_search_index_faiss_dimension_mismatch_raises_before_search() -> None:
+    """FAISS path should validate dimensions before invoking native search."""
+    svc = EmbeddingService()
+    mock_index = MagicMock()
+    mock_index.ntotal = 10
+    mock_index.d = 384
+
+    import drift.embeddings as emb_mod
+
+    with patch.object(emb_mod, "_FAISS_AVAILABLE", True):
+        query = np.random.rand(768).astype(np.float32)
+        with pytest.raises(ValueError, match="Embedding dimension mismatch"):
+            svc.search_index(mock_index, query, top_k=3)
+
+    mock_index.search.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # get_embedding_service singleton paths
 # ---------------------------------------------------------------------------
