@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from typing import get_type_hints
 
 import pytest
 
@@ -59,6 +60,10 @@ class TestTrendContext:
         history = [{"drift_score": i * 0.01} for i in range(10)]
         ctx = _build_trend_context(0.10, history)
         assert len(ctx.recent_scores) == 5
+
+    def test_transition_ratio_annotation_allows_none(self):
+        hints = get_type_hints(TrendContext)
+        assert hints["transition_ratio"] == float | None
 
 
 # ── delta_gate_pass ───────────────────────────────────────────────────────

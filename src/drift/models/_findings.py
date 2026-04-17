@@ -135,7 +135,7 @@ class TrendContext:
     direction: str  # "improving" | "stable" | "degrading" | "baseline"
     recent_scores: list[float]
     history_depth: int
-    transition_ratio: float
+    transition_ratio: float | None
 
 
 @dataclass
@@ -170,6 +170,8 @@ class RepoAnalysis:
     skipped_languages: dict[str, int] = field(default_factory=dict)
     preflight: Any | None = None
     analyzer_warnings: list[AnalyzerWarning] = field(default_factory=list)
+    #: Findings produced by integration adapters (never affect drift_score).
+    integration_findings: list[Finding] = field(default_factory=list)
 
     @property
     def severity(self) -> Severity:
