@@ -228,7 +228,8 @@ def test_drift_map_success_and_error(monkeypatch: pytest.MonkeyPatch) -> None:
         "drift.api.drift_map", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
     )
     err = _run(mcp_server.drift_map(path="."))
-    assert err["type"] == "error"
+    assert err["status"] == "error"
+    assert err["agent_instruction"]
 
 
 def test_feedback_and_calibrate(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
