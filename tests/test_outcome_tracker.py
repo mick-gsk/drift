@@ -6,6 +6,8 @@ import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
 from drift.models import Finding, FindingStatus, LogicalLocation, Severity
 from drift.outcome_tracker import OutcomeTracker, compute_fingerprint
 
@@ -200,3 +202,81 @@ class TestOutcomeTracker:
         tracker = OutcomeTracker(path)
         resolved = tracker.resolve(set())
         assert len(resolved) == 0  # already resolved, not touched again
+
+    def test_issue_435_rewrite_is_atomic_on_replace_failure(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        previous = '{"old": true}\n'
+        path.write_text(previous, encoding="utf-8")
+
+        def _fail_replace(self: Path, _target: Path) -> None:
+            raise OSError("simulated replace failure")
+
+        monkeypatch.setattr(Path, "replace", _fail_replace)
+
+        tracker = OutcomeTracker(path)
+        with pytest.raises(OSError, match="simulated replace failure"):
+            tracker._rewrite([])
+
+        assert path.read_text(encoding="utf-8") == previous
+        assert sorted(p.name for p in path.parent.iterdir()) == [path.name]
+
+    def test_issue_435_archive_recovers_after_merge_crash(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        old_time = (datetime.now(UTC) - timedelta(days=200)).isoformat()
+        recent_time = datetime.now(UTC).isoformat()
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "fingerprint": "old1", "signal_type": "pfs",
+                "recommendation_title": "Fix", "reported_at": old_time,
+                "resolved_at": old_time, "days_to_fix": 1.0,
+                "effort_estimate": "low", "was_suppressed": False,
+            }) + "\n")
+            f.write(json.dumps({
+                "fingerprint": "new1", "signal_type": "avs",
+                "recommendation_title": "Fix", "reported_at": recent_time,
+                "resolved_at": None, "days_to_fix": None,
+                "effort_estimate": "medium", "was_suppressed": False,
+            }) + "\n")
+
+        tracker = OutcomeTracker(path)
+        original_merge = OutcomeTracker._merge_into_archive
+
+        state = {"calls": 0}
+
+        def _fail_once_merge(self: OutcomeTracker, outcomes) -> None:
+            state["calls"] += 1
+            if state["calls"] == 1:
+                raise OSError("simulated merge crash")
+            original_merge(self, outcomes)
+
+        monkeypatch.setattr(OutcomeTracker, "_merge_into_archive", _fail_once_merge)
+
+        with pytest.raises(OSError, match="simulated merge crash"):
+            tracker.archive(max_age_days=180)
+
+        remaining = tracker.load()
+        assert len(remaining) == 1
+        assert remaining[0].fingerprint == "new1"
+        assert path.with_suffix(".archive.pending.json").exists()
+
+        archived = tracker.archive(max_age_days=180)
+        assert archived == 0
+
+        archive_path = path.with_suffix(".archive.jsonl")
+        
+        archive_text = archive_path.read_text(encoding='utf-8')
+        archive_lines = [line for line in archive_text.splitlines() if line.strip()]
+        assert len(archive_lines) == 1
+        assert json.loads(archive_lines[0])["fingerprint"] == "old1"
+        assert not path.with_suffix(".archive.pending.json").exists()

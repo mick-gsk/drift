@@ -13,6 +13,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from drift.calibration._atomic_io import atomic_write_text
 from drift.models import Finding, FindingStatus
 
 
@@ -139,6 +140,12 @@ class OutcomeTracker:
 
         Returns the number of archived entries.
         """
+        # Finalize any previously interrupted archive operation first.
+        pending = self._load_pending_archive()
+        if pending:
+            self._merge_into_archive(pending)
+            self._clear_pending_archive()
+
         outcomes = self.load()
         now = datetime.now(UTC)
         keep: list[Outcome] = []
@@ -155,15 +162,13 @@ class OutcomeTracker:
         if not archived:
             return 0
 
-        # Append to archive file
-        archive_path = self._path.with_suffix(".archive.jsonl")
-        archive_path.parent.mkdir(parents=True, exist_ok=True)
-        with archive_path.open("a", encoding="utf-8") as f:
-            for outcome in archived:
-                f.write(json.dumps(asdict(outcome), ensure_ascii=False) + "\n")
-
-        # Rewrite active file
+        # Store pending archive payload first, then atomically rewrite active file,
+        # then merge into archive. If a crash happens in-between, next archive()
+        # run can finalize from the pending file without duplicate archive entries.
+        self._write_pending_archive(archived)
         self._rewrite(keep)
+        self._merge_into_archive(archived)
+        self._clear_pending_archive()
         return len(archived)
 
     # ------------------------------------------------------------------
@@ -176,7 +181,81 @@ class OutcomeTracker:
             f.write(json.dumps(asdict(outcome), ensure_ascii=False) + "\n")
 
     def _rewrite(self, outcomes: list[Outcome]) -> None:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._path.open("w", encoding="utf-8") as f:
-            for outcome in outcomes:
-                f.write(json.dumps(asdict(outcome), ensure_ascii=False) + "\n")
+        self._write_outcomes_atomically(self._path, outcomes)
+
+    def _archive_path(self) -> Path:
+        return self._path.with_suffix(".archive.jsonl")
+
+    def _archive_pending_path(self) -> Path:
+        return self._path.with_suffix(".archive.pending.json")
+
+    def _outcome_key(self, outcome: Outcome) -> tuple[str, str, str | None, str]:
+        return (
+            outcome.fingerprint,
+            outcome.reported_at,
+            outcome.resolved_at,
+            outcome.signal_type,
+        )
+
+    def _write_outcomes_atomically(self, path: Path, outcomes: list[Outcome]) -> None:
+        content = "".join(
+            json.dumps(asdict(outcome), ensure_ascii=False) + "\n" for outcome in outcomes
+        )
+        atomic_write_text(path, content, encoding="utf-8")
+
+    def _load_outcomes_from_path(self, path: Path) -> list[Outcome]:
+        if not path.exists():
+            return []
+        loaded: list[Outcome] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                loaded.append(Outcome(**json.loads(line)))
+            except (json.JSONDecodeError, TypeError):
+                continue
+        return loaded
+
+    def _write_pending_archive(self, outcomes: list[Outcome]) -> None:
+        pending_data = [asdict(outcome) for outcome in outcomes]
+        atomic_write_text(
+            self._archive_pending_path(),
+            json.dumps(pending_data, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+
+    def _load_pending_archive(self) -> list[Outcome]:
+        pending_path = self._archive_pending_path()
+        if not pending_path.exists():
+            return []
+        try:
+            raw = json.loads(pending_path.read_text(encoding="utf-8"))
+            if not isinstance(raw, list):
+                return []
+            pending: list[Outcome] = []
+            for item in raw:
+                if isinstance(item, dict):
+                    try:
+                        pending.append(Outcome(**item))
+                    except TypeError:
+                        continue
+            return pending
+        except (json.JSONDecodeError, OSError, TypeError):
+            return []
+
+    def _clear_pending_archive(self) -> None:
+        self._archive_pending_path().unlink(missing_ok=True)
+
+    def _merge_into_archive(self, outcomes: list[Outcome]) -> None:
+        archive_path = self._archive_path()
+        existing = self._load_outcomes_from_path(archive_path)
+        seen = {self._outcome_key(outcome) for outcome in existing}
+        merged = list(existing)
+        for outcome in outcomes:
+            key = self._outcome_key(outcome)
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(outcome)
+        self._write_outcomes_atomically(archive_path, merged)
