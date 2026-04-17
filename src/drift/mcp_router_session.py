@@ -27,11 +27,10 @@ async def run_session_start(
 ) -> str:
     from drift.mcp_enrichment import _enrich_response_with_session
     from drift.session import SessionManager
+    from drift.api_helpers import _error_response
 
     payload_mode = str(autopilot_payload).strip().lower()
     if payload_mode not in AUTOPILOT_PAYLOAD_MODES:
-        from drift.api_helpers import _error_response
-
         error = _error_response(
             "DRIFT-1003",
             f"Invalid autopilot_payload '{autopilot_payload}'",
@@ -56,14 +55,39 @@ async def run_session_start(
         return json.dumps(error, default=str)
 
     mgr = SessionManager.instance()
-    session_id = mgr.create(
-        repo_path=str(Path(path).resolve()),
-        signals=_parse_csv_ids(signals),
-        exclude_signals=_parse_csv_ids(exclude_signals),
-        target_path=target_path,
-        exclude_paths=_parse_csv_ids(exclude_paths),
-        ttl_seconds=ttl_seconds,
-    )
+    try:
+        session_id = mgr.create(
+            repo_path=str(Path(path).resolve()),
+            signals=_parse_csv_ids(signals),
+            exclude_signals=_parse_csv_ids(exclude_signals),
+            target_path=target_path,
+            exclude_paths=_parse_csv_ids(exclude_paths),
+            ttl_seconds=ttl_seconds,
+        )
+    except RuntimeError as exc:
+        if "DRIFT-4000" not in str(exc):
+            raise
+        error = _error_response(
+            "DRIFT-4000",
+            str(exc),
+            invalid_fields=[
+                {
+                    "field": "session_pool",
+                    "value": "exhausted",
+                    "reason": "maximum number of active sessions reached",
+                }
+            ],
+            suggested_fix={
+                "action": "End inactive sessions or retry later.",
+                "example_call": {
+                    "tool": "drift_session_end",
+                    "params": {"session_id": "<active-session-id>"},
+                },
+            },
+            recoverable=True,
+        )
+        return json.dumps(error, default=str)
+
     session = mgr.get(session_id)
     result: dict[str, Any] = {
         "status": "ok",
