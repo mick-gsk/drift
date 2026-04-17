@@ -7,6 +7,7 @@
 
 ### Fixed
 
+- **Embedding input sanitization prevents cached null-vectors (#430)**: `EmbeddingService.embed_text()` and `embed_texts()` now sanitize inputs by removing null bytes and trimming whitespace before cache/model usage. Empty sanitized inputs are skipped with debug logs and return `None` entries without invoking model encoding or storing cache entries.
 - **`_task_graph_critical_path()` empty-input crash and non-deterministic tie-breaking (#393)**: direct calls with an empty `sorted_ids` list now return `[]` instead of raising `ValueError`; tie-breaking among leaf nodes with equal `dist` values now uses the lexicographically smallest task ID for deterministic `critical_path` output across runs.
 - **`load_baseline()` silently ignores stored `drift_version` (#394)**: `load_baseline()` now reads the `drift_version` field from the baseline JSON and emits a `WARNING`-level log message when the stored version differs from the running version, prompting the user to regenerate the baseline. Baselines without a `drift_version` field (legacy files) are accepted without warning. No breaking behaviour change.
 - **Signal exception surfacing in precision evaluation (#369)**: `run_fixture` previously swallowed all signal exceptions with a bare `except Exception: pass`. Exceptions are now caught, formatted with a traceback, and emitted as both a `RuntimeWarning` and an `AnalyzerWarning` so callers can observe and triage failing signals.
