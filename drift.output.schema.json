@@ -182,7 +182,7 @@
           "finding_id": {
             "type": "string",
             "pattern": "^[0-9a-f]{16}$",
-            "description": "Deterministic content-based fingerprint (SHA256 prefix)."
+            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
           },
           "signal": {
             "type": "string"
@@ -303,7 +303,8 @@
           },
           "finding_id": {
             "type": "string",
-            "pattern": "^[0-9a-f]{16}$"
+            "pattern": "^[0-9a-f]{16}$",
+            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
           },
           "priority_class": {
             "type": "string"
@@ -458,7 +459,7 @@
           "finding_id": {
             "type": "string",
             "pattern": "^[0-9a-f]{16}$",
-            "description": "Deterministic content-based fingerprint (SHA256 prefix)."
+            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
           },
           "signal": {
             "type": "string"
@@ -694,7 +695,7 @@
           "finding_id": {
             "type": "string",
             "pattern": "^[0-9a-f]{16}$",
-            "description": "Deterministic content-based fingerprint (SHA256 prefix)."
+            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
           },
           "signal": {
             "type": "string"

@@ -180,8 +180,10 @@ def _finding_concise(f: Any) -> dict[str, Any]:
     """Minimal finding dict for concise responses."""
     signal = signal_abbrev(f.signal_type)
     severity = f.severity.value
+    fingerprint = _finding_fingerprint_value(f)
 
     return {
+        "finding_id": fingerprint,
         "signal": signal,
         "signal_abbrev": signal,
         "signal_id": signal,
@@ -196,7 +198,7 @@ def _finding_concise(f: Any) -> dict[str, Any]:
         "end_line": f.end_line,
         "finding_context": classify_finding_context(f, DriftConfig()),
         "detection_method": getattr(f, "metadata", {}).get("detection_method"),
-        "fingerprint": _finding_fingerprint_value(f),
+        "fingerprint": fingerprint,
         "next_step": _next_step_for_finding(f),
     }
 
@@ -208,7 +210,9 @@ def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
     rec = generate_recommendation(f)
     signal = signal_abbrev(f.signal_type)
     severity = f.severity.value
+    fingerprint = _finding_fingerprint_value(f)
     return {
+        "finding_id": fingerprint,
         "signal": signal,
         "signal_abbrev": signal,
         "signal_id": signal,
@@ -231,7 +235,7 @@ def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
         "detection_method": getattr(f, "metadata", {}).get("detection_method"),
         "symbol": f.symbol,
         "related_files": [rf.as_posix() for rf in f.related_files],
-        "fingerprint": _finding_fingerprint_value(f),
+        "fingerprint": fingerprint,
         "next_step": _next_step_for_finding(f),
         "expected_benefit": _expected_benefit_for_finding(f),
         "remediation": {

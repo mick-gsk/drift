@@ -290,7 +290,9 @@ def test_finding_rendering_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr("drift.baseline.finding_fingerprint", lambda f: "fp")
     concise = fr._finding_concise(f1)
+    assert concise["finding_id"] == "fp"
     assert concise["fingerprint"] == "fp"
+    assert concise["finding_id"] == concise["fingerprint"]
     assert concise["line"] == f1.start_line
     assert concise["start_line"] == f1.start_line
     assert concise["end_line"] == f1.end_line
@@ -300,6 +302,8 @@ def test_finding_rendering_helpers(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda f: SimpleNamespace(title="t", description="d", effort="low", impact="high"),
     )
     detailed = fr._finding_detailed(f1, rank=1)
+    assert detailed["finding_id"] == "fp"
+    assert detailed["finding_id"] == detailed["fingerprint"]
     assert detailed["remediation"]["title"] == "t"
     assert detailed["line"] == f1.start_line
     assert detailed["start_line"] == f1.start_line

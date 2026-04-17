@@ -7,6 +7,7 @@
 
 ### Fixed
 
+- **Kanonisches `finding_id` über Scan/Status-Surfaces (#479)**: `finding_rendering._finding_concise()` und `finding_rendering._finding_detailed()` emittieren jetzt zusätzlich `finding_id` als kanonischen stabilen Identifier; `fingerprint` bleibt als Rueckwaertskompatibilitaets-Alias erhalten. Dadurch funktionieren cross-surface Deduplizierung und Agent-Pipelines (`scan -> diff -> status`) ohne feldspezifische Sonderbehandlung.
 - **`drift ci --format junit|llm` missing deprecation warnings (#477)**: `ci._emit_output()` now emits the same `DeprecationWarning` and stderr migration guidance as `analyze`/`check` when deprecated `junit` or `llm` formats are used.
 - **Konsistente Zeilenfelder in Finding-Serialisierung (#478)**: `finding_rendering._finding_concise()` emittiert jetzt zusätzlich `start_line` und `end_line`; `finding_rendering._finding_detailed()` emittiert zusätzlich den Alias `line`. Dadurch können Agent-Workflows über concise/detailed hinweg stabil auf dieselben Line-Keys zugreifen.
 - **`drift export-context --write` emits confirmation on stderr (#476)**: write-mode success text now uses stderr (`click.echo(..., err=True)`) so stdout remains clean for machine-readable payloads and command-substitution workflows.
