@@ -365,6 +365,7 @@ def analysis_to_json(
             "excluded_from_fix_first": len(excluded_fix_first),
         },
         "suppressed_count": analysis.suppressed_count,
+        "broad_security_suppressions": list(analysis.broad_security_suppressions),
         "context_tagged_count": analysis.context_tagged_count,
         "baseline": {
             "applied": analysis.baseline_new_count is not None,

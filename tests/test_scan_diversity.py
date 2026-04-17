@@ -955,6 +955,50 @@ class TestTargetPathWarning:
         assert "warnings" in result
         assert any("does/not/exist" in w for w in result["warnings"])
 
+    def test_scan_warns_when_bare_ignore_suppresses_security_signal(self, monkeypatch):
+        """scan() emits a warning when broad security suppressions are present."""
+        import drift.analyzer as analyzer_module
+        import drift.api as api_module
+        from drift.config import DriftConfig
+
+        analysis = SimpleNamespace(
+            findings=[],
+            drift_score=0.0,
+            severity=Severity.LOW,
+            total_files=5,
+            total_functions=10,
+            ai_attributed_ratio=0.0,
+            trend=None,
+            broad_security_suppressions=[
+                {"file": "src/app.py", "line": 5, "signal": "hardcoded_secret"}
+            ],
+        )
+        monkeypatch.setattr(
+            DriftConfig,
+            "load",
+            staticmethod(lambda *a, **kw: object()),
+        )
+        monkeypatch.setattr(
+            analyzer_module,
+            "analyze_repo",
+            lambda *a, **kw: analysis,
+        )
+        monkeypatch.setattr(
+            api_module,
+            "_emit_api_telemetry",
+            lambda **kw: None,
+        )
+        monkeypatch.setattr(
+            _scan_mod,
+            "_fix_first_concise",
+            lambda analysis, max_items=5: [],
+        )
+
+        result = scan(Path("."))
+        assert "warnings" in result
+        assert any(
+            "Bare drift:ignore suppressed security findings" in w for w in result["warnings"]
+        )
 
 # --- Task 5: top_signals respects --select filter ---
 
