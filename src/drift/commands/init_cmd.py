@@ -336,7 +336,8 @@ def init(
         )
         console.print()
 
-    if not (repo / "drift.yaml").exists() and not json_output and not dry_run:
+    _no_config = not (repo / "drift.yaml").exists()
+    if _no_config and not json_output and not dry_run and sys.stdin.isatty():
         interactive = True
         console.print("[dim]No drift.yaml found — running interactive setup.[/dim]")
         console.print()
