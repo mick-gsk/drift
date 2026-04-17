@@ -318,7 +318,7 @@ class EmbeddingService:
         b_norm = np.divide(b_arr, norm_b, out=np.zeros_like(b_arr), where=norm_b != 0.0)
 
         sims = a_norm @ b_norm.T
-        return np.clip(sims, -1.0, 1.0)
+        return np.clip(sims, -1.0, 1.0)  # type: ignore[no-any-return]
 
     # -- FAISS index ---------------------------------------------------------
 

@@ -99,6 +99,42 @@ class RegressionPattern:
     reason_code: RegressionReasonCode
 
 
+class TaskComplexity(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class AutomationFit(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class ReviewRisk(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class ChangeScope(StrEnum):
+    LOCAL = "local"
+    MODULE = "module"
+    CROSS_MODULE = "cross_module"
+
+
+class VerificationStrength(StrEnum):
+    WEAK = "weak"
+    MODERATE = "moderate"
+    STRONG = "strong"
+
+
+class RepairMaturity(StrEnum):
+    EXPERIMENTAL = "experimental"
+    STABLE = "stable"
+    VERIFIED = "verified"
+
+
 class RepairLevel(StrEnum):
     """Repair-coverage maturity level for a signal.
 

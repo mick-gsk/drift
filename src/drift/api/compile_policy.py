@@ -96,9 +96,12 @@ def compile_policy(
         try:
             cal_cfg = getattr(cfg, "calibration", None)
             if cal_cfg and getattr(cal_cfg, "enabled", False):
+                from drift.calibration.feedback import load_feedback
                 from drift.calibration.profile_builder import build_profile
 
-                profile = build_profile(repo_path, cfg)
+                feedback_path = repo_path / ".drift-cache" / "feedback.jsonl"
+                events = load_feedback(feedback_path) if feedback_path.is_file() else []
+                profile = build_profile(events)
                 if profile:
                     cal_weights = getattr(profile, "calibrated_weights", None)
                     if cal_weights and hasattr(cal_weights, "as_dict"):

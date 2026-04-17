@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from drift.models._policy import CompiledPolicy, PolicyRule
+from drift.models._policy import CompiledPolicy, PolicyCategory, PolicyRule
 
 if TYPE_CHECKING:
     from drift.arch_graph._models import (
@@ -174,7 +174,9 @@ def compile_decision_rules(
                 continue
             seen_ids.add(dec.id)
 
-            category = "prohibition" if dec.enforcement == "block" else "invariant"
+            category: PolicyCategory = (  # type: ignore[assignment]
+                "prohibition" if dec.enforcement == "block" else "invariant"  # type: ignore[assignment]
+            )
             rules.append(PolicyRule(
                 id=f"decision-{dec.id}",
                 category=category,
@@ -566,7 +568,7 @@ def compile_policy(
     scoped_findings:
         Pre-filtered findings for the scope.
     """
-    from drift.arch_graph import ArchGraphStore
+    from drift.arch_graph import ArchGraphStore  # type: ignore[attr-defined]
 
     # --- 1. Scope resolution ---
     scope = resolve_compile_scope(
