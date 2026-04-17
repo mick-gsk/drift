@@ -168,6 +168,7 @@ def filter_findings(
         end_line = max(f.start_line, end_line)
 
         is_suppressed = False
+        matched_inline_entry: InlineSuppression | None = None
         for line_no in range(start_line, end_line + 1):
             key = (f.file_path.as_posix(), line_no)
             entry = suppressions.get(key)
@@ -189,12 +190,23 @@ def filter_findings(
 
             if signals is None or f.signal_type in signals:
                 is_suppressed = True
+                if isinstance(entry, InlineSuppression):
+                    matched_inline_entry = entry
                 break
 
         if is_suppressed:
             f.status = FindingStatus.SUPPRESSED
             f.status_set_by = "inline_comment"
-            f.status_reason = "Suppressed by drift:ignore comment"
+            if matched_inline_entry is not None:
+                status_reason = (
+                    "Suppressed by drift:ignore comment at "
+                    f"{matched_inline_entry.file_path}:{matched_inline_entry.line_number}"
+                )
+                if matched_inline_entry.reason:
+                    status_reason += f" - reason: {matched_inline_entry.reason}"
+                f.status_reason = status_reason
+            else:
+                f.status_reason = "Suppressed by drift:ignore comment"
             suppressed.append(f)
         else:
             f.status = FindingStatus.ACTIVE

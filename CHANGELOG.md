@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- **`drift:ignore reason:` metadata dropped from suppressed finding status output (#465)**: `filter_findings()` now preserves inline suppression source location and optional `reason` in `status_reason` (e.g. `... at path:line - reason: ...`) so `--show-suppressed` and JSON/SARIF consumers can see suppression rationale directly.
 - **`drift diff` live/git mode always returned exit code 0 (#475)**: added `--fail-on` severity gating (default `high`) to `drift diff` and aligned live mode with offline snapshot mode so newly introduced findings at or above the threshold now return `EXIT_FINDINGS_ABOVE_THRESHOLD` (1).
 - **`TYPE_SAFETY_BYPASS` negative-context mapping/generator gap (#462)**: added an explicit `TYPE_SAFETY_BYPASS` entry to `negative_context._SIGNAL_CATEGORY` and a dedicated `_gen_tsb` generator so TSB findings no longer fall through to implicit fallback with miscategorized architecture output.
 - **Unknown `drift:ignore[ABBREV]` tokens silently became no-op suppressions (#468)**: `collect_inline_suppressions()` now emits `WARNING` logs with file/line and the unknown abbreviation, lists known abbreviations, and no longer stores unknown tokens as pseudo-signal IDs.

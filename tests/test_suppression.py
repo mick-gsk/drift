@@ -246,3 +246,23 @@ class TestFilterFindings:
 
         assert len(active) == 0
         assert len(suppressed) == 1
+
+    def test_status_reason_includes_location_and_reason_metadata(self, tmp_path: Path) -> None:
+        src = tmp_path / "src" / "app.py"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text(
+            "x = 1  # drift:ignore[AVS] reason:deliberate-inversion\n",
+            encoding="utf-8",
+        )
+        files = [FileInfo(path=Path("src/app.py"), language="python", size_bytes=64)]
+
+        suppressions = scan_suppressions(files, tmp_path)
+        finding = _make_finding(signal=SignalType.ARCHITECTURE_VIOLATION, start_line=1)
+        active, suppressed = filter_findings([finding], suppressions)
+
+        assert len(active) == 0
+        assert len(suppressed) == 1
+        assert suppressed[0].status_reason == (
+            "Suppressed by drift:ignore comment at src/app.py:1 - "
+            "reason: deliberate-inversion"
+        )
