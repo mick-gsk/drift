@@ -7,6 +7,7 @@
 
 ### Fixed
 
+- **`drift export-context --write` emits confirmation on stderr (#476)**: write-mode success text now uses stderr (`click.echo(..., err=True)`) so stdout remains clean for machine-readable payloads and command-substitution workflows.
 - **External integrations not wired into pipeline**: `drift init` and the analysis pipeline now discover, validate, and execute registered external integrations via the new `src/drift/integrations/` package (`base.py`, `registry.py`, `runner.py`) and the built-in `superpowers` integration. Integration configuration is declared under a new `integrations:` key in `drift.yaml` and validated at load time.
 - **`drift validate` exit code contract when `valid=false` (#474)**: the `validate` CLI command now exits with `EXIT_CONFIG_ERROR` (`2`) when `api.validate()` reports an invalid preflight result, while still emitting the JSON payload to stdout or `--output`.
 - **`_task_graph_critical_path()` empty-input crash and non-deterministic tie-breaking (#393)**: direct calls with an empty `sorted_ids` list now return `[]` instead of raising `ValueError`; tie-breaking among leaf nodes with equal `dist` values now uses the lexicographically smallest task ID for deterministic `critical_path` output across runs.

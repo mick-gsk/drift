@@ -554,6 +554,49 @@ class TestExportContextCLI:
         assert "Running drift analysis" not in result.stdout
         assert "Running drift analysis" in result.stderr
 
+    def test_write_success_message_goes_to_stderr_not_stdout(
+        self,
+        monkeypatch,
+        tmp_path: Path,
+    ) -> None:
+        """Write-mode confirmation must be emitted on stderr, not stdout."""
+        from click.testing import CliRunner
+
+        from drift.cli import main
+
+        monkeypatch.setattr(
+            "drift.analyzer.analyze_repo",
+            lambda *_args, **_kwargs: SimpleNamespace(
+                findings=[],
+                drift_score=0.0,
+                severity=Severity.LOW,
+            ),
+        )
+        monkeypatch.setattr(
+            "drift.negative_context.findings_to_negative_context",
+            lambda *_args, **_kwargs: [],
+        )
+        monkeypatch.setattr(
+            "drift.negative_context.export.render_negative_context_markdown",
+            lambda *_args, **_kwargs: "NEG",
+        )
+
+        out = tmp_path / "context.md"
+        runner_kwargs: dict[str, object] = {}
+        if "mix_stderr" in CliRunner.__init__.__code__.co_varnames:
+            runner_kwargs["mix_stderr"] = False
+        runner = CliRunner(**runner_kwargs)
+
+        result = runner.invoke(
+            main,
+            ["export-context", "--repo", str(tmp_path), "--write", "--output", str(out)],
+        )
+
+        assert result.exit_code == 0
+        assert out.read_text(encoding="utf-8") == "NEG"
+        assert "Exported" not in result.stdout
+        assert "Exported" in result.stderr
+
 
 # ---------------------------------------------------------------------------
 # Issue #111: ASCII-safe output (no mojibake on Windows)

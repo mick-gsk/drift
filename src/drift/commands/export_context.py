@@ -6,8 +6,6 @@ from pathlib import Path
 
 import click
 
-from drift.commands import console
-
 
 @click.command("export-context")
 @click.option(
@@ -152,7 +150,4 @@ def export_context(
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(markdown, encoding="utf-8")
 
-    console.print(
-        f"[green]✓[/] Exported {len(items)} anti-pattern items to [bold]{target}[/]",
-        highlight=False,
-    )
+    click.echo(f"Exported {len(items)} anti-pattern items to {target}", err=True)
