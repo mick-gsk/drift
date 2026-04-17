@@ -203,7 +203,7 @@ def compile_hotspot_rules(
 
         if hs.trend == "degrading" or hs.total_occurrences >= 5:
             top_signal = (
-                max(hs.recurring_signals, key=hs.recurring_signals.get)
+                max(hs.recurring_signals, key=lambda k: hs.recurring_signals[k])
                 if hs.recurring_signals
                 else "unknown"
             )
