@@ -47,15 +47,28 @@ _SCORE_TOLERANCE = 0.5
 _FINDING_TOLERANCE = 0
 
 
-def compare_runs(before: RunSnapshot, after: RunSnapshot) -> QualityDrift:
-    """Compare two run snapshots and return a quality-drift assessment."""
+def compare_runs(
+    before: RunSnapshot,
+    after: RunSnapshot,
+    *,
+    score_tolerance: float = _SCORE_TOLERANCE,
+    finding_tolerance: int = _FINDING_TOLERANCE,
+) -> QualityDrift:
+    """Compare two snapshots and return a quality-drift assessment.
+
+    Args:
+        before: Earlier run snapshot.
+        after: Later run snapshot.
+        score_tolerance: Absolute score delta that is still treated as stable.
+        finding_tolerance: Absolute finding-count delta that is still treated as stable.
+    """
     score_delta = round(after.score - before.score, 2)
     finding_delta = after.finding_count - before.finding_count
 
     # Classify direction
-    if score_delta < -_SCORE_TOLERANCE or finding_delta < -_FINDING_TOLERANCE:
+    if score_delta < -score_tolerance or finding_delta < -finding_tolerance:
         direction = "improving"
-    elif score_delta > _SCORE_TOLERANCE or finding_delta > _FINDING_TOLERANCE:
+    elif score_delta > score_tolerance or finding_delta > finding_tolerance:
         direction = "degrading"
     else:
         direction = "stable"
@@ -89,6 +102,9 @@ def _build_advisory(
 
 def quality_drift_from_history(
     run_history: list[dict[str, Any]],
+    *,
+    score_tolerance: float = _SCORE_TOLERANCE,
+    finding_tolerance: int = _FINDING_TOLERANCE,
 ) -> QualityDrift | None:
     """Compare the last two entries in a run history list.
 
@@ -116,4 +132,6 @@ def quality_drift_from_history(
             finding_count=curr["finding_count"],
             tool_calls=curr.get("tool_calls_at", 0),
         ),
+        score_tolerance=score_tolerance,
+        finding_tolerance=finding_tolerance,
     )

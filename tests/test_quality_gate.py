@@ -50,6 +50,19 @@ class TestCompareRuns:
         qd = compare_runs(before, after)
         assert qd.direction == "degrading"
 
+    def test_custom_tolerances_can_mark_small_regression_as_stable(self):
+        before = RunSnapshot(score=40.0, finding_count=10)
+        after = RunSnapshot(score=40.8, finding_count=11)
+
+        qd = compare_runs(
+            before,
+            after,
+            score_tolerance=1.0,
+            finding_tolerance=1,
+        )
+
+        assert qd.direction == "stable"
+
 
 class TestQualityDriftFromHistory:
     def test_empty_history(self):
@@ -116,3 +129,18 @@ class TestQualityDriftFromHistory:
                 {"score": 38.0, "finding_count": 5},
             ])
         assert "run_history[0]" in str(exc_info.value)
+
+    def test_custom_tolerances_are_forwarded_to_compare(self):
+        history = [
+            {"score": 40.0, "finding_count": 10, "tool_calls_at": 1},
+            {"score": 40.8, "finding_count": 11, "tool_calls_at": 2},
+        ]
+
+        qd = quality_drift_from_history(
+            history,
+            score_tolerance=1.0,
+            finding_tolerance=1,
+        )
+
+        assert qd is not None
+        assert qd.direction == "stable"
