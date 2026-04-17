@@ -389,6 +389,135 @@
       "title": "GuidedThresholds",
       "type": "object"
     },
+    "IntegrationConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for a single external tool integration.\n\nExample drift.yaml::\n\n    integrations:\n      - name: superpowers\n        tier: run\n        trigger_signals:\n          - pattern_fragmentation\n        command: [\"superpowers\", \"check\", \"--format\", \"json\", \"{repo_path}\"]",
+      "properties": {
+        "command": {
+          "description": "Command to invoke (run/plugin tiers). Use {repo_path} as placeholder for the repository root.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "hint_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Static hint text to render in reports (hint tier).",
+          "title": "Hint Text"
+        },
+        "name": {
+          "description": "Unique identifier for this integration.",
+          "title": "Name",
+          "type": "string"
+        },
+        "output_format": {
+          "default": "json",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "title": "Output Format",
+          "type": "string"
+        },
+        "severity_map": {
+          "$ref": "#/$defs/IntegrationSeverityMap",
+          "description": "Mapping of external tool severity levels to Drift severity values."
+        },
+        "tier": {
+          "description": "Integration tier: hint (report only), run (subprocess), plugin (YAML).",
+          "enum": [
+            "hint",
+            "run",
+            "plugin"
+          ],
+          "title": "Tier",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "default": 30,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        },
+        "trigger_signals": {
+          "description": "List of signal types that activate this integration. Use '*' to trigger on any finding.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Trigger Signals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "tier"
+      ],
+      "title": "IntegrationConfig",
+      "type": "object"
+    },
+    "IntegrationSeverityMap": {
+      "additionalProperties": true,
+      "description": "Maps external tool severity levels to Drift Severity values.",
+      "properties": {
+        "error": {
+          "default": "high",
+          "title": "Error",
+          "type": "string"
+        },
+        "info": {
+          "default": "info",
+          "title": "Info",
+          "type": "string"
+        },
+        "note": {
+          "default": "info",
+          "title": "Note",
+          "type": "string"
+        },
+        "warning": {
+          "default": "medium",
+          "title": "Warning",
+          "type": "string"
+        }
+      },
+      "title": "IntegrationSeverityMap",
+      "type": "object"
+    },
+    "IntegrationsGlobalConfig": {
+      "additionalProperties": false,
+      "description": "Global integrations section in drift.yaml.\n\nExample::\n\n    integrations:\n      enabled: false   # opt-in: set to true to activate\n      adapters:\n        - name: superpowers\n          tier: run\n          ...",
+      "properties": {
+        "adapters": {
+          "items": {
+            "$ref": "#/$defs/IntegrationConfig"
+          },
+          "title": "Adapters",
+          "type": "array"
+        },
+        "enabled": {
+          "default": false,
+          "description": "Global switch. Must be set to true to run any integration. Default false \u2014 explicit opt-in required.",
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "title": "IntegrationsGlobalConfig",
+      "type": "object"
+    },
     "LanguagesConfig": {
       "additionalProperties": false,
       "description": "Per-language scanning settings (drift.yaml \u2192 ``languages:``).",
@@ -1169,6 +1298,10 @@
       },
       "title": "Include",
       "type": "array"
+    },
+    "integrations": {
+      "$ref": "#/$defs/IntegrationsGlobalConfig",
+      "description": "External tool integrations (hint / run / plugin tiers). Set enabled: true to activate. Default: disabled."
     },
     "language": {
       "anyOf": [
