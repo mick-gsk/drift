@@ -139,6 +139,43 @@ class TestPlanStalenessEnrichment:
         assert "plan_stale" not in enriched.get("session", {})
 
 
+class TestEnrichmentNonDictResponse:
+    def test_non_dict_response_logs_warning_and_keeps_payload(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        from drift.mcp_server import _enrich_response_with_session
+        from drift.session import DriftSession
+
+        session = DriftSession(session_id="sid", repo_path=".", phase="scan")
+        raw = json.dumps([{"status": "ok"}])
+
+        with caplog.at_level("WARNING", logger="drift.mcp_enrichment"):
+            enriched = _enrich_response_with_session(
+                raw,
+                session,
+                tool_name="drift_scan",
+            )
+
+        assert enriched == raw
+        assert any(
+            "Enrichment skipped for drift_scan: response is not a JSON object (type: list)"
+            in message
+            for message in caplog.messages
+        )
+
+    def test_non_dict_response_still_records_trace_entry(self) -> None:
+        from drift.mcp_server import _enrich_response_with_session
+        from drift.session import DriftSession
+
+        session = DriftSession(session_id="sid", repo_path=".", phase="scan")
+        raw = json.dumps([{"status": "ok"}])
+
+        _enrich_response_with_session(raw, session, tool_name="drift_scan")
+
+        assert len(session.trace) == 1
+        assert session.trace[0]["tool"] == "drift_scan"
+
+
 # ---------------------------------------------------------------------------
 # M1 — drift_map API function
 # ---------------------------------------------------------------------------
@@ -254,8 +291,9 @@ class TestDriftMapMcpTool:
         raw = _run_tool(mcp_server.drift_map(path="."))
         result = json.loads(raw)
 
-        assert result["type"] == "error"
+        assert result["status"] == "error"
         assert result["error_code"] == "DRIFT-7001"
+        assert result["agent_instruction"]
 
     def test_mcp_tool_with_session(self, tmp_repo: Path):
         from drift import mcp_server
