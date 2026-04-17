@@ -9,10 +9,14 @@ Decision: ADR-022
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 from drift.mcp_orchestration import _pre_call_advisory
+
+
+logger = logging.getLogger(__name__)
 
 
 def _enrich_response_with_session(
@@ -35,6 +39,12 @@ def _enrich_response_with_session(
         return raw_json
 
     if not isinstance(result, dict):
+        if tool_name:
+            logger.warning(
+                "Enrichment skipped for %s: response is not a JSON object (type: %s)",
+                tool_name,
+                type(result).__name__,
+            )
         return raw_json
 
     session_block: dict[str, Any] = {
