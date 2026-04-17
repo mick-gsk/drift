@@ -341,7 +341,17 @@ class EmbeddingService:
         if query.ndim == 1:
             query = query.reshape(1, -1)
 
+        query_dim = int(query.shape[1])
+
         if _FAISS_AVAILABLE and hasattr(index, "search"):
+            index_dim = getattr(index, "d", None)
+            if isinstance(index_dim, int | np.integer) and query_dim != int(index_dim):
+                msg = (
+                    f"Embedding dimension mismatch: query has {query_dim} dims, "
+                    f"index has {int(index_dim)} dims. "
+                    "Cache may contain vectors from a different model version."
+                )
+                raise ValueError(msg)
             k = min(top_k, getattr(index, "ntotal", top_k))
             if k < 1:
                 return []
@@ -356,6 +366,14 @@ class EmbeddingService:
         vectors = index  # type: ignore[assignment]
         if not isinstance(vectors, np.ndarray) or vectors.size == 0:
             return []
+        vectors_dim = int(vectors.shape[1])
+        if query_dim != vectors_dim:
+            msg = (
+                f"Embedding dimension mismatch: query has {query_dim} dims, "
+                f"index has {vectors_dim} dims. "
+                "Cache may contain vectors from a different model version."
+            )
+            raise ValueError(msg)
         sims = (query @ vectors.T).flatten()
         k = min(top_k, len(sims))
         top_indices = np.argpartition(sims, -k)[-k:]
