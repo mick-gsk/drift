@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from drift.models import FileInfo, Finding, Severity, SignalType
-from drift.suppression import filter_findings, scan_suppressions
+from drift.suppression import InlineSuppression, filter_findings, scan_suppressions
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -43,7 +43,7 @@ class TestScanSuppressions:
 
         result = scan_suppressions(files, tmp_path)
         assert ("app.py", 1) in result
-        assert result[("app.py", 1)] is None  # all signals
+        assert result[("app.py", 1)].signals is None  # all signals
 
     def test_ignore_single_signal(self, tmp_path: Path) -> None:
         src = tmp_path / "app.py"
@@ -51,7 +51,7 @@ class TestScanSuppressions:
         files = [FileInfo(path=Path("app.py"), language="python", size_bytes=30)]
 
         result = scan_suppressions(files, tmp_path)
-        assert result[("app.py", 1)] == {"architecture_violation"}
+        assert result[("app.py", 1)].signals == {"architecture_violation"}
 
     def test_ignore_multiple_signals(self, tmp_path: Path) -> None:
         src = tmp_path / "app.py"
@@ -59,7 +59,7 @@ class TestScanSuppressions:
         files = [FileInfo(path=Path("app.py"), language="python", size_bytes=30)]
 
         result = scan_suppressions(files, tmp_path)
-        assert result[("app.py", 1)] == {
+        assert result[("app.py", 1)].signals == {
             "architecture_violation",
             "pattern_fragmentation",
         }
@@ -70,7 +70,7 @@ class TestScanSuppressions:
         files = [FileInfo(path=Path("app.ts"), language="typescript", size_bytes=30)]
 
         result = scan_suppressions(files, tmp_path)
-        assert result[("app.ts", 1)] == {"architecture_violation"}
+        assert result[("app.ts", 1)].signals == {"architecture_violation"}
 
     def test_unsupported_language_skipped(self, tmp_path: Path) -> None:
         src = tmp_path / "app.rb"
@@ -95,8 +95,24 @@ class TestScanSuppressions:
 
         result = scan_suppressions(files, tmp_path)
         assert len(result) == 2
-        assert result[("app.py", 2)] is None
-        assert result[("app.py", 4)] == {"pattern_fragmentation"}
+        assert isinstance(result[("app.py", 2)], InlineSuppression)
+        assert result[("app.py", 2)].signals is None
+        assert result[("app.py", 4)].signals == {"pattern_fragmentation"}
+
+    def test_until_metadata_is_preserved(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text(
+            "import foo  # drift:ignore[AVS] until:2030-01-01 reason:temp\n",
+            encoding="utf-8",
+        )
+        files = [FileInfo(path=Path("app.py"), language="python", size_bytes=70)]
+
+        result = scan_suppressions(files, tmp_path)
+        entry = result[("app.py", 1)]
+        assert isinstance(entry, InlineSuppression)
+        assert entry.signals == {"architecture_violation"}
+        assert entry.until is not None
+        assert entry.until.isoformat() == "2030-01-01"
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +200,32 @@ class TestFilterFindings:
         src.parent.mkdir(parents=True, exist_ok=True)
         src.write_text("x = 1  # drift:ignore[AVS]\n", encoding="utf-8")
         files = [FileInfo(path=Path("src/app.py"), language="python", size_bytes=32)]
+
+        suppressions = scan_suppressions(files, tmp_path)
+        finding = _make_finding(signal=SignalType.ARCHITECTURE_VIOLATION, start_line=1)
+        active, suppressed = filter_findings([finding], suppressions)
+
+        assert len(active) == 0
+        assert len(suppressed) == 1
+
+    def test_expired_until_suppression_reactivates_finding(self, tmp_path: Path) -> None:
+        src = tmp_path / "src" / "app.py"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("x = 1  # drift:ignore[AVS] until:2000-01-01\n", encoding="utf-8")
+        files = [FileInfo(path=Path("src/app.py"), language="python", size_bytes=64)]
+
+        suppressions = scan_suppressions(files, tmp_path)
+        finding = _make_finding(signal=SignalType.ARCHITECTURE_VIOLATION, start_line=1)
+        active, suppressed = filter_findings([finding], suppressions)
+
+        assert len(active) == 1
+        assert len(suppressed) == 0
+
+    def test_future_until_suppression_still_suppresses(self, tmp_path: Path) -> None:
+        src = tmp_path / "src" / "app.py"
+        src.parent.mkdir(parents=True, exist_ok=True)
+        src.write_text("x = 1  # drift:ignore[AVS] until:2999-01-01\n", encoding="utf-8")
+        files = [FileInfo(path=Path("src/app.py"), language="python", size_bytes=64)]
 
         suppressions = scan_suppressions(files, tmp_path)
         finding = _make_finding(signal=SignalType.ARCHITECTURE_VIOLATION, start_line=1)

@@ -115,23 +115,27 @@ def collect_inline_suppressions(
 def scan_suppressions(
     files: list[FileInfo],
     repo_path: Path,
-) -> dict[tuple[str, int], set[str] | None]:
+) -> dict[tuple[str, int], InlineSuppression]:
     """Scan source files for ``drift:ignore`` comments.
 
-    Returns a mapping of ``(posix_path, line_number)`` to the set of signal
-    type *values* that should be suppressed.  ``None`` means *all* signals.
+    Returns a mapping of ``(posix_path, line_number)`` to
+    :class:`InlineSuppression` so downstream filtering can enforce metadata
+    such as ``until`` expiry.
     """
-    suppressions: dict[tuple[str, int], set[str] | None] = {}
+    suppressions: dict[tuple[str, int], InlineSuppression] = {}
 
     for entry in collect_inline_suppressions(files, repo_path):
-        suppressions[(entry.file_path, entry.line_number)] = entry.signals
+        suppressions[(entry.file_path, entry.line_number)] = entry
 
     return suppressions
 
 
 def filter_findings(
     findings: list[Finding],
-    suppressions: Mapping[tuple[str, int], set[str] | None],
+    suppressions: Mapping[
+        tuple[str, int],
+        InlineSuppression | set[str] | None,
+    ],
 ) -> tuple[list[Finding], list[Finding]]:
     """Partition findings into *active* and *suppressed*.
 
@@ -144,6 +148,7 @@ def filter_findings(
 
     active: list[Finding] = []
     suppressed: list[Finding] = []
+    today = date.today()
 
     for f in findings:
         if f.file_path is None or f.start_line is None:
@@ -160,7 +165,21 @@ def filter_findings(
             entry = suppressions.get(key)
             if entry is None and key not in suppressions:
                 continue
-            if entry is None or f.signal_type in entry:
+
+            signals: set[str] | None
+            until: date | None = None
+            if isinstance(entry, InlineSuppression):
+                signals = entry.signals
+                until = entry.until
+            else:
+                # Backward compatibility for tests/callers that still pass
+                # legacy mapping values (set[str] | None).
+                signals = entry
+
+            if until is not None and until < today:
+                continue
+
+            if signals is None or f.signal_type in signals:
                 is_suppressed = True
                 break
 
