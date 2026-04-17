@@ -95,26 +95,64 @@ class OutcomeTracker:
         )
         self._append(outcome)
 
-    def resolve(self, current_fingerprints: set[str]) -> list[Outcome]:
+    def resolve(
+        self,
+        current_fingerprints: set[str],
+        active_signal_types: set[str] | None = None,
+    ) -> list[Outcome]:
         """Mark findings that are no longer present as resolved.
+
+        Parameters
+        ----------
+        current_fingerprints:
+            Fingerprints observed in the current analysis run.
+        active_signal_types:
+            Optional set of currently active signal types. If provided,
+            unresolved outcomes for signal types outside this set are
+            resolved as stale.
 
         Returns the list of newly resolved outcomes.
         """
         outcomes = self.load()
         now = datetime.now(UTC)
-        resolved: list[Outcome] = []
+        to_resolve: set[tuple[str, str, str]] = set()
 
         for outcome in outcomes:
             if outcome.resolved_at is not None:
                 continue
-            if outcome.fingerprint not in current_fingerprints:
-                outcome.resolved_at = now.isoformat()
-                reported = datetime.fromisoformat(outcome.reported_at)
-                outcome.days_to_fix = (now - reported).total_seconds() / 86400.0
-                resolved.append(outcome)
+
+            signal_inactive = (
+                active_signal_types is not None
+                and outcome.signal_type not in active_signal_types
+            )
+            if outcome.fingerprint in current_fingerprints and not signal_inactive:
+                continue
+
+            to_resolve.add((outcome.fingerprint, outcome.reported_at, outcome.signal_type))
+
+        if not to_resolve:
+            return []
+
+        # Re-load right before rewriting so entries appended by another
+        # tracker instance between the first load and rewrite are preserved.
+        merged_outcomes = self.load()
+        resolved: list[Outcome] = []
+
+        for outcome in merged_outcomes:
+            if outcome.resolved_at is not None:
+                continue
+
+            identity = (outcome.fingerprint, outcome.reported_at, outcome.signal_type)
+            if identity not in to_resolve:
+                continue
+
+            outcome.resolved_at = now.isoformat()
+            reported = datetime.fromisoformat(outcome.reported_at)
+            outcome.days_to_fix = (now - reported).total_seconds() / 86400.0
+            resolved.append(outcome)
 
         if resolved:
-            self._rewrite(outcomes)
+            self._rewrite(merged_outcomes)
 
         return resolved
 

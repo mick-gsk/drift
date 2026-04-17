@@ -270,6 +270,99 @@ class TestOutcomeTracker:
         resolved = tracker.resolve(set())
         assert len(resolved) == 0  # already resolved, not touched again
 
+    def test_issue_445_resolve_marks_outcome_for_inactive_signal_type(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        now = datetime.now(UTC).isoformat()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "fingerprint": "fp-old-signal",
+                    "signal_type": "removed_signal",
+                    "recommendation_title": "Fix",
+                    "reported_at": now,
+                    "resolved_at": None,
+                    "days_to_fix": None,
+                    "effort_estimate": "medium",
+                    "was_suppressed": False,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        tracker = OutcomeTracker(path)
+        resolved = tracker.resolve(
+            current_fingerprints={"fp-old-signal"},
+            active_signal_types={"pattern_fragmentation"},
+        )
+
+        assert len(resolved) == 1
+        assert resolved[0].fingerprint == "fp-old-signal"
+        assert resolved[0].resolved_at is not None
+
+    def test_issue_445_resolve_preserves_interleaved_append(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        path = tmp_path / ".drift" / "outcomes.jsonl"
+        old_time = (datetime.now(UTC) - timedelta(days=2)).isoformat()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "fingerprint": "fp-existing",
+                    "signal_type": "pattern_fragmentation",
+                    "recommendation_title": "Fix",
+                    "reported_at": old_time,
+                    "resolved_at": None,
+                    "days_to_fix": None,
+                    "effort_estimate": "medium",
+                    "was_suppressed": False,
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        tracker_a = OutcomeTracker(path)
+        original_load = tracker_a.load
+        state = {"calls": 0}
+
+        def _load_with_interleaved_append() -> list:
+            state["calls"] += 1
+            loaded = original_load()
+            if state["calls"] == 1:
+                with path.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        json.dumps(
+                            {
+                                "fingerprint": "fp-interleaved",
+                                "signal_type": "architecture_violation",
+                                "recommendation_title": "Fix",
+                                "reported_at": datetime.now(UTC).isoformat(),
+                                "resolved_at": None,
+                                "days_to_fix": None,
+                                "effort_estimate": "high",
+                                "was_suppressed": False,
+                            }
+                        )
+                        + "\n"
+                    )
+            return loaded
+
+        monkeypatch.setattr(tracker_a, "load", _load_with_interleaved_append)
+
+        resolved = tracker_a.resolve(set())
+        assert len(resolved) == 1
+
+        loaded_after = OutcomeTracker(path).load()
+        assert {o.fingerprint for o in loaded_after} == {"fp-existing", "fp-interleaved"}
+
     def test_issue_435_rewrite_is_atomic_on_replace_failure(
         self,
         tmp_path: Path,
