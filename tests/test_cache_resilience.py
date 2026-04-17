@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -115,6 +117,22 @@ def test_parse_cache_roundtrip_with_version_tags(tmp_path: Path) -> None:
     recovered = cache.get(content_hash)
     assert recovered is not None
     assert recovered.file_path == Path("c.py")
+
+
+def test_parse_cache_get_refreshes_mtime_on_hit(tmp_path: Path) -> None:
+    """A cache hit should refresh mtime to preserve frequently-used entries."""
+    cache = ParseCache(tmp_path)
+    content_hash = "1234567890abcdef" * 2
+    result = ParseResult(file_path=Path("d.py"), language="python")
+    cache.put(content_hash, result)
+
+    cache_file = tmp_path / "parse" / f"{content_hash}.json"
+    old_time = time.time() - 9 * 24 * 3600
+    os.utime(cache_file, (old_time, old_time))
+
+    recovered = cache.get(content_hash)
+    assert recovered is not None
+    assert cache_file.stat().st_mtime > old_time
 
 
 def test_embedding_cache_init_swallows_mkdir_oserror(

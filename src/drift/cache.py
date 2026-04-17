@@ -87,7 +87,10 @@ class ParseCache:
             if data.get("_drift_v") != _drift_version:
                 path.unlink(missing_ok=True)
                 return None
-            return _deserialize(data)
+            result = _deserialize(data)
+            with suppress(OSError):
+                os.utime(path, None)
+            return result
         except Exception:
             # Corrupted cache entry — remove and miss
             path.unlink(missing_ok=True)
@@ -406,7 +409,10 @@ class SignalCache:
             if not isinstance(raw_findings, list):
                 path.unlink(missing_ok=True)
                 return None
-            return [_deser_finding(f) for f in raw_findings]
+            findings = [_deser_finding(f) for f in raw_findings]
+            with suppress(OSError):
+                os.utime(path, None)
+            return findings
         except Exception:
             path.unlink(missing_ok=True)
             return None

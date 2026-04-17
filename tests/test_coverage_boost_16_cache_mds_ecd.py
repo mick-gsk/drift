@@ -79,6 +79,20 @@ def test_signal_cache_put_then_get_roundtrip(tmp_path: Path) -> None:
     assert result == []
 
 
+def test_signal_cache_get_refreshes_mtime_on_hit(tmp_path: Path) -> None:
+    """A signal cache hit should refresh mtime to avoid stale eviction thrash."""
+    sc = SignalCache(tmp_path)
+    sc.put("PFS", "fp1", "hash_mtime", [])
+
+    cache_file = tmp_path / "signals" / "PFS_fp1_hash_mtime.json"
+    old_time = time.time() - 9 * 24 * 3600
+    os.utime(cache_file, (old_time, old_time))
+
+    result = sc.get("PFS", "fp1", "hash_mtime")
+    assert result == []
+    assert cache_file.stat().st_mtime > old_time
+
+
 def test_signal_cache_get_miss_returns_none(tmp_path: Path) -> None:
     """get() returns None on cache miss."""
     sc = SignalCache(tmp_path)
