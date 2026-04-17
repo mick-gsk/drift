@@ -271,6 +271,7 @@ class BaselineManager:
     _instance_lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self) -> None:
+        self._lock = threading.RLock()
         self._store: dict[
             str,
             tuple[BaselineSnapshot, list[Finding], dict[str, ParseResult]],
@@ -312,6 +313,109 @@ class BaselineManager:
         diverged since the baseline was stored, the entry is silently
         invalidated and ``None`` is returned.
         """
+        with self._lock:
+            return self._get_unlocked(repo_path, config=config)
+
+    def store(
+        self,
+        repo_path: Path,
+        baseline: BaselineSnapshot,
+        findings: list[Finding],
+        parse_map: dict[str, ParseResult],
+        *,
+        config: DriftConfig | None = None,
+    ) -> None:
+        """Cache a baseline and snapshot the current git state."""
+        with self._lock:
+            repo_key = repo_path.resolve().as_posix()
+            self._store[repo_key] = (baseline, findings, parse_map)
+            self._last_refresh_reason.pop(repo_key, None)
+
+            if config is not None:
+                key_meta = self._compute_nudge_key_meta(repo_path, config)
+                self._nudge_key_meta[repo_key] = key_meta
+                self._persist_nudge_baseline(
+                    repo_path=repo_path,
+                    cache_dir=config.cache_dir,
+                    key_meta=key_meta,
+                    baseline=baseline,
+                    findings=findings,
+                )
+
+            git_state = _capture_git_state(repo_path)
+            if git_state is not None:
+                self._git_state[repo_key] = git_state
+
+    def invalidate(self, repo_path: Path) -> None:
+        """Remove cached baseline for *repo_path*."""
+        with self._lock:
+            repo_key = repo_path.resolve().as_posix()
+            self._store.pop(repo_key, None)
+            self._nudge_key_meta.pop(repo_key, None)
+            self._git_state.pop(repo_key, None)
+
+    def consume_refresh_reason(self, repo_path: Path) -> str | None:
+        """Return and clear the last refresh reason for *repo_path*."""
+        with self._lock:
+            repo_key = repo_path.resolve().as_posix()
+            return self._last_refresh_reason.pop(repo_key, None)
+
+    def has_baseline(self, repo_path: Path) -> bool:
+        """Return ``True`` if a valid baseline is cached (no git check)."""
+        with self._lock:
+            repo_key = repo_path.resolve().as_posix()
+            stored = self._store.get(repo_key)
+            return stored is not None and stored[0].is_valid()
+
+    # -- internal ------------------------------------------------------------
+
+    def _git_state_changed(self, repo_path: Path) -> str | None:
+        """Return invalidation reason when git state changed, else ``None``."""
+        repo_key = repo_path.resolve().as_posix()
+        previous = self._git_state.get(repo_key)
+        if previous is None:
+            # No git state recorded — cannot detect changes
+            return None
+
+        # Bypass the TTL cache on the invalidation path: a HEAD change that
+        # occurs within the 5-second window would otherwise be invisible here
+        # and cause stale incremental results (issue #372).
+        current = _capture_git_state_uncached(repo_path)
+        if current is None:
+            return None
+
+        # Keep the shared TTL cache consistent with the fresh capture so that
+        # non-invalidation callers (e.g. _compute_nudge_key_meta) benefit from
+        # the up-to-date state without spawning additional subprocesses.
+        with _GIT_STATE_CACHE_LOCK:
+            _GIT_STATE_CACHE[repo_key] = (time.monotonic(), current)
+
+        # (a) Branch switch or new commit
+        if current.head_commit != previous.head_commit:
+            return "git_head_changed"
+
+        # (b) Stash changed
+        if current.stash_hash != previous.stash_hash:
+            return "stash_changed"
+
+        # (c) Invalidate only when crossing from <= threshold to > threshold.
+        # This avoids repeated invalidations in persistently dirty repos where
+        # the changed-file count remains high but stable across calls.
+        if (
+            previous.changed_file_count <= _MAX_CHANGED_FILES_BEFORE_INVALIDATION
+            and current.changed_file_count > _MAX_CHANGED_FILES_BEFORE_INVALIDATION
+        ):
+            return "changed_file_threshold"
+
+        return None
+
+    def _get_unlocked(
+        self,
+        repo_path: Path,
+        *,
+        config: DriftConfig | None = None,
+    ) -> tuple[BaselineSnapshot, list[Finding], dict[str, ParseResult]] | None:
+        """Return baseline entry assuming the caller already holds ``self._lock``."""
         repo_key = repo_path.resolve().as_posix()
         stored = self._store.get(repo_key)
         if stored is None and config is not None:
@@ -359,95 +463,6 @@ class BaselineManager:
             return None
 
         return stored
-
-    def store(
-        self,
-        repo_path: Path,
-        baseline: BaselineSnapshot,
-        findings: list[Finding],
-        parse_map: dict[str, ParseResult],
-        *,
-        config: DriftConfig | None = None,
-    ) -> None:
-        """Cache a baseline and snapshot the current git state."""
-        repo_key = repo_path.resolve().as_posix()
-        self._store[repo_key] = (baseline, findings, parse_map)
-        self._last_refresh_reason.pop(repo_key, None)
-
-        if config is not None:
-            key_meta = self._compute_nudge_key_meta(repo_path, config)
-            self._nudge_key_meta[repo_key] = key_meta
-            self._persist_nudge_baseline(
-                repo_path=repo_path,
-                cache_dir=config.cache_dir,
-                key_meta=key_meta,
-                baseline=baseline,
-                findings=findings,
-            )
-
-        git_state = _capture_git_state(repo_path)
-        if git_state is not None:
-            self._git_state[repo_key] = git_state
-
-    def invalidate(self, repo_path: Path) -> None:
-        """Remove cached baseline for *repo_path*."""
-        repo_key = repo_path.resolve().as_posix()
-        self._store.pop(repo_key, None)
-        self._nudge_key_meta.pop(repo_key, None)
-        self._git_state.pop(repo_key, None)
-
-    def consume_refresh_reason(self, repo_path: Path) -> str | None:
-        """Return and clear the last refresh reason for *repo_path*."""
-        repo_key = repo_path.resolve().as_posix()
-        return self._last_refresh_reason.pop(repo_key, None)
-
-    def has_baseline(self, repo_path: Path) -> bool:
-        """Return ``True`` if a valid baseline is cached (no git check)."""
-        repo_key = repo_path.resolve().as_posix()
-        stored = self._store.get(repo_key)
-        return stored is not None and stored[0].is_valid()
-
-    # -- internal ------------------------------------------------------------
-
-    def _git_state_changed(self, repo_path: Path) -> str | None:
-        """Return invalidation reason when git state changed, else ``None``."""
-        repo_key = repo_path.resolve().as_posix()
-        previous = self._git_state.get(repo_key)
-        if previous is None:
-            # No git state recorded — cannot detect changes
-            return None
-
-        # Bypass the TTL cache on the invalidation path: a HEAD change that
-        # occurs within the 5-second window would otherwise be invisible here
-        # and cause stale incremental results (issue #372).
-        current = _capture_git_state_uncached(repo_path)
-        if current is None:
-            return None
-
-        # Keep the shared TTL cache consistent with the fresh capture so that
-        # non-invalidation callers (e.g. _compute_nudge_key_meta) benefit from
-        # the up-to-date state without spawning additional subprocesses.
-        with _GIT_STATE_CACHE_LOCK:
-            _GIT_STATE_CACHE[repo_key] = (time.monotonic(), current)
-
-        # (a) Branch switch or new commit
-        if current.head_commit != previous.head_commit:
-            return "git_head_changed"
-
-        # (b) Stash changed
-        if current.stash_hash != previous.stash_hash:
-            return "stash_changed"
-
-        # (c) Invalidate only when crossing from <= threshold to > threshold.
-        # This avoids repeated invalidations in persistently dirty repos where
-        # the changed-file count remains high but stable across calls.
-        if (
-            previous.changed_file_count <= _MAX_CHANGED_FILES_BEFORE_INVALIDATION
-            and current.changed_file_count > _MAX_CHANGED_FILES_BEFORE_INVALIDATION
-        ):
-            return "changed_file_threshold"
-
-        return None
 
     def _compute_nudge_key_meta(
         self,

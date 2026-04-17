@@ -916,6 +916,39 @@ class TestBaselineManager:
             f"Expected exactly one BaselineManager instance, got {len(unique_ids)}"
         )
 
+    def test_public_state_methods_use_instance_lock(self, tmp_path: Path) -> None:
+        """Public state accessors/mutators must acquire the manager lock (issue #422)."""
+
+        class _TrackingLock:
+            def __init__(self) -> None:
+                self.enter_count = 0
+
+            def __enter__(self) -> None:
+                self.enter_count += 1
+
+            def __exit__(
+                self,
+                exc_type: object,
+                exc: object,
+                tb: object,
+            ) -> None:
+                return None
+
+        mgr = BaselineManager.instance()
+        tracker = _TrackingLock()
+        mgr._lock = tracker  # type: ignore[attr-defined]
+
+        repo_path = tmp_path.resolve()
+        baseline = BaselineSnapshot(file_hashes={"a.py": "abc"}, score=0.1)
+
+        mgr.store(repo_path, baseline, [], {})
+        _ = mgr.get(repo_path)
+        _ = mgr.has_baseline(repo_path)
+        _ = mgr.consume_refresh_reason(repo_path)
+        mgr.invalidate(repo_path)
+
+        assert tracker.enter_count >= 5
+
 
 class TestGitEventInvalidation:
     """Test that BaselineManager detects git-state changes."""
