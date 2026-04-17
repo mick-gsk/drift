@@ -115,6 +115,44 @@ class TestScanContextTags:
         tags = scan_context_tags([fi], tmp_path)
         assert tags[("x.py", 1)] == {"strategy-pattern", "tech_debt"}
 
+    def test_unknown_tags_are_ignored_and_warned(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        fi = _write_python_file(
+            tmp_path,
+            "svc/handler.py",
+            "# drift:context migration,tyop-tag\ndef old_func(): pass\n",
+        )
+        with caplog.at_level("WARNING"):
+            tags = scan_context_tags([fi], tmp_path)
+
+        assert tags[("svc/handler.py", 1)] == {"migration"}
+        assert any(
+            "Ignoring unknown drift:context tag(s)" in record.message
+            and "tyop-tag" in record.message
+            for record in caplog.records
+        )
+
+    def test_only_unknown_tags_do_not_create_mapping_entry(
+        self,
+        tmp_path: Path,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        fi = _write_python_file(
+            tmp_path,
+            "svc/handler.py",
+            "# drift:context intentional_varience\ndef old_func(): pass\n",
+        )
+        with caplog.at_level("WARNING"):
+            tags = scan_context_tags([fi], tmp_path)
+
+        assert ("svc/handler.py", 1) not in tags
+        assert any(
+            "Ignoring unknown drift:context tag(s)" in record.message
+            and "intentional_varience" in record.message
+            for record in caplog.records
+        )
+
     def test_unsupported_language_ignored(self, tmp_path: Path) -> None:
         fi = FileInfo(path=Path("data.json"), language="json", size_bytes=10)
         tags = scan_context_tags([fi], tmp_path)
@@ -376,3 +414,4 @@ class TestContextTagEndToEnd:
         assert count == 1
         assert result[0].score == pytest.approx(0.4)  # dampened
         assert result[1].score == pytest.approx(0.8)  # untouched
+

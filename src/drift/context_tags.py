@@ -7,6 +7,7 @@ Unlike ``drift:ignore`` which *suppresses* findings, ``drift:context``
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -28,10 +29,34 @@ _PATTERN_BY_LANG: dict[str, re.Pattern[str]] = {
     "jsx": _JS_PATTERN,
 }
 
+# Keep this vocabulary explicit so typo-tags do not silently dampen findings.
+_KNOWN_CONTEXT_TAGS: frozenset[str] = frozenset({
+    "intentional-variance",
+    "legacy-module",
+    "migration-in-progress",
+    "third-party",
+    "migration",
+    "deliberate",
+    "strategy-pattern",
+    "refactoring",
+    "legacy",
+    "tech_debt",
+})
+
+logger = logging.getLogger(__name__)
+
 
 def _parse_tags(raw: str) -> set[str]:
     """Split a raw comma-separated tag string into a normalised set."""
     return {t.strip().lower() for t in raw.split(",") if t.strip()}
+
+
+def _partition_known_tags(raw: str) -> tuple[set[str], set[str]]:
+    """Return ``(known_tags, unknown_tags)`` for a raw context-tag payload."""
+    parsed = _parse_tags(raw)
+    known = {tag for tag in parsed if tag in _KNOWN_CONTEXT_TAGS}
+    unknown = parsed - known
+    return known, unknown
 
 
 def scan_context_tags(
@@ -58,9 +83,16 @@ def scan_context_tags(
             m = pattern.search(line)
             if m is None:
                 continue
-            matched_tags = _parse_tags(m.group(1))
-            if matched_tags:
-                tags[(finfo.path.as_posix(), line_no)] = matched_tags
+            known_tags, unknown_tags = _partition_known_tags(m.group(1))
+            if unknown_tags:
+                logger.warning(
+                    "Ignoring unknown drift:context tag(s) %s in %s:%d",
+                    ", ".join(sorted(unknown_tags)),
+                    finfo.path.as_posix(),
+                    line_no,
+                )
+            if known_tags:
+                tags[(finfo.path.as_posix(), line_no)] = known_tags
 
     return tags
 
