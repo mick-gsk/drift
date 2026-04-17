@@ -552,6 +552,8 @@ class TestFirstRunRenderMode:
         analysis.repo_path = Path(".")  # type: ignore[attr-defined]
         analysis.module_scores = []  # type: ignore[attr-defined]
         analysis.skipped_languages = {}  # type: ignore[attr-defined]
+        analysis.expired_suppression_count = 0  # type: ignore[attr-defined]
+        analysis.expired_suppressions = []  # type: ignore[attr-defined]
 
         buf = StringIO()
         console = Console(file=buf, force_terminal=True, width=120)

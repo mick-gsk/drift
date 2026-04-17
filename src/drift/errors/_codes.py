@@ -62,14 +62,14 @@ ERROR_REGISTRY: dict[str, ErrorInfo] = {
         code="DRIFT-1001",
         summary="Invalid config value in {config_path}",
         why="Field '{field}' {reason}",
-        action="Fix the value at line {line} or run 'drift config show' to see defaults",
+        action="Fix the value at line {line} or run 'drift config validate' to diagnose all issues",
         category="user",
     ),
     "DRIFT-1002": ErrorInfo(
         code="DRIFT-1002",
         summary="Configuration file is not valid",
         why="Parse error: {reason}",
-        action="Check syntax near line {line} in the config file",
+        action="Check syntax near line {line} or run 'drift config validate' to see all errors",
         category="user",
     ),
     "DRIFT-1003": ErrorInfo(
