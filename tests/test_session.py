@@ -6,6 +6,7 @@ Decision: ADR-022
 from __future__ import annotations
 
 import json
+import logging
 import time
 from pathlib import Path
 
@@ -351,3 +352,25 @@ class TestSessionManager:
         assert s1 is not None and s2 is not None
         assert s1.signals == ["PFS"]
         assert s2.signals == ["PFS"]
+
+    def test_create_rejects_when_max_sessions_reached(self):
+        mgr = SessionManager(max_sessions=2)
+        mgr.create("/tmp/repo1")
+        mgr.create("/tmp/repo2")
+
+        with pytest.raises(RuntimeError, match="DRIFT-4000"):
+            mgr.create("/tmp/repo3")
+
+    def test_create_logs_warning_near_capacity(self, caplog: pytest.LogCaptureFixture):
+        mgr = SessionManager(max_sessions=5, warning_threshold_ratio=0.8)
+        caplog.set_level(logging.WARNING, logger="drift")
+
+        mgr.create("/tmp/repo1")
+        mgr.create("/tmp/repo2")
+        mgr.create("/tmp/repo3")
+        mgr.create("/tmp/repo4")
+
+        assert any(
+            "Session capacity warning" in message
+            for message in caplog.messages
+        )

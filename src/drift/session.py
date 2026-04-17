@@ -34,6 +34,8 @@ logger = logging.getLogger("drift")
 
 _SCHEMA_VERSION = "1.0"
 _DEFAULT_TTL_SECONDS = 1800  # 30 minutes
+_DEFAULT_MAX_SESSIONS = 50
+_DEFAULT_SESSION_WARNING_THRESHOLD_RATIO = 0.8
 _DEFAULT_EFFECTIVENESS_THRESHOLDS: dict[str, float] = {
     "low_effect_resolved_per_changed_file": 0.25,
     "low_effect_resolved_per_100_loc_changed": 0.5,
@@ -973,8 +975,20 @@ class SessionManager:
 
     _instance: ClassVar[SessionManager | None] = None
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        max_sessions: int = _DEFAULT_MAX_SESSIONS,
+        warning_threshold_ratio: float = _DEFAULT_SESSION_WARNING_THRESHOLD_RATIO,
+    ) -> None:
         self._sessions: dict[str, DriftSession] = {}
+        self._max_sessions = max(1, int(max_sessions))
+        self._warning_threshold_ratio = min(max(float(warning_threshold_ratio), 0.0), 1.0)
+
+    def _warning_threshold_count(self) -> int:
+        if self._warning_threshold_ratio <= 0:
+            return self._max_sessions + 1
+        return max(1, int(self._max_sessions * self._warning_threshold_ratio))
 
     # -- singleton -----------------------------------------------------------
 
@@ -1004,6 +1018,12 @@ class SessionManager:
     ) -> str:
         """Create a new session and return its ``session_id``."""
         self.prune_expired()
+        active_count = len(self._sessions)
+        if active_count >= self._max_sessions:
+            raise RuntimeError(
+                "[DRIFT-4000] max sessions reached"
+                f" (active={active_count}, max={self._max_sessions})"
+            )
         session_id = uuid.uuid4().hex
         session = DriftSession(
             session_id=session_id,
@@ -1015,6 +1035,16 @@ class SessionManager:
             exclude_paths=list(exclude_paths) if exclude_paths is not None else None,
         )
         self._sessions[session_id] = session
+
+        new_count = len(self._sessions)
+        if new_count >= self._warning_threshold_count():
+            logger.warning(
+                "Session capacity warning: active=%d max=%d threshold_ratio=%.2f",
+                new_count,
+                self._max_sessions,
+                self._warning_threshold_ratio,
+            )
+
         logger.debug("Session created: %s for %s", session_id[:8], repo_path)
         return session_id
 
