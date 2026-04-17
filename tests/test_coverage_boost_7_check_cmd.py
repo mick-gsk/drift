@@ -154,9 +154,15 @@ def test_render_llm_passes_max_findings(tmp_path: Path) -> None:
     analysis = _make_analysis()
     with open(tmp_path / "out.txt", "w", encoding="utf-8") as fh:
         console = Console(file=fh)
-        with patch("drift.output.llm_output.analysis_to_llm", return_value="llm") as mock_llm, patch(
-            "drift.commands._shared._emit_machine_output"
-        ) as mock_emit, pytest.warns(DeprecationWarning, match=r"--format llm is deprecated"):
+        with (
+            patch(
+                "drift.output.llm_output.analysis_to_llm", return_value="llm"
+            ) as mock_llm,
+            patch(
+                "drift.commands._shared._emit_machine_output"
+            ) as mock_emit,
+            pytest.warns(DeprecationWarning, match=r"--format llm is deprecated"),
+        ):
             _render_or_emit_output(
                 analysis=analysis,
                 output_format="llm",
