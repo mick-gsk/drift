@@ -25,6 +25,7 @@ from drift.models import (
     SignalType,
 )
 from drift.negative_context import findings_to_negative_context, negative_context_to_dict
+from drift.output._json_safe import to_json_safe
 from drift.recommendations import generate_recommendation
 
 # JSON schema version — shared with API responses (ADR-042).
@@ -192,7 +193,7 @@ def _finding_to_dict(f: Finding, *, impact_rank: int | None = None) -> dict[str,
         "status": f.status.value,
         "status_set_by": f.status_set_by,
         "status_reason": f.status_reason,
-        "metadata": f.metadata,
+        "metadata": to_json_safe(f.metadata),
         "attribution": {
             "commit_hash": f.attribution.commit_hash,
             "author": f.attribution.author,

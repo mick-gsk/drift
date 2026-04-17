@@ -387,3 +387,19 @@ def test_findings_to_sarif_rule_help_for_known_signal() -> None:
     if "help" in pfs_rule:
         assert "text" in pfs_rule["help"]
         assert "markdown" in pfs_rule["help"]
+
+
+def test_analysis_to_json_normalizes_non_json_metadata_values() -> None:
+    analysis = _sample_analysis()
+    analysis.findings[0].metadata = {
+        "source_path": Path("src/app/service.py"),
+        "detected_at": datetime.datetime(2026, 1, 2, 11, 0, tzinfo=datetime.UTC),
+        "tags": {"alpha", "beta"},
+    }
+
+    payload = json.loads(analysis_to_json(analysis))
+    metadata = payload["findings"][0]["metadata"]
+
+    assert metadata["source_path"] == "src/app/service.py"
+    assert metadata["detected_at"] == "2026-01-02T11:00:00+00:00"
+    assert metadata["tags"] == ["alpha", "beta"]

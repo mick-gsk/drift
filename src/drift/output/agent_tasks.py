@@ -16,6 +16,7 @@ from drift.fix_intent import (
 )
 from drift.models import AgentTask, Finding, RegressionPattern, RepoAnalysis, Severity, SignalType
 from drift.negative_context import findings_to_negative_context, negative_context_to_dict
+from drift.output._json_safe import to_json_safe
 from drift.recommendations import Recommendation, generate_recommendations
 from drift.repair_template_registry import get_registry
 from drift.signal_registry import get_meta
@@ -1628,9 +1629,9 @@ def _task_to_dict(t: AgentTask) -> dict[str, Any]:
         "complexity": t.complexity,
         "expected_effect": t.expected_effect,
         "success_criteria": t.success_criteria,
-        "verify_plan": t.verify_plan,
+        "verify_plan": to_json_safe(t.verify_plan),
         "depends_on": t.depends_on,
-        "metadata": t.metadata,
+        "metadata": to_json_safe(t.metadata),
         "automation_fit": t.automation_fit,
         "review_risk": t.review_risk,
         "change_scope": t.change_scope,

@@ -16,6 +16,7 @@ from drift.output.agent_tasks import (
     REPAIR_MATURITY,
     _generate_constraints,
     _task_id,
+    _task_to_dict,
     analysis_to_agent_tasks,
     analysis_to_agent_tasks_json,
 )
@@ -254,6 +255,48 @@ class TestFilteringBehavior:
         tasks = analysis_to_agent_tasks(analysis)
         assert len(tasks) == 1
         assert "Replace bare except" in tasks[0].action
+
+
+class TestJsonSerializationNormalization:
+    def test_task_to_dict_normalizes_non_json_values(self) -> None:
+        from drift.models import AgentTask
+
+        task = AgentTask(
+            id="pfs-1234567890",
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.HIGH,
+            priority=1,
+            title="Normalize task payload",
+            description="Ensure metadata and verify_plan are JSON-safe.",
+            action="Normalize payload",
+            metadata={
+                "source_path": Path("services/payment.py"),
+                "detected_at": datetime.datetime(2026, 3, 26, 12, 0, tzinfo=datetime.UTC),
+                "tags": {"alpha", "beta"},
+            },
+            verify_plan=[
+                {
+                    "step": "check",
+                    "created_at": datetime.datetime(
+                        2026,
+                        3,
+                        26,
+                        12,
+                        5,
+                        tzinfo=datetime.UTC,
+                    ),
+                    "artifact": Path("reports/check.json"),
+                }
+            ],
+        )
+
+        payload = _task_to_dict(task)
+
+        assert payload["metadata"]["source_path"] == "services/payment.py"
+        assert payload["metadata"]["detected_at"] == "2026-03-26T12:00:00+00:00"
+        assert payload["metadata"]["tags"] == ["alpha", "beta"]
+        assert payload["verify_plan"][0]["created_at"] == "2026-03-26T12:05:00+00:00"
+        assert payload["verify_plan"][0]["artifact"] == "reports/check.json"
 
 
 # ---------------------------------------------------------------------------

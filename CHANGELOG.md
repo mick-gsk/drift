@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- **`drift calibrate reset` rollback could silently re-apply stale calibration evidence (#452)**: added `drift calibrate reset --clear-feedback` to archive feedback evidence, `drift calibrate reset --signal <signal_type>` to remove evidence for one signal, explicit warning when evidence is retained, and mutual-exclusion validation between both reset modes.
+- **Non-deterministic metadata serialization in JSON outputs (#453)**: added a shared JSON-safe normalizer for output payloads and applied it to `Finding.metadata` plus agent-task `metadata`/`verify_plan`. `Path` values now serialize as POSIX strings, datetimes as ISO-8601, and set-like values as deterministic sorted arrays.
 - **Out-of-range score values accepted in core analysis models (#450)**: Added constructor-time `[0.0, 1.0]` bounds validation for `Finding.score`, `Finding.impact`, `ModuleScore.drift_score`, and `RepoAnalysis.drift_score` to enforce schema-aligned invariants at model creation time.
 - **`TrendContext.transition_ratio` type/schema mismatch (#448)**: aligned `src/drift/models/_findings.py` with `drift.output.schema.json` by changing `TrendContext.transition_ratio` from `float` to `float | None`, matching nullable trend output semantics when history context is absent.
 - **Concurrent outcome/feedback writes can lose data under parallel runs (#444)**: added cross-process advisory locking for `OutcomeTracker` record/resolve/load/archive paths and for `record_feedback()` JSONL appends. Outcome read-modify-write cycles are now serialized per outcomes file to prevent stale overwrite races and preserve `resolved_at`/`days_to_fix` integrity when multiple `drift analyze` processes run concurrently.
