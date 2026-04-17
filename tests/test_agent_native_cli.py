@@ -63,6 +63,54 @@ def test_validate_outputs_json(tmp_path: Path) -> None:
     assert "git_available" in payload
 
 
+def test_validate_exits_2_when_api_reports_invalid(monkeypatch, tmp_path: Path) -> None:
+    import drift.commands.validate_cmd as validate_command
+
+    monkeypatch.setattr(
+        validate_command,
+        "api_validate",
+        lambda *args, **kwargs: {
+            "schema_version": "2.1",
+            "valid": False,
+            "warnings": ["Config error: weight sum invalid"],
+            "git_available": True,
+            "files_discoverable": 0,
+            "embeddings_available": False,
+            "capabilities": [],
+        },
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["validate", "--repo", str(tmp_path)])
+    assert result.exit_code == 2
+    payload = json.loads(result.output)
+    assert payload["valid"] is False
+
+
+def test_validate_exits_0_when_api_reports_valid(monkeypatch, tmp_path: Path) -> None:
+    import drift.commands.validate_cmd as validate_command
+
+    monkeypatch.setattr(
+        validate_command,
+        "api_validate",
+        lambda *args, **kwargs: {
+            "schema_version": "2.1",
+            "valid": True,
+            "warnings": [],
+            "git_available": True,
+            "files_discoverable": 0,
+            "embeddings_available": False,
+            "capabilities": [],
+        },
+    )
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["validate", "--repo", str(tmp_path)])
+    assert result.exit_code == 0
+    payload = json.loads(result.output)
+    assert payload["valid"] is True
+
+
 def test_scan_outputs_json(monkeypatch, tmp_path: Path) -> None:
     import drift.commands.scan as scan_command
 
