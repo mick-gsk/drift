@@ -20,7 +20,11 @@ _SEVERITY_ORDER = {
 
 
 def analysis_to_llm(analysis: RepoAnalysis, *, max_findings: int = 50) -> str:
-    """Serialize analysis as a compact, token-efficient plain-text report."""
+    """Serialize analysis as a compact, token-efficient plain-text report.
+
+    Caps output at *max_findings* findings (default 50) to stay within
+    typical LLM context windows.
+    """
     lines: list[str] = []
 
     # Header
