@@ -408,12 +408,14 @@ async def run_map(
             raw = _enrich_response_with_session(raw, session, "drift_map")
         return raw
     except Exception as exc:  # noqa: BLE001
-        return json.dumps(
-            {
-                "type": "error",
-                "error_code": "DRIFT-7001",
-                "message": str(exc),
-                "recoverable": True,
-            },
-            default=str,
+        from drift.api_helpers import _error_response
+
+        error = _error_response("DRIFT-7001", str(exc), recoverable=True)
+        # Keep MCP consumers compatible with both error discriminators.
+        error["status"] = "error"
+        error["tool"] = "drift_map"
+        error["agent_instruction"] = (
+            "Verify that the repository path exists and target_path points to a valid "
+            "subdirectory. Retry drift_map with a corrected path."
         )
+        return json.dumps(error, default=str)
