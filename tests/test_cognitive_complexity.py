@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from drift.config import DriftConfig
+from drift.ingestion.ts_parser import tree_sitter_available
 from drift.models import FunctionInfo, ParseResult, Severity, SignalType
 from drift.precision import (
     ensure_signals_registered,
@@ -318,6 +319,10 @@ _CXS_FIXTURES = FIXTURES_BY_SIGNAL.get(SignalType.COGNITIVE_COMPLEXITY, [])
 )
 def test_cxs_ground_truth(fixture: GroundTruthFixture, tmp_path: Path) -> None:
     """Verify CXS ground-truth fixtures produce expected findings."""
+    if any(
+        str(fp).endswith((".ts", ".tsx")) for fp in fixture.files
+    ) and not tree_sitter_available():
+        pytest.skip("TypeScript fixture requires tree-sitter-typescript")
     findings, _warnings = run_fixture(
         fixture, tmp_path, signal_filter={SignalType.COGNITIVE_COMPLEXITY}
     )

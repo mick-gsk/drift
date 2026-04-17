@@ -66,6 +66,9 @@ jobs:
           "released=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          # PSR may exit non-zero on Windows even on successful release;
+          # tag presence already confirms success, so reset exit code.
+          exit 0
 
       - name: Update CITATION.cff version
         if: steps.release.outputs.released == 'true'
