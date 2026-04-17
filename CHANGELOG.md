@@ -1,5 +1,7 @@
 ## [2.12.0] - 2026-04-17
 
+Short version: Arch-graph API, remediation memory (ADR-072), consolidation opportunity detector (ADR-073), and enriched repair outcome tracking.
+
 ### Added
 
 - **Remediation Memory (ADR-072)**: `RepairTemplateRegistry.similar_outcomes()` returns compact past-outcome summaries per (signal, edit_kind); `fix_plan` now enriches each `AgentTask` with `similar_outcomes` from the registry to guide repair choices.
