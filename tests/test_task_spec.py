@@ -62,6 +62,7 @@ class TestTaskSpecModel:
             acceptance_criteria=["Weights updated per ADR-034"],
             requires_adr=True,
             requires_audit_update=False,
+            depends_on=["ADR-034"],
         )
         assert spec.requires_adr is True
         assert spec.requires_audit_update is False
@@ -75,6 +76,7 @@ class TestTaskSpecModel:
                 ArchitectureLayer.TESTS,
             ],
             acceptance_criteria=["All integration tests pass"],
+            depends_on=["ADR-044"],
         )
         assert spec.requires_adr is True
         assert spec.requires_audit_update is True
@@ -137,20 +139,26 @@ class TestValidateTaskSpec:
             goal="Extend audit content validation logic",
             affected_layers=[ArchitectureLayer.SCRIPTS],
             acceptance_criteria=["All audit artifacts pass content check"],
+            requires_adr=False,
         )
         issues = validate_task_spec(spec)
+        all_issues = issues.errors + issues.warnings
         # Advisory issues (scope_boundaries) are acceptable
-        assert all("scope_boundaries" in i or "advisory" in i.lower() for i in issues)
+        assert all_issues == [] or all(
+            "scope_boundaries" in i or "advisory" in i.lower() for i in all_issues
+        )
 
     def test_missing_tests_layer_warning(self):
         spec = TaskSpec(
             goal="Add new signal for dead imports",
             affected_layers=[ArchitectureLayer.SIGNALS],
             acceptance_criteria=["Signal detects dead imports"],
+            depends_on=["ADR-047"],
         )
         issues = validate_task_spec(spec)
+        all_issues = issues.errors + issues.warnings
         # Should warn about missing tests layer
-        assert any("tests" in i.lower() for i in issues)
+        assert any("tests" in i.lower() for i in all_issues)
 
     def test_adr_required_but_missing(self):
         spec = TaskSpec(
@@ -158,20 +166,23 @@ class TestValidateTaskSpec:
             affected_layers=[ArchitectureLayer.SCORING, ArchitectureLayer.TESTS],
             acceptance_criteria=["Score regression tests pass"],
             requires_adr=True,
+            depends_on=["ADR-045"],
         )
         issues = validate_task_spec(spec)
         # Not necessarily an error (ADR may exist), but may warn
         # Just check it doesn't crash
-        assert isinstance(issues, list)
+        assert isinstance(issues.errors, list)
 
     def test_vague_acceptance_criteria_warning(self):
         spec = TaskSpec(
             goal="Improve drift analysis quality significantly",
             affected_layers=[ArchitectureLayer.SIGNALS, ArchitectureLayer.TESTS],
             acceptance_criteria=["works"],  # Too vague
+            depends_on=["ADR-046"],
         )
         issues = validate_task_spec(spec)
-        assert any("short" in i.lower() or "vague" in i.lower() for i in issues)
+        all_issues = issues.errors + issues.warnings
+        assert any("short" in i.lower() or "vague" in i.lower() for i in all_issues)
 
     def test_forbidden_path_tagesplanung(self):
         spec = TaskSpec(
@@ -181,7 +192,7 @@ class TestValidateTaskSpec:
             forbidden_paths=["tagesplanung/"],
         )
         issues = validate_task_spec(spec)
-        assert isinstance(issues, list)  # Valid construction
+        assert isinstance(issues.errors, list)  # Valid construction
 
 
 # ── YAML/JSON serialization round-trip ─────────────────────────────
@@ -196,6 +207,7 @@ class TestTaskSpecSerialization:
             affected_layers=[ArchitectureLayer.OUTPUT, ArchitectureLayer.TESTS],
             acceptance_criteria=["CSV matches JSON content", "Header row present"],
             commit_type="feat",
+            depends_on=["ADR-048"],
         )
         yaml_path = tmp_path / "task.yaml"
         yaml_path.write_text(
@@ -252,6 +264,7 @@ class TestValidateTaskSpecCLI:
             "affected_layers": ["signals", "tests"],
             "acceptance_criteria": ["MDS no longer flags test helpers", "No recall regression"],
             "commit_type": "fix",
+            "depends_on": ["ADR-049"],
         }
         yaml_path = tmp_path / "task.yaml"
         yaml_path.write_text(yaml.dump(spec_data), encoding="utf-8")

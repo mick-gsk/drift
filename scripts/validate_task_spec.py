@@ -93,7 +93,8 @@ def main() -> int:
         return 1
 
     # Run semantic validation
-    issues = validate_task_spec(spec)
+    result = validate_task_spec(spec)
+    all_issues = result.errors + result.warnings
 
     # Output results
     print(f"TaskSpec: {spec_path}")
@@ -104,9 +105,9 @@ def main() -> int:
     print(f"  Audit required: {spec.requires_audit_update}")
     print(f"  Commit type: {spec.commit_type or '(not set)'}")
 
-    if issues:
-        print(f"\nADVISORIES ({len(issues)}):")
-        for issue in issues:
+    if all_issues:
+        print(f"\nADVISORIES ({len(all_issues)}):")
+        for issue in all_issues:
             print(f"  [!] {issue}")
 
     print("\n[OK] TaskSpec is structurally valid.")
