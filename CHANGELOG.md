@@ -1,4 +1,4 @@
-## [Unreleased]
+## [2.11.0] - 2026-04-17
 
 Short version: generate_skills API for agent-driven SKILL.md briefings, configurable quality-gate tolerances, LLM output max-findings cap, and singleton thread-safety fix.
 
