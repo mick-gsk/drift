@@ -46,6 +46,9 @@ async def run_scan(
     from drift.api import scan
 
     session = _resolve_session(session_id)
+    blocked = _strict_guardrail_block_response("drift_scan", session)
+    if blocked is not None:
+        return blocked
     kwargs = _session_defaults(
         session,
         {
