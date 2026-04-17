@@ -114,6 +114,19 @@ class TestScanSuppressions:
         assert entry.until is not None
         assert entry.until.isoformat() == "2030-01-01"
 
+    def test_unknown_signal_abbrev_logs_warning(self, tmp_path: Path, caplog) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("import foo  # drift:ignore[AVZ]\n", encoding="utf-8")
+        files = [FileInfo(path=Path("app.py"), language="python", size_bytes=30)]
+
+        with caplog.at_level("WARNING", logger="drift.suppression"):
+            result = scan_suppressions(files, tmp_path)
+
+        assert result[("app.py", 1)].signals == set()
+        assert "unknown signal abbreviation" in caplog.text
+        assert "AVZ" in caplog.text
+        assert "app.py:1" in caplog.text
+
 
 # ---------------------------------------------------------------------------
 # filter_findings

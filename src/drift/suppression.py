@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -37,6 +38,7 @@ class InlineSuppression:
 
 _UNTIL_PATTERN = re.compile(r"\buntil:(\d{4}-\d{2}-\d{2})\b")
 _REASON_PATTERN = re.compile(r"\breason:(.+)$")
+_LOGGER = logging.getLogger(__name__)
 
 
 def _parse_until(text: str) -> date | None:
@@ -95,7 +97,13 @@ def collect_inline_suppressions(
                     if abbrev in SIGNAL_ABBREV:
                         resolved.add(SIGNAL_ABBREV[abbrev])
                     else:
-                        resolved.add(signal.lower())
+                        _LOGGER.warning(
+                            "drift:ignore at %s:%d: unknown signal abbreviation '%s'. Known abbreviations: %s",
+                            finfo.path.as_posix(),
+                            line_no,
+                            abbrev,
+                            ", ".join(sorted(SIGNAL_ABBREV)),
+                        )
                 signals = resolved
 
             tail = line[match.end() :]
