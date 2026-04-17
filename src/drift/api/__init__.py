@@ -30,6 +30,7 @@ from drift.api.diff import _diff_next_actions, diff
 from drift.api.drift_map_api import drift_map
 from drift.api.explain import _repo_examples_for_signal, explain
 from drift.api.fix_plan import _fix_plan_agent_instruction, fix_plan
+from drift.api.generate_skills import generate_skills
 from drift.api.neg_context import negative_context
 from drift.api.nudge import _baseline_store, invalidate_nudge_baseline, nudge
 from drift.api.scan import (
@@ -90,6 +91,7 @@ STABLE_API = [
     "invalidate_nudge_baseline",
     "scan",
     "shadow_verify",
+    "generate_skills",
     "steer",
     "suggest_rules",
     "validate",

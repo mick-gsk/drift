@@ -15,6 +15,7 @@ from drift.arch_graph._models import (
     ArchHotspot,
     ArchModule,
     PatternProposal,
+    SkillBriefing,
 )
 from drift.arch_graph._persistence import ArchGraphStore
 from drift.arch_graph._reuse_index import AbstractionIndex, ReuseSuggestion, suggest_reuse
@@ -31,6 +32,7 @@ __all__ = [
     "ArchModule",
     "PatternProposal",
     "ReuseSuggestion",
+    "SkillBriefing",
     "seed_graph",
     "suggest_reuse",
 ]

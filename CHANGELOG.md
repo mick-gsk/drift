@@ -1,3 +1,17 @@
+## [Unreleased]
+
+Short version: generate_skills API for agent-driven SKILL.md briefings, configurable quality-gate tolerances, LLM output max-findings cap, and singleton thread-safety fix.
+
+### Added
+
+- **`generate_skills` API**: `drift.api.generate_skills()` and `drift.arch_graph.SkillBriefing` — analyses the persisted `ArchGraph` and returns structured per-module briefings an AI agent uses to create `.github/skills/<name>/SKILL.md` files; filters by `min_occurrences` and `min_confidence`; enriches briefings with matched ADR/decision constraints.
+- **Configurable quality-gate tolerances**: quality-gate thresholds tunable via `drift.yaml` `quality:` section without code changes.
+
+### Fixed
+
+- **LLM format findings cap**: `llm` output format now respects `--max-findings` to avoid token overflow.
+- **`BaselineManager` singleton thread safety**: double-checked locking replaced with `threading.Lock` guard to prevent race conditions under concurrent access.
+
 ## [2.12.0] - 2026-04-17
 
 Short version: Arch-graph API, remediation memory (ADR-072), consolidation opportunity detector (ADR-073), and enriched repair outcome tracking.
