@@ -7,6 +7,7 @@
 
 ### Fixed
 
+- **Nudge warns about cross-file incremental blind spots (#511)**: `api.nudge()` now emits `warnings` entry `cross_file_blind_spot` whenever `cross_file_signals_estimated` is present, including affected signal abbreviations and an explicit `Run drift analyze` recommendation so incremental runs no longer hide baseline-only cross-file coverage limits.
 - **Rich output now surfaces parser-failure coverage gaps (#512)**: `render_summary()` now prints a dedicated `Parser failures` line with affected file paths when degradation is caused by `parser_failure`, so default CLI output makes incomplete per-file analysis visible without requiring JSON inspection.
 - **MCP tool catalog robust against optional-dependency import failures (#496)**: `get_tool_catalog()` in `mcp_catalog` now catches `ImportError` from `drift.mcp_server` and returns an empty catalog instead of propagating, while exposing the last build error via `get_tool_catalog_error()` for diagnostics and tests. A regression test also locks the intended `cache_clear()` refresh behavior after patched tool exports.
 - **MCP `drift_session_start` non-autopilot response enrichment (#495)**: `run_session_start()` in `mcp_router_session` now enriches the returned payload with `_enrich_response_with_session(...)` for manual sessions (`autopilot=false`) as well, so agent workflows always receive the top-level `session` block (`session_id`, `phase`, `next_tools`, `tasks_remaining`) consistently across both session-start modes; a regression test locks this contract.

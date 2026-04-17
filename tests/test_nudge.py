@@ -159,6 +159,71 @@ class TestNudgeAPI:
         result = nudge(tmp_path, changed_files=[])
         assert "drift_nudge" in result["agent_instruction"]
 
+    def test_nudge_warns_cross_file_blind_spot(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """Estimated cross-file signals surface an explicit blind-spot warning."""
+        self._mock_nudge_deps(monkeypatch, tmp_path)
+
+        changed_rel = Path("src") / "a.py"
+        changed_abs = tmp_path / changed_rel
+        changed_abs.parent.mkdir(parents=True, exist_ok=True)
+        changed_abs.write_text("def a():\n    return 1\n", encoding="utf-8")
+
+        BaselineManager.instance().store(
+            tmp_path.resolve(),
+            BaselineSnapshot(
+                file_hashes={changed_rel.as_posix(): "stale-hash"},
+                score=0.3,
+            ),
+            [],
+            {
+                changed_rel.as_posix(): ParseResult(
+                    file_path=changed_rel,
+                    language="python",
+                )
+            },
+        )
+
+        monkeypatch.setattr(
+            "drift.ingestion.file_discovery.discover_files",
+            lambda *a, **kw: [
+                FileInfo(
+                    path=changed_rel,
+                    language="python",
+                    size_bytes=changed_abs.stat().st_size,
+                    line_count=2,
+                )
+            ],
+        )
+        monkeypatch.setattr(
+            "drift.ingestion.ast_parser.parse_file",
+            lambda *a, **kw: ParseResult(file_path=changed_rel, language="python"),
+        )
+
+        def _fake_run(*args, **kwargs):
+            return SimpleNamespace(
+                direction="stable",
+                delta=0.0,
+                score=0.3,
+                new_findings=[],
+                resolved_findings=[],
+                confidence={"architecture_violation": "estimated"},
+                file_local_signals_run=[],
+                cross_file_signals_estimated=["architecture_violation"],
+                baseline_valid=True,
+            )
+
+        monkeypatch.setattr("drift.incremental.IncrementalSignalRunner.run", _fake_run)
+
+        result = nudge(tmp_path, changed_files=[changed_rel.as_posix()])
+
+        assert result["warnings"]
+        warning = result["warnings"][0]
+        assert warning["code"] == "cross_file_blind_spot"
+        assert warning["signals"] == ["AVS"]
+        assert "Run drift analyze" in warning["message"]
+
     def test_get_changed_files_from_git_uses_relative_scope(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:

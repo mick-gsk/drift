@@ -170,6 +170,25 @@ def _nudge_magnitude_label(delta: float) -> str:
     return "significant"
 
 
+def _cross_file_blind_spot_warning(
+    cross_file_signals_estimated: list[str],
+) -> dict[str, Any] | None:
+    """Return a warning payload when incremental mode reuses cross-file baseline signals."""
+    if not cross_file_signals_estimated:
+        return None
+
+    signals = sorted({signal_abbrev(sig) for sig in cross_file_signals_estimated})
+    signal_list = ", ".join(signals)
+    return {
+        "code": "cross_file_blind_spot",
+        "signals": signals,
+        "message": (
+            f"Cross-file signals ({signal_list}) reflect baseline state only. "
+            "Run drift analyze to detect newly introduced cross-file problems."
+        ),
+    }
+
+
 def nudge(
     path: str | Path = ".",
     *,
@@ -537,6 +556,13 @@ def nudge(
                 "before committing."
             )
 
+        warnings: list[dict[str, Any]] = []
+        blind_spot_warning = _cross_file_blind_spot_warning(
+            inc_result.cross_file_signals_estimated
+        )
+        if blind_spot_warning is not None:
+            warnings.append(blind_spot_warning)
+
         # -- Build response -------------------------------------------------
         # Apply signal filtering to new/resolved findings if requested
         _new = inc_result.new_findings
@@ -588,6 +614,7 @@ def nudge(
             ignored_changed_files=ignored_changed_files,
             analyzed_changed_files=sorted(effective_changed_set),
             unchanged_hash_skips=unchanged_hash_skips,
+            warnings=warnings,
             agent_instruction=(
                 "Use drift_nudge between edits for fast direction checks. "
                 "If safe_to_commit is false, address blocking_reasons first. "
