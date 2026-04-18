@@ -1,3 +1,16 @@
+## [2.13.0] – 2026-04-18
+
+Short version: Patch Engine (ADR-074) — transactional protocol for agent-driven code changes, edit-kind heuristics for ARCHITECTURE_VIOLATION, and ArchGraph integration layer.
+
+### Added
+
+- **Patch Engine (ADR-074)**: Three-phase protocol (`patch_begin` → `patch_check` → `patch_commit`) for agent-driven code changes; `PatchIntent`/`PatchVerdict` models; `TaskSpec.to_patch_intent()` and `AgentTask.to_patch_intent()` bridges; session `active_patches` and `patch_history`; available via API, MCP, CLI, and A2A.
+- **Edit-kind heuristics for ARCHITECTURE_VIOLATION**: `_refine_edit_kind()` extended with layer/coupling/inject/service/LLM routing; new `EDIT_KIND_SCOPE_PROMPT_BOUNDARY` constant for LLM-specific drift categories (#381).
+
+### Fixed
+
+- **ArchGraph integration**: `ArchGraphStore`, `_decisions`, `_feedback`, `_persistence`, `_reuse_index`, `_seeding`, and `_skill_generator` modules; `to_patch_intent()` bridge methods for `TaskSpec` and `AgentTask`.
+
 ## [2.11.0] - 2026-04-17
 
 Short version: generate_skills API for agent-driven SKILL.md briefings, configurable quality-gate tolerances, LLM output max-findings cap, and singleton thread-safety fix.
