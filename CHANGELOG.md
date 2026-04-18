@@ -1,16 +1,21 @@
-## [2.13.0] – 2026-04-18
+## [2.14.0] – 2026-04-18
 
-Short version: Patch Engine (ADR-074) — transactional protocol for agent-driven code changes, edit-kind heuristics for ARCHITECTURE_VIOLATION, and ArchGraph integration layer.
+Short version: Patch Engine (ADR-074), TaskGraph compact summary, per-signal timing telemetry, edit-kind heuristics for ARCHITECTURE_VIOLATION, and ArchGraph integration layer.
 
 ### Added
 
 - **Patch Engine (ADR-074)**: Three-phase protocol (`patch_begin` → `patch_check` → `patch_commit`) for agent-driven code changes; `PatchIntent`/`PatchVerdict` models; `TaskSpec.to_patch_intent()` and `AgentTask.to_patch_intent()` bridges; session `active_patches` and `patch_history`; available via API, MCP, CLI, and A2A.
 - **Edit-kind heuristics for ARCHITECTURE_VIOLATION**: `_refine_edit_kind()` extended with layer/coupling/inject/service/LLM routing; new `EDIT_KIND_SCOPE_PROMPT_BOUNDARY` constant for LLM-specific drift categories (#381).
+- **TaskGraph compact text summary**: `TaskGraph.to_summary_text()` returns a token-efficient plain-text briefing (task counts, batching opportunities, constraints) for agent consumption without full JSON serialisation.
+- **Per-signal phase timing telemetry**: `SignalPhase` records per-signal wall-clock durations in `phase_timings.per_signal`; JSON output exposes the nested map; Rich output renders slow-signal hints at high verbosity.
 
 ### Fixed
 
 - **ArchGraph integration**: `ArchGraphStore`, `_decisions`, `_feedback`, `_persistence`, `_reuse_index`, `_seeding`, and `_skill_generator` modules; `to_patch_intent()` bridge methods for `TaskSpec` and `AgentTask`.
 - **Windows atomic file replace retry**: `save_history()` now retries up to 5 times with linear back-off when `tmp_path.replace()` raises `PermissionError`, preventing data loss under concurrent Windows file-locking.
+- **Executor timeouts for pipeline steps**: pipeline steps now enforce configurable timeouts to prevent indefinite blocking under slow signal execution.
+- **TaskSpec layer inference hardening**: layer inference for frozen `TaskSpec` objects now handles edge cases correctly without mutation errors.
+- **TaskSpec freeze after validation**: `TaskSpec` is now frozen after validation to enforce immutability guarantees.
 
 ## [2.11.0] - 2026-04-17
 
