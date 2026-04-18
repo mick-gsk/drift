@@ -1013,6 +1013,9 @@ def _ffmpeg_cmd(out: Path) -> list[str]:
         "-c:v", "libx264",
         "-preset", "slow",
         "-crf", "17",
+        "-profile:v", "high",
+        "-level", "4.1",
+        "-g", "60",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
         str(out),
@@ -1073,3 +1076,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
