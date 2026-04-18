@@ -21,7 +21,7 @@ from drift.fix_intent import derive_fix_intent
 from drift.models import SignalType
 from drift.models._agent import ConsolidationGroup
 from drift.next_step_contract import DONE_SAFE_TO_COMMIT
-from drift.signal_mapping import signal_abbrev
+from drift.signal_mapping import resolve_signal, signal_abbrev
 
 if TYPE_CHECKING:
     from drift.models import AgentTask
@@ -223,6 +223,106 @@ def _task_to_api_dict(t: Any) -> dict[str, Any]:
     return result
 
 
+def _coerce_enum(enum_cls: Any, value: Any, default: Any) -> Any:
+    """Best-effort enum coercion for tolerant API payload reconstruction."""
+    if isinstance(value, enum_cls):
+        return value
+    if value is None:
+        return default
+    try:
+        return enum_cls(value)
+    except ValueError:
+        if isinstance(value, str):
+            normalized = value.replace("_", "-")
+            try:
+                return enum_cls(normalized)
+            except ValueError:
+                pass
+            normalized = value.replace("-", "_")
+            try:
+                return enum_cls(normalized)
+            except ValueError:
+                pass
+        return default
+
+
+def _task_from_api_dict(data: dict[str, Any]) -> Any:
+    """Reconstruct an AgentTask from TaskGraph API payload data."""
+    from drift.models import (
+        AgentTask,
+        AutomationFit,
+        ChangeScope,
+        RepairMaturity,
+        ReviewRisk,
+        Severity,
+        TaskComplexity,
+        VerificationStrength,
+    )
+
+    signal_id = str(data.get("signal", ""))
+    resolved_signal = resolve_signal(signal_id)
+    signal_value = str(resolved_signal) if resolved_signal is not None else signal_id
+
+    return AgentTask(
+        id=str(data.get("id", "")),
+        signal_type=signal_value,
+        severity=_coerce_enum(Severity, data.get("severity"), Severity.MEDIUM),
+        priority=int(data.get("priority", 1)),
+        title=str(data.get("title", "")),
+        description=str(data.get("description", data.get("title", ""))),
+        action=str(data.get("action", "")),
+        file_path=data.get("file"),
+        start_line=data.get("start_line"),
+        symbol=data.get("symbol"),
+        related_files=list(data.get("related_files", []) or []),
+        complexity=_coerce_enum(TaskComplexity, data.get("complexity"), TaskComplexity.MEDIUM),
+        expected_effect=str(data.get("expected_effect", "")),
+        success_criteria=list(data.get("success_criteria", []) or []),
+        depends_on=list(data.get("depends_on", []) or []),
+        metadata={
+            "finding_context": data.get("finding_context", "production"),
+            "batch_eligible": bool(data.get("batch_eligible", False)),
+            "pattern_instance_count": int(data.get("pattern_instance_count", 1)),
+            "affected_files_for_pattern": list(
+                data.get("affected_files_for_pattern", []) or []
+            ),
+            "fix_template_class": data.get("fix_template_class", ""),
+        },
+        automation_fit=_coerce_enum(
+            AutomationFit,
+            data.get("automation_fit"),
+            AutomationFit.MEDIUM,
+        ),
+        review_risk=_coerce_enum(
+            ReviewRisk,
+            data.get("review_risk"),
+            ReviewRisk.MEDIUM,
+        ),
+        change_scope=_coerce_enum(
+            ChangeScope,
+            data.get("change_scope"),
+            ChangeScope.LOCAL,
+        ),
+        verification_strength=_coerce_enum(
+            VerificationStrength,
+            data.get("verification_strength"),
+            VerificationStrength.MODERATE,
+        ),
+        constraints=list(data.get("constraints", []) or []),
+        repair_maturity=_coerce_enum(
+            RepairMaturity,
+            data.get("repair_maturity"),
+            RepairMaturity.EXPERIMENTAL,
+        ),
+        expected_score_delta=float(data.get("expected_score_delta", 0.0)),
+        blocks=list(data.get("blocks", []) or []),
+        batch_group=data.get("batch_group"),
+        preferred_order=int(data.get("preferred_order", 0)),
+        parallel_with=list(data.get("parallel_with", []) or []),
+        consolidation_group_id=data.get("consolidation_group_id"),
+    )
+
+
 # ---------------------------------------------------------------------------
 # Task-Dependency Graph (ADR-025 Phase A)
 # ---------------------------------------------------------------------------
@@ -242,6 +342,7 @@ class TaskGraph:
     def to_api_dict(self) -> dict[str, Any]:
         """Serialize graph metadata for API responses."""
         return {
+            "tasks": [_task_to_api_dict(task) for task in self.tasks],
             "batch_groups": self.batch_groups,
             "execution_phases": self.execution_phases,
             "critical_path": self.critical_path,
@@ -250,6 +351,49 @@ class TaskGraph:
                 g.to_api_dict() for g in self.consolidation_groups
             ],
         }
+
+    @classmethod
+    def from_api_dict(cls, data: dict[str, Any]) -> TaskGraph:
+        """Reconstruct a TaskGraph from ``to_api_dict`` payload data."""
+        tasks_payload = data.get("tasks", [])
+        tasks = [
+            _task_from_api_dict(item)
+            for item in tasks_payload
+            if isinstance(item, dict)
+        ]
+
+        consolidation_payload = data.get("consolidation_opportunities", [])
+        consolidation_groups = [
+            ConsolidationGroup(
+                group_id=str(item.get("group_id", "")),
+                signal=str(item.get("signal", "")),
+                edit_kind=str(item.get("edit_kind", "")),
+                instance_count=int(item.get("instance_count", 0)),
+                canonical_file=item.get("canonical_file"),
+                affected_files=list(item.get("affected_files", []) or []),
+                task_ids=list(item.get("task_ids", []) or []),
+                estimated_net_finding_reduction=int(
+                    item.get("estimated_net_finding_reduction", 0)
+                ),
+            )
+            for item in consolidation_payload
+            if isinstance(item, dict)
+        ]
+
+        return cls(
+            tasks=tasks,
+            batch_groups={
+                str(group_id): list(task_ids)
+                for group_id, task_ids in dict(data.get("batch_groups", {})).items()
+            },
+            execution_phases=[
+                list(phase)
+                for phase in list(data.get("execution_phases", []) or [])
+            ],
+            critical_path=list(data.get("critical_path", []) or []),
+            total_estimated_delta=float(data.get("total_estimated_delta", 0.0)),
+            consolidation_groups=consolidation_groups,
+        )
 
 
 def build_task_graph(tasks: list[AgentTask]) -> TaskGraph:
