@@ -4,18 +4,13 @@ Short version: Patch Engine (ADR-074), TaskGraph compact summary, per-signal tim
 
 ### Added
 
-- **Patch Engine (ADR-074)**: Three-phase protocol (`patch_begin` → `patch_check` → `patch_commit`) for agent-driven code changes; `PatchIntent`/`PatchVerdict` models; `TaskSpec.to_patch_intent()` and `AgentTask.to_patch_intent()` bridges; session `active_patches` and `patch_history`; available via API, MCP, CLI, and A2A.
-- **Edit-kind heuristics for ARCHITECTURE_VIOLATION**: `_refine_edit_kind()` extended with layer/coupling/inject/service/LLM routing; new `EDIT_KIND_SCOPE_PROMPT_BOUNDARY` constant for LLM-specific drift categories (#381).
-- **TaskGraph compact text summary**: `TaskGraph.to_summary_text()` returns a token-efficient plain-text briefing (task counts, batching opportunities, constraints) for agent consumption without full JSON serialisation.
-- **Per-signal phase timing telemetry**: `SignalPhase` records per-signal wall-clock durations in `phase_timings.per_signal`; JSON output exposes the nested map; Rich output renders slow-signal hints at high verbosity.
+- **Patch Engine (ADR-074) + ArchGraph integration**: Three-phase `patch_begin → patch_check → patch_commit` protocol for agent-driven code changes; `PatchIntent`/`PatchVerdict` models; `TaskSpec.to_patch_intent()` and `AgentTask.to_patch_intent()` bridges; `ArchGraphStore` with decision constraints, feedback-loop, reuse index, and seeding; available via API, MCP, CLI, and A2A.
+- **Edit-kind heuristics + observability additions**: `_refine_edit_kind()` extended for `ARCHITECTURE_VIOLATION` with layer/coupling/inject/service/LLM routing; `EDIT_KIND_SCOPE_PROMPT_BOUNDARY` constant (#381); `TaskGraph.to_summary_text()` for token-efficient agent briefings; `SignalPhase` per-signal wall-clock timing in `phase_timings.per_signal` (JSON + Rich output).
 
 ### Fixed
 
-- **ArchGraph integration**: `ArchGraphStore`, `_decisions`, `_feedback`, `_persistence`, `_reuse_index`, `_seeding`, and `_skill_generator` modules; `to_patch_intent()` bridge methods for `TaskSpec` and `AgentTask`.
-- **Windows atomic file replace retry**: `save_history()` now retries up to 5 times with linear back-off when `tmp_path.replace()` raises `PermissionError`, preventing data loss under concurrent Windows file-locking.
-- **Executor timeouts for pipeline steps**: pipeline steps now enforce configurable timeouts to prevent indefinite blocking under slow signal execution.
-- **TaskSpec layer inference hardening**: layer inference for frozen `TaskSpec` objects now handles edge cases correctly without mutation errors.
-- **TaskSpec freeze after validation**: `TaskSpec` is now frozen after validation to enforce immutability guarantees.
+- **TaskSpec validation hardening**: `TaskSpec` now frozen after validation and layer inference hardened for frozen objects, eliminating mutation errors.
+- **Pipeline robustness**: executor timeouts enforced for pipeline steps; `save_history()` retries up to 5×  with linear back-off on Windows `PermissionError` during atomic file replace.
 
 ## [2.11.0] - 2026-04-17
 
