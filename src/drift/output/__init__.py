@@ -1,5 +1,6 @@
 """Output formatters for Drift."""
 
+from drift.output import agent_tasks
 from drift.output.agent_tasks import analysis_to_agent_tasks_json
 from drift.output.csv_output import analysis_to_csv
 from drift.output.github_format import findings_to_github_annotations
@@ -22,6 +23,7 @@ from drift.output.rich_output import (
 
 __all__ = [
     "TrafficLight",
+    "agent_tasks",
     "analysis_to_agent_tasks_json",
     "analysis_to_csv",
     "analysis_to_json",
