@@ -68,6 +68,11 @@ class TestEmptyTaskGraph:
         assert d["critical_path"] == []
         assert d["total_estimated_delta"] == 0.0
 
+    def test_empty_graph_to_text_summary(self) -> None:
+        text = build_task_graph([]).to_text()
+        assert "TaskGraph: 0 tasks, 0 phases, delta=+0.0000" in text
+        assert "Critical path: none" in text
+
 
 # ---------------------------------------------------------------------------
 # Single task
@@ -172,6 +177,17 @@ class TestParallelTasks:
         assert len(g.critical_path) == 3
         assert g.critical_path[0] == "a"
         assert g.critical_path[-1] == "d"
+
+    def test_to_text_includes_phase_and_dependency_view(self) -> None:
+        g = self._build()
+        text = g.to_text()
+
+        assert "TaskGraph: 4 tasks, 3 phases" in text
+        assert "Phase 1 [parallel]: b, c" in text
+        assert "Dependencies:" in text
+        assert "b <- a" in text
+        assert "d <- b, c" in text
+        assert "Critical path:" in text
 
 
 # ---------------------------------------------------------------------------

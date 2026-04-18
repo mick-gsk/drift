@@ -339,6 +339,42 @@ class TaskGraph:
     total_estimated_delta: float = 0.0
     consolidation_groups: list[ConsolidationGroup] = field(default_factory=list)
 
+    def to_text(self) -> str:
+        """Render a compact textual representation for debugging and explanation."""
+        lines = [
+            (
+                f"TaskGraph: {len(self.tasks)} tasks, {len(self.execution_phases)} phases, "
+                f"delta={self.total_estimated_delta:+.4f}"
+            )
+        ]
+
+        for idx, phase in enumerate(self.execution_phases):
+            phase_ids = ", ".join(phase)
+            if len(phase) > 1:
+                lines.append(f"Phase {idx} [parallel]: {phase_ids}")
+            else:
+                lines.append(f"Phase {idx}: {phase_ids}")
+
+        task_by_id = {task.id: task for task in self.tasks}
+        dependency_lines: list[str] = []
+        for phase in self.execution_phases:
+            for task_id in phase:
+                task = task_by_id.get(task_id)
+                if task and task.depends_on:
+                    dependency_lines.append(f"{task_id} <- {', '.join(task.depends_on)}")
+
+        if dependency_lines:
+            lines.append("Dependencies:")
+            lines.extend(dependency_lines)
+
+        if self.critical_path:
+            path = " -> ".join(self.critical_path)
+            lines.append(f"Critical path: {path} (len={len(self.critical_path)})")
+        else:
+            lines.append("Critical path: none")
+
+        return "\n".join(lines)
+
     def to_api_dict(self) -> dict[str, Any]:
         """Serialize graph metadata for API responses."""
         return {
