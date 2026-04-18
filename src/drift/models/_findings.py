@@ -70,6 +70,7 @@ class Finding:
     commit_hash: str | None = None
     ai_attributed: bool = False
     fix: str | None = None
+    root_cause: str | None = None
     impact: float = 0.0
     score_contribution: float = 0.0
     deferred: bool = False

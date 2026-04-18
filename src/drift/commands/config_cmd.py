@@ -156,7 +156,20 @@ def validate(repo: str, config_path: str | None) -> None:
         console.print(f"[red]✗ Configuration invalid:[/red]\n{exc.detail}")
         raise SystemExit(1) from None
     except (ValueError, ValidationError) as exc:
-        console.print(f"[red]✗ Configuration invalid:[/red]\n{exc}")
+        # Convert Pydantic validation errors into actionable field-level messages
+        if isinstance(exc, ValidationError):
+            messages = []
+            for err in exc.errors():
+                loc = " → ".join(str(p) for p in err.get("loc", ()))
+                msg = err.get("msg", str(err))
+                messages.append(f"  Field '{loc}': {msg}")
+            detail = "\n".join(messages)
+            console.print(
+                f"[red]✗ Configuration invalid[/red] (DRIFT-1001):\n{detail}\n"
+                "[dim]Run [bold]drift config validate[/bold] to re-check after editing.[/dim]"
+            )
+        else:
+            console.print(f"[red]✗ Configuration invalid:[/red]\n{exc}")
         raise SystemExit(1) from None
 
     # Business-rule checks

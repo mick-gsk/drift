@@ -50,6 +50,7 @@ def _json_progress_callback(phase: str, current: int, total: int) -> None:
 @click.option(
     "--exclude-signals",
     "--exclude",
+    "--ignore",
     "exclude",
     default=None,
     help="Comma-separated signal IDs to exclude (e.g. MDS,DIA).",

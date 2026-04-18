@@ -482,6 +482,13 @@ def _render_first_run_next_steps(
     total = len(analysis.findings)
     dash = " - " if _ascii_only(console) else " — "
 
+    # Context hints — git history and small-repo notices
+    has_no_git = any(
+        str(ev.get("cause", "")) in ("no_git_history", "git_unavailable")
+        for ev in analysis.degradation_events
+    )
+    is_small_repo = analysis.total_files < 20
+
     if is_german:
         title = "Naechste Schritte"
         lines = [
@@ -491,7 +498,19 @@ def _render_first_run_next_steps(
             f"[bold]2.[/bold] drift analyze         {dash}Alle Befunde anzeigen",
             f"[bold]3.[/bold] drift mcp --serve     {dash}KI-Agent-Integration starten",
             f"[bold]4.[/bold] drift check --fail-on high  {dash}Als CI-Gate verwenden",
+            "",
+            "[dim]Tipp: Einfach 'drift' tippen (ohne Befehl) startet 'drift status'.[/dim]",
         ]
+        if is_small_repo:
+            lines.append(
+                f"[dim]Hinweis: Kleines Repo ({analysis.total_files} Dateien)"
+                " — Muster-Signale benoetigen mind. 20 Dateien fuer zuverlaessige Ergebnisse.[/dim]"
+            )
+        if has_no_git:
+            lines.append(
+                "[dim]Git-Signale uebersprungen (keine History)"
+                " — in CI: fetch-depth: 0 setzen.[/dim]"
+            )
     else:
         lines = [
             f"[bold]{total}[/bold] findings detected{dash}the top 3 are shown above.",
@@ -500,7 +519,19 @@ def _render_first_run_next_steps(
             f"[bold]2.[/bold] drift analyze         {dash}see all findings",
             f"[bold]3.[/bold] drift mcp --serve     {dash}start AI agent integration",
             f"[bold]4.[/bold] drift check --fail-on high  {dash}use as CI gate",
+            "",
+            "[dim]Tip: bare 'drift' (no subcommand) runs 'drift status' automatically.[/dim]",
         ]
+        if is_small_repo:
+            lines.append(
+                f"[dim]Note: small repo ({analysis.total_files} files)"
+                " — pattern signals need \u226520 files for reliable results.[/dim]"
+            )
+        if has_no_git:
+            lines.append(
+                "[dim]Git signals skipped (no history)"
+                " — in CI: set fetch-depth: 0 for full coverage.[/dim]"
+            )
         title = "Next Steps"
 
     body = Text.from_markup("\n".join(lines))
@@ -819,6 +850,9 @@ def _format_finding_detail(
             text.append(f"{why}\n", style="dim")
             text.append("  └─ Action: ", style="bold dim")
             text.append(f"{action}\n", style="dim")
+    else:
+        # Mikrocopy: discoverable explain command for each finding
+        text.append(f"  [dim]→ [bold]drift explain {signal_label}[/bold] for context[/dim]\n")
 
     return text
 
@@ -1087,6 +1121,22 @@ def render_full_report(
 
     render_module_table(analysis, console)
     console.print()
+
+    # B2: Narrative header before findings table (≥3 findings)
+    if analysis.findings and len(analysis.findings) >= 3:
+        top = sorted(
+            analysis.findings,
+            key=lambda f: -(f.impact if f.impact > 0 else f.score),
+        )[0]
+        top_abbr = _signal_label(top.signal_type)
+        top_score = f"{(top.impact if top.impact > 0 else top.score):.2f}"
+        console.print(
+            f"[dim]{len(analysis.findings)} findings · "
+            f"top signal: [bold]{top_abbr}[/bold] (score {top_score}) · "
+            f"run [bold]drift explain {top_abbr}[/bold] for context[/dim]"
+        )
+        console.print()
+
     render_findings(
         analysis.findings,
         max_items=max_findings,
@@ -1097,6 +1147,13 @@ def render_full_report(
         explain=explain,
         group_by=group_by,
     )
+
+    # B1: CTA footer after findings table
+    if analysis.findings:
+        console.print(
+            "[dim]Run [bold]drift fix-plan[/bold] for repair tasks · "
+            "[bold]drift check --fail-on high[/bold] for CI gate[/dim]"
+        )
 
     # Interpretation guidance footer
     console.print()

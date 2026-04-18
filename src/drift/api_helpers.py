@@ -156,6 +156,7 @@ def _finding_detailed(f: Any, *, rank: int | None = None) -> dict[str, Any]:
         "title": f.title,
         "description": f.description,
         "fix": f.fix,
+        "root_cause": getattr(f, "root_cause", None),
         "symbol": f.symbol,
         "related_files": [rf.as_posix() for rf in f.related_files],
         "next_step": _next_step_for_finding(f),

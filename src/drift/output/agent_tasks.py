@@ -1283,6 +1283,182 @@ def _expected_effect_for(finding: Finding) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Signal-specific root cause (why the problem arose)
+# ---------------------------------------------------------------------------
+
+
+def _root_cause_for(finding: Finding) -> str | None:
+    """Return a concise root-cause string explaining why this finding arose.
+
+    Distinct from ``description`` (what was detected) and ``fix`` (what to do):
+    this answers *why* the problem occurred so agents address the underlying
+    cause rather than only the immediate symptom.
+    """
+    st = finding.signal_type
+    meta = finding.metadata
+
+    if st == SignalType.PATTERN_FRAGMENTATION:
+        variants = meta.get("variant_count", 0)
+        return (
+            f"Multiple independent coding sessions applied {variants} incompatible variants "
+            "of the same pattern without consulting the existing canonical approach"
+        )
+
+    if st == SignalType.MUTANT_DUPLICATE:
+        return (
+            "A function was copy-pasted across files and both copies evolved independently "
+            "instead of being consolidated into a shared abstraction from the start"
+        )
+
+    if st == SignalType.ARCHITECTURE_VIOLATION:
+        if "circular" in finding.title.lower():
+            return (
+                "Mutual dependency between modules grew through incremental feature additions "
+                "where each addition imported from a layer it should not depend on"
+            )
+        return (
+            "Code was placed in the wrong architectural layer — typically a convenience import "
+            "that bypassed the defined layer boundaries"
+        )
+
+    if st == SignalType.EXPLAINABILITY_DEFICIT:
+        return (
+            "Function complexity grew incrementally without corresponding documentation updates; "
+            "no return type annotation was added when the function's contract became non-obvious"
+        )
+
+    if st == SignalType.TEMPORAL_VOLATILITY:
+        return (
+            "The file is modified too frequently relative to its stability contract — "
+            "often caused by insufficient abstraction or missing tests that force exploratory edits"
+        )
+
+    if st == SignalType.SYSTEM_MISALIGNMENT:
+        return (
+            "New dependencies were added to a module without checking its established import "
+            "profile, causing the module to drift from its original responsibility"
+        )
+
+    if st == SignalType.DEAD_CODE_ACCUMULATION:
+        return (
+            "The symbol was never removed after its callers were refactored or deleted — "
+            "cleanup was deferred and then forgotten"
+        )
+
+    if st == SignalType.NAMING_CONTRACT_VIOLATION:
+        prefix = meta.get("prefix_rule", "the naming prefix")
+        return (
+            f"A function was named with {prefix!r} implying behaviour it does not implement; "
+            "the name was chosen for familiarity rather than accuracy"
+        )
+
+    if st == SignalType.GUARD_CLAUSE_DEFICIT:
+        return (
+            "Validation logic was added inline via nested if-blocks instead of early-return "
+            "guard clauses — each condition was added reactively to handle a new edge case"
+        )
+
+    if st == SignalType.BROAD_EXCEPTION_MONOCULTURE:
+        return (
+            "Exception handling was added hastily using `except Exception` or bare `except` "
+            "because the specific error types were not known or enumerated at the time"
+        )
+
+    if st == SignalType.DOC_IMPL_DRIFT:
+        return (
+            "Documentation was written for an earlier API version and not updated when the "
+            "implementation changed — docs and code were modified in separate, unlinked PRs"
+        )
+
+    if st == SignalType.TEST_POLARITY_DEFICIT:
+        return (
+            "Test cases assert only that code runs without error; boundary conditions and "
+            "error paths were not tested because the happy path was the only concern during "
+            "initial implementation"
+        )
+
+    if st == SignalType.EXCEPTION_CONTRACT_DRIFT:
+        return (
+            "The exception-raising contract of a function changed (raises added or removed) "
+            "without updating callers or documentation — callers now make incorrect assumptions"
+        )
+
+    if st == SignalType.CO_CHANGE_COUPLING:
+        return (
+            "Two files are always modified together in the same commit, revealing hidden "
+            "semantic coupling that was never made explicit through an import or shared abstraction"
+        )
+
+    if st == SignalType.COHESION_DEFICIT:
+        return (
+            "Module responsibilities expanded over time through feature additions without "
+            "splitting into sub-modules, reducing cohesion below the original design intent"
+        )
+
+    if st == SignalType.FAN_OUT_EXPLOSION:
+        return (
+            "The module accumulated imports from many unrelated packages — each feature "
+            "addition required one more dependency without questioning whether it belongs here"
+        )
+
+    if st == SignalType.CIRCULAR_IMPORT:
+        return (
+            "A circular import was created when a lower-level module imported from a "
+            "higher-level module to avoid code duplication, violating the dependency direction"
+        )
+
+    if st == SignalType.HARDCODED_SECRET:
+        return (
+            "A secret value was hardcoded directly in source during initial development "
+            "and was never migrated to an environment variable or secrets manager"
+        )
+
+    if st == SignalType.INSECURE_DEFAULT:
+        return (
+            "An insecure default value was set for convenience during initial implementation "
+            "and was never updated for production use"
+        )
+
+    if st == SignalType.MISSING_AUTHORIZATION:
+        return (
+            "An authorization check was omitted during initial endpoint creation, or was "
+            "inadvertently removed during a refactoring that changed the middleware stack"
+        )
+
+    if st == SignalType.TYPE_SAFETY_BYPASS:
+        return (
+            "A type safety bypass (cast / ignore / Any) was added to unblock a type error "
+            "without addressing the underlying type mismatch"
+        )
+
+    if st == SignalType.PHANTOM_REFERENCE:
+        return (
+            "A symbol is referenced in documentation or code comments but is not defined or "
+            "imported in the current scope — the reference was invalidated by a rename or deletion"
+        )
+
+    if st == SignalType.COGNITIVE_COMPLEXITY:
+        return (
+            "Cognitive complexity grew through nested conditionals and loops added "
+            "incrementally to handle edge cases, with no refactoring checkpoint"
+        )
+
+    if st == SignalType.BYPASS_ACCUMULATION:
+        return (
+            "Bypass markers (noqa, type: ignore, pragma) accumulated as short-term workarounds "
+            "that were deferred for resolution but never revisited"
+        )
+
+    if st == SignalType.TS_ARCHITECTURE:
+        return (
+            "A TypeScript layer boundary was violated — a UI component imported infrastructure "
+            "code directly instead of going through the service layer"
+        )
+
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Dependency computation
 # ---------------------------------------------------------------------------
 
@@ -1417,7 +1593,7 @@ def _finding_to_task(
             k: v
             for k, v in finding.metadata.items()
             if k not in ("ast_fingerprint", "body_hash")
-        } | {"repair_level": repair_level},
+        } | {"repair_level": repair_level, "root_cause": _root_cause_for(finding)},
         constraints=_generate_constraints(finding),
         repair_maturity=RepairMaturity(maturity),
         negative_context=findings_to_negative_context(
@@ -1438,6 +1614,10 @@ def _finding_to_task(
 
     # Apply automation fitness classification (mutates task in place)
     _classify_task(finding, task)
+
+    # Populate Finding.root_cause for JSON serialization (enriched here, not in signals)
+    if finding.root_cause is None:
+        finding.root_cause = _root_cause_for(finding)
 
     # Repair template registry enrichment (ADR-065)
     _enrich_task_from_registry(finding, task, refined_edit_kind)

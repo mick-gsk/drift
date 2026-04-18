@@ -66,6 +66,9 @@ class _FakeFinding:
 class _FakeAnalysis:
     drift_score: float = 0.3
     findings: list[Any] = field(default_factory=list)
+    total_files: int = 42
+    degradation_events: list[Any] = field(default_factory=list)
+    repo_path: Any = None
 
 
 # ===========================================================================

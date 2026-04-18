@@ -102,6 +102,10 @@ def render_fix_plan(result: dict[str, Any], console: Console) -> None:
     next_step = (result.get("recommended_next_actions") or [None])[0]
     if next_step:
         console.print(f"  [dim]Next:[/dim] {next_step}")
+    else:
+        console.print(
+            "  [dim]Run [bold]drift analyze --repo .[/bold] for the full finding list.[/dim]"
+        )
     console.print(
         "  [dim]For machine-readable output: [bold]--format json[/bold][/dim]"
     )

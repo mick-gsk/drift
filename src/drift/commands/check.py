@@ -58,7 +58,7 @@ def _print_check_result(
             )
 
 
-@click.command()
+@click.command(short_help="CI drift gate — diff analysis (also: drift gate).")
 @click.option(
     "--repo",
     "-r",
@@ -85,7 +85,7 @@ def _print_check_result(
     "output_format",
     type=click.Choice(["rich", "json", "sarif", "csv", "agent-tasks", "github", "junit", "llm"]),
     default="rich",
-    help="Output format.",
+    help="Output format. Choices: rich, json, sarif, csv, agent-tasks, github, junit, llm.",
 )
 @click.option(
     "--exit-zero",

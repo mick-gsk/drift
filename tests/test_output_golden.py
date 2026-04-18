@@ -142,6 +142,7 @@ class TestJsonOutputGolden:
             "deferred",
             "finding_context",
             "metadata",
+            "root_cause",
         }
         assert set(data["findings"][0].keys()) == expected_finding_keys
 

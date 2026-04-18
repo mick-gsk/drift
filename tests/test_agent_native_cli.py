@@ -41,16 +41,21 @@ def test_start_help() -> None:
     runner = CliRunner()
     result = runner.invoke(main, ["start", "--help"])
     assert result.exit_code == 0
-    assert "recommended first-use journey: analyze -> fix-plan -> check" in result.output
+    # drift start is now a deprecation notice pointing to drift setup
+    assert any(
+        word in result.output.lower()
+        for word in ("deprecated", "superseded", "replaced", "backwards compatibility")
+    )
 
 
 def test_start_output_contains_three_command_journey() -> None:
     runner = CliRunner()
     result = runner.invoke(main, ["start"])
     assert result.exit_code == 0
-    assert "drift analyze --repo ." in result.output
-    assert "drift fix-plan --repo . --max-tasks 5" in result.output
-    assert "drift check --fail-on none" in result.output
+    # drift start now shows the canonical 3-step path via drift setup
+    assert "drift setup" in result.output
+    assert "drift status" in result.output
+    assert "drift analyze" in result.output
 
 
 def test_validate_outputs_json(tmp_path: Path) -> None:

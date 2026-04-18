@@ -81,6 +81,11 @@ def status(
     try:
         prof = get_profile(profile)
     except KeyError:
+        if profile != "vibe-coding":
+            console.print(
+                f"  [yellow]\u26a0 Profile '{profile}' not found \u2014 "
+                "falling back to: vibe-coding[/yellow]"
+            )
         prof = get_profile("vibe-coding")
 
     # cfg.guided_thresholds takes precedence (set via `extends:` profile or explicit config)
@@ -92,12 +97,21 @@ def status(
     language = cfg.language or prof.output_language or "en"
 
     # --- Run analysis (reuses existing engine) ---
-    analysis = analyze_repo(
-        repo,
-        cfg,
-        since_days=since,
-        target_path=path,
-    )
+    if console.is_terminal:
+        with console.status("[bold blue]Analyzing…[/bold blue]", spinner="dots"):
+            analysis = analyze_repo(
+                repo,
+                cfg,
+                since_days=since,
+                target_path=path,
+            )
+    else:
+        analysis = analyze_repo(
+            repo,
+            cfg,
+            since_days=since,
+            target_path=path,
+        )
 
     # --- Compute traffic light ---
     light = determine_status(analysis, thresholds)
@@ -131,6 +145,14 @@ def status(
         f"  Score: [bold]{analysis.drift_score:.2f}[/bold]"
         + (f"  [dim]{score_ctx}[/dim]" if score_ctx else "")
     )
+    # Baseline context: if a baseline file exists, show delta vs. current score
+    baseline_context = _baseline_context_line(repo, analysis.drift_score)
+    if baseline_context:
+        # ↓ in the string means score improved vs. baseline
+        if "\u2193" in baseline_context:
+            score_line += f"  [bold green]{baseline_context}[/bold green]"
+        else:
+            score_line += f"  [dim]{baseline_context}[/dim]"
     console.print(score_line)
     console.print(f"  {first_run['why_this_matters']}", style="dim")
     console.print()
@@ -143,7 +165,12 @@ def status(
         console.print()
 
     if not top_findings:
-        console.print("  No issues found.", style="green")
+        plural = 's' if analysis.total_files != 1 else ''
+        files_info = f"analyzed {analysis.total_files} file{plural}"
+        sig_count = len(set(f.signal_type for f in analysis.findings)) if analysis.findings else 0
+        # Show number of active signals (from analysis metadata if available)
+        active_label = f" · {sig_count} signals checked" if sig_count else ""
+        console.print(f"  [green]✅ Clean[/green] — {files_info}{active_label}")
     else:
         console.print(f"  Top {len(top_findings)} issues:", style="bold")
         console.print()
@@ -240,3 +267,30 @@ def _build_json_payload(
         "next_step": first_run.get("next_step"),
         "top_findings": findings_list,
     }
+
+
+def _baseline_context_line(repo: Path, current_score: float) -> str | None:
+    """Return a one-line baseline-delta string if a baseline file is present."""
+    baseline_path = repo / ".drift-baseline.json"
+    if not baseline_path.exists():
+        return None
+    try:
+        import json as _json
+
+        data = _json.loads(baseline_path.read_text(encoding="utf-8"))
+        baseline_score: float = float(data["drift_score"])
+        created_at: str = data.get("created_at", "")
+        date_label = created_at[:10] if created_at else "baseline"
+        delta = current_score - baseline_score
+        if abs(delta) < 0.005:
+            arrow = "→"
+            delta_str = "no change"
+        elif delta > 0:
+            arrow = "↑"
+            delta_str = f"+{delta:.2f}"
+        else:
+            arrow = "↓"
+            delta_str = f"{delta:.2f}"
+        return f"vs. baseline {date_label}: {delta_str} {arrow}"
+    except Exception:  # noqa: BLE001
+        return None

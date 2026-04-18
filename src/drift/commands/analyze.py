@@ -79,6 +79,7 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 )
 @click.option(
     "--ignore",
+    "--exclude-signals",
     "ignore_signals",
     default=None,
     help="Comma-separated signal IDs to exclude (e.g. TVS,DIA).",
@@ -270,7 +271,13 @@ def analyze(
       json    JSON-lines on stderr — useful for CI log parsing: --progress json
       none    Silent — no progress output at all
     """
-    from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn
+    from rich.progress import (
+        BarColumn,
+        MofNCompleteColumn,
+        Progress,
+        TextColumn,
+        TimeRemainingColumn,
+    )
 
     from drift.analyzer import analyze_repo
     from drift.api_helpers import build_drift_score_scope, signal_scope_label
@@ -350,9 +357,9 @@ def analyze(
         TextColumn("[bold blue]{task.description}"),
         BarColumn(),
         MofNCompleteColumn(),
+        TimeRemainingColumn(),
         console=progress_console,
     )
-
     task_id = None
     _last_total: int = 1
 
@@ -501,6 +508,10 @@ def analyze(
         effective_console.print(
             f"[bold green]{ok_marker} Baseline saved:[/bold green] {save_baseline_path} "
             f"({len(analysis.findings)} findings)",
+        )
+        effective_console.print(
+            "  [dim]Next step: [bold]drift trend[/bold] "
+            "\u2014 shows score evolution over time[/dim]"
         )
 
     # Severity gate (opt-in via --fail-on)

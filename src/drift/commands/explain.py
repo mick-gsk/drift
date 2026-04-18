@@ -811,12 +811,21 @@ def explain(
     key_lower = key.lower()
     info = _LOOKUP.get(key_lower)
     if info is None:
-        abbrs = ", ".join(_all_abbreviations())
-        console.print(
-            f"[red]Unknown signal:[/red] '{signal}'\n"
-            f"[dim]Available signals: {abbrs}[/dim]\n"
-            f"[dim]Run [bold]drift explain --list[/bold] for details.[/dim]"
+        import difflib
+
+        all_abbrs = _all_abbreviations()
+        # Suggest closest match (case-insensitive)
+        matches = difflib.get_close_matches(
+            key.upper(), [a.upper() for a in all_abbrs], n=1, cutoff=0.6
         )
+        hint = (
+            f"\n[dim]Did you mean [bold]{matches[0]}[/bold]? "
+            f"Run [bold]drift explain {matches[0]}[/bold][/dim]"
+            if matches
+            else f"\n[dim]Available: {', '.join(all_abbrs)}[/dim]"
+            f"\n[dim]Run [bold]drift explain --list[/bold] for all signals.[/dim]"
+        )
+        console.print(f"[red]Unknown signal:[/red] '{signal}'{hint}")
         raise SystemExit(1)
 
     if output is not None:

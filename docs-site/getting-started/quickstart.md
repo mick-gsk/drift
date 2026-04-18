@@ -21,8 +21,11 @@ pip install -q drift-analyzer    # requires Python 3.11+ (use -q for clean outpu
 ```
 
 !!! tip "One command to get started"
-    Not sure where to begin? Run `drift start` - it prints the recommended
-    first-run sequence for your repository.
+    Not sure where to begin? Run `drift setup` — it asks 3 questions and writes
+    a tuned config file for your project type.
+
+!!! tip "Shortcut"
+    Bare `drift` (no subcommand) runs `drift status` automatically — your daily health check in one word.
 
 !!! tip "No project handy? Try on FastAPI"
     ```bash
@@ -31,21 +34,22 @@ pip install -q drift-analyzer    # requires Python 3.11+ (use -q for clean outpu
     ```
     Real findings on a real codebase — no setup, no risk.
 
-## 2. See your health at a glance
+## 2. Set up and check health
 
 ```bash
 cd /path/to/your/project
-drift status
+drift setup     # 3-question wizard: personalised config
+drift status    # traffic-light health check
 ```
 
-`drift status` gives you a traffic-light summary with plain-language explanations and copy-paste prompts for your AI assistant. This is the fastest way to understand what drift sees.
+!!! note "Two views, same data"
+    **`drift status`** shows a repo-level score (0–1 → 🟢 GREEN < 0.35, 🟡 YELLOW, 🔴 RED ≥ 0.65). Quick health check.
 
-!!! note "Two scoring models, two purposes"
-    **`drift status`** uses a traffic-light model on the **overall repo score**: 🟢 GREEN (< 0.35), 🟡 YELLOW (0.35–0.65), 🔴 RED (≥ 0.65). This is a quick health check.
+    **`drift analyze`** shows per-finding severity (INFO / LOW / MEDIUM / HIGH / CRITICAL). Use for triage.
 
-    **`drift analyze`** uses severity levels on **individual findings**: INFO (< 0.20), LOW (≥ 0.20), MEDIUM (≥ 0.40), HIGH (≥ 0.60), CRITICAL (≥ 0.80). These are per-finding confidence levels, not repo health.
+    Both use the same data — different lenses.
 
-    Both use the same underlying scores — they just slice them differently. Use `status` for daily overview, `analyze` for finding-level triage.
+`drift status` gives you a traffic-light summary with plain-language explanations and copy-paste prompts for your AI assistant.
 
 ## 3. Dive into full findings
 

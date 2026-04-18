@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-18 - ADR-075: root_cause field on Finding — remediation contract enrichment
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| _root_cause_for() | Unknown signal_type returns None silently | New SignalType added without updating _root_cause_for() | AgentTask.root_cause is None; agent lacks root-cause context | `tests/test_agent_native_cli.py`; type-annotated return `str \| None` makes None case explicit | None is a valid sentinel (field is optional); agent task already handles missing enrichment fields gracefully | 2 | 2 | 2 | 8 | Accepted (documented) |
+| Finding.root_cause output | Consumers expecting fixed JSON schema break | Adding root_cause field to JSON output is an additive schema change | Consumer deserializer fails on unknown field | `tests/test_output_golden.py::test_finding_keys` updated; `tests/test_golden_snapshot.py` golden updated | Additive change only; existing consumers that ignore unknown fields unaffected; schema docs updated | 2 | 1 | 2 | 4 | Mitigated |
+
 ## 2025-07-27 - ADR-074: Patch Engine — transactional protocol for agent-driven code changes
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

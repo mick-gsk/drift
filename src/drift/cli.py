@@ -152,7 +152,7 @@ class SuggestingGroup(click.Group):
                 "session-report",
             ),
         ),
-        ("CI & Automation", ("ci", "gate", "badge", "baseline", "validate", "verify", "import")),
+        ("CI & Automation", ("ci", "badge", "baseline", "validate", "verify", "import")),
         (
             "Configuration",
             ("init", "config", "preset", "calibrate", "feedback", "suppress", "completions"),
@@ -258,11 +258,11 @@ def main(verbose: bool = False) -> None:
     """Drift — Detect architectural erosion from AI-generated code.
 
     Guided first run:
-      1) drift setup              # Konfiguration erstellen
-      2) drift status             # Projektzustand als Ampel
-      3) drift analyze --repo .   # Detailanalyse
+      1) drift setup              # interactive config wizard
+      2) drift status             # traffic-light health check
+      3) drift analyze --repo .   # full findings with file references
 
-    Run 'drift start' for a concise onboarding walkthrough.
+    Tip: bare 'drift' (no subcommand) runs 'drift status' automatically.
     """
     _configure_logging(verbose)
 
@@ -373,11 +373,11 @@ def safe_main() -> None:
                     exit_code,
                     detail=message,
                     hint=(
-                        "Run 'drift start' for the guided path or "
+                        "Run 'drift setup' for interactive setup or "
                         "'drift --help' / 'drift <command> --help' for usage."
                     ),
                     suggested_action_override=(
-                        "Run 'drift start' for the guided path or "
+                        "Run 'drift setup' for interactive setup or "
                         "'drift --help' / 'drift <command> --help' for usage."
                     ),
                 ),

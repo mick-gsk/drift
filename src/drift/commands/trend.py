@@ -69,7 +69,11 @@ def trend(repo: Path, days: int, config: Path | None, as_json: bool) -> None:
         console.print(f"  Drift score: [bold]{analysis.drift_score:.3f}[/bold]")
         console.print(f"  Files: {analysis.total_files}  |  Findings: {len(analysis.findings)}")
         console.print()
-        console.print("[dim]Run again later to see trend comparison.[/dim]")
+        console.print(
+            "[yellow]\u26a0 Not enough history for trend comparison.[/yellow]\n"
+            "  Run [bold]drift analyze --save-baseline .drift-baseline.json[/bold] "
+            "to start tracking, then re-run [bold]drift trend[/bold] over time."
+        )
         return
 
     table = Table(title="Score History (last 10)")

@@ -16,6 +16,10 @@ drift setup          # 3-question wizard: picks the right profile for your proje
 drift status         # traffic-light health check — your daily entry point
 ```
 
+> **Two views, same data:** `drift status` shows a repo-level score (0–1 → 🟢/🟡/🔴). `drift analyze` shows per-finding severity (INFO/LOW/MEDIUM/HIGH). Use status for daily health, analyze for finding-level triage.
+>
+> **Shortcut:** bare `drift` (no subcommand) runs `drift status` automatically.
+
 <img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
 
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)

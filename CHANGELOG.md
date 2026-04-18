@@ -1,17 +1,17 @@
-## [2.15.0] – 2026-04-18
+## [2.15.1] – 2026-04-18
 
-Short version: Patch Engine (ADR-074), TaskGraph compact summary, per-signal timing telemetry, edit-kind heuristics for ARCHITECTURE_VIOLATION, and ArchGraph integration layer.
+Short version: Patch Engine (ADR-074), ArchGraph layer, root_cause field on Finding (ADR-075), CLI-UX polish, and per-signal timing telemetry.
 
 ### Added
 
-- **Patch Engine (ADR-074) + ArchGraph integration**: Three-phase `patch_begin → patch_check → patch_commit` protocol for agent-driven code changes; `PatchIntent`/`PatchVerdict` models; `TaskSpec.to_patch_intent()` and `AgentTask.to_patch_intent()` bridges; `ArchGraphStore` with decision constraints, feedback-loop, reuse index, and seeding; available via API, MCP, CLI, and A2A.
-- **Edit-kind heuristics + observability additions**: `_refine_edit_kind()` extended for `ARCHITECTURE_VIOLATION` with layer/coupling/inject/service/LLM routing; `EDIT_KIND_SCOPE_PROMPT_BOUNDARY` constant (#381); `TaskGraph.to_summary_text()` for token-efficient agent briefings; `SignalPhase` per-signal wall-clock timing in `phase_timings.per_signal` (JSON + Rich output).
+- **root_cause field on Finding (ADR-075)**: `Finding.root_cause` explains *why* a problem arose; `_root_cause_for()` covers all six signal types; exposed via `AgentTask`, JSON, and Rich output so agents address causes rather than symptoms.
+- **CLI-UX polish**: `drift status` shows an animated spinner, profile-fallback warning, `✓ Clean – N files / M signals checked` output, and baseline-delta line; `docs/ux/cli-ux-quality-matrix.md` documents the UX assessment.
+- **Patch Engine (ADR-074) + ArchGraph integration**: Three-phase `patch_begin → patch_check → patch_commit` protocol; `PatchIntent`/`PatchVerdict` models; `ArchGraphStore` with decision constraints and reuse index; available via API, MCP, CLI, and A2A.
+- **Observability additions**: `_refine_edit_kind()` extended for `ARCHITECTURE_VIOLATION`; `TaskGraph.to_summary_text()` for token-efficient agent briefings; `SignalPhase` per-signal wall-clock timing in `phase_timings.per_signal`.
 
 ### Fixed
 
-- **TaskSpec validation hardening**: `TaskSpec` now frozen after validation and layer inference hardened for frozen objects, eliminating mutation errors.
-- **Pipeline robustness**: executor timeouts enforced for pipeline steps; `save_history()` retries up to 5×  with linear back-off on Windows `PermissionError` during atomic file replace.
-- **CI stability**: `_SKILL_DISPATCH` cleared before re-population in dispatch-table test to fix cross-test pollution; `# pragma: allowlist secret` added to hex fixture in `test_cache_resilience.py` to silence detect-secrets false positive; `render_timeline` monkeypatched via direct module reference to fix xdist attribute-walk flakiness.
+- **Validation + CI stability**: `TaskSpec` frozen after validation; executor timeouts enforced; `save_history()` retries on Windows `PermissionError`; dispatch-table cross-test pollution and detect-secrets false positive resolved.
 
 ## [2.11.0] - 2026-04-17
 

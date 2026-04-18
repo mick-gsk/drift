@@ -240,6 +240,17 @@ def setup(
     else:
         console.print()
         if lang.startswith("de"):
+            console.print(
+                "  [dim]Hinweis: 'drift setup' wird in v3.0 entfernt. "
+                "Verwende künftig [bold]drift init --interactive[/bold].[/dim]"
+            )
+        else:
+            console.print(
+                "  [dim]Note: 'drift setup' will be removed in v3.0. "
+                "Use [bold]drift init --interactive[/bold] going forward.[/dim]"
+            )
+        console.print()
+        if lang.startswith("de"):
             console.print("  [bold]drift setup[/bold] \u2014 Konfiguration in 3 Fragen")
         else:
             console.print("  [bold]drift setup[/bold] \u2014 configure in 3 questions")
@@ -273,25 +284,30 @@ def setup(
     )
     config_path.write_text(yaml_content, encoding="utf-8")
 
+    from rich.panel import Panel
+    from rich.text import Text
+
     console.print()
     if lang.startswith("de"):
-        console.print(f"  [green]\u2713[/green] drift.yaml erstellt (Profil: {profile_name})")
-        console.print()
-        console.print("  [bold]Nächster Schritt:[/bold]")
-        console.print("    drift status")
-        console.print()
-        console.print("  [dim]Das zeigt dir den aktuellen Zustand deines Projekts.[/dim]")
+        body = Text.assemble(
+            ("\u2713 drift.yaml erstellt", "bold green"),
+            (f"  (Profil: {profile_name})\n\n", "default"),
+            ("N\u00e4chster Schritt: ", "bold"),
+            ("drift status", "bold cyan"),
+            ("\n", ""),
+            ("Das zeigt dir den aktuellen Zustand deines Projekts.", "dim"),
+        )
+        console.print(Panel(body, border_style="green", padding=(0, 2)))
     else:
-        console.print(f"  [green]\u2713[/green] drift.yaml created (profile: {profile_name})")
-        console.print()
-        console.print("  [bold]Next step:[/bold]")
-        console.print("    drift status")
-        console.print()
-        console.print("  [dim]This shows the current structural health of your project.[/dim]")
-    console.print(
-        "[dim]Note: 'drift setup' will be removed in v3.0. "
-        "Use 'drift init --interactive' going forward.[/dim]"
-    )
+        body = Text.assemble(
+            ("\u2713 drift.yaml created", "bold green"),
+            (f"  (profile: {profile_name})\n\n", "default"),
+            ("Next step: ", "bold"),
+            ("drift status", "bold cyan"),
+            ("\n", ""),
+            ("This shows the current structural health of your project.", "dim"),
+        )
+        console.print(Panel(body, border_style="green", padding=(0, 2)))
     console.print()
 
     sys.exit(0)

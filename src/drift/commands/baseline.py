@@ -81,6 +81,10 @@ def save(
         f"[bold green]✓ Baseline saved:[/bold green] {dest} "
         f"({len(analysis.findings)} findings, score {analysis.drift_score:.2f})"
     )
+    console.print(
+        "[dim]Run [bold]drift check --diff HEAD~1[/bold] on future commits "
+        "to track changes against this baseline.[/dim]"
+    )
 
 
 @baseline.command()
