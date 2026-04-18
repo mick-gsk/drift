@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import tempfile
+import time
 from contextlib import suppress
 from pathlib import Path
 
@@ -15,6 +16,8 @@ from drift.scoring.engine import compute_signal_scores
 
 NOISE_FLOOR = 0.005
 LOGGER = logging.getLogger(__name__)
+_HISTORY_REPLACE_RETRIES = 5
+_HISTORY_REPLACE_BACKOFF_SECONDS = 0.01
 
 
 def load_history_with_status(history_file: Path) -> tuple[list[dict], bool]:
@@ -59,7 +62,15 @@ def save_history(history_file: Path, snapshots: list[dict]) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(content)
-        tmp_path.replace(history_file)
+        for attempt in range(_HISTORY_REPLACE_RETRIES):
+            try:
+                tmp_path.replace(history_file)
+                break
+            except PermissionError:
+                # On Windows, concurrent writers can briefly lock the destination.
+                if attempt >= _HISTORY_REPLACE_RETRIES - 1:
+                    raise
+                time.sleep(_HISTORY_REPLACE_BACKOFF_SECONDS * (attempt + 1))
     except OSError:
         with suppress(OSError):
             tmp_path.unlink(missing_ok=True)

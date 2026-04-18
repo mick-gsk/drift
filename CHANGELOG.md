@@ -10,6 +10,7 @@ Short version: Patch Engine (ADR-074) — transactional protocol for agent-drive
 ### Fixed
 
 - **ArchGraph integration**: `ArchGraphStore`, `_decisions`, `_feedback`, `_persistence`, `_reuse_index`, `_seeding`, and `_skill_generator` modules; `to_patch_intent()` bridge methods for `TaskSpec` and `AgentTask`.
+- **Windows atomic file replace retry**: `save_history()` now retries up to 5 times with linear back-off when `tmp_path.replace()` raises `PermissionError`, preventing data loss under concurrent Windows file-locking.
 
 ## [2.11.0] - 2026-04-17
 

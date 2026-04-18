@@ -5,6 +5,7 @@ __pycache__/
 dist/
 build/
 .drift-cache/
+.drift/
 .venv/
 .venv-*/
 .env
@@ -15,6 +16,7 @@ build/
 .hypothesis/
 .mypy_cache/
 .coverage
+.coverage.*
 coverage.xml
 htmlcov/
 .tmp_*venv*/

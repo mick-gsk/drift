@@ -35,6 +35,30 @@ def test_save_history_keeps_existing_file_when_atomic_replace_fails(
     assert history_file.read_text(encoding="utf-8") == old_content
 
 
+def test_save_history_retries_on_transient_permission_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    history_file = tmp_path / ".drift-cache" / "history.json"
+
+    real_replace = Path.replace
+    attempts = {"count": 0}
+
+    def _fail_once_then_succeed(self: Path, target: Path | str) -> Path:
+        if Path(target) == history_file and attempts["count"] == 0:
+            attempts["count"] += 1
+            raise PermissionError("simulated transient file lock")
+        return real_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", _fail_once_then_succeed)
+
+    save_history(history_file, [{"drift_score": 0.99, "scope": "repo"}])
+
+    assert attempts["count"] == 1
+    assert history_file.exists()
+    assert "0.99" in history_file.read_text(encoding="utf-8")
+
+
 def test_apply_trend_and_persist_snapshot_logs_warning_on_corrupt_history(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
