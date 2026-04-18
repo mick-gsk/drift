@@ -143,11 +143,19 @@ _CONN_NODES:    np.ndarray | None = None
 _NODE_SIZES:    np.ndarray | None = None
 _CONN_EDGES:    list[tuple[int, int, float]] = []
 _PARTICLES:     np.ndarray | None = None
+# Pre-computed per-node displacement arrays (avoid per-frame RandomState allocation)
+_DRIFT_DXY_A:   np.ndarray | None = None  # seed=99, used by _draw_graph_drifted
+_DRIFT_EDGE_A:  np.ndarray | None = None  # edge-break randoms (post-dxy rng state)
+_DRIFT_DXY_B:   np.ndarray | None = None  # seed=33, used by _s_transform
+# Re-usable PIL RGBA canvas for Shot C (avoids per-frame Image.new allocation)
+_SHOT_C_IMG:    "Image.Image | None" = None
 
 
 def _reset_caches() -> None:
     global _VIGNETTE, _CONN_NODES, _NODE_SIZES, _PARTICLES
+    global _DRIFT_DXY_A, _DRIFT_EDGE_A, _DRIFT_DXY_B, _SHOT_C_IMG
     _VIGNETTE = _CONN_NODES = _NODE_SIZES = _PARTICLES = None
+    _DRIFT_DXY_A = _DRIFT_EDGE_A = _DRIFT_DXY_B = _SHOT_C_IMG = None
     _CONN_EDGES.clear()
     _TEXT_CACHE.clear()
     _GLOW_CACHE.clear()
@@ -240,6 +248,13 @@ def _init_conn_graph() -> None:
                 + (_CONN_NODES[i, 1] - _CONN_NODES[j, 1]) ** 2))
             if d < 390:
                 _CONN_EDGES.append((i, j, d))
+
+    # Pre-compute fixed displacement + edge-break arrays (eliminates per-frame alloc)
+    global _DRIFT_DXY_A, _DRIFT_EDGE_A, _DRIFT_DXY_B
+    _rng_a = np.random.RandomState(99)
+    _DRIFT_DXY_A  = _rng_a.normal(0, 1, (n, 2)).astype(np.float32)
+    _DRIFT_EDGE_A = _rng_a.random(max(len(_CONN_EDGES), 1)).astype(np.float32)
+    _DRIFT_DXY_B  = np.random.RandomState(33).normal(0, 1, (n, 2)).astype(np.float32)
 
 
 def _init_particles(count: int = 40) -> None:
@@ -458,16 +473,17 @@ def _draw_graph_drifted(buf: np.ndarray, alpha: float, t: float,
     if nodes is None or alpha < 0.02:
         return
     n   = len(nodes)
-    rng = np.random.RandomState(99)
-    dxy = rng.normal(0, 1, (n, 2)).astype(np.float32)
+    # Use pre-computed displacement arrays (seed=99) — avoid per-frame RandomState alloc
+    dxy      = _DRIFT_DXY_A  if _DRIFT_DXY_A  is not None else np.random.RandomState(99).normal(0, 1, (n, 2)).astype(np.float32)
+    edge_rnd = _DRIFT_EDGE_A if _DRIFT_EDGE_A is not None else np.random.RandomState(100).random(max(len(_CONN_EDGES), 1)).astype(np.float32)
 
-    for i, j, dist in _CONN_EDGES:
+    for k, (i, j, dist) in enumerate(_CONN_EDGES):
         nx1 = float(nodes[i, 0]) + dxy[i, 0] * drift_px
         ny1 = float(nodes[i, 1]) + dxy[i, 1] * drift_px * 0.6
         nx2 = float(nodes[j, 0]) + dxy[j, 0] * drift_px
         ny2 = float(nodes[j, 1]) + dxy[j, 1] * drift_px * 0.6
         # Break some edges when drift is high
-        if drift_px > 25 and rng.random() < (drift_px - 25) / 85.0 * 0.55:
+        if drift_px > 25 and edge_rnd[k] < (drift_px - 25) / 85.0 * 0.55:
             continue
         ea = alpha * max(0.0, 1.0 - dist / 380.0) * 0.42
         if ea < 0.02:
@@ -742,7 +758,13 @@ def _shot_c_risk_indicator(buf: np.ndarray, p: float, t: float) -> None:
     px, py  = cx - pw // 2, cy - ph // 2
     pa      = int(195 * ease_out(p))
 
-    img  = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    # Re-use pre-allocated RGBA canvas — avoid per-frame Image.new allocation
+    global _SHOT_C_IMG
+    if _SHOT_C_IMG is None:
+        _SHOT_C_IMG = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    else:
+        _SHOT_C_IMG.paste((0, 0, 0, 0), (0, 0, W, H))
+    img  = _SHOT_C_IMG
     draw = ImageDraw.Draw(img)
 
     # Panel background
@@ -830,10 +852,10 @@ def _s_transform(buf: np.ndarray, p: float, t: float) -> None:
     chaos   = ease_out(clamp01(1.0 - p * 2.4))
 
     if _CONN_NODES is not None:
-        n     = len(_CONN_NODES)
-        rng_d = np.random.RandomState(33)
-        dxy   = rng_d.normal(0, 1, (n, 2)).astype(np.float32)
-        dpx   = chaos * 78.0
+        n   = len(_CONN_NODES)
+        # Use pre-computed displacement array (seed=33) — avoid per-frame RandomState alloc
+        dxy = _DRIFT_DXY_B if _DRIFT_DXY_B is not None else np.random.RandomState(33).normal(0, 1, (n, 2)).astype(np.float32)
+        dpx = chaos * 78.0
 
         for i, j, dist in _CONN_EDGES:
             nx1 = float(_CONN_NODES[i, 0]) + dxy[i, 0] * dpx
@@ -951,9 +973,19 @@ def _dispatch(frame: int) -> np.ndarray:
 
     for start_s, end_s, fn_name in _TIMELINE:
         if start_s <= t < end_s:
-            p = (t - start_s) / (end_s - start_s)
-            _SCENE_FN[fn_name](buf, p, t)
+            p  = (t - start_s) / (end_s - start_s)
+            fn = _SCENE_FN.get(fn_name)
+            if fn is None:
+                raise ValueError(
+                    f"Unbekannte Szene {fn_name!r} in _TIMELINE — "
+                    "Tippfehler oder fehlender Eintrag in _SCENE_FN."
+                )
+            fn(buf, p, t)
             break
+    else:
+        # Frame liegt hinter der letzten Timeline-Szene — letzte Szene bei p=1.0
+        _, _, last_fn = _TIMELINE[-1]
+        _SCENE_FN[last_fn](buf, 1.0, t)
 
     _add_grain(buf, frame)
     _color_grade(buf)
@@ -1065,8 +1097,18 @@ def main() -> None:
                     _TIMELINE[-1][2])
                 print(f"  [{pct:5.1f}%] Frame {f+1}/{total} -- {name}")
         ff.stdin.close()  # type: ignore[union-attr]
-        ff.wait()
+        try:
+            ff.wait(timeout=300)
+        except subprocess.TimeoutExpired:
+            ff.kill()
+            raise RuntimeError(
+                "ffmpeg hat nach 300s nicht beendet — Prozess gekillt."
+            ) from None
     except Exception:
+        try:
+            ff.stdin.close()  # type: ignore[union-attr]
+        except Exception:
+            pass
         ff.kill()
         raise
 
