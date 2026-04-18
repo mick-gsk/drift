@@ -51,6 +51,10 @@ def _sample_analysis() -> RepoAnalysis:
             "parse_seconds": 0.9,
             "git_seconds": 0.4,
             "signals_seconds": 0.7,
+            "per_signal": {
+                "pattern_fragmentation": 0.4,
+                "architecture_violation": 0.3,
+            },
             "output_seconds": 0.2,
             "total_seconds": 2.3,
         },
@@ -77,6 +81,10 @@ def test_analysis_to_json_contains_expected_structure() -> None:
     assert payload["summary"]["phase_timing"]["parse_seconds"] == 0.9
     assert payload["summary"]["phase_timing"]["git_seconds"] == 0.4
     assert payload["summary"]["phase_timing"]["signals_seconds"] == 0.7
+    assert payload["summary"]["phase_timing"]["per_signal"] == {
+        "pattern_fragmentation": 0.4,
+        "architecture_violation": 0.3,
+    }
     assert payload["summary"]["phase_timing"]["output_seconds"] == 0.2
     assert payload["summary"]["phase_timing"]["total_seconds"] == 2.3
     assert "first_run" in payload

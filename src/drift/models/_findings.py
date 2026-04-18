@@ -26,6 +26,10 @@ if TYPE_CHECKING:
     from drift.preflight import PreflightResult
 
 
+PhaseTimingValue = float | dict[str, float]
+PhaseTimings = dict[str, PhaseTimingValue]
+
+
 # ---------------------------------------------------------------------------
 # Logical Location (AST-based)
 # ---------------------------------------------------------------------------
@@ -162,7 +166,7 @@ class RepoAnalysis:
     total_functions: int = 0
     ai_attributed_ratio: float = 0.0
     analysis_duration_seconds: float = 0.0
-    phase_timings: dict[str, float] = field(default_factory=dict)
+    phase_timings: PhaseTimings = field(default_factory=dict)
     commits: list[CommitInfo] = field(default_factory=list)
     file_histories: dict[str, FileHistory] = field(default_factory=dict)
     suppressed_count: int = 0

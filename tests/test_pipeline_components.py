@@ -959,6 +959,45 @@ def test_signal_phase_records_degradation_when_active_signals_match_none(tmp_pat
     )
 
 
+def test_signal_phase_exposes_per_signal_timing_map(tmp_path: Path) -> None:
+    class _SlowSignalA:
+        name = "slow-a"
+        signal_type = SignalType.PATTERN_FRAGMENTATION
+
+        def analyze(self, *_args, **_kwargs):
+            time.sleep(0.02)
+            return []
+
+    class _SlowSignalB:
+        name = "slow-b"
+        signal_type = SignalType.ARCHITECTURE_VIOLATION
+
+        def analyze(self, *_args, **_kwargs):
+            time.sleep(0.01)
+            return []
+
+    cfg = _config()
+    parsed = ParsedInputs(parse_results=[], commits=[], file_histories={})
+    phase = SignalPhase(
+        embedding_factory=lambda **_kwargs: None,
+        signal_factory=lambda _ctx: [_SlowSignalA(), _SlowSignalB()],
+    )
+
+    out = phase.run(
+        tmp_path,
+        cfg,
+        parsed,
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+        workers=1,
+    )
+
+    assert out.phase_timings["signals_seconds"] >= 0.0
+    per_signal = out.phase_timings["per_signal"]
+    assert set(per_signal) == {"architecture_violation", "pattern_fragmentation"}
+    assert per_signal["architecture_violation"] >= 0.0
+    assert per_signal["pattern_fragmentation"] >= 0.0
+
+
 def test_ingestion_phase_continues_in_degraded_mode_on_parser_exception(
     tmp_path: Path,
 ) -> None:

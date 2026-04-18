@@ -263,18 +263,30 @@ def _analysis_status_to_dict(analysis: RepoAnalysis) -> dict[str, Any]:
     }
 
 
-def _phase_timing_summary(analysis: RepoAnalysis) -> dict[str, float]:
+def _phase_timing_summary(analysis: RepoAnalysis) -> dict[str, float | dict[str, float]]:
     phase_timings = analysis.phase_timings or {}
+
+    def _timing_value(name: str, default: float) -> float:
+        value = phase_timings.get(name, default)
+        if isinstance(value, (int, float)):
+            return round(float(value), 3)
+        return round(default, 3)
+
+    per_signal_raw = phase_timings.get("per_signal", {})
+    per_signal: dict[str, float] = {}
+    if isinstance(per_signal_raw, dict):
+        for key, value in per_signal_raw.items():
+            if isinstance(value, (int, float)):
+                per_signal[str(key)] = round(float(value), 3)
+
     return {
-        "discover_seconds": round(float(phase_timings.get("discover_seconds", 0.0)), 3),
-        "parse_seconds": round(float(phase_timings.get("parse_seconds", 0.0)), 3),
-        "git_seconds": round(float(phase_timings.get("git_seconds", 0.0)), 3),
-        "signals_seconds": round(float(phase_timings.get("signals_seconds", 0.0)), 3),
-        "output_seconds": round(float(phase_timings.get("output_seconds", 0.0)), 3),
-        "total_seconds": round(
-            float(phase_timings.get("total_seconds", analysis.analysis_duration_seconds)),
-            3,
-        ),
+        "discover_seconds": _timing_value("discover_seconds", 0.0),
+        "parse_seconds": _timing_value("parse_seconds", 0.0),
+        "git_seconds": _timing_value("git_seconds", 0.0),
+        "signals_seconds": _timing_value("signals_seconds", 0.0),
+        "per_signal": per_signal,
+        "output_seconds": _timing_value("output_seconds", 0.0),
+        "total_seconds": _timing_value("total_seconds", analysis.analysis_duration_seconds),
     }
 
 

@@ -70,6 +70,8 @@ if TYPE_CHECKING:
     from drift.config import DriftConfig, SignalWeights
 
 ProgressCallback = Callable[[str, int, int], None]
+PhaseTimingValue = float | dict[str, float]
+PhaseTimings = dict[str, PhaseTimingValue]
 
 _GIT_HISTORY_CACHE_TTL_SECONDS = 600.0
 _GIT_HISTORY_CACHE_MAX_ENTRIES = 16
@@ -200,7 +202,7 @@ class ParsedInputs:
     file_histories: dict[str, FileHistory]
     ai_tools_detected: list[str] = field(default_factory=list)
     file_hashes: dict[str, str] = field(default_factory=dict)
-    phase_timings: dict[str, float] = field(default_factory=dict)
+    phase_timings: PhaseTimings = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -208,7 +210,7 @@ class SignalOutput:
     """Output of the signal execution phase."""
 
     findings: list[Finding]
-    phase_timings: dict[str, float] = field(default_factory=dict)
+    phase_timings: PhaseTimings = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -875,7 +877,7 @@ class SignalPhase:
                 )
             return SignalOutput(
                 findings=[],
-                phase_timings={"signals_seconds": 0.0},
+                phase_timings={"signals_seconds": 0.0, "per_signal": {}},
             )
 
         emb_svc = None
@@ -986,15 +988,22 @@ class SignalPhase:
             sig_cache.put(sig_type, scope_config_fp, content_hash, findings)
             return findings
 
+        def _run_or_cache_timed(signal: BaseSignal) -> tuple[list[Finding], float]:
+            started_at = time.monotonic()
+            findings = _run_or_cache(signal)
+            elapsed_seconds = round(max(0.0, time.monotonic() - started_at), 3)
+            return findings, elapsed_seconds
+
         # --- parallel signal execution ---
         completed_count = 0
         results: list[tuple[str, list[Finding]]] = []
+        per_signal_timings: dict[str, float] = {}
 
         max_workers = min(total_signals, workers)
         pool = ThreadPoolExecutor(max_workers=max_workers)
         timed_out = False
         try:
-            futures = {pool.submit(_run_or_cache, signal): signal for signal in signals}
+            futures = {pool.submit(_run_or_cache_timed, signal): signal for signal in signals}
             pending = set(futures)
             try:
                 for future in as_completed(futures, timeout=self._future_timeout_seconds):
@@ -1004,9 +1013,10 @@ class SignalPhase:
                     if progress:
                         progress(f"Signal: {signal.name}", completed_count, total_signals)
                     try:
-                        findings = future.result(timeout=0)
+                        findings, elapsed_seconds = future.result(timeout=0)
                         st_enum = getattr(signal, "signal_type", None)
                         sort_key = st_enum.value if st_enum is not None else signal.name
+                        per_signal_timings[sort_key] = elapsed_seconds
                         results.append((sort_key, findings))
                     except Exception as exc:
                         logger = logging.getLogger("drift")
@@ -1065,6 +1075,7 @@ class SignalPhase:
             findings=all_findings,
             phase_timings={
                 "signals_seconds": round(max(0.0, time.monotonic() - phase_started_at), 3),
+                "per_signal": per_signal_timings,
             },
         )
 
@@ -1249,7 +1260,7 @@ class ResultAssemblyPhase:
         artifacts: PipelineArtifacts,
         *,
         started_at: float,
-        phase_timings: dict[str, float] | None = None,
+        phase_timings: PhaseTimings | None = None,
         config: DriftConfig | None = None,
     ) -> RepoAnalysis:
         pattern_catalog: dict[PatternCategory, list[PatternInstance]] = {}
@@ -1332,7 +1343,7 @@ class AnalysisPipeline:
     ) -> RepoAnalysis:
         started_at = time.monotonic()
         degradation = DegradationInfo(causes=set(), components=set(), events=[])
-        phase_timings: dict[str, float] = {
+        phase_timings: PhaseTimings = {
             "discover_seconds": round(max(0.0, discover_duration_seconds), 3),
         }
 
@@ -1419,10 +1430,12 @@ class AnalysisPipeline:
             max(0.0, time.monotonic() - integrations_started), 3
         )
 
+        discover_seconds = phase_timings.get("discover_seconds", 0.0)
+        discover_seconds_value = (
+            discover_seconds if isinstance(discover_seconds, (float, int)) else 0.0
+        )
         phase_timings["total_seconds"] = round(
-            max(
-                0.0, analysis.analysis_duration_seconds + phase_timings.get("discover_seconds", 0.0)
-            ),
+            max(0.0, analysis.analysis_duration_seconds + float(discover_seconds_value)),
             3,
         )
         analysis.phase_timings = dict(phase_timings)

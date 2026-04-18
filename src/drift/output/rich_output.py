@@ -382,12 +382,19 @@ def _sparkline(values: list[float], width: int = 20) -> str:
 
 def _render_phase_timing(analysis: RepoAnalysis, console: Console) -> None:
     phase = analysis.phase_timings or {}
-    discover = float(phase.get("discover_seconds", 0.0))
-    parse = float(phase.get("parse_seconds", 0.0))
-    git = float(phase.get("git_seconds", 0.0))
-    signals = float(phase.get("signals_seconds", 0.0))
-    output = float(phase.get("output_seconds", 0.0))
-    total = float(phase.get("total_seconds", analysis.analysis_duration_seconds))
+
+    def _timing_value(name: str, default: float) -> float:
+        value = phase.get(name, default)
+        if isinstance(value, (int, float)):
+            return float(value)
+        return float(default)
+
+    discover = _timing_value("discover_seconds", 0.0)
+    parse = _timing_value("parse_seconds", 0.0)
+    git = _timing_value("git_seconds", 0.0)
+    signals = _timing_value("signals_seconds", 0.0)
+    output = _timing_value("output_seconds", 0.0)
+    total = _timing_value("total_seconds", analysis.analysis_duration_seconds)
 
     console.print(
         Text.assemble(
@@ -405,6 +412,20 @@ def _render_phase_timing(analysis: RepoAnalysis, console: Console) -> None:
             (f"total {total:.3f}s", "dim"),
         ),
     )
+
+    per_signal_raw = phase.get("per_signal", {})
+    if isinstance(per_signal_raw, dict) and per_signal_raw:
+        per_signal: list[tuple[str, float]] = []
+        for key, value in per_signal_raw.items():
+            if isinstance(value, (int, float)):
+                per_signal.append((str(key), float(value)))
+
+        if per_signal:
+            per_signal.sort(key=lambda item: item[1], reverse=True)
+            preview = ", ".join(
+                f"{signal_name} {duration:.3f}s" for signal_name, duration in per_signal[:5]
+            )
+            console.print(Text.assemble(("  Per-signal: ", "dim"), (preview, "dim")))
 
 
 def _render_first_run_panel(
