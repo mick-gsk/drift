@@ -27,6 +27,7 @@ Example YAML (embedded in drift.yaml or standalone)::
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -171,11 +172,9 @@ class TaskSpec(BaseModel):
                 affected_set.add(layer)
                 continue
             if isinstance(layer, str):
-                try:
+                # Invalid strings are validated later by pydantic field validation.
+                with suppress(ValueError):
                     affected_set.add(ArchitectureLayer(layer))
-                except ValueError:
-                    # Let pydantic surface invalid layer values in field validation.
-                    pass
 
         signal_layers = {
             ArchitectureLayer.SIGNALS,
