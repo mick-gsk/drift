@@ -21,6 +21,7 @@ import time
 from collections import defaultdict
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FutureTimeoutError
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
@@ -178,6 +179,7 @@ def resolve_worker_count(
 
 
 DEFAULT_WORKERS = _determine_default_workers()
+DEFAULT_FUTURE_TIMEOUT_SECONDS = 300.0
 
 
 @dataclass(slots=True)
@@ -468,11 +470,13 @@ class IngestionPhase:
             [Path, int, set[str], float, float, DriftConfig | None],
             tuple[list[CommitInfo], dict[str, FileHistory]],
         ] = fetch_git_history,
+        future_timeout_seconds: float = DEFAULT_FUTURE_TIMEOUT_SECONDS,
     ) -> None:
         self._cache_factory = cache_factory
         self._parse_file = parse_file_fn
         self._is_git_repo = is_git_repo_fn
         self._fetch_git_history = fetch_git_history_fn
+        self._future_timeout_seconds = max(0.001, float(future_timeout_seconds))
 
     def run(
         self,
@@ -555,7 +559,9 @@ class IngestionPhase:
                 },
             )
 
-        with ThreadPoolExecutor(max_workers=workers) as executor:
+        executor = ThreadPoolExecutor(max_workers=workers)
+        timed_out = False
+        try:
 
             def _fetch_git_history_timed() -> tuple[
                 list[CommitInfo],
@@ -604,41 +610,75 @@ class IngestionPhase:
                     ): (idx, finfo, content_hash)
                     for idx, finfo, content_hash in to_parse
                 }
-                for future in as_completed(futures):
-                    idx, finfo, content_hash = futures[future]
-                    try:
-                        result = future.result()
-                    except Exception as exc:
-                        logging.getLogger("drift").warning(
-                            "Parser failure for %s; file skipped in degraded mode.",
-                            finfo.path,
-                            exc_info=True,
-                        )
-                        degradation.causes.add("parser_failure")
-                        degradation.components.add("parser")
+                pending = set(futures)
+                try:
+                    for future in as_completed(futures, timeout=self._future_timeout_seconds):
+                        pending.discard(future)
+                        idx, finfo, content_hash = futures[future]
+                        try:
+                            result = future.result(timeout=0)
+                        except Exception as exc:
+                            logging.getLogger("drift").warning(
+                                "Parser failure for %s; file skipped in degraded mode.",
+                                finfo.path,
+                                exc_info=True,
+                            )
+                            degradation.causes.add("parser_failure")
+                            degradation.components.add("parser")
+                            degradation.events.append(
+                                make_degradation_event(
+                                    cause="parser_failure",
+                                    component="parser",
+                                    message=(
+                                        f"Parser failed for {finfo.path.as_posix()};"
+                                        " file skipped in degraded mode."
+                                    ),
+                                    details={
+                                        "error": str(exc),
+                                        "file": finfo.path.as_posix(),
+                                    },
+                                ),
+                            )
+                            parse_results_opt[idx] = ParseResult(
+                                file_path=finfo.path,
+                                language=finfo.language,
+                                parse_errors=[str(exc)],
+                            )
+                            continue
+                        parse_results_opt[idx] = result
+                        if content_hash is not None:
+                            new_results.append((idx, content_hash, result))
+                except FutureTimeoutError:
+                    timed_out = True
+                    degradation.causes.add("parser_timeout")
+                    degradation.components.add("parser")
+                    for pending_future in pending:
+                        idx, finfo, _content_hash = futures[pending_future]
+                        pending_future.cancel()
                         degradation.events.append(
                             make_degradation_event(
-                                cause="parser_failure",
+                                cause="parser_timeout",
                                 component="parser",
                                 message=(
-                                    f"Parser failed for {finfo.path.as_posix()};"
+                                    f"Parser timed out for {finfo.path.as_posix()};"
                                     " file skipped in degraded mode."
                                 ),
                                 details={
-                                    "error": str(exc),
                                     "file": finfo.path.as_posix(),
+                                    "timeout_seconds": str(self._future_timeout_seconds),
                                 },
                             ),
                         )
                         parse_results_opt[idx] = ParseResult(
                             file_path=finfo.path,
                             language=finfo.language,
-                            parse_errors=[str(exc)],
+                            parse_errors=[
+                                (
+                                    "parse timeout exceeded "
+                                    f"({self._future_timeout_seconds:.3f}s)"
+                                )
+                            ],
                         )
-                        continue
-                    parse_results_opt[idx] = result
-                    if content_hash is not None:
-                        new_results.append((idx, content_hash, result))
 
                 for _idx, h, r in new_results:
                     cache.put(h, r)
@@ -659,22 +699,43 @@ class IngestionPhase:
 
             git_seconds = 0.0
             if git_future is not None:
-                commits, file_histories, git_seconds, git_error = git_future.result()
-                if git_error is not None:
-                    logging.getLogger("drift").warning(
-                        "Git history fetch failed; continuing without history.",
-                        exc_info=True,
+                try:
+                    commits, file_histories, git_seconds, git_error = git_future.result(
+                        timeout=self._future_timeout_seconds
                     )
-                    degradation.causes.add("git_history_unavailable")
+                    if git_error is not None:
+                        logging.getLogger("drift").warning(
+                            "Git history fetch failed; continuing without history.",
+                            exc_info=True,
+                        )
+                        degradation.causes.add("git_history_unavailable")
+                        degradation.components.add("git_history")
+                        degradation.events.append(
+                            make_degradation_event(
+                                cause="git_history_unavailable",
+                                component="git_history",
+                                message=(
+                                    "Git history parsing failed; "
+                                    "temporal/git-based context omitted."
+                                ),
+                                details={"error": str(git_error)},
+                            ),
+                        )
+                except FutureTimeoutError:
+                    timed_out = True
+                    git_future.cancel()
+                    commits, file_histories, git_seconds = [], {}, 0.0
+                    degradation.causes.add("git_history_timeout")
                     degradation.components.add("git_history")
                     degradation.events.append(
                         make_degradation_event(
-                            cause="git_history_unavailable",
+                            cause="git_history_timeout",
                             component="git_history",
                             message=(
-                                "Git history parsing failed; temporal/git-based context omitted."
+                                    "Git history retrieval timed out; "
+                                    "temporal/git-based context omitted."
                             ),
-                            details={"error": str(git_error)},
+                            details={"timeout_seconds": str(self._future_timeout_seconds)},
                         ),
                     )
             else:
@@ -683,6 +744,8 @@ class IngestionPhase:
                 )
                 commits, file_histories = [], {}
                 git_seconds = 0.0
+        finally:
+            executor.shutdown(wait=not timed_out, cancel_futures=timed_out)
 
         if progress:
             progress("Analyzing git history", 0, 0)
@@ -715,9 +778,11 @@ class SignalPhase:
         *,
         embedding_factory: Callable[..., Any] = get_embedding_service,
         signal_factory: Callable[..., list[BaseSignal]] = create_signals,
+        future_timeout_seconds: float = DEFAULT_FUTURE_TIMEOUT_SECONDS,
     ) -> None:
         self._embedding_factory = embedding_factory
         self._signal_factory = signal_factory
+        self._future_timeout_seconds = max(0.001, float(future_timeout_seconds))
 
     @staticmethod
     def _cache_dependency_scope(signal: BaseSignal) -> str:
@@ -926,41 +991,68 @@ class SignalPhase:
         results: list[tuple[str, list[Finding]]] = []
 
         max_workers = min(total_signals, workers)
-        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        pool = ThreadPoolExecutor(max_workers=max_workers)
+        timed_out = False
+        try:
             futures = {pool.submit(_run_or_cache, signal): signal for signal in signals}
-            for future in as_completed(futures):
-                signal = futures[future]
-                completed_count += 1
-                if progress:
-                    progress(f"Signal: {signal.name}", completed_count, total_signals)
-                try:
-                    findings = future.result()
-                    st_enum = getattr(signal, "signal_type", None)
-                    sort_key = st_enum.value if st_enum is not None else signal.name
-                    results.append((sort_key, findings))
-                except Exception as exc:
-                    logger = logging.getLogger("drift")
-                    logger.warning(
-                        "Signal '%s' failed; skipping. %s: %s",
-                        signal.name,
-                        type(exc).__name__,
-                        exc,
-                        exc_info=True,
-                    )
-                    degradation.causes.add("signal_failure")
+            pending = set(futures)
+            try:
+                for future in as_completed(futures, timeout=self._future_timeout_seconds):
+                    pending.discard(future)
+                    signal = futures[future]
+                    completed_count += 1
+                    if progress:
+                        progress(f"Signal: {signal.name}", completed_count, total_signals)
+                    try:
+                        findings = future.result(timeout=0)
+                        st_enum = getattr(signal, "signal_type", None)
+                        sort_key = st_enum.value if st_enum is not None else signal.name
+                        results.append((sort_key, findings))
+                    except Exception as exc:
+                        logger = logging.getLogger("drift")
+                        logger.warning(
+                            "Signal '%s' failed; skipping. %s: %s",
+                            signal.name,
+                            type(exc).__name__,
+                            exc,
+                            exc_info=True,
+                        )
+                        degradation.causes.add("signal_failure")
+                        degradation.components.add(f"signal:{signal.name}")
+                        degradation.events.append(
+                            make_degradation_event(
+                                cause="signal_failure",
+                                component=f"signal:{signal.name}",
+                                message=f"Signal '{signal.name}' failed and was skipped.",
+                                details={
+                                    "signal": signal.name,
+                                    "error_type": type(exc).__name__,
+                                    "error_message": str(exc),
+                                },
+                            ),
+                        )
+            except FutureTimeoutError:
+                timed_out = True
+                degradation.causes.add("signal_timeout")
+                for pending_future in pending:
+                    signal = futures[pending_future]
+                    pending_future.cancel()
                     degradation.components.add(f"signal:{signal.name}")
                     degradation.events.append(
                         make_degradation_event(
-                            cause="signal_failure",
+                            cause="signal_timeout",
                             component=f"signal:{signal.name}",
-                            message=f"Signal '{signal.name}' failed and was skipped.",
+                            message=(
+                                f"Signal '{signal.name}' timed out and was skipped."
+                            ),
                             details={
                                 "signal": signal.name,
-                                "error_type": type(exc).__name__,
-                                "error_message": str(exc),
+                                "timeout_seconds": str(self._future_timeout_seconds),
                             },
                         ),
                     )
+        finally:
+            pool.shutdown(wait=not timed_out, cancel_futures=timed_out)
 
         # Sort by signal type to guarantee deterministic finding order
         # regardless of thread completion order.

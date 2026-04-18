@@ -619,8 +619,26 @@ class TestBuildWorkflowPlan:
         assert "success_criteria" in d
         assert "abort_criteria" in d
         assert "estimated_score_delta" in d
+        assert "default_step_timeout_seconds" in d
         assert isinstance(d["steps"], list)
         assert len(d["steps"]) == 2  # fix + verify
+
+    def test_default_step_timeout_is_exposed(self) -> None:
+        a = _task("a")
+        g = build_task_graph([a])
+        plan = build_workflow_plan(g)
+
+        assert plan.default_step_timeout_seconds == 300.0
+        assert plan.to_api_dict()["default_step_timeout_seconds"] == 300.0
+
+    def test_step_timeout_is_exposed(self) -> None:
+        a = _task("a")
+        g = build_task_graph([a])
+        plan = build_workflow_plan(g)
+
+        for step in plan.steps:
+            assert "timeout_seconds" in step.to_api_dict()
+            assert step.to_api_dict()["timeout_seconds"] is None
 
     def test_preconditions_first_phase_empty(self) -> None:
         a = _task("a")

@@ -669,6 +669,7 @@ class WorkflowStep:
     task_ids: list[str] = field(default_factory=list)
     parallel: bool = False
     abort_if: str = ""
+    timeout_seconds: float | None = None
 
     def to_api_dict(self) -> dict[str, Any]:
         """Serialise to API response dict."""
@@ -681,6 +682,7 @@ class WorkflowStep:
             "task_ids": self.task_ids,
             "parallel": self.parallel,
             "abort_if": self.abort_if,
+            "timeout_seconds": self.timeout_seconds,
         }
 
 
@@ -692,6 +694,7 @@ class WorkflowPlan:
     success_criteria: str = ""
     abort_criteria: str = ""
     estimated_score_delta: float = 0.0
+    default_step_timeout_seconds: float = 300.0
 
     # -- Phase E: Plan-Invalidierung (ADR-025) -------------------------------
     plan_id: str = field(default_factory=lambda: uuid.uuid4().hex)
@@ -709,6 +712,7 @@ class WorkflowPlan:
             "success_criteria": self.success_criteria,
             "abort_criteria": self.abort_criteria,
             "estimated_score_delta": round(self.estimated_score_delta, 4),
+            "default_step_timeout_seconds": self.default_step_timeout_seconds,
             "plan_id": self.plan_id,
             "created_at": self.created_at,
             "plan_fingerprint": self.plan_fingerprint,

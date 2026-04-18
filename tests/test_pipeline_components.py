@@ -6,6 +6,7 @@ import datetime
 import importlib
 import json
 import logging
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -384,6 +385,37 @@ def test_signal_phase_records_degradation_on_signal_failure(tmp_path: Path) -> N
     assert event["details"]["error_message"] == "boom"
 
 
+def test_ingestion_phase_records_degradation_on_parser_timeout(tmp_path: Path) -> None:
+    cfg = _config()
+    src = tmp_path / "a.py"
+    src.write_text("def a():\n    return 1\n", encoding="utf-8")
+
+    def _slow_parse(path: Path, _repo_path: Path, language: str) -> ParseResult:
+        time.sleep(0.05)
+        return ParseResult(file_path=path, language=language)
+
+    degradation = DegradationInfo(causes=set(), components=set(), events=[])
+    phase = IngestionPhase(
+        parse_file_fn=_slow_parse,
+        is_git_repo_fn=lambda _p: False,
+        future_timeout_seconds=0.001,
+    )
+    out = phase.run(
+        tmp_path,
+        [_file_info("a.py")],
+        cfg,
+        since_days=30,
+        workers=1,
+        degradation=degradation,
+    )
+
+    assert len(out.parse_results) == 1
+    assert any("timeout" in err for err in out.parse_results[0].parse_errors)
+    assert "parser_timeout" in degradation.causes
+    assert "parser" in degradation.components
+    assert any(event["cause"] == "parser_timeout" for event in degradation.events)
+
+
 def test_signal_phase_warning_always_includes_exc_info(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -422,6 +454,38 @@ def test_signal_phase_warning_always_includes_exc_info(
     assert warning_records[0].exc_info is not None, (
         "Stack trace must be attached unconditionally (exc_info=True), not only at DEBUG"
     )
+
+
+def test_signal_phase_records_degradation_on_signal_timeout(tmp_path: Path) -> None:
+    class _SlowSignal:
+        name = "slow"
+
+        def analyze(self, *_args: object, **_kwargs: object) -> list[Finding]:
+            time.sleep(0.05)
+            return [_finding()]
+
+    cfg = _config()
+    parsed = IngestionPhase(is_git_repo_fn=lambda _p: False).run(
+        tmp_path,
+        [],
+        cfg,
+        since_days=30,
+        workers=1,
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+
+    degradation = DegradationInfo(causes=set(), components=set(), events=[])
+    phase = SignalPhase(
+        embedding_factory=lambda **_kwargs: None,
+        signal_factory=lambda _ctx: [_SlowSignal()],
+        future_timeout_seconds=0.001,
+    )
+    out = phase.run(tmp_path, cfg, parsed, degradation=degradation)
+
+    assert out.findings == []
+    assert "signal_timeout" in degradation.causes
+    assert "signal:slow" in degradation.components
+    assert any(event["cause"] == "signal_timeout" for event in degradation.events)
 
 
 def test_signal_phase_filters_active_signals(tmp_path: Path) -> None:
