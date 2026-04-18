@@ -201,6 +201,39 @@ class TestValidateTaskSpec:
 class TestTaskSpecSerialization:
     """Ensure specs can be saved and reloaded."""
 
+    def test_schema_version_defaults_to_1(self):
+        spec = TaskSpec(
+            goal="Add CSV output format for findings",
+            affected_layers=[ArchitectureLayer.OUTPUT, ArchitectureLayer.TESTS],
+            acceptance_criteria=["CSV matches JSON content"],
+            depends_on=["ADR-048"],
+        )
+
+        assert spec.schema_version == 1
+
+    def test_from_dict_versioned_allows_missing_schema_version(self):
+        data = {
+            "goal": "Add CSV output format for findings",
+            "affected_layers": ["output", "tests"],
+            "acceptance_criteria": ["CSV matches JSON content"],
+            "depends_on": ["ADR-048"],
+        }
+
+        spec = TaskSpec.from_dict_versioned(data)
+        assert spec.schema_version == 1
+
+    def test_from_dict_versioned_rejects_unsupported_future_version(self):
+        data = {
+            "schema_version": 999,
+            "goal": "Add CSV output format for findings",
+            "affected_layers": ["output", "tests"],
+            "acceptance_criteria": ["CSV matches JSON content"],
+            "depends_on": ["ADR-048"],
+        }
+
+        with pytest.raises(ValueError, match="Unsupported TaskSpec schema_version"):
+            TaskSpec.from_dict_versioned(data)
+
     def test_yaml_roundtrip(self, tmp_path: Path):
         spec = TaskSpec(
             goal="Add CSV output format for findings",

@@ -30,7 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, ClassVar
 
 if TYPE_CHECKING:
     from drift.models._patch import PatchIntent
@@ -84,6 +84,16 @@ class TaskSpec(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")
+    CURRENT_SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(
+        default=1,
+        ge=1,
+        description=(
+            "Version of the serialized TaskSpec schema. "
+            "Used for forward migrations during load."
+        ),
+    )
 
     goal: str = Field(
         ...,
@@ -196,13 +206,52 @@ class TaskSpec(BaseModel):
         data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError(f"Expected a mapping in {spec_path}, got {type(data).__name__}.")
-        spec = cls.model_validate(data)
+        spec = cls.from_dict_versioned(data)
         result = validate_task_spec(spec)
         if result.errors:
             raise ValueError(
                 "TaskSpec contains blocking semantic issues: " + "; ".join(result.errors)
             )
         return spec
+
+    @classmethod
+    def from_dict_versioned(cls, data: dict[str, object]) -> TaskSpec:
+        """Load TaskSpec data with schema-version migration support."""
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected mapping data, got {type(data).__name__}.")
+
+        migrated: dict[str, object] = dict(data)
+        raw_version = migrated.get("schema_version", 1)
+        if not isinstance(raw_version, int):
+            raise ValueError("TaskSpec schema_version must be an integer.")
+        if raw_version < 1:
+            raise ValueError("TaskSpec schema_version must be >= 1.")
+        if raw_version > cls.CURRENT_SCHEMA_VERSION:
+            raise ValueError(
+                "Unsupported TaskSpec schema_version "
+                f"{raw_version}; this drift version supports up to "
+                f"{cls.CURRENT_SCHEMA_VERSION}."
+            )
+
+        version = raw_version
+        while version < cls.CURRENT_SCHEMA_VERSION:
+            migrated = cls._migrate_to_next_version(version, migrated)
+            version += 1
+
+        migrated["schema_version"] = cls.CURRENT_SCHEMA_VERSION
+        return cls.model_validate(migrated)
+
+    @classmethod
+    def _migrate_to_next_version(
+        cls,
+        from_version: int,
+        data: dict[str, object],
+    ) -> dict[str, object]:
+        """Apply one migration step to the immediate next schema version."""
+        # No schema migration exists yet because v1 is the baseline.
+        if from_version == 1 and cls.CURRENT_SCHEMA_VERSION == 1:
+            return data
+        raise ValueError(f"No TaskSpec migration registered for schema_version {from_version}.")
 
     def to_patch_intent(
         self,
