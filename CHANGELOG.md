@@ -1,4 +1,4 @@
-## [2.14.0] – 2026-04-18
+## [2.15.0] – 2026-04-18
 
 Short version: Patch Engine (ADR-074), TaskGraph compact summary, per-signal timing telemetry, edit-kind heuristics for ARCHITECTURE_VIOLATION, and ArchGraph integration layer.
 
@@ -11,6 +11,7 @@ Short version: Patch Engine (ADR-074), TaskGraph compact summary, per-signal tim
 
 - **TaskSpec validation hardening**: `TaskSpec` now frozen after validation and layer inference hardened for frozen objects, eliminating mutation errors.
 - **Pipeline robustness**: executor timeouts enforced for pipeline steps; `save_history()` retries up to 5×  with linear back-off on Windows `PermissionError` during atomic file replace.
+- **CI stability**: `_SKILL_DISPATCH` cleared before re-population in dispatch-table test to fix cross-test pollution; `# pragma: allowlist secret` added to hex fixture in `test_cache_resilience.py` to silence detect-secrets false positive; `render_timeline` monkeypatched via direct module reference to fix xdist attribute-walk flakiness.
 
 ## [2.11.0] - 2026-04-17
 

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 from click.testing import CliRunner
 
+import drift.output.rich_output as _rich_output_mod
 from drift.cli import main
 
 
@@ -44,7 +45,7 @@ def test_timeline_command_builds_and_renders_timeline(
 
     monkeypatch.setattr("drift.analyzer.analyze_repo", _fake_analyze)
     monkeypatch.setattr("drift.timeline.build_timeline", _fake_build)
-    monkeypatch.setattr("drift.output.rich_output.render_timeline", _fake_render)
+    monkeypatch.setattr(_rich_output_mod, "render_timeline", _fake_render)
 
     runner = CliRunner()
     result = runner.invoke(

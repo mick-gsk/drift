@@ -122,7 +122,7 @@ def test_parse_cache_roundtrip_with_version_tags(tmp_path: Path) -> None:
 def test_parse_cache_get_refreshes_mtime_on_hit(tmp_path: Path) -> None:
     """A cache hit should refresh mtime to preserve frequently-used entries."""
     cache = ParseCache(tmp_path)
-    content_hash = "1234567890abcdef" * 2
+    content_hash = "1234567890abcdef" * 2  # pragma: allowlist secret
     result = ParseResult(file_path=Path("d.py"), language="python")
     cache.put(content_hash, result)
 

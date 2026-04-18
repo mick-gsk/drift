@@ -92,6 +92,7 @@ class TestCompilePolicyMCPHandler:
     def test_dispatch_table_includes_compile_policy(self):
         from drift.serve.a2a_router import _SKILL_DISPATCH, _ensure_dispatch_table
 
+        _SKILL_DISPATCH.clear()  # Reset so _ensure_dispatch_table repopulates fully
         _ensure_dispatch_table()
         assert "compile_policy" in _SKILL_DISPATCH
 
