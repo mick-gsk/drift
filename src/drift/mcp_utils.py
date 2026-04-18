@@ -145,8 +145,6 @@ async def _run_api_tool(tool_name: str, api_fn: Any, **kwargs: Any) -> str:
                 }
             return json.dumps(result, default=str)
         except Exception as exc:
-            from drift.api_helpers import _error_response
-
             logger.warning(
                 "[%s] DRIFT-5001 from %s: %r",
                 request_id,
@@ -154,6 +152,12 @@ async def _run_api_tool(tool_name: str, api_fn: Any, **kwargs: Any) -> str:
                 exc,
                 exc_info=True,
             )
+            if isinstance(exc, ImportError) and _is_broken_internal_drift_module(exc):
+                error = _broken_internal_module_error(tool_name, exc)
+                error["request_id"] = request_id
+                return json.dumps(error, default=str)
+            from drift.api_helpers import _error_response
+
             error = _error_response("DRIFT-5001", str(exc), recoverable=True)
             error["tool"] = tool_name
             error["request_id"] = request_id
