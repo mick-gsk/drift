@@ -12,7 +12,6 @@ Covers:
 from __future__ import annotations
 
 from drift.arch_graph._models import SkillBriefing
-
 from drift.arch_graph._skill_writer import render_skill_md
 
 # ---------------------------------------------------------------------------

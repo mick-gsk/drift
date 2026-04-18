@@ -5,8 +5,11 @@ from __future__ import annotations
 import datetime
 import importlib
 import json
+import logging
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 from drift import __version__ as drift_version
 from drift.cache import CACHE_SCHEMA_VERSION, ParseCache
