@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import importlib
 import logging
@@ -474,10 +475,8 @@ def get_head_fingerprints_for_diff(
             for rel_path, content in head_contents.items():
                 file_path = tmp_path / rel_path
                 file_path.parent.mkdir(parents=True, exist_ok=True)
-                try:
+                with contextlib.suppress(Exception):
                     file_path.write_text(content, encoding="utf-8")
-                except Exception:
-                    pass
 
             all_files = discover_files(
                 tmp_path,
