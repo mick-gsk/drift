@@ -11,8 +11,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from drift.api import fix_plan as api_fix_plan
 from drift.api._config import _emit_api_telemetry
+from drift.api.fix_plan import fix_plan as api_fix_plan
 from drift.api_helpers import _base_response, _error_response
 
 logger = logging.getLogger("drift")

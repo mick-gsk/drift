@@ -163,15 +163,15 @@ class _GuardInserter:
                     *existing_stmts[insert_at:],
                 ]
                 new_body = cst.IndentedBlock(
-                    body=merged,
-                    indent=body.indent,
-                    header=body.header,
-                    footer=body.footer,
+                    body=merged,  # type: ignore[arg-type]
+                    indent=body.indent,  # type: ignore[attr-defined]
+                    header=body.header,  # type: ignore[attr-defined]
+                    footer=body.footer,  # type: ignore[attr-defined]
                 )
                 return updated_node.with_changes(body=new_body)
 
         visitor = _Visitor()
-        new_tree = tree.visit(visitor)  # type: ignore[union-attr]
+        new_tree = tree.visit(visitor)  # type: ignore[union-attr, attr-defined]
 
         was_modified = visitor.inserted_count > 0
         all_skipped = visitor.skipped_count == len(guard_params) and visitor.inserted_count == 0
@@ -284,7 +284,7 @@ class AddGuardClauseWriter(PatchWriter):
                 reason=f"Function {finding.symbol!r} not found in source",
             )
 
-        patched = new_tree.code  # type: ignore[union-attr]
+        patched = new_tree.code  # type: ignore[union-attr, attr-defined]
 
         diff = "".join(
             difflib.unified_diff(

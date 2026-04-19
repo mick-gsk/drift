@@ -110,16 +110,16 @@ class _DocstringInserter:
                 # Insert docstring as first statement
                 docstring_node = _build_docstring_node(target_symbol)
                 new_body = cst.IndentedBlock(
-                    body=[docstring_node, *stmts],
-                    indent=body.indent,
-                    header=body.header,
-                    footer=body.footer,
+                    body=[docstring_node, *stmts],  # type: ignore[arg-type, list-item]
+                    indent=body.indent,  # type: ignore[attr-defined]
+                    header=body.header,  # type: ignore[attr-defined]
+                    footer=body.footer,  # type: ignore[attr-defined]
                 )
                 self_inner.found = True
                 return updated_node.with_changes(body=new_body)
 
         visitor = _Visitor()
-        new_tree = tree.visit(visitor)  # type: ignore[union-attr]
+        new_tree = tree.visit(visitor)  # type: ignore[union-attr, attr-defined]
         return new_tree, visitor.found and not visitor.skipped, visitor.skipped  # type: ignore[return-value]
 
 
