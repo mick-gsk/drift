@@ -1,5 +1,18 @@
 # Risk Register
 
+## 2026-04-19 - ADR-042: drift explain <fingerprint> — Finding-Level-Explain
+
+- Risk ID: RISK-OUTPUT-2026-04-19-ADR042-EXPLAIN-FINGERPRINT
+- Component: `src/drift/api/explain.py`, `src/drift/commands/explain.py`
+- Type: Additive CLI/Output-Erweiterung
+- Description:
+  1. Neuer `--from-file` Pfad liest user-supplied JSON (read-only); `code_context` exponiert Quellcode-Zeilen.
+  2. Re-Scan-Pfad ruft `analyze_repo()` auf — gleiche Laufzeit wie `drift analyze` (~3s); kein Amplification-Risiko.
+  3. Fingerprint-Volatilität: `finding_id` ändert sich bei Datei-Rename oder Titel-Änderung. Dokumentiert in ADR-042.
+- Severity: LOW — keine neuen Write-Pfade, kein neues Trust-Boundary.
+- Mitigations: (1) `--from-file` validiert Datei-Existenz via Click `exists=True`; (2) `_extract_code_context` gibt leere Liste bei nicht lesbaren Dateien zurück (safe fallback); (3) `_explain_finding_from_analysis_file` gibt `None` bei ungültigem JSON zurück.
+- Residual risk: Akzeptiert — read-only, keine neuen Permissions, gleiche Expositionsfläche wie bestehender `drift analyze` JSON-Output.
+
 ## 2026-04-19 - Issue #526: PFS FP-Reduktion error_handling-Propagation und Exception-Typ-Normalisierung
 
 - Risk ID: RISK-PFS-PROPAGATION-EXTYPE-2026-04

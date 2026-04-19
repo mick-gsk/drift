@@ -36,6 +36,8 @@ def test__format_scan_response() -> None:
     assert result["finding_count"] == 0
     assert result["findings_returned"] == 0
     assert "top_signals" in result
+    assert "top_affected_files" in result
+    assert isinstance(result["top_affected_files"], list)
 
 
 def test_diff(tmp_path: Path) -> None:

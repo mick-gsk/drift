@@ -52,10 +52,9 @@ class TestSuppressInteractiveDryRun:
     def test_no_active_findings_exits_cleanly(self, tmp_path: Path) -> None:
         analysis = _mock_analysis([])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path), "--dry-run"],
@@ -67,10 +66,9 @@ class TestSuppressInteractiveDryRun:
         findings = [_make_finding()]
         analysis = _mock_analysis(findings)
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path), "--dry-run"],
@@ -87,10 +85,9 @@ class TestSuppressInteractiveDryRun:
         finding = _make_finding(file_path="src/app.py", start_line=1)
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path), "--dry-run"],
@@ -109,10 +106,9 @@ class TestSuppressInteractiveDryRun:
         finding = _make_finding(file_path="src/app.py", start_line=1)
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path), "--dry-run"],
@@ -126,10 +122,9 @@ class TestSuppressInteractiveDryRun:
         finding = _make_finding()
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path), "--dry-run"],
@@ -142,10 +137,9 @@ class TestSuppressInteractiveDryRun:
         finding = _make_finding()
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path), "--dry-run"],
@@ -158,10 +152,9 @@ class TestSuppressInteractiveDryRun:
         finding = _make_finding()
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path), "--dry-run"],
@@ -182,10 +175,9 @@ class TestSuppressInteractiveWrite:
         finding = _make_finding(file_path="src/app.py", start_line=1)
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path)],
@@ -204,10 +196,9 @@ class TestSuppressInteractiveWrite:
         finding = _make_finding(file_path="src/app.py", start_line=1)
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path)],
@@ -226,10 +217,9 @@ class TestSuppressInteractiveWrite:
         finding = _make_finding(file_path="src/app.py", start_line=1)
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path)],
@@ -247,10 +237,9 @@ class TestSuppressInteractiveWrite:
         finding = _make_finding(file_path="src/app.py", start_line=1)
         analysis = _mock_analysis([finding])
         runner = CliRunner()
-        with patch("drift.commands.suppress.DriftConfig") as mock_cfg_cls, patch(
-            "drift.commands.suppress.analyze_repo", return_value=analysis
+        with patch("drift.analyzer.analyze_repo", return_value=analysis), patch(
+            "drift.config.DriftConfig.load", return_value=MagicMock()
         ):
-            mock_cfg_cls.load.return_value = MagicMock()
             result = runner.invoke(
                 main,
                 ["suppress", "interactive", "--repo", str(tmp_path)],

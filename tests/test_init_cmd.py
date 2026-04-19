@@ -320,3 +320,80 @@ class TestInitCommand:
         runner = CliRunner()
         result = runner.invoke(main, ["init", "-p", "vibe-coding", "--repo", str(tmp_path)])
         assert "fail_on" in result.output or "escalate" in result.output.lower()
+
+    def test_init_cursor_creates_cursorrules(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--cursor", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        cursorrules = tmp_path / ".cursorrules"
+        assert cursorrules.exists()
+        content = cursorrules.read_text()
+        assert "drift nudge" in content
+        assert "safe_to_commit" in content
+
+    def test_init_windsurf_creates_windsurfrules(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--windsurf", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        windsurfrules = tmp_path / ".windsurfrules"
+        assert windsurfrules.exists()
+        content = windsurfrules.read_text()
+        assert "drift nudge" in content
+        assert "safe_to_commit" in content
+
+    def test_init_claude_code_creates_claude_md(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--claude-code", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        claude_md = tmp_path / "CLAUDE.md"
+        assert claude_md.exists()
+        content = claude_md.read_text()
+        assert "drift nudge" in content
+        assert "safe_to_commit" in content
+
+    def test_init_cursor_dry_run_lists_file_no_write(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--cursor", "--dry-run", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        assert ".cursorrules" in result.output
+        assert not (tmp_path / ".cursorrules").exists()
+
+    def test_init_windsurf_dry_run_lists_file_no_write(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--windsurf", "--dry-run", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        assert ".windsurfrules" in result.output
+        assert not (tmp_path / ".windsurfrules").exists()
+
+    def test_init_claude_code_dry_run_lists_file_no_write(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            main, ["init", "--claude-code", "--dry-run", "--repo", str(tmp_path)]
+        )
+        assert result.exit_code == 0
+        assert "CLAUDE.md" in result.output
+        assert not (tmp_path / "CLAUDE.md").exists()
+
+    def test_init_all_editor_snippets_json(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["init", "--cursor", "--windsurf", "--claude-code", "--json", "--repo", str(tmp_path)],
+        )
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        paths = {item["path"] for item in payload["would_create"]}
+        assert ".cursorrules" in paths
+        assert ".windsurfrules" in paths
+        assert "CLAUDE.md" in paths
+
+    def test_init_full_does_not_include_editor_snippets(self, tmp_path: Path) -> None:
+        """--full should not auto-generate editor snippets (opt-in only)."""
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--full", "--json", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        payload = json.loads(result.output)
+        paths = {item["path"] for item in payload["would_create"]}
+        assert ".cursorrules" not in paths
+        assert ".windsurfrules" not in paths
+        assert "CLAUDE.md" not in paths

@@ -1,5 +1,20 @@
 # STRIDE Threat Model
 
+## 2026-04-19 - ADR-042: drift explain <fingerprint> — Finding-Level-Explain
+
+- Scope: New private functions `_extract_code_context()` and `_explain_finding_from_analysis_file()` in [src/drift/api/explain.py](src/drift/api/explain.py). Extended `explain()` API function with `from_file` parameter. Extended CLI command `drift explain` in [src/drift/commands/explain.py](src/drift/commands/explain.py) with fingerprint routing, `--from-file` option and `_print_finding_detail()` renderer.
+- Input path changes: New: `--from-file <path>` (user-supplied path to a JSON analysis file). `fingerprint` string from CLI argument routed via `_FINGERPRINT_RE`.
+- Output path changes: Additive. `drift explain <fingerprint>` outputs finding-level Rich terminal panel or JSON dict. New `code_context` list field in fingerprint explain responses.
+- External interface changes: Additive. New `--from-file/-f` flag on `drift explain`. Existing signal/error-code paths unchanged. `api.explain()` gains optional `from_file` keyword parameter.
+- Trust boundary: `--from-file` reads a user-supplied JSON file (no write). `_extract_code_context()` reads source files in repo via `linecache.getline()` (read-only). No new write paths.
+- STRIDE review:
+	- S (Spoofing): No new identity boundary. `--from-file` uses same repo-root resolution.
+	- T (Tampering): Read-only. `_extract_code_context` and `_explain_finding_from_analysis_file` do not write files. No risk.
+	- R (Repudiation): Telemetry emitted via existing `_emit_api_telemetry` on fingerprint explain calls (same as signal explain).
+	- I (Information Disclosure): `code_context` exposes source lines from the repository. Risk: same as existing `drift analyze` output which already exposes file paths and line numbers. No new boundary crossed.
+	- D (Denial of Service): Re-scan path runs `analyze_repo()` — same cost as `drift analyze`. `--from-file` avoids re-scan entirely. No amplification risk.
+	- E (Elevation of Privilege): No new permissions. File reads are scoped to repo root.
+
 ## 2026-07-XX - ADR-076: PatchWriter Auto-Apply (drift fix-plan --apply)
 
 - Scope: New subpackage `src/drift/patch_writer/` (`_base.py`, `_registry.py`, `_add_docstring.py`, `_add_guard_clause.py`). New API endpoint `src/drift/api/fix_apply.py`. CLI flags `--apply`, `--dry-run`, `--yes` on `drift fix-plan`. libcst ≥ 1.0 added as optional dep (`drift[autopatch]`).

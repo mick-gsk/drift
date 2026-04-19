@@ -7,6 +7,14 @@ Short version: Docs-only — update drift score badge and self-analysis result t
 - README: drift score badge updated from 0.44 to 0.36 (Grade B).
 - `benchmark_results/drift_self.json`: refreshed self-analysis at v2.17.1.
 
+### Added (post-release feature additions)
+
+- `suppression.py`: `insert_suppression_comment()` writes `drift:ignore` inline comments into Python/TypeScript/JavaScript source files with correct comment prefixes and signal abbreviations.
+- `drift diff --auto`: post-fix feedback loop — `drift analyze` auto-saves a snapshot to `.drift-cache/last_scan.json`; `drift diff --auto` runs a fresh scan and renders score delta + resolved/new findings without specifying commit hashes.
+- `commands/_last_scan.py`: new helper module for auto-save and load of scan snapshots.
+- `drift explain FINGERPRINT --from-file analysis.json`: resolve findings from a cached JSON without re-running a live scan.
+- `output/interactive_review.py`: interactive per-finding TP/FP review session that appends verdicts to `.drift/feedback.jsonl` for calibration (`drift analyze --review`).
+
 ## [2.17.1] – 2026-04-19
 
 Short version: CI stabilization — ruff, detect-secrets, and test-fixture fixes.

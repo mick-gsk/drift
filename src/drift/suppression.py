@@ -261,3 +261,66 @@ def filter_findings_with_report(
             key=lambda e: (e.file_path, e.line_number),
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# Writing suppressions into source files
+# ---------------------------------------------------------------------------
+
+_COMMENT_PREFIX_BY_LANG: dict[str, str] = {
+    "python": "#",
+    "typescript": "//",
+    "tsx": "//",
+    "javascript": "//",
+    "jsx": "//",
+}
+
+
+def _build_signal_to_abbrev() -> dict[str, str]:
+    """Return a mapping from full signal name → abbreviation."""
+    from drift.config import SIGNAL_ABBREV
+
+    return {full: abbrev for abbrev, full in SIGNAL_ABBREV.items()}
+
+
+def insert_suppression_comment(
+    file_path: Path,
+    line_number: int,
+    signals: set[str] | None,
+    *,
+    until: date | None = None,
+    reason: str | None = None,
+    language: str = "python",
+) -> None:
+    """Append a ``drift:ignore`` comment to *line_number* in *file_path*.
+
+    Modifies the file in-place using UTF-8 encoding.  *line_number* is
+    1-based.  *signals* is a set of full signal names (e.g.
+    ``{"architecture_violation"}``); pass ``None`` to suppress all signals.
+    """
+    prefix = _COMMENT_PREFIX_BY_LANG.get(language, "#")
+
+    # Build the ignore tag
+    if signals:
+        signal_to_abbrev = _build_signal_to_abbrev()
+        abbrevs = sorted(
+            signal_to_abbrev.get(s, s.upper()) for s in signals
+        )
+        tag = f"{prefix} drift:ignore[{','.join(abbrevs)}]"
+    else:
+        tag = f"{prefix} drift:ignore"
+
+    if until is not None:
+        tag += f" until:{until.isoformat()}"
+    if reason:
+        tag += f" reason:{reason}"
+
+    text = file_path.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    idx = line_number - 1
+    line = lines[idx]
+    # Strip existing trailing newline to append comment cleanly
+    stripped = line.rstrip("\n").rstrip("\r")
+    eol = line[len(stripped):]
+    lines[idx] = f"{stripped}  {tag}{eol}"
+    file_path.write_text("".join(lines), encoding="utf-8")

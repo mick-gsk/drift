@@ -1,0 +1,58 @@
+{
+  "version": "2.18.0",
+  "date": "2026-04-19",
+  "features": [
+    {
+      "id": "suppress_inline_comments",
+      "description": "insert_suppression_comment() writes drift:ignore inline comments into source files",
+      "motivation": "Allows users to suppress individual findings directly in source files without editing drift.yaml; supports Python, TypeScript, JavaScript with correct comment prefixes and signal abbreviations",
+      "coverage": {
+        "signal_types_covered": ["all"],
+        "output_paths": ["suppression.py"],
+        "languages": ["python", "typescript", "javascript", "tsx", "jsx"]
+      },
+      "tests": [
+        "tests/test_suppression.py",
+        "tests/test_suppress_interactive.py"
+      ]
+    },
+    {
+      "id": "diff_auto_feedback_loop",
+      "description": "drift diff --auto compares fresh scan against .drift-cache/last_scan.json snapshot",
+      "motivation": "Enables fast post-fix feedback loop: run drift analyze once to save snapshot, apply fixes, then drift diff --auto to see score delta and resolved/new findings without specifying commit hashes",
+      "coverage": {
+        "cli_flag": "--auto",
+        "helper_module": "src/drift/commands/_last_scan.py",
+        "auto_save": "drift analyze saves snapshot automatically"
+      },
+      "tests": [
+        "tests/test_diff_auto.py"
+      ]
+    },
+    {
+      "id": "explain_from_file",
+      "description": "drift explain FINGERPRINT --from-file analysis.json resolves findings from cached JSON without re-running scan",
+      "motivation": "Reduces latency when explaining findings from large codebases; agents can pass a saved analyze output to explain without triggering a full scan",
+      "coverage": {
+        "cli_flag": "--from-file",
+        "api_path": "src/drift/api/explain.py"
+      },
+      "tests": [
+        "tests/test_eds_api_corresponding_tests.py",
+        "tests/test_agent_native_cli.py"
+      ]
+    },
+    {
+      "id": "interactive_review",
+      "description": "drift analyze --review opens an interactive per-finding review session for TP/FP feedback collection",
+      "motivation": "Enables in-flow calibration feedback without leaving the terminal; collects verdicts into .drift/feedback.jsonl for calibration cycle",
+      "coverage": {
+        "output_path": "src/drift/output/interactive_review.py",
+        "integrate": "src/drift/commands/analyze.py"
+      },
+      "tests": [
+        "tests/test_interactive_review.py"
+      ]
+    }
+  ]
+}

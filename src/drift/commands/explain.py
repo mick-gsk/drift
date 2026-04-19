@@ -777,6 +777,17 @@ def _signal_payload(info: dict[str, Any]) -> dict[str, Any]:
     help="Repository root for --repo-context (default: current directory).",
 )
 @click.option(
+    "--from-file",
+    "-f",
+    "from_file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help=(
+        "Load findings from a previous 'drift analyze --format json' output "
+        "instead of running a live scan (only used when SIGNAL is a fingerprint)."
+    ),
+)
+@click.option(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
@@ -788,9 +799,20 @@ def explain(
     list_all: bool,
     repo_context: bool,
     repo: Path | None,
+    from_file: Path | None,
     output: Path | None,
 ) -> None:
-    """Explain a drift signal: drift explain PFS"""
+    """Explain a drift signal or finding.
+
+    SIGNAL can be a signal abbreviation (PFS, AVS, ...), an error code
+    (DRIFT-1001), or a finding fingerprint from 'drift analyze --format json'.
+
+    Examples::
+
+        drift explain PFS
+        drift explain ab12cd34ef56ab12 --repo .
+        drift explain ab12cd34ef56ab12 --from-file analysis.json --repo .
+    """
     if list_all or signal is None:
         if output is not None:
             _write_json_output(output, _signal_list_payload())
@@ -807,6 +829,31 @@ def explain(
         else:
             _print_error_code_detail(key.upper())
         return
+
+    # Check for finding fingerprint (8-16 lowercase hex chars)
+    import re as _re
+    if _re.match(r"^[0-9a-f]{8,16}$", key.lower()):
+        from drift.api.explain import explain as _api_explain
+        repo_root = (repo or Path(".")).resolve()
+        result = _api_explain(
+            key.lower(),
+            repo_path=repo_root,
+            from_file=from_file,
+        )
+        if result.get("type") == "finding":
+            if output is not None:
+                _write_json_output(output, result)
+            else:
+                _print_finding_detail(result, repo_root)
+            return
+        # fingerprint not found in scan / file
+        console.print(
+            f"[red]Finding not found:[/red] fingerprint '[bold]{key}[/bold]' "
+            "was not matched in the current scan.\n"
+            "[dim]Tip: fingerprints change when files are renamed or titles change. "
+            "Run [bold]drift analyze --format json[/bold] to get fresh fingerprints.[/dim]"
+        )
+        raise SystemExit(1)
 
     key_lower = key.lower()
     info = _LOOKUP.get(key_lower)
@@ -982,3 +1029,134 @@ def _print_repo_examples(info: dict[str, Any], repo_root: Path) -> None:
         action = ex.get("next_action")
         if action:
             console.print(f"    [dim]{action}[/dim]")
+
+
+def _print_finding_detail(result: dict[str, Any], repo_root: Path) -> None:
+    """Render a finding-level explain result to the terminal."""
+    from rich.panel import Panel
+    from rich.rule import Rule
+    from rich.text import Text
+
+    finding = result.get("finding") or {}
+
+    signal_abbr = result.get("signal", "")
+    signal_name = result.get("signal_name", signal_abbr)
+    severity = (finding.get("severity") or "?").upper()
+    score = finding.get("score")
+    score_str = f"  score {score:.2f}" if isinstance(score, (int, float)) else ""
+    file_val = finding.get("file") or finding.get("file_path") or ""
+    start_line = finding.get("start_line") or finding.get("line")
+    end_line = finding.get("end_line")
+    symbol = finding.get("symbol")
+    title = finding.get("title") or result.get("signal_name", "Finding")
+    description = finding.get("description") or ""
+    fix = finding.get("fix") or ""
+    next_step = finding.get("next_step") or ""
+    detection_logic = result.get("detection_logic", "")
+    remediation = result.get("remediation_approach", "")
+    finding_id = result.get("finding_id", "")
+
+    # ── Header panel ────────────────────────────────────────────────
+    severity_colors = {
+        "CRITICAL": "red",
+        "HIGH": "bright_red",
+        "MEDIUM": "yellow",
+        "LOW": "cyan",
+        "INFO": "dim",
+    }
+    sev_color = severity_colors.get(severity, "white")
+
+    header = Text()
+    header.append(f"{title}\n", style="bold")
+    header.append("Signal: ", style="dim")
+    header.append(f"{signal_abbr}", style="bold cyan")
+    header.append(f"  {signal_name}\n", style="dim")
+    header.append("Severity: ", style="dim")
+    header.append(f"{severity}", style=f"bold {sev_color}")
+    header.append(score_str + "\n", style="dim")
+    if file_val:
+        loc = file_val
+        if start_line:
+            loc += f":{start_line}"
+            if end_line and end_line != start_line:
+                loc += f"–{end_line}"
+        header.append("Location: ", style="dim")
+        header.append(loc, style="cyan")
+        if symbol:
+            header.append(f"  ({symbol})", style="dim")
+        header.append("\n")
+    if finding_id:
+        header.append(f"ID: {finding_id}\n", style="dim")
+
+    console.print()
+    console.print(
+        Panel(
+            header,
+            border_style=sev_color,
+            title=f"[bold]Finding[/bold]  [{signal_abbr}]",
+        )
+    )
+
+    # ── Code snippet ─────────────────────────────────────────────────
+    code_context: list[dict[str, Any]] = result.get("code_context") or []
+    if not code_context and file_val and start_line:
+        # Attempt live read via rich_output helper as fallback
+        try:
+            from drift.output.rich_output import _read_code_snippet
+
+            snippet = _read_code_snippet(
+                Path(file_val),
+                start_line,
+                end_line=end_line,
+                context=5,
+                repo_root=repo_root,
+            )
+            if snippet is not None:
+                console.print(Rule("[bold]Affected Code[/bold]", style="dim"))
+                console.print(snippet)
+        except Exception:
+            pass
+    elif code_context:
+        console.print(Rule("[bold]Affected Code[/bold]", style="dim"))
+        gutter_width = len(str(code_context[-1]["line_no"]))
+        for entry in code_context:
+            lineno = entry["line_no"]
+            content = entry["content"]
+            is_target = entry["is_target"]
+            marker = "→" if is_target else " "
+            style = "bold" if is_target else "dim"
+            console.print(
+                f"  {marker} {lineno:>{gutter_width}} │ {content}",
+                style=style,
+                highlight=False,
+            )
+
+    # ── Why triggered ────────────────────────────────────────────────
+    if description or detection_logic:
+        console.print(Rule("[bold]Why this was triggered[/bold]", style="dim"))
+        if description:
+            console.print(f"  {description}")
+        if detection_logic and detection_logic != description:
+            console.print(f"\n  [dim]Detection logic:[/dim] {detection_logic}")
+
+    # ── Fix template ─────────────────────────────────────────────────
+    if fix or remediation:
+        console.print()
+        fix_body = Text()
+        if fix:
+            fix_body.append(fix + "\n", style="green")
+        if remediation and remediation != fix:
+            fix_body.append("\n" + remediation, style="dim")
+        console.print(
+            Panel(
+                fix_body,
+                border_style="green",
+                title="[bold]Fix Template[/bold]",
+            )
+        )
+
+    # ── Next step ────────────────────────────────────────────────────
+    if next_step:
+        console.print()
+        console.print(Text.assemble(("→ Next step: ", "bold cyan"), (next_step, "")))
+    console.print()

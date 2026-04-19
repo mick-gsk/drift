@@ -511,6 +511,7 @@ def _format_scan_response(
             },
         },
     )
+    result["top_affected_files"] = _top_affected_files(ranked_selected)
 
     selection_diagnostics: dict[str, Any] | None = None
     max_per_signal_limited = bool(
@@ -666,3 +667,24 @@ def _scan_next_step_contract(
         fallback_tool="drift_explain" if top_signal else None,
         fallback_params={"signal": top_signal} if top_signal else None,
     )
+
+
+_TOP_AFFECTED_FILES_CAP = 20
+
+
+def _top_affected_files(findings: list, *, max_files: int = _TOP_AFFECTED_FILES_CAP) -> list[str]:
+    """Return deduplicated file paths from findings, ordered by appearance.
+
+    Uses insertion-order deduplication so the most impactful files (the
+    caller is expected to pass an impact-sorted list) appear first.
+    Capped at *max_files* entries to keep the response token-friendly.
+    """
+    seen: dict[str, None] = {}
+    for f in findings:
+        if f.file_path is not None:
+            path = f.file_path.as_posix()
+            if path not in seen:
+                seen[path] = None
+                if len(seen) >= max_files:
+                    break
+    return list(seen)

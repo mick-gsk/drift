@@ -493,6 +493,8 @@ class MutantDuplicateSignal(BaseSignal):
             if len(candidates) < 2:
                 continue
 
+            candidates.sort(key=lambda fn: (fn.file_path.as_posix(), fn.start_line, fn.name))
+
             comparisons = 0
             for a, b in combinations(candidates, 2):
                 if comparisons >= _MAX_COMPARISONS_PER_BUCKET:

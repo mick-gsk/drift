@@ -6,7 +6,12 @@ from datetime import date
 from pathlib import Path
 
 from drift.models import FileInfo, Finding, Severity, SignalType
-from drift.suppression import apply_inline_suppressions, filter_findings, scan_suppressions
+from drift.suppression import (
+    apply_inline_suppressions,
+    filter_findings,
+    insert_suppression_comment,
+    scan_suppressions,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -224,3 +229,120 @@ class TestFilterFindings:
         expired = result.expired_suppressions[0]
         assert expired.file_path == "src/app.py"
         assert expired.line_number == 1
+
+
+# ---------------------------------------------------------------------------
+# insert_suppression_comment
+# ---------------------------------------------------------------------------
+
+
+class TestInsertSuppressionComment:
+    """Tests for insert_suppression_comment — writes drift:ignore into source files."""
+
+    def test_python_bare_ignore(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("x = 1\n", encoding="utf-8")
+        insert_suppression_comment(src, line_number=1, signals=None, language="python")
+        assert src.read_text(encoding="utf-8") == "x = 1  # drift:ignore\n"
+
+    def test_python_single_signal(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("x = 1\n", encoding="utf-8")
+        insert_suppression_comment(
+            src, line_number=1, signals={"architecture_violation"}, language="python"
+        )
+        assert src.read_text(encoding="utf-8") == "x = 1  # drift:ignore[AVS]\n"
+
+    def test_python_multiple_signals_sorted(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("x = 1\n", encoding="utf-8")
+        insert_suppression_comment(
+            src,
+            line_number=1,
+            signals={"architecture_violation", "pattern_fragmentation"},
+            language="python",
+        )
+        text = src.read_text(encoding="utf-8")
+        # abbreviations must be sorted
+        assert "drift:ignore[AVS,PFS]" in text or "drift:ignore[PFS,AVS]" in text
+        # canonical sort is alphabetical by abbrev
+        assert text == "x = 1  # drift:ignore[AVS,PFS]\n"
+
+    def test_python_with_until(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("x = 1\n", encoding="utf-8")
+        insert_suppression_comment(
+            src,
+            line_number=1,
+            signals={"architecture_violation"},
+            language="python",
+            until=date(2026, 7, 19),
+        )
+        assert src.read_text(encoding="utf-8") == (
+            "x = 1  # drift:ignore[AVS] until:2026-07-19\n"
+        )
+
+    def test_python_with_reason(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("x = 1\n", encoding="utf-8")
+        insert_suppression_comment(
+            src,
+            line_number=1,
+            signals=None,
+            language="python",
+            reason="intentional legacy coupling",
+        )
+        assert src.read_text(encoding="utf-8") == (
+            "x = 1  # drift:ignore reason:intentional legacy coupling\n"
+        )
+
+    def test_python_with_until_and_reason(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("x = 1\n", encoding="utf-8")
+        insert_suppression_comment(
+            src,
+            line_number=1,
+            signals={"architecture_violation"},
+            language="python",
+            until=date(2026, 7, 19),
+            reason="temporary",
+        )
+        assert src.read_text(encoding="utf-8") == (
+            "x = 1  # drift:ignore[AVS] until:2026-07-19 reason:temporary\n"
+        )
+
+    def test_js_bare_ignore(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.ts"
+        src.write_text("const x = 1;\n", encoding="utf-8")
+        insert_suppression_comment(src, line_number=1, signals=None, language="typescript")
+        assert src.read_text(encoding="utf-8") == "const x = 1;  // drift:ignore\n"
+
+    def test_js_single_signal(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.ts"
+        src.write_text("const x = 1;\n", encoding="utf-8")
+        insert_suppression_comment(
+            src, line_number=1, signals={"architecture_violation"}, language="javascript"
+        )
+        assert src.read_text(encoding="utf-8") == "const x = 1;  // drift:ignore[AVS]\n"
+
+    def test_second_line_in_multiline_file(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("import os\nx = 1\n", encoding="utf-8")
+        insert_suppression_comment(src, line_number=2, signals=None, language="python")
+        lines = src.read_text(encoding="utf-8").splitlines()
+        assert lines[0] == "import os"
+        assert lines[1] == "x = 1  # drift:ignore"
+
+    def test_utf8_content_preserved(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("x = '\u00e9l\u00e8ve'\n", encoding="utf-8")
+        insert_suppression_comment(src, line_number=1, signals=None, language="python")
+        assert src.read_text(encoding="utf-8") == "x = '\u00e9l\u00e8ve'  # drift:ignore\n"
+
+    def test_trailing_newline_preserved(self, tmp_path: Path) -> None:
+        src = tmp_path / "app.py"
+        src.write_text("a = 1\nb = 2\n", encoding="utf-8")
+        insert_suppression_comment(src, line_number=1, signals=None, language="python")
+        text = src.read_text(encoding="utf-8")
+        assert text.endswith("\n")
+        assert text.count("\n") == 2

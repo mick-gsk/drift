@@ -220,6 +220,13 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     default=False,
     help="Disable the compact first-run output even when no drift.yaml exists.",
 )
+@click.option(
+    "--review",
+    "review_mode",
+    is_flag=True,
+    default=False,
+    help="Interactively triage each finding as true/false positive after analysis (requires TTY).",
+)
 def analyze(
     repo_arg: Path | None,
     repo: Path,
@@ -252,6 +259,7 @@ def analyze(
     explain: bool,
     group_by: str | None,
     no_first_run: bool,
+    review_mode: bool,
 ) -> None:
     """Detailed drift analysis — produces comprehensive findings for investigation and triage.
 
@@ -415,6 +423,11 @@ def analyze(
     # Baseline filtering: remove known findings if --baseline is provided
     apply_baseline_filtering(analysis, cfg, baseline_file)
 
+    # Auto-save snapshot for `drift diff --auto` (silent on failure)
+    from drift.commands._last_scan import save_last_scan
+
+    save_last_scan(analysis, repo, getattr(cfg, "cache_dir", ".drift-cache"))
+
     if quiet:
         sev = analysis.severity.value.upper()
         n = len(analysis.findings)
@@ -499,6 +512,19 @@ def analyze(
 
             if recs:
                 render_recommendations(recs, effective_console)
+
+    # Interactive feedback review (--review, TTY-only)
+    if review_mode and output_format == "rich" and not quiet:
+        from drift.calibration.feedback import resolve_feedback_paths
+        from drift.output.interactive_review import review_findings
+
+        feedback_path, _, _ = resolve_feedback_paths(repo, cfg)
+        review_findings(
+            analysis.findings[:max_findings],
+            feedback_path,
+            effective_console,
+            repo_root=repo,
+        )
 
     # Save baseline if requested (--save-baseline)
     if save_baseline_path is not None:

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import linecache
 import re
 from pathlib import Path
 from typing import Any, cast
@@ -60,6 +62,7 @@ def explain(
     *,
     repo_path: str | Path | None = None,
     response_profile: str | None = None,
+    from_file: str | Path | None = None,
 ) -> dict[str, Any]:
     """Explain a signal, rule, or error code.
 
@@ -74,6 +77,11 @@ def explain(
         performed and the top findings for the signal are included as
         ``repo_examples`` in the response.  Required when *topic* is a
         finding fingerprint.
+    from_file:
+        Path to a saved ``drift analyze --format json`` output.  When
+        *topic* is a fingerprint and this is set, the file is searched
+        first to avoid a re-scan.  Falls back to a live scan when the
+        fingerprint is not found in the file.
     """
     import importlib
 
@@ -176,9 +184,21 @@ def explain(
 
         # ADR-042: Try as finding fingerprint (8-16 hex chars)
         if _FINGERPRINT_RE.match(topic.lower()):
-            finding_result = _explain_finding_by_fingerprint(
-                topic.lower(), repo_path,
-            )
+            repo_root_path = Path(repo_path).resolve() if repo_path else Path.cwd()
+            finding_result: dict[str, Any] | None = None
+
+            # Try from-file first (avoids re-scan)
+            if from_file is not None:
+                finding_result = _explain_finding_from_analysis_file(
+                    topic.lower(), from_file, repo_root_path,
+                )
+
+            # Fall back to live re-scan
+            if finding_result is None:
+                finding_result = _explain_finding_by_fingerprint(
+                    topic.lower(), repo_root_path,
+                )
+
             if finding_result is not None:
                 _emit_api_telemetry(
                     tool_name="api.explain",
@@ -187,9 +207,9 @@ def explain(
                     elapsed_ms=elapsed_ms(),
                     result=finding_result,
                     error=None,
-                    repo_root=Path(repo_path).resolve() if repo_path else Path.cwd(),
+                    repo_root=repo_root_path,
                 )
-                _ecfg = _load_config_cached(Path(repo_path).resolve() if repo_path else Path.cwd())
+                _ecfg = _load_config_cached(repo_root_path)
                 finding_result = apply_output_mode(
                     finding_result,
                     getattr(_ecfg, "output_mode", "full"),
@@ -251,6 +271,118 @@ def _related_signals(abbr: str) -> list[str]:
     return relations.get(abbr, [])
 
 
+def _extract_code_context(
+    file_path: Path | None,
+    start_line: int | None,
+    end_line: int | None,
+    repo_root: Path | None,
+    *,
+    context: int = 5,
+) -> list[dict[str, Any]]:
+    """Return a plain-text code snippet around a finding's location.
+
+    Each item: ``{"line_no": int, "content": str, "is_target": bool}``.
+    Returns an empty list when the file cannot be read or location is unknown.
+    """
+    if file_path is None or start_line is None:
+        return []
+
+    if file_path.is_absolute():
+        abs_path = file_path
+    elif repo_root:
+        abs_path = repo_root / file_path
+    else:
+        abs_path = file_path
+
+    if not abs_path.is_file():
+        return []
+
+    highlight_end = end_line if end_line is not None else start_line
+    first = max(1, start_line - context)
+    last = highlight_end + context
+
+    result: list[dict[str, Any]] = []
+    for lineno in range(first, last + 1):
+        line = linecache.getline(str(abs_path), lineno)
+        if not line and lineno > highlight_end:
+            break
+        result.append({
+            "line_no": lineno,
+            "content": line.rstrip("\n\r"),
+            "is_target": start_line <= lineno <= highlight_end,
+        })
+    return result
+
+
+def _explain_finding_from_analysis_file(
+    fingerprint: str,
+    json_path: str | Path,
+    repo_root: Path | None,
+) -> dict[str, Any] | None:
+    """Resolve a fingerprint from a saved analysis JSON file (avoids re-scan).
+
+    Loads the JSON produced by ``drift analyze --format json``, searches for
+    a finding whose ``finding_id`` matches *fingerprint* (exact or prefix),
+    and returns the same enriched dict as ``_explain_finding_by_fingerprint``.
+    Returns ``None`` when the file cannot be loaded or no match is found.
+    """
+    import importlib
+
+    try:
+        data = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+    findings = data.get("findings", [])
+    matched: dict[str, Any] | None = None
+    for entry in findings:
+        fid = entry.get("finding_id") or entry.get("fingerprint", "")
+        if fid == fingerprint or fid.startswith(fingerprint):
+            matched = entry
+            break
+
+    if matched is None:
+        return None
+
+    explain_mod = importlib.import_module("drift.commands.explain")
+    signal_info = cast(
+        dict[str, dict[str, Any]],
+        getattr(explain_mod, "_SIGNAL_INFO", {}),
+    )
+    sig_abbr = (
+        signal_abbrev(matched.get("signal_type", ""))
+        or matched.get("signal_abbrev", "")
+        or matched.get("signal", "")
+    )
+    sig_info = signal_info.get(sig_abbr, {})
+
+    file_val = matched.get("file")
+    file_path = Path(file_val) if file_val else None
+    start_line = matched.get("start_line")
+    end_line = matched.get("end_line")
+
+    code_ctx = _extract_code_context(
+        file_path,
+        start_line,
+        end_line,
+        repo_root,
+    )
+
+    finding_id = matched.get("finding_id") or matched.get("fingerprint", fingerprint)
+    return _base_response(
+        type="finding",
+        finding_id=finding_id,
+        finding=matched,
+        signal=sig_abbr,
+        signal_name=sig_info.get("name", matched.get("signal_type", sig_abbr)),
+        signal_description=sig_info.get("description", ""),
+        detection_logic=sig_info.get("detects", ""),
+        remediation_approach=sig_info.get("fix_hint", matched.get("fix", "")),
+        related_signals=_related_signals(sig_abbr),
+        code_context=code_ctx,
+    )
+
+
 def _explain_finding_by_fingerprint(
     fingerprint: str,
     repo_path: str | Path | None,
@@ -287,6 +419,13 @@ def _explain_finding_by_fingerprint(
             )
             sig_info = signal_info.get(sig_abbr, {})
 
+            code_ctx = _extract_code_context(
+                f.file_path,
+                f.start_line,
+                f.end_line,
+                root,
+            )
+
             return _base_response(
                 type="finding",
                 finding_id=fp,
@@ -297,6 +436,7 @@ def _explain_finding_by_fingerprint(
                 detection_logic=sig_info.get("detects", ""),
                 remediation_approach=sig_info.get("fix_hint", ""),
                 related_signals=_related_signals(sig_abbr),
+                code_context=code_ctx,
             )
 
     return None

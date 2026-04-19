@@ -40,7 +40,7 @@ def watch(repo: Path, debounce: float, config: Path | None) -> None:
 
     Requires the ``watchfiles`` package::
 
-        pip install watchfiles
+        pip install drift-analyzer[watch]
 
     Examples::
 
@@ -53,7 +53,7 @@ def watch(repo: Path, debounce: float, config: Path | None) -> None:
     except ImportError:
         console.print(
             "[red]Error:[/] drift watch requires the [bold]watchfiles[/] package.\n"
-            "Install it with: [bold]pip install watchfiles[/]",
+            "Install it with: [bold]pip install drift-analyzer\\[watch][/bold]",
             highlight=False,
         )
         raise SystemExit(1) from None

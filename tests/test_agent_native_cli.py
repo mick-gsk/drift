@@ -435,6 +435,8 @@ def test_scan_concise_omits_fix_first() -> None:
     assert "recommended_next_actions" not in result
     assert "agent_instruction" not in result
     assert "top_signals" in result
+    assert "top_affected_files" in result
+    assert isinstance(result["top_affected_files"], list)
 
 
 def test_scan_detailed_includes_fix_first() -> None:
