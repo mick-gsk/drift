@@ -4,11 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from drift.fix_intent import EDIT_KIND_ADD_GUARD_CLAUSE
 from drift.models import Finding, Severity
-from drift.patch_writer import PatchResult, PatchResultStatus, get_writer
+from drift.patch_writer import PatchResultStatus, get_writer
 from tests.fixtures.patch_writer import (
     GCD_EXPECTED_WITH_GUARD_BOTH,
     GCD_EXPECTED_WITH_GUARD_ORDER,
@@ -16,7 +14,6 @@ from tests.fixtures.patch_writer import (
     GCD_PARTIAL_EXPECTED_SECOND_GUARD,
     GCD_PARTIAL_GUARD,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

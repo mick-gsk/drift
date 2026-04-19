@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import click
+from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.table import Table
 
 from drift.commands import console
@@ -151,4 +153,222 @@ def audit_suppressions(repo: Path, config: Path | None, today: datetime | None) 
     console.print(table)
     raise click.ClickException(
         f"Found {len(expired)} expired inline suppression(s)."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Interactive triage
+# ---------------------------------------------------------------------------
+
+_TRIAGE_CHOICES = "[y]es(+90d) / [a]lways / [n]o / [s]kip / [q]uit"
+_TEMPORAL_DAYS = 90
+
+
+def _read_source_lines(file_path: Path, start_line: int | None, context: int = 2) -> str | None:
+    """Return a few lines around *start_line* from *file_path*, or ``None``."""
+    if start_line is None or not file_path.is_file():
+        return None
+    try:
+        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    first = max(0, start_line - 1 - context)
+    last = min(len(lines), start_line + context)
+    return "\n".join(lines[first:last])
+
+
+def _infer_language(file_path: Path | None) -> str:
+    if file_path is None:
+        return "python"
+    suffix = file_path.suffix.lower()
+    return {
+        ".py": "python",
+        ".pyi": "python",
+        ".ts": "typescript",
+        ".tsx": "tsx",
+        ".js": "javascript",
+        ".jsx": "jsx",
+    }.get(suffix, "python")
+
+
+def _prompt_choice(prompt: str) -> str:
+    """Read a single choice character from stdin (case-insensitive)."""
+    raw = click.prompt(prompt, default="", show_default=False).strip().lower()
+    return raw[:1] if raw else ""
+
+
+@suppress.command("interactive")
+@click.option(
+    "--repo",
+    "-r",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=".",
+    help="Path to the repository root.",
+)
+@click.option(
+    "--config",
+    "-c",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Config file path.",
+)
+@click.option(
+    "--since",
+    default=90,
+    type=int,
+    help="Days of git history to consider (default: 90).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Show decisions without writing any changes to disk.",
+)
+def interactive(repo: Path, config: Path | None, since: int, dry_run: bool) -> None:
+    """Interactive triage — review each finding and add suppress comments.
+
+    \b
+    For each active finding you are prompted:
+      [y]  suppress temporarily (``until:+90d``)
+      [a]  suppress permanently (no expiry)
+      [n]  do not suppress
+      [s]  skip (decide later)
+      [q]  quit immediately
+
+    Use ``--dry-run`` to preview decisions without touching any files.
+    """
+    from drift.analyzer import analyze_repo
+    from drift.config import DriftConfig
+    from drift.suppression import insert_suppression_comment
+
+    if dry_run:
+        console.print("[bold yellow]Dry-run mode — no files will be modified.[/bold yellow]")
+
+    repo = repo.resolve()
+    cfg = DriftConfig.load(repo, config)
+
+    with console.status("[bold]Running analysis…[/bold]"):
+        analysis = analyze_repo(repo, config=cfg, since_days=since)
+
+    active = [f for f in analysis.findings if f.status.value == "active"]
+    total = len(active)
+
+    if not total:
+        console.print("[green]No active findings to triage.[/green]")
+        return
+
+    console.print(
+        f"\n[bold]{total} active finding(s)[/bold] — {_TRIAGE_CHOICES}\n"
+    )
+
+    suppressed_count = 0
+    skipped_count = 0
+
+    for idx, finding in enumerate(active, start=1):
+        file_rel = (
+            finding.file_path.as_posix() if finding.file_path else "<unknown>"
+        )
+        line_info = f":{finding.start_line}" if finding.start_line else ""
+        signal_abbrev = _abbrev_from_signal_map()
+        signal_label = signal_abbrev.get(finding.signal_type, finding.signal_type.upper())
+
+        # Code snippet
+        snippet: str | None = None
+        if finding.file_path:
+            abs_path = (
+                repo / finding.file_path
+                if not finding.file_path.is_absolute()
+                else finding.file_path
+            )
+            snippet = _read_source_lines(abs_path, finding.start_line)
+
+        # Build panel content
+        details = (
+            f"[bold]{signal_label}[/bold]  "
+            f"[dim]{file_rel}{line_info}[/dim]  "
+            f"score=[cyan]{finding.score:.2f}[/cyan]\n"
+            f"{finding.title}"
+        )
+        if finding.description and finding.description != finding.title:
+            details += f"\n[dim]{finding.description}[/dim]"
+
+        console.print(
+            Panel(
+                details,
+                title=f"Finding {idx}/{total}",
+                border_style="blue",
+            )
+        )
+
+        if snippet:
+            lang = finding.language or _infer_language(finding.file_path)
+            console.print(
+                Syntax(
+                    snippet,
+                    lang,
+                    line_numbers=True,
+                    start_line=max(1, (finding.start_line or 1) - 2),
+                )
+            )
+
+        choice = _prompt_choice(_TRIAGE_CHOICES + " > ")
+
+        if choice == "q":
+            console.print("[dim]Quit.[/dim]")
+            break
+
+        if choice in ("y", "a"):
+            # Optional reason
+            reason_raw = click.prompt("  reason (optional, Enter to skip)", default="").strip()
+            reason: str | None = reason_raw if reason_raw else None
+            until: date | None = (
+                date.today() + timedelta(days=_TEMPORAL_DAYS) if choice == "y" else None
+            )
+            signals: set[str] | None = {str(finding.signal_type)} if finding.signal_type else None
+            language = finding.language or _infer_language(finding.file_path)
+
+            if finding.file_path and finding.start_line is not None:
+                abs_path = (
+                    repo / finding.file_path
+                    if not finding.file_path.is_absolute()
+                    else finding.file_path
+                )
+                if not dry_run:
+                    insert_suppression_comment(
+                        abs_path,
+                        line_number=finding.start_line,
+                        signals=signals,
+                        until=until,
+                        reason=reason,
+                        language=language,
+                    )
+                label = "until:" + until.isoformat() if until else "permanent"
+                mode = "[dim](dry-run)[/dim] " if dry_run else ""
+                console.print(
+                    f"  {mode}[green]Suppressed[/green] [{signal_label}] {label}"
+                )
+                suppressed_count += 1
+            else:
+                console.print("  [yellow]Cannot suppress — no file/line information.[/yellow]")
+                skipped_count += 1
+
+        elif choice == "n":
+            console.print("  [dim]Kept active.[/dim]")
+
+        elif choice == "s":
+            console.print("  [dim]Skipped.[/dim]")
+            skipped_count += 1
+
+        else:
+            console.print("  [dim]Unknown choice — skipped.[/dim]")
+            skipped_count += 1
+
+        console.print()
+
+    # Summary
+    dry_label = " (dry-run)" if dry_run else ""
+    console.print(
+        f"[bold]Done{dry_label}.[/bold] "
+        f"{suppressed_count} suppressed, {skipped_count} skipped, "
+        f"{total - suppressed_count - skipped_count} kept active."
     )

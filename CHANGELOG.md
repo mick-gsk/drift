@@ -1,3 +1,12 @@
+## [2.17.1] – 2026-04-19
+
+Short version: CI stabilization — ruff, detect-secrets, and test-fixture fixes.
+
+### Fixed
+
+- Ruff unused-import / import-order issues in `test_patch_writer_gcd.py` resolved.
+- detect-secrets false positive for 17-character hex test fixture suppressed via pragma.
+
 ## [2.17.0] – 2026-04-18
 
 Short version: PatchWriter auto-apply for add_docstring + add_guard_clause (ADR-076), EDS micro-helper dampening (ADR-077), contextlib.suppress cleanup, and test fixes.

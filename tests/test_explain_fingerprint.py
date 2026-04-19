@@ -19,6 +19,7 @@ from drift.commands.explain import _print_finding_detail, explain
 # _FINGERPRINT_RE
 # ---------------------------------------------------------------------------
 
+
 class TestFingerprintRegex:
     def test_accepts_16_char_hex(self) -> None:
         assert _FINGERPRINT_RE.match("abcd1234abcd1234")  # pragma: allowlist secret
@@ -34,12 +35,13 @@ class TestFingerprintRegex:
         assert not _FINGERPRINT_RE.match("ABCD1234ABCD1234")
 
     def test_rejects_17_chars(self) -> None:
-        assert not _FINGERPRINT_RE.match("abcd1234abcd12345")
+        assert not _FINGERPRINT_RE.match("abcd1234abcd12345")  # pragma: allowlist secret
 
 
 # ---------------------------------------------------------------------------
 # _extract_code_context
 # ---------------------------------------------------------------------------
+
 
 class TestExtractCodeContext:
     def test_returns_empty_for_none_path(self) -> None:
@@ -95,6 +97,7 @@ class TestExtractCodeContext:
 # ---------------------------------------------------------------------------
 # _explain_finding_from_analysis_file
 # ---------------------------------------------------------------------------
+
 
 class TestExplainFindingFromFile:
     def _make_analysis_json(self, tmp_path: Path, findings: list[dict[str, Any]]) -> Path:
@@ -188,6 +191,7 @@ class TestExplainFindingFromFile:
 # CLI routing: drift explain <fingerprint>
 # ---------------------------------------------------------------------------
 
+
 class TestExplainCLIFingerprint:
     def test_help_includes_from_file(self) -> None:
         runner = CliRunner()
@@ -244,8 +248,10 @@ class TestExplainCLIFingerprint:
             explain,
             [
                 "beef0123beef0123",
-                "--from-file", str(analysis_file),
-                "--repo", str(tmp_path),
+                "--from-file",
+                str(analysis_file),
+                "--repo",
+                str(tmp_path),
             ],
         )
         assert result.exit_code == 0
@@ -276,9 +282,12 @@ class TestExplainCLIFingerprint:
             explain,
             [
                 "cafe4321cafe4321",
-                "--from-file", str(analysis_file),
-                "--repo", str(tmp_path),
-                "--output", str(out_file),
+                "--from-file",
+                str(analysis_file),
+                "--repo",
+                str(tmp_path),
+                "--output",
+                str(out_file),
             ],
         )
         assert result.exit_code == 0
@@ -291,6 +300,7 @@ class TestExplainCLIFingerprint:
 # ---------------------------------------------------------------------------
 # _print_finding_detail smoke test
 # ---------------------------------------------------------------------------
+
 
 class TestPrintFindingDetailSmoke:
     def test_renders_without_exception(self, tmp_path: Path) -> None:

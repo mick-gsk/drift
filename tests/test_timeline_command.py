@@ -89,7 +89,9 @@ def test_timeline_command_handles_empty_commit_history(
         return object()
 
     monkeypatch.setattr("drift.timeline.build_timeline", _fake_build)
-    monkeypatch.setattr("drift.output.rich_output.render_timeline", lambda *_: None)
+    import drift.output.rich_output as _rich_out
+
+    monkeypatch.setattr(_rich_out, "render_timeline", lambda *_: None)
 
     runner = CliRunner()
     result = runner.invoke(main, ["timeline", "--repo", str(repo)])
