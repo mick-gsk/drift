@@ -1830,6 +1830,7 @@
         "plugin_boundary_variation_expected": false,
         "plugin_context_dampened": false,
         "plugin_context_hints": [],
+        "propagation_excluded_count": 0,
         "total_instances": 2,
         "variant_count": 2
       },

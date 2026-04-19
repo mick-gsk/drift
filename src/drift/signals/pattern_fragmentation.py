@@ -82,6 +82,46 @@ def _normalize_fingerprint(fingerprint: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _normalize_error_handling_fingerprint(fingerprint: dict[str, Any]) -> dict[str, Any]:
+    """Normalize error-handling fingerprints for variant comparison.
+
+    Strips exception types so that patterns with the same *action* structure
+    (e.g. ``return None`` after ``ValueError`` vs ``OSError``) are treated as
+    the same variant.  Only the handler *action* structure matters for
+    fragmentation — catching different exception types with the same response
+    strategy is not fragmentation.
+
+    Fingerprints without a ``handlers`` key (e.g. synthetic test fixtures) are
+    returned unchanged.
+    """
+    handlers = fingerprint.get("handlers")
+    if handlers is None:
+        return fingerprint
+    normalized_handlers = [{"actions": h.get("actions", [])} for h in handlers]
+    return {**fingerprint, "handlers": normalized_handlers}
+
+
+def _is_propagation_only(fingerprint: dict[str, Any]) -> bool:
+    """Return True if all exception handlers re-raise without logging first.
+
+    Patterns that end with ``raise`` are propagation (re-throw), not a style
+    choice that can be normalised without changing behaviour.  However, a
+    *log-and-rethrow* pattern (``["log", "raise"]``) is a deliberate handling
+    strategy and must remain in the fragmentation analysis.
+
+    Rule: propagation-only if every handler's last action is ``raise`` AND no
+    ``log`` action precedes it.  Cleanup actions (``call``, ``other``) before
+    a terminal ``raise`` are treated as propagation-with-cleanup.
+    """
+    handlers = fingerprint.get("handlers")
+    if not handlers:
+        return False
+    return all(
+        h.get("actions", [])[-1:] == ["raise"] and "log" not in h.get("actions", [])
+        for h in handlers
+    )
+
+
 def _variant_key(fingerprint: dict[str, Any]) -> str:
     """Create a hashable key from a pattern fingerprint for grouping."""
     normalized = _normalize_fingerprint(fingerprint)
@@ -210,6 +250,7 @@ class PatternFragmentationSignal(BaseSignal):
         for category, patterns in all_patterns.items():
             # Analyze per-module fragmentation
             module_groups = _group_by_module(patterns)
+
             plugin_roots: dict[str, set[str]] = defaultdict(set)
             for module_path in module_groups:
                 plugin_scope = _plugin_scope(module_path)
@@ -222,7 +263,30 @@ class PatternFragmentationSignal(BaseSignal):
                 if len(module_patterns) < 2:
                     continue
 
-                variants = _count_variants(module_patterns)
+                # For error-handling patterns, normalise exception types and
+                # exclude propagation-only patterns (try/except: raise) before
+                # counting variants.  Propagation is not a style choice that
+                # can be normalised without changing behaviour.
+                if category is PatternCategory.ERROR_HANDLING:
+                    normalizable = [
+                        p for p in module_patterns
+                        if not _is_propagation_only(p.fingerprint)
+                    ]
+                    propagation_excluded = len(module_patterns) - len(normalizable)
+                    if len(normalizable) < 2:
+                        continue
+                    # Build variants using action-only (exception-type-stripped) keys
+                    eh_variants: dict[str, list[PatternInstance]] = defaultdict(list)
+                    for p in normalizable:
+                        norm_fp = _normalize_error_handling_fingerprint(p.fingerprint)
+                        key = _variant_key(norm_fp)
+                        eh_variants[key].append(p)
+                    variants = dict(eh_variants)
+                    module_patterns = normalizable
+                else:
+                    propagation_excluded = 0
+                    variants = _count_variants(module_patterns)
+
                 num_variants = len(variants)
 
                 if num_variants <= 1:
@@ -384,6 +448,7 @@ class PatternFragmentationSignal(BaseSignal):
                                 plugin_boundary_variation_expected
                             ),
                             "combined_plugin_framework_cap": combined_plugin_framework_cap,
+                            "propagation_excluded_count": propagation_excluded,
                             "deliberate_pattern_risk": (
                                 "May reflect architecture transition or deliberate variation. "
                                 "Review whether variants serve distinct purposes."

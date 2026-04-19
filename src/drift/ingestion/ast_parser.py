@@ -90,6 +90,8 @@ def _fingerprint_try_block(node: ast.Try) -> dict[str, Any]:
                 body_actions.append("raise")
             elif isinstance(stmt, ast.Return):
                 body_actions.append("return")
+            elif isinstance(stmt, ast.Continue):
+                body_actions.append("loop_skip")
             elif isinstance(stmt, ast.Pass):
                 body_actions.append("pass")
             elif isinstance(stmt, (ast.Assign, ast.AnnAssign, ast.AugAssign)):

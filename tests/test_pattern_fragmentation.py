@@ -66,9 +66,10 @@ def test_single_variant_no_fragmentation():
 
 
 def test_two_variants_detected():
+    # Two distinct non-propagation action strategies → fragmentation
     fp_a = {
         "handler_count": 1,
-        "handlers": [{"exception_type": "ValueError", "actions": ["raise"]}],
+        "handlers": [{"exception_type": "ValueError", "actions": ["log", "return"]}],
     }
     fp_b = {
         "handler_count": 1,
@@ -97,6 +98,135 @@ def test_two_variants_detected():
     assert "Deviations:" in f.fix
     assert ".py:" in f.fix
     assert "Konsolidiere" not in f.fix
+
+
+def test_error_handling_propagation_excluded_from_fragmentation():
+    # Issue #526: try/except: raise (pure propagation, no logging) must not count
+    # as a variant alongside sentinel-return patterns.
+    # Only the 2 sentinel patterns remain after filtering → 1 variant → no finding.
+    fp_raise = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "OSError", "actions": ["raise"]}],
+    }
+    fp_return = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "ValueError", "actions": ["return"]}],
+    }
+
+    patterns = [
+        _make_pattern(PatternCategory.ERROR_HANDLING, "calibration", "atomic_write", fp_raise),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "calibration", "load_status", fp_return),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "calibration", "load_history", fp_return),
+    ]
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert findings == [], "Propagation-only raise must not fragment with sentinel-return patterns"
+
+
+def test_error_handling_log_and_rethrow_is_not_propagation():
+    # log-and-rethrow (["log", "raise"]) IS a deliberate style and must remain
+    # in the fragmentation analysis (contrast with pure raise = propagation).
+    fp_log_raise = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "Exception", "actions": ["log", "raise"]}],
+    }
+    fp_return = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "Exception", "actions": ["return"]}],
+    }
+
+    patterns = [
+        _make_pattern(PatternCategory.ERROR_HANDLING, "workers", "task_a", fp_log_raise),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "workers", "task_b", fp_log_raise),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "workers", "task_c", fp_return),
+    ]
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert len(findings) == 1, "log-and-rethrow vs sentinel-return IS fragmentation"
+
+
+def test_error_handling_propagation_excluded_metadata():
+    # When propagation patterns are filtered, metadata should reflect the count.
+    # ["other", "raise"] (cleanup + rethrow) is also propagation (no log before raise).
+    fp_cleanup_raise = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "OSError", "actions": ["other", "raise"]}],
+    }
+    fp_log_return = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "ValueError", "actions": ["log", "return"]}],
+    }
+    fp_sentinel = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "Exception", "actions": ["return"]}],
+    }
+
+    patterns = [
+        _make_pattern(PatternCategory.ERROR_HANDLING, "core", "io_write", fp_cleanup_raise),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "core", "load_a", fp_log_return),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "core", "load_b", fp_log_return),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "core", "load_c", fp_sentinel),
+    ]
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.metadata["propagation_excluded_count"] == 1
+    # 2 action variants remain (log+return vs return)
+    assert f.metadata["num_variants"] == 2
+
+
+def test_error_handling_exception_type_not_a_variant():
+    # Issue #526: same action strategy with different exception types is NOT fragmentation.
+    # return None after ValueError, OSError, JSONDecodeError → all same pattern.
+    fp_val = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "ValueError", "actions": ["return"]}],
+    }
+    fp_os = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "OSError", "actions": ["return"]}],
+    }
+    fp_json = {
+        "handler_count": 1,
+        "handlers": [{"exception_type": "json.JSONDecodeError", "actions": ["return"]}],
+    }
+
+    patterns = [
+        _make_pattern(PatternCategory.ERROR_HANDLING, "calibration", "f1", fp_val),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "calibration", "f2", fp_os),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "calibration", "f3", fp_json),
+    ]
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert findings == [], (
+        "Same action strategy (return) with different exception types must not be fragmentation"
+    )
+
+
+def test_error_handling_loop_skip_is_captured():
+    # continue in except body is now captured as loop_skip (not "other"),
+    # verifying the fingerprint improvement in ast_parser._fingerprint_try_block.
+    import ast
+    import textwrap
+
+    from drift.ingestion.ast_parser import _fingerprint_try_block
+
+    src = textwrap.dedent("""\
+        for item in items:
+            try:
+                process(item)
+            except ValueError:
+                continue
+    """)
+    tree = ast.parse(src)
+    try_node = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.Try)
+    )
+    fp = _fingerprint_try_block(try_node)
+    assert fp["handlers"][0]["actions"] == ["loop_skip"], (
+        "continue in except body must map to loop_skip action"
+    )
 
 
 def test_three_variants_higher_score():

@@ -1,6 +1,33 @@
 # FMEA Matrix
 
-## 2026-04-18 - ADR-075: root_cause field on Finding — remediation contract enrichment
+## 2026-04-19 - Issue #526: PFS FP-Reduktion error_handling-Propagation und Exception-Typ-Normalisierung
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| PFS / `_fingerprint_try_block` | FP: `continue` in except-body fiel in `"other"` und konnte nicht korrekt als Loop-Skip klassifiziert werden | `ast.Continue` wurde nicht explizit erkannt | Loop-Skip-Patterns wirkten wie generische `other`-Patterns; Varianten-Zählung unscharf | `test_error_handling_loop_skip_is_captured` in `tests/test_pattern_fragmentation.py` | `ast.Continue` wird jetzt explizit als `"loop_skip"`-Action erfasst | 3 | 3 | 3 | 27 | Mitigated |
+| PFS / `_count_variants` | FP: Exception-Typ (ValueError vs OSError vs JSONDecodeError) erzeugte separate Varianten obwohl die Handling-Strategie identisch war | Exception-Typ war Teil des Variant-Keys; semantisch gleiche Muster wurden als Fragmentation gemeldet | Bis zu 7 Varianten statt 2-3 semantischer Muster in calibration/; hohe RPN-Scores für nicht normalisierbare Tasks | `test_error_handling_exception_type_not_a_variant` in `tests/test_pattern_fragmentation.py` | `_normalize_error_handling_fingerprint()` strippt Exception-Typ vor Variant-Key-Bildung; nur die Actions-Struktur zählt | 6 | 4 | 3 | 72 | Mitigated |
+| PFS / Propagation-Filter | FP: `try/except: raise` (Propagation) und `try/except: raise` nach Cleanup wurden als normalisierbare Varianten neben Sentinel-Return gemeldet | PFS unterschied nicht zwischen Propagation (raise ohne log) und echten Handling-Strategien | Nicht sicher umsetzbare Fix-Tasks mit hohem expected_score_delta wurden als Prio-1 vorgeschlagen | `test_error_handling_propagation_excluded_from_fragmentation` in `tests/test_pattern_fragmentation.py` | `_is_propagation_only()`: letztes Handler-Action ist `raise` UND kein `log` davor → Pattern wird aus Varianten-Vergleich ausgeschlossen | 7 | 3 | 2 | 42 | Mitigated |
+| PFS / Propagation-Filter | FN-Risiko: log-and-rethrow (`["log", "raise"]`) könnte fälschlich als Propagation eingestuft werden | `_is_propagation_only`-Regel zu breit | Echte log-and-rethrow vs. return-sentinel Fragmentation nicht mehr erkannt | `test_error_handling_log_and_rethrow_is_not_propagation` + `pfs_boundary_tp` Regression | `_is_propagation_only` schließt Handler mit `"log"`-Action explizit aus; `PFS_BOUNDARY_TP` ground-truth bleibt aktiv | 5 | 1 | 2 | 10 | Mitigated |
+
+## 2026-04-19 - ADR-077: EDS Private Micro-Helper Threshold Dampening
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| EDS Scoring | FN: privater Micro-Helper (LOC<40) mit realem Defekt-Risiko wird unterdrückt | neues Threshold-Profil (0.55) greift bei `is_private AND loc<40 AND NOT defect_correlated` — kann reale Komplexitätsschuld übersehen | Verzögerte Priorisierung von Explainability-Debt in extrahierten Helpers | `eds_private_micro_helper_tn` TN-Fixture; bestehende TP-Fixtures | Bedingung schließt `defect_correlated_commits > 0` explizit aus; TN-Fixture dokumentiert Erwartung; Boundary-Fall bei LOC=40 bleibt im alten Threshold | 4 | 2 | 5 | 40 | Accepted (ADR-077) |
+| EDS Scoring | TP-Regression: bestehende EDS-Findings für Private (LOC>40) feuern nicht mehr | neue Threshold-Logik greift versehentlich zu breit | Aktive Findings werden unterdrückt, Trust-Erosion | `eds_tp`, `eds_state_machine_tp`, `eds_nested_loops_tp` Fixtures + `tests/test_precision_recall.py` | Bedingung hard-coded auf `func.loc < 40`; Fixtures mit grösseren Funktionen sind TPs und bleiben unverändert | 6 | 1 | 2 | 12 | Mitigated |
+| EDS Scoring | Threshold-Grenze unscharf (LOC 39 vs. 40) | Off-by-one in Boundary-Prüfung | Einzelne Grenzfall-Findings nicht konsistent | Boundary-Fixture `eds_private_micro_helper_tn` (LOC=35) | Boundary ist explizit `func.loc < 40` (strict less-than); LOC=40 fällt in altes Threshold-Profil | 2 | 3 | 2 | 12 | Documented |
+
+
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| _is_git_clean() | Dirty state not detected | `git status --porcelain` fails (not a git repo) | Patch applied over uncommitted changes; git state corrupted | `test_fix_apply_dirty_state` (integration) | `_is_git_clean` returns False on git errors; `require_clean_git=True` by default; function returns safe error response | 4 | 2 | 1 | 8 | Mitigated |
+| AddDocstringWriter | Wrong function patched | Symbol name collision (two functions with same name in same file) | Docstring inserted in wrong function | `tests/test_patch_writer_eds.py` tests exact source equality | libcst transformer matches by name; if both match, first encountered is patched — acceptable for v1 | 3 | 2 | 2 | 12 | Accepted (v1 scope) |
+| AddGuardClauseWriter | Partial patch state | Write fails mid-multi-file run | Some files patched, others not | Each file write is atomic (`write_text`) | `status="failed"` per entry; caller can inspect; rollback via `git checkout` | 4 | 2 | 2 | 16 | Documented (git rollback) |
+| libcst parse error | Source unparseable | Encoding error, syntax error, binary content | Patch FAILED; file unchanged | `generate_patch` returns `PatchResultStatus.FAILED` with reason | Try/except around `cst.parse_module`; FAILED result propagated to caller; no file write | 3 | 2 | 1 | 6 | Mitigated |
+| _apply_patches loop | Rollback incomplete after error | Exception mid-write (disk full, permission) | File truncated or partially written | `status="failed"` captured; `written=False` | `write_text` is atomic at OS level; git can restore via `git checkout` | 4 | 1 | 2 | 8 | Mitigated (git rollback) |
+
+
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
 |---|---|---|---|---|---|---:|---:|---:|---:|---|

@@ -1,6 +1,70 @@
 # Risk Register
 
-## 2026-04-18 - Per-signal phase timing in JSON and Rich output
+## 2026-04-19 - Issue #526: PFS FP-Reduktion error_handling-Propagation und Exception-Typ-Normalisierung
+
+- Risk ID: RISK-PFS-PROPAGATION-EXTYPE-2026-04
+- Component: `src/drift/signals/pattern_fragmentation.py`, `src/drift/ingestion/ast_parser.py`
+- Type: Signal-Precision-Verbesserung (FP-Reduktion, geringe FN-Risiken abgesichert)
+- Description:
+  1. `ast.Continue` in except-Körpern wird jetzt explizit als `"loop_skip"` klassifiziert
+     statt in `"other"` zu fallen.
+  2. `_normalize_error_handling_fingerprint()` strippt Exception-Typen (ValueError, OSError,
+     JSONDecodeError) vor Variant-Key-Bildung — nur die Handler-Actions-Struktur zählt für
+     Fragmentation. Same-Action/Different-Exception-Type gilt nicht als Variante.
+  3. `_is_propagation_only()` schließt Propagation-Patterns (`raise` als letztes Action,
+     kein `log` davor) aus dem Varianten-Vergleich aus.
+- Trigger: Trifft auf alle ERROR_HANDLING-Patterns in Python-Modulen, insbesondere auf
+  Module mit gemischtem Propagation + Sentinel + Loop-Skip (z. B. calibration/).
+- Impact: Reduziert False-Positive-Rate bei PFS/error_handling; verhindert nicht sichere
+  Fix-Task-Empfehlungen (raise → return None). Log-and-rethrow (`["log", "raise"]`) bleibt
+  als legitime Variante erhalten.
+- Mitigation:
+  - `_is_propagation_only` schließt Handler mit `"log"`-Action aus → log-and-rethrow bleibt
+    als echter Variant (PFS_BOUNDARY_TP ground-truth guard aktiv).
+  - Exception-Typ-Normalisierung nur für Fingerprints mit `handlers`-Key; synthetische
+    Test-Fixtures ohne dieses Feld sind nicht betroffen.
+  - 4 neue Regression-Tests in `tests/test_pattern_fragmentation.py`.
+  - Golden snapshot aktualisiert (neues Metadata-Feld `propagation_excluded_count`).
+- Status: Mitigated
+
+## 2026-04-19 - ADR-077: EDS Private Micro-Helper Threshold Dampening
+
+- Risk ID: RISK-EDS-PRIVATE-THRESHOLD-2026-04
+- Component: `src/drift/signals/explainability_deficit.py`
+- Type: Scoring-threshold change (FN-risk increase for bounded case)
+- Description: `min_threshold` für private Funktionen mit LOC<40 und ohne Defekt-Korrelation
+  wird von `0.45` auf `0.55` erhöht. Privater Micro-Helper direkt nach CXS-Extraktion feuert
+  dadurch kein EDS — Oscillation im Fix-Loop wird verhindert.
+- Trigger: Trifft auf jede private Python-Funktion mit Unterstrich-Prefix, LOC<40 und
+  keinem `defect_correlated_commits > 0`-Commit-Eintrag.
+- Impact: Gezielt reduziertes Noise für frisch extrahierte Helpers; echter Explainability-Debt
+  in kleinen privaten Funktionen ohne Defekt-Korrelat wird potenziell später priorisiert.
+- Mitigation:
+  - Bedingung schließt `defect_correlated_commits > 0` explizit aus — riskante Files bleiben
+    bei `min_threshold=0.30` (override).
+  - Boundary ist strict `func.loc < 40` — LOC=40 fällt in altes Profil.
+  - Neue TN-Fixture `eds_private_micro_helper_tn` dokumentiert Erwartung und verhindert Regression.
+  - `tests/test_precision_recall.py` guards existing TP fixtures.
+- Residual risk: Low. Scope ist eng definiert; defekt-korrelierte Files nicht betroffen.
+
+
+
+- Risk ID: RISK-PATCH-WRITER-2026-07-FILE-WRITE
+- Component: `src/drift/patch_writer/`, `src/drift/api/fix_apply.py`, `src/drift/commands/fix_plan.py`
+- Type: New file-write capability (opt-in, requires `--apply` flag)
+- Description: `drift fix-plan --apply` applies high-confidence auto-patches directly to the working tree. libcst transforms Python source and the result is written to disk via `write_text`. This introduces a file-write trust boundary not present in any prior API endpoint.
+- Trigger: User invokes `drift fix-plan --apply` (or `--dry-run` for preview). Not triggered by any existing command path.
+- Impact: Positive intent (reduces manual remediation effort), with controlled risk: files can be modified incorrectly or incompletely in edge cases.
+- Mitigation:
+  - Git-clean-state gate (`_is_git_clean`) enforced before any write. Dirty repos are rejected with a clear error.
+  - `--dry-run` mode previews patches without writing. Default behavior of `fix_apply()` is `dry_run=True`.
+  - Only tasks meeting HIGH/LOCAL/LOW automation-fit bar are processed.
+  - libcst parse→transform→`module.code` round-trip preserves formatting; parse errors return `FAILED` status with no write.
+  - Each file write is one atomic `write_text` call; rollback via `git checkout <file>`.
+  - Python-only scope in v1; TypeScript/JS not patched.
+- Residual risk: Low-Medium. Multi-file partial-patch state (some files written, later ones failing) is possible; mitigation is clear `status` per entry and documented `git checkout` rollback.
+
+
 
 - Risk ID: RISK-OUTPUT-2026-04-18-PER-SIGNAL-TIMING
 - Component: `src/drift/output/json_output.py`, `src/drift/output/rich_output.py`, `src/drift/pipeline.py`
