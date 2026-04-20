@@ -105,6 +105,10 @@ autopatch = [
 watch = [
     "watchfiles>=1.0",
 ]
+# LLM-backed intent classification via litellm (optional)
+llm = [
+    "litellm>=1.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
@@ -123,7 +127,7 @@ dev = [
     "openai>=1.30",
 ]
 all = [
-    "drift-analyzer[typescript,embeddings,markdown,mcp,dev]",
+    "drift-analyzer[typescript,embeddings,markdown,mcp,llm,dev]",
 ]
 
 [project.scripts]

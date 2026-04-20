@@ -69,7 +69,8 @@ check:  ## Run all checks: lint + typecheck + tests (incl. slow) + self-analysis
 	@$(PYTEST) -q --tb=short --cov=drift --ignore=tests/test_smoke_real_repos.py --run-slow -p no:xdist
 	@echo ">>> [4/4] Self-analysis..."
 	@$(MAKE) --no-print-directory self
-	@echo ">>> All checks passed."
+	@git rev-parse HEAD 2>/dev/null > .git/.drift-prepush-last-success || true
+	@echo ">>> All checks passed. Pre-push cache written — next git push will skip expensive CI."
 
 markdown-lint:  ## Lint Markdown docs
 	npx markdownlint-cli2

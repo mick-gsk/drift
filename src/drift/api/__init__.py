@@ -30,10 +30,12 @@ from drift.api.compile_policy import compile_policy
 from drift.api.diff import _diff_next_actions, diff
 from drift.api.drift_map_api import drift_map
 from drift.api.explain import _repo_examples_for_signal, explain
+from drift.api.feedback_for_agent import feedback_for_agent
 from drift.api.fix_apply import fix_apply
 from drift.api.fix_plan import _fix_plan_agent_instruction, fix_plan
 from drift.api.generate_skills import generate_skills
 from drift.api.guard_contract import guard_contract
+from drift.api.intent import capture_intent, intent, list_intents
 from drift.api.neg_context import negative_context
 from drift.api.nudge import _baseline_store, invalidate_nudge_baseline, nudge
 from drift.api.patch import patch_begin, patch_check, patch_commit
@@ -51,6 +53,7 @@ from drift.api.steer import steer
 from drift.api.suggest_rules import suggest_rules
 from drift.api.validate import validate
 from drift.api.verify import verify
+from drift.api.verify_intent import verify_intent
 
 # Backward-compat: all symbols formerly available as ``drift.api.X``
 from drift.api_helpers import (
@@ -102,6 +105,11 @@ STABLE_API = [
     "shadow_verify",
     "generate_skills",
     "guard_contract",
+    "capture_intent",
+    "intent",
+    "list_intents",
+    "verify_intent",
+    "feedback_for_agent",
     "steer",
     "suggest_rules",
     "validate",

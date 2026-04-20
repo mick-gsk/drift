@@ -143,6 +143,7 @@ class TestJsonOutputGolden:
             "finding_context",
             "metadata",
             "root_cause",
+            "human_message",
         }
         assert set(data["findings"][0].keys()) == expected_finding_keys
 

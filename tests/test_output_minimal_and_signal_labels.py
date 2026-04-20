@@ -23,6 +23,7 @@ class _DummyConfig:
     embeddings_enabled = True
     embedding_model = None
     language = None
+    audience = "developer"
 
     class _RecsOff:
         enabled = False

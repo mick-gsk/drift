@@ -71,6 +71,7 @@ class Finding:
     ai_attributed: bool = False
     fix: str | None = None
     root_cause: str | None = None
+    human_message: str | None = None
     impact: float = 0.0
     score_contribution: float = 0.0
     deferred: bool = False

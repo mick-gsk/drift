@@ -84,16 +84,26 @@ Verhalten:
 
 ### Stufe 6 — Grün-vor-Merge-Regel
 
+**ACHTUNG: „Grüne Tests" sind kein Abnahmekriterium.**
+Tests grün bedeutet: keine bekannte Regression. Es bedeutet NICHT: die ursprüngliche Anforderung ist erfüllt.
+
+**Pflicht vor jedem Abschluss:**
+1. Ursprüngliche Anforderung (User-Request, Issue, Spec) erneut lesen
+2. Jedes genannte Ziel gegen das tatsächliche Ergebnis prüfen
+3. Nur wenn alle Ziele demonstrierbar erfüllt sind: als fertig markieren
+
 „Grün" bedeutet **alle** der folgenden Bedingungen:
 - keine offenen kritischen Findings
 - keine unbehandelten High-Risk-Kommentare
 - wesentliche Checks bestanden oder plausibel abgesichert
 - bekannte Restrisiken explizit benannt (nicht verschwiegen)
+- **ursprüngliche Anforderung/User-Request Zeile für Zeile gegen das Ergebnis abgeglichen**
+- **Abschluss-Entscheidung nicht allein auf Basis grüner Tests getroffen**
 
 Jede Änderung endet mit einem expliziten Freigabestatus:
 - `❌ NICHT BEREIT` — offene kritische Issues
 - `⚠️ BEREIT ZUR MENSCHLICHEN PRÜFUNG` — Checks grün, aber Risiken sichtbar
-- `✅ BEREIT ZUM MERGE` — vollständig grün, alle Gates erfüllt
+- `✅ BEREIT ZUM MERGE` — vollständig grün, alle Gates erfüllt, Anforderungsabgleich dokumentiert
 
 ### Stufe 7 — Menschliches Freigabe-Gate
 

@@ -22,6 +22,28 @@ NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 
 If you haven't run the verification command in this message, you cannot claim it passes.
 
+## CRITICAL: Green Tests ≠ Done
+
+**Tests passing is a floor, not a ceiling.** Passing all tests only proves the code doesn't visibly break existing expectations — it does NOT prove the work meets the user's actual request.
+
+```
+VERBOTEN:
+  "All tests pass → task complete"
+  "CI is green → it works as requested"
+  "No failures → requirements fulfilled"
+
+PFLICHT stattdessen:
+  1. Re-read the original user request / issue / spec
+  2. Compare actual output/behavior against each stated requirement
+  3. Only then: conclude whether the requirement is met
+```
+
+This rule applies even when 100% of tests pass. Even when CI is fully green. Even when the agent "feels confident".
+
+**Green tests prove regression safety. They do not prove intent fulfillment.**
+
+A task is done when the user's stated requirement is demonstrably satisfied — not when the test suite is happy.
+
 ## The Gate Function
 
 ```
@@ -47,7 +69,8 @@ Skip any step = lying, not verifying
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
-| Requirements met | Line-by-line checklist | Tests passing |
+| **Requirements met** | **Re-read requirement → line-by-line checklist → each item verified** | **Tests passing — even 100% green CI** |
+| **Task complete** | **Original user request re-read, every stated goal demonstrably met** | **No test failures, no errors, "looks correct"** |
 
 ## Red Flags - STOP
 
@@ -58,6 +81,8 @@ Skip any step = lying, not verifying
 - Relying on partial verification
 - Thinking "just this once"
 - **ANY wording implying success without having run verification**
+- **"All tests pass" as the sole justification for task completion**
+- **Closing a task, issue, or PR based only on green CI — without re-reading the requirement**
 
 ## Key Patterns
 

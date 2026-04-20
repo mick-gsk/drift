@@ -234,6 +234,26 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     default=False,
     help="Bypass the parse and signal cache for this run (reads and writes are both skipped).",
 )
+@click.option(
+    "--audience",
+    "audience",
+    type=click.Choice(["developer", "plain"]),
+    default=None,
+    help="Target audience: developer (technical, default) or plain (non-programmer-friendly).",
+)
+@click.option(
+    "--language",
+    "--lang",
+    "language_override",
+    default=None,
+    help="Language for plain-audience messages (ISO 639-1, e.g. de, en). Overrides config.",
+)
+@click.option(
+    "--intent",
+    is_flag=True,
+    default=False,
+    help="Validate findings against intent contracts from .drift-intent.yaml.",
+)
 def analyze(
     repo_arg: Path | None,
     repo: Path,
@@ -268,6 +288,9 @@ def analyze(
     no_first_run: bool,
     review_mode: bool,
     no_cache: bool,
+    audience: str | None,
+    language_override: str | None,
+    intent: bool,
 ) -> None:
     """Detailed drift analysis — produces comprehensive findings for investigation and triage.
 
@@ -431,6 +454,33 @@ def analyze(
 
     # Baseline filtering: remove known findings if --baseline is provided
     apply_baseline_filtering(analysis, cfg, baseline_file)
+
+    # Translation layer: enrich findings with plain-language messages
+    effective_audience = audience or cfg.audience
+    effective_language = language_override or cfg.language or "en"
+    if effective_audience == "plain":
+        from drift.lang import enrich_human_messages
+
+        analysis.findings = enrich_human_messages(
+            analysis.findings, lang=effective_language, audience="plain"
+        )
+
+    # Intent-aware validation: match findings against intent contracts
+    if intent:
+        from drift.intent._matcher import match_findings_to_contracts
+        from drift.intent._status import format_intent_status
+        from drift.intent._store import load_contracts
+
+        contracts = load_contracts(repo)
+        if contracts:
+            statuses = match_findings_to_contracts(analysis.findings, contracts)
+            intent_lines = format_intent_status(statuses)
+            if intent_lines:
+                click.echo("")
+                click.echo("Intent-Status:")
+                for line in intent_lines:
+                    click.echo(f"  {line}")
+                click.echo("")
 
     # Auto-save snapshot for `drift diff --auto` (silent on failure)
     from drift.commands._last_scan import save_last_scan

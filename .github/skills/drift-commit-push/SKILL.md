@@ -86,6 +86,8 @@ Minimum expectation before commit (fast feedback):
 
 ```bash
 make test-fast
+# Windows / PowerShell:
+.\scripts\check.ps1 test-fast
 ```
 
 For very fast local loops, prefer targeted checks first:
@@ -94,6 +96,9 @@ For very fast local loops, prefer targeted checks first:
 make test-dev
 # or rerun only previous failures
 make test-lf
+# Windows / PowerShell equivalents:
+.\scripts\check.ps1 test-dev
+.\scripts\check.ps1 test-lf
 ```
 
 If smoke confidence is needed locally, use the split profiles instead of always running the full matrix:
@@ -107,8 +112,16 @@ make smoke-nightly
 Before push, the repository standard is:
 
 ```bash
+# Linux / macOS / Git Bash:
 make check
+
+# Windows / PowerShell (mandatory — do NOT call make directly):
+.\scripts\check.ps1
 ```
+
+> **Windows agents:** `make` is not available in PowerShell. Always use `.\.scripts\check.ps1 <target>`.
+> This delegates to Git Bash and writes the same SHA cache, so `git push` afterwards skips
+> the expensive CI re-run inside VS Code.
 
 Important for speed: do not duplicate full-matrix runs.
 

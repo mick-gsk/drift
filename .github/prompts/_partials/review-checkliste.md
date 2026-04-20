@@ -12,6 +12,17 @@ Kein Punkt darf übersprungen werden. Bei Unsicherheit: `Nein` mit Begründung.
 
 ---
 
+## 0. Anforderungsabgleich (Pflicht — vor allen anderen Punkten)
+
+> **Grüne Tests beweisen Regressionsfreiheit. Sie beweisen NICHT, dass die Anforderung erfüllt ist.**
+
+- [ ] **Ursprüngliche Anforderung erneut gelesen?** — Wurde der originale User-Request, Issue-Text oder die Spec vor diesem Review explizit gelesen (nicht aus dem Gedächtnis)?
+- [ ] **Alle genannten Ziele adressiert?** — Für jedes im Request genannte Ziel: gibt es einen nachweisbaren Output, der es demonstriert?
+- [ ] **Kein „Tests grün = fertig"-Schluss?** — Ist die Abschluss-Begründung auf die Anforderung gestützt, nicht allein auf Testergebnisse?
+- [ ] **Unerfüllte Teilziele explizit benannt?** — Wenn ein Ziel nicht vollständig umgesetzt wurde: ist das dokumentiert und kein verstecktes Restrisiko?
+
+---
+
 ## 1. Policy-Konformität
 
 - [ ] **Policy-Gate korrekt?** — Wurde das PFLICHT-GATE sichtbar ausgegeben, und ist die Begründung plausibel (nicht rituell)?
@@ -74,7 +85,8 @@ Nur relevant, wenn die Änderung Analyseergebnisse / Befunde betrifft.
 ## 9. Gesamtbewertung
 
 - [ ] **Bekannte Restrisiken benannt?** — Sind Trade-offs oder offene Punkte explizit dokumentiert (nicht verschwiegen)?
+- [ ] **Anforderungsabgleich abgeschlossen?** — Abschnitt 0 vollständig bearbeitet, kein Punkt übersprungen?
 - [ ] **Freigabestatus bestimmt:**
-  - `❌ NICHT BEREIT` — offene kritische Issues
-  - `⚠️ BEREIT ZUR MENSCHLICHEN PRÜFUNG` — Checks grün, aber Risiken sichtbar
-  - `✅ BEREIT ZUM MERGE` — vollständig grün, alle Gates erfüllt
+  - `❌ NICHT BEREIT` — offene kritische Issues oder Anforderungsziele nicht erfüllt
+  - `⚠️ BEREIT ZUR MENSCHLICHEN PRÜFUNG` — Checks grün, Anforderung adressiert, aber Risiken sichtbar
+  - `✅ BEREIT ZUM MERGE` — vollständig grün, alle Gates erfüllt, Anforderungsabgleich (Abschnitt 0) positiv

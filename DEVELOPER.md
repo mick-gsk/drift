@@ -12,7 +12,7 @@ make install          # pip install -e ".[dev]" + git hooks
 make check            # lint + typecheck + test + self-analysis
 ```
 
-> **Requirements:** Python 3.11+, Git, GNU Make (on Windows: Git Bash / WSL / `choco install make`).
+> **Requirements:** Python 3.11+, Git, GNU Make (on Windows: use `.\scripts\check.ps1` as a drop-in for `make check`, or run via Git Bash / WSL).
 
 Maintainer operations: [docs/MAINTAINER_RUNBOOK.md](docs/MAINTAINER_RUNBOOK.md) and
 [docs/REPOSITORY_GOVERNANCE.md](docs/REPOSITORY_GOVERNANCE.md).
@@ -428,6 +428,17 @@ The `.githooks/pre-push` hook enforces 6 gates before code reaches the remote. T
 | **Lockfile Sync** | `pyproject.toml` changed | `uv.lock` must exist and be synchronized |
 | **Public API Docstrings** | `src/drift/` changes | New public functions must have docstrings |
 | **Risk Audit (§18)** | `src/drift/signals/`, `ingestion/`, `output/` changes | At least one audit artifact under `audit_results/` must be updated |
+
+**Recommended push workflow (avoids running the full CI suite twice):**
+
+```bash
+make check       # Runs full CI locally AND writes the SHA cache
+git push         # Hook detects cached SHA → skips expensive pytest/mypy/self-analysis
+```
+
+The hook caches the HEAD SHA after a successful run. If you run `make check` first, the hook
+reuses that result and only re-evaluates the lightweight policy gates (blocked paths, changelog, etc.).
+This prevents the expensive test suite from running a second time inside VS Code's terminal.
 
 **Skip flags** (use sparingly, e.g. for docs-only changes):
 

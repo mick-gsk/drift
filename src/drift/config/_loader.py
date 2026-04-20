@@ -188,6 +188,14 @@ class DriftConfig(BaseModel):
             "and deltas without prescribing what the agent should do."
         ),
     )
+    audience: Literal["developer", "plain"] = Field(
+        default="developer",
+        description=(
+            "Target audience for finding messages. "
+            "'developer' (default): technical descriptions for programmers. "
+            "'plain': non-programmer-friendly messages translated via drift.lang."
+        ),
+    )
 
     @staticmethod
     def _find_config_file(repo_path: Path) -> Path | None:

@@ -288,6 +288,7 @@ from drift.commands.fix_plan import fix_plan
 from drift.commands.generate_skills_cmd import generate_skills
 from drift.commands.import_cmd import import_report
 from drift.commands.init_cmd import init
+from drift.commands.intent_cmd import intent
 from drift.commands.mcp import mcp
 from drift.commands.patch_cmd import patch
 from drift.commands.patterns import patterns
@@ -327,6 +328,7 @@ main.add_command(feedback)
 main.add_command(fix_plan)
 main.add_command(generate_skills)
 main.add_command(import_report)
+main.add_command(intent)
 main.add_command(mcp)
 main.add_command(patterns)
 main.add_command(precision)

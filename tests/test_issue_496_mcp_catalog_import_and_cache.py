@@ -93,3 +93,5 @@ class TestIssue496McpCatalog:
 
         # Keep test isolation explicit even though monkeypatch restores attributes.
         monkeypatch.setattr(mcp_server, "_EXPORTED_MCP_TOOLS", original_tools)
+        # Clear cache after restoring so subsequent tests see the real tool list.
+        mcp_catalog.get_tool_catalog.cache_clear()

@@ -44,6 +44,9 @@ def _ensure_dispatch_table() -> dict[str, Any]:
             "patch_begin": _handle_patch_begin,
             "patch_check": _handle_patch_check,
             "patch_commit": _handle_patch_commit,
+            "capture_intent": _handle_capture_intent,
+            "verify_intent": _handle_verify_intent,
+            "feedback_for_agent": _handle_feedback_for_agent,
         }
     )
     return _SKILL_DISPATCH
@@ -314,3 +317,44 @@ def _handle_patch_commit(params: dict[str, Any]) -> dict[str, Any]:
         path=path,
         session_id=params.get("session_id"),
     )
+
+
+def _handle_capture_intent(params: dict[str, Any]) -> dict[str, Any]:
+    from drift.api.capture_intent import capture_intent
+
+    raw = params.get("raw", "")
+    path = params.get("path", ".")
+    if not raw:
+        msg = "Parameter 'raw' is required for capture_intent."
+        raise ValueError(msg)
+    return capture_intent(raw=raw, path=path)
+
+
+def _handle_verify_intent(params: dict[str, Any]) -> dict[str, Any]:
+    from drift.api.verify_intent import verify_intent
+
+    intent_id = params.get("intent_id", "")
+    artifact_path = params.get("artifact_path", "")
+    path = params.get("path", ".")
+    if not intent_id:
+        msg = "Parameter 'intent_id' is required for verify_intent."
+        raise ValueError(msg)
+    if not artifact_path:
+        msg = "Parameter 'artifact_path' is required for verify_intent."
+        raise ValueError(msg)
+    return verify_intent(intent_id=intent_id, artifact_path=artifact_path, path=path)
+
+
+def _handle_feedback_for_agent(params: dict[str, Any]) -> dict[str, Any]:
+    from drift.api.feedback_for_agent import feedback_for_agent
+
+    intent_id = params.get("intent_id", "")
+    path = params.get("path", ".")
+    artifact_path = params.get("artifact_path", "")
+    if not intent_id:
+        msg = "Parameter 'intent_id' is required for feedback_for_agent."
+        raise ValueError(msg)
+    if not artifact_path:
+        msg = "Parameter 'artifact_path' is required for feedback_for_agent."
+        raise ValueError(msg)
+    return feedback_for_agent(intent_id=intent_id, path=path, artifact_path=artifact_path)

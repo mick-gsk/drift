@@ -1177,6 +1177,16 @@
     "attribution": {
       "$ref": "#/$defs/AttributionConfig"
     },
+    "audience": {
+      "default": "developer",
+      "description": "Target audience for finding messages. 'developer' (default): technical descriptions for programmers. 'plain': non-programmer-friendly messages translated via drift.lang.",
+      "enum": [
+        "developer",
+        "plain"
+      ],
+      "title": "Audience",
+      "type": "string"
+    },
     "auto_calibrate": {
       "default": true,
       "title": "Auto Calibrate",

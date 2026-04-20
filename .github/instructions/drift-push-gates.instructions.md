@@ -150,6 +150,13 @@ git commit --amend --no-edit  # oder separater Commit
 **Diese Checks haben keinen Bypass-Mechanismus.**  
 Vor jedem Push sicherstellen: `make check` lokal bestanden.
 
+> **Windows / PowerShell:** `make` ist nicht nativ verfügbar. Stattdessen:
+> ```powershell
+> .\scripts\check.ps1        # entspricht make check
+> .\scripts\check.ps1 lint   # entspricht make lint
+> ```
+> Das Skript delegiert an Git Bash (wird mit Git for Windows mitgeliefert).
+
 ---
 
 ## Bypass-Übersicht (Notfall)
@@ -180,9 +187,13 @@ DRIFT_SKIP_HOOKS=1 git push
 1. git diff --name-only origin/main HEAD   # Welche Dateien sind geändert?
 2. Tabelle oben prüfen → Welche Gates greifen?
 3. Alle fehlenden Artefakte erzeugen/aktualisieren (Audit, Changelog, STUDY.md etc.)
-4. make check  (oder die relevanten Teilschritte)
+4. make check  — auf Windows: .\scripts\check.ps1
 5. git push
 ```
+
+> **Wichtig für Agenten auf Windows:** Niemals `make` direkt in PowerShell aufrufen — es ist nicht verfügbar.
+> Stets `.\.scripts\check.ps1 <target>` verwenden. Der SHA-Cache-Mechanismus funktioniert identisch:
+> nach `check.ps1` wird der HEAD-SHA gecacht und der Pre-Push-Hook überspringt die teuren CI-Checks.
 
 **Keine Ausrede "ich dachte der Hook wäre nicht installiert":**  
 Der Hook liegt in `.githooks/pre-push` und ist via `git config core.hooksPath .githooks` dauerhaft aktiviert.

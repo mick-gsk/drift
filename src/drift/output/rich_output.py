@@ -809,7 +809,8 @@ def _format_finding_detail(
             text.append(f"  … and {remainder} more\n", style="dim italic")
 
     # Description (first line only in compact view)
-    first_line = f.description.splitlines()[0] if f.description else ""
+    desc = f.human_message or f.description
+    first_line = desc.splitlines()[0] if desc else ""
     if first_line:
         text.append(f"  {first_line}\n", style="dim")
 
