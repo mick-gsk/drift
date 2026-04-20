@@ -87,11 +87,10 @@ def clear(
             return 0
         entries = list(directory.glob("*.json"))
         if not dry:
+            import contextlib
             for entry in entries:
-                try:
+                with contextlib.suppress(OSError):
                     entry.unlink(missing_ok=True)
-                except OSError:
-                    pass
         return len(entries)
 
     parse_count = 0

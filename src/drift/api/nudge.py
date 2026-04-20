@@ -432,7 +432,7 @@ class _NudgeExecution:
         self,
         fp: str,
         prepared_exclude: Any,
-        ParseCache: Any,
+        parse_cache_cls: Any,
         parse_file: Any,
         detect_language: Any,
         matches_any: Any,
@@ -455,7 +455,7 @@ class _NudgeExecution:
             return
 
         try:
-            current_hash = ParseCache.file_hash(full_path)
+            current_hash = parse_cache_cls.file_hash(full_path)
         except OSError:
             current_hash = None
 
