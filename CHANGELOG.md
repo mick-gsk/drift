@@ -1,14 +1,3 @@
-## [2.21.1] – 2026-04-20
-
-Short version: security-hygiene fixes — pragma allowlist secret annotations for test fixtures, refreshed detect-secrets baseline.
-
-### Fixed
-
-- `tests/test_diff_auto.py`, `tests/test_suppression.py`, `src/drift/intent/formalize.py`, `src/drift/output/interactive_review.py`: added `# pragma: allowlist secret` to test-fixture strings to prevent false positives in detect-secrets CI gate.
-- `.secrets.baseline`: refreshed to include all new files added since last scan (`skills-lock.json`, `eval-viewer/viewer.html`).
-- `src/drift/intent/`: mypy `no-any-return` / `import-untyped` / `no-redef` type errors resolved.
-- `src/drift/lang/__init__.py`: mypy `typeddict-item` false positive suppressed.
-
 ## [2.21.0] – 2026-04-20
 
 Short version: intent-capture system for structured planning; `lang` module with multilingual plain-language messages; `--audience` and `--language` CLI flags; A2A endpoints for intent/feedback loop.
@@ -19,6 +8,13 @@ Short version: intent-capture system for structured planning; `lang` module with
 - `drift.lang` module: multilingual plain-language message catalog; `--audience {developer,plain}` and `--language/--lang` flags on `drift analyze` for non-technical stakeholders.
 - A2A router: `capture_intent`, `verify_intent`, `feedback_for_agent` endpoints; `capture_intent()`, `verify_intent()`, `feedback_for_agent()` exposed via `drift.api`.
 - Optional `[llm]` extra (`litellm>=1.0`) for LLM-backed intent classification with graceful keyword-only fallback.
+
+### Fixed
+
+- `tests/test_diff_auto.py`, `tests/test_suppression.py`, `src/drift/intent/formalize.py`, `src/drift/output/interactive_review.py`: added `# pragma: allowlist secret` to test-fixture strings to prevent false positives in detect-secrets CI gate.
+- `.secrets.baseline`: refreshed to include `skills-lock.json` and `eval-viewer/viewer.html`.
+- `src/drift/intent/`: mypy `no-any-return` / `import-untyped` / `no-redef` type errors resolved.
+- `src/drift/lang/__init__.py`: mypy `typeddict-item` false positive suppressed.
 
 ## [2.20.0] – 2026-04-20
 
