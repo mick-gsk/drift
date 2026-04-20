@@ -4,13 +4,10 @@ Short version: intent-capture system for structured planning; `lang` module with
 
 ### Added
 
-- `drift intent` command: interactive intent capture, LLM-backed classification (with keyword fallback), clarifying questions, and YAML contract storage.
-- `drift.intent` module: `IntentContract`, `Requirement`, `Constraint`, `IntentCategory`, classify/formalize/repair/validate/verify pipeline.
-- `drift.lang` module: multilingual plain-language message catalog (`--audience plain`); `enrich_human_messages()` enriches findings with non-programmer-friendly descriptions.
-- `--audience {developer,plain}` and `--language/--lang` CLI flags on `drift analyze`: enrich output for non-technical stakeholders.
-- A2A router: `capture_intent`, `verify_intent`, `feedback_for_agent` skill endpoints for agent-driven intent workflows.
-- `capture_intent()`, `verify_intent()`, `feedback_for_agent()` public API functions exposed via `drift.api`.
-- Optional `[llm]` extra (`litellm>=1.0`) for LLM-backed intent classification; graceful keyword-only fallback when `litellm` is not installed.
+- `drift intent` command and `drift.intent` module: interactive intent capture with LLM-backed classification (keyword fallback), clarifying questions, YAML contract storage; `IntentContract`, `Requirement`, `Constraint`, `IntentCategory`, and classify/formalize/repair/validate/verify pipeline.
+- `drift.lang` module: multilingual plain-language message catalog; `--audience {developer,plain}` and `--language/--lang` flags on `drift analyze` for non-technical stakeholders.
+- A2A router: `capture_intent`, `verify_intent`, `feedback_for_agent` endpoints; `capture_intent()`, `verify_intent()`, `feedback_for_agent()` exposed via `drift.api`.
+- Optional `[llm]` extra (`litellm>=1.0`) for LLM-backed intent classification with graceful keyword-only fallback.
 
 ## [2.20.0] – 2026-04-20
 
