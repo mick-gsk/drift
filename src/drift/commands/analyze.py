@@ -227,6 +227,13 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     default=False,
     help="Interactively triage each finding as true/false positive after analysis (requires TTY).",
 )
+@click.option(
+    "--no-cache",
+    "no_cache",
+    is_flag=True,
+    default=False,
+    help="Bypass the parse and signal cache for this run (reads and writes are both skipped).",
+)
 def analyze(
     repo_arg: Path | None,
     repo: Path,
@@ -260,6 +267,7 @@ def analyze(
     group_by: str | None,
     no_first_run: bool,
     review_mode: bool,
+    no_cache: bool,
 ) -> None:
     """Detailed drift analysis — produces comprehensive findings for investigation and triage.
 
@@ -416,6 +424,7 @@ def analyze(
             on_progress=effective_callback,
             workers=workers,
             active_signals=active_signals,
+            no_cache=no_cache,
         )
         if use_rich_progress and task_id is not None:
             progress.update(task_id, completed=_last_total)

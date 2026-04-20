@@ -490,6 +490,7 @@ class IngestionPhase:
         workers: int,
         degradation: DegradationInfo,
         progress: ProgressCallback | None = None,
+        no_cache: bool = False,
     ) -> ParsedInputs:
         """Parse source files and collect git context for downstream signal phases.
 
@@ -515,7 +516,7 @@ class IngestionPhase:
             try:
                 content_hash = ParseCache.file_hash(full_path)
                 file_hashes[finfo.path.as_posix()] = content_hash
-                hit = cache.get(content_hash)
+                hit = None if no_cache else cache.get(content_hash)
                 if hit is not None:
                     # Fix stale path: cache is keyed by content hash,
                     # so a hit may carry a file_path from a different
@@ -682,8 +683,9 @@ class IngestionPhase:
                             ],
                         )
 
-                for _idx, h, r in new_results:
-                    cache.put(h, r)
+                if not no_cache:
+                    for _idx, h, r in new_results:
+                        cache.put(h, r)
 
             missing = [i for i, pr in enumerate(parse_results_opt) if pr is None]
             if missing:
@@ -828,6 +830,7 @@ class SignalPhase:
         progress: ProgressCallback | None = None,
         workers: int = DEFAULT_WORKERS,
         active_signals: set[str] | None = None,
+        no_cache: bool = False,
     ) -> SignalOutput:
         """Execute enabled signals with optional embedding support and result caching.
 
@@ -911,11 +914,13 @@ class SignalPhase:
                     parsed.parse_results,
                     parsed.file_hashes,
                 )
-                cached = sig_cache.get(sig_type, legacy_config_fp, legacy_content_hash)
-                if cached is not None:
-                    return cached
+                if not no_cache:
+                    cached = sig_cache.get(sig_type, legacy_config_fp, legacy_content_hash)
+                    if cached is not None:
+                        return cached
                 findings = signal.analyze(parsed.parse_results, parsed.file_histories, config)
-                sig_cache.put(sig_type, legacy_config_fp, legacy_content_hash, findings)
+                if not no_cache:
+                    sig_cache.put(sig_type, legacy_config_fp, legacy_content_hash, findings)
                 return findings
 
             dep_scope = self._cache_dependency_scope(signal)
@@ -929,13 +934,15 @@ class SignalPhase:
                     if not file_hash:
                         continue
                     content_hash = SignalCache.content_hash_for_file(file_hash)
-                    cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
-                    if cached is not None:
-                        file_local_findings.extend(cached)
-                        continue
+                    if not no_cache:
+                        cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
+                        if cached is not None:
+                            file_local_findings.extend(cached)
+                            continue
                     local_histories = self._history_subset(parsed.file_histories, {p})
                     fresh = signal.analyze([pr], local_histories, config)
-                    sig_cache.put(sig_type, scope_config_fp, content_hash, fresh)
+                    if not no_cache:
+                        sig_cache.put(sig_type, scope_config_fp, content_hash, fresh)
                     file_local_findings.extend(fresh)
                 return file_local_findings
 
@@ -956,15 +963,17 @@ class SignalPhase:
                             :32
                         ],
                     )
-                    cached = sig_cache.get(sig_type, scope_config_fp, scoped_hash)
-                    if cached is not None:
-                        module_findings.extend(cached)
-                        continue
+                    if not no_cache:
+                        cached = sig_cache.get(sig_type, scope_config_fp, scoped_hash)
+                        if cached is not None:
+                            module_findings.extend(cached)
+                            continue
 
                     bucket_paths = {p.file_path.as_posix() for p in bucket_results}
                     local_histories = self._history_subset(parsed.file_histories, bucket_paths)
                     fresh = signal.analyze(bucket_results, local_histories, config)
-                    sig_cache.put(sig_type, scope_config_fp, scoped_hash, fresh)
+                    if not no_cache:
+                        sig_cache.put(sig_type, scope_config_fp, scoped_hash, fresh)
                     module_findings.extend(fresh)
                 return module_findings
 
@@ -981,11 +990,13 @@ class SignalPhase:
             else:
                 content_hash = repo_hash
 
-            cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
-            if cached is not None:
-                return cached
+            if not no_cache:
+                cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
+                if cached is not None:
+                    return cached
             findings = signal.analyze(parsed.parse_results, parsed.file_histories, config)
-            sig_cache.put(sig_type, scope_config_fp, content_hash, findings)
+            if not no_cache:
+                sig_cache.put(sig_type, scope_config_fp, content_hash, findings)
             return findings
 
         def _run_or_cache_timed(signal: BaseSignal) -> tuple[list[Finding], float]:
@@ -1340,6 +1351,7 @@ class AnalysisPipeline:
         workers: int = DEFAULT_WORKERS,
         active_signals: set[str] | None = None,
         discover_duration_seconds: float = 0.0,
+        no_cache: bool = False,
     ) -> RepoAnalysis:
         started_at = time.monotonic()
         degradation = DegradationInfo(causes=set(), components=set(), events=[])
@@ -1355,6 +1367,7 @@ class AnalysisPipeline:
             workers=workers,
             degradation=degradation,
             progress=on_progress,
+            no_cache=no_cache,
         )
         phase_timings.update(parsed.phase_timings)
         signaled = self._signals.run(
@@ -1365,6 +1378,7 @@ class AnalysisPipeline:
             progress=on_progress,
             workers=workers,
             active_signals=active_signals,
+            no_cache=no_cache,
         )
         phase_timings.update(signaled.phase_timings)
         scored = self._scoring.run(

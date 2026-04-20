@@ -272,6 +272,7 @@ from drift.commands.analyze import analyze
 from drift.commands.badge import badge
 from drift.commands.baseline import baseline
 from drift.commands.brief import brief
+from drift.commands.cache_cmd import cache
 from drift.commands.calibrate import calibrate
 from drift.commands.check import check
 from drift.commands.ci import ci
@@ -311,6 +312,7 @@ from drift.commands.watch import watch
 main.add_command(analyze)
 main.add_command(baseline)
 main.add_command(brief)
+main.add_command(cache)
 main.add_command(calibrate)
 main.add_command(init)
 main.add_command(check)

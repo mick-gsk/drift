@@ -121,6 +121,7 @@ def _run_pipeline(
     workers: int = _DEFAULT_WORKERS,
     active_signals: set[str] | None = None,
     discover_duration_seconds: float = 0.0,
+    no_cache: bool = False,
 ) -> RepoAnalysis:
     """Shared analysis pipeline delegated to composable phase components."""
     pipeline = AnalysisPipeline(signal_phase=SignalPhase(signal_factory=create_signals))
@@ -133,6 +134,7 @@ def _run_pipeline(
         workers=workers,
         active_signals=active_signals,
         discover_duration_seconds=discover_duration_seconds,
+        no_cache=no_cache,
     )
 
 
@@ -205,6 +207,7 @@ def analyze_repo(
     on_progress: ProgressCallback | None = None,
     workers: int | None = None,
     active_signals: set[str] | None = None,
+    no_cache: bool = False,
 ) -> RepoAnalysis:
     """Run full drift analysis on a repository."""
     repo_path = repo_path.resolve()
@@ -258,6 +261,7 @@ def analyze_repo(
         workers=effective_workers,
         active_signals=active_signals,
         discover_duration_seconds=discover_duration_seconds,
+        no_cache=no_cache,
     )
     analysis.analysis_duration_seconds = round(time.monotonic() - start, 2)
     analysis.phase_timings["discover_seconds"] = discover_duration_seconds
