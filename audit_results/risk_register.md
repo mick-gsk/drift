@@ -1,6 +1,18 @@
 # Risk Register
 
-## 2026-04-20 - Output: human_message field added to JSON output (--audience plain)
+## 2026-04-20 - interactive_review.py: pragma annotation only (non-functional)
+
+- Risk ID: RISK-OUTPUT-2026-04-20-PRAGMA-ANNOTATION
+- Component: `src/drift/output/interactive_review.py`
+- Type: Non-functional hygiene annotation
+- Description: Added `# pragma: allowlist secret` to the `"hardcoded_secret": "HSC"` string-abbreviation
+  mapping in the `SIGNAL_ABBREVIATIONS` dict. This is a pure detect-secrets false-positive suppression;
+  no code logic, output format, or signal behavior was changed.
+- Severity: NONE — no behavioral change; annotation is invisible at runtime.
+- Mitigations: N/A — purely declarative comment.
+- Residual risk: None.
+
+
 
 - Risk ID: RISK-OUTPUT-2026-04-20-HUMAN-MESSAGE-FIELD
 - Component: `src/drift/output/json_output.py`, `src/drift/output/rich_output.py`
