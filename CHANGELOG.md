@@ -1,18 +1,17 @@
 ## [2.18.1] – 2026-04-20
 
-Short version: Nudge baseline TTL configurable, drift analyze --no-cache flag, cohesion deficit FP reduction for private helpers, A2A scan param forwarding.
+Short version: Nudge baseline TTL configurable, drift analyze --no-cache and drift cache clear, cohesion deficit FP reduction for private helpers, A2A scan param forwarding.
 
 ### Added
 
-- `nudge_baseline_ttl_seconds` config field (default 900) in `DriftConfig` to tune baseline snapshot validity; persisted TTL replaced with current config value on warm load. Closes #421.
-- `drift analyze --no-cache`: bypasses `ParseCache` and `SignalCache` reads/writes for the current run without deleting existing cache entries. Threaded through `IngestionPhase`, `SignalPhase`, `AnalysisPipeline`, and `analyze_repo()`. Closes #424.
-- `drift cache clear`: removes parse and signal cache directories with `--parse-only`, `--signal-only`, and `--dry-run` flags.
+- `nudge_baseline_ttl_seconds` config field (default 900) to tune baseline snapshot validity; replaces persisted TTL on warm load. Closes #421.
+- `drift analyze --no-cache` and `drift cache clear` (with `--parse-only`/`--signal-only`/`--dry-run`): per-run cache bypass and manual cache invalidation. Closes #424.
 - CI: auto-update drift score badge in `README.md` on main-branch pushes.
 
 ### Fixed
 
-- `cohesion_deficit`: private (`_`-prefixed) functions excluded from semantic unit counting; reduces false positives after helper extraction refactors.
-- `a2a_router`: `target_path`, `max_findings`, and `strategy` forwarded to `scan()` handler.
+- `cohesion_deficit`: private (`_`-prefixed) functions excluded from semantic unit counting to reduce false positives after helper extraction refactors.
+- `a2a_router`: forward `target_path`, `max_findings`, and `strategy` to `scan()` handler.
 
 ## [2.18.0] – 2026-04-20
 
