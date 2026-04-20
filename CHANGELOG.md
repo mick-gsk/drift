@@ -1,3 +1,13 @@
+## [2.19.0] – 2026-04-20
+
+Short version: MCP startup verification, SECURITY.md and llms.txt consistency fixes for v2.19.0.
+
+### Fixed
+
+- `mcp_server.py`: `_assert_mcp_tools_registered()` verifies all exported MCP tools are present in the FastMCP runtime registry at startup; raises `RuntimeError` with actionable message on missing tools to surface silent schema-generation failures.
+- `SECURITY.md`: added 2.19.x as supported release line.
+- `llms.txt`: updated release status to v2.19.0.
+
 ## [2.18.1] – 2026-04-20
 
 Short version: Nudge baseline TTL configurable, drift analyze --no-cache and drift cache clear, cohesion deficit FP reduction for private helpers, A2A scan param forwarding.

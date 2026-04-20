@@ -36,9 +36,13 @@ Refactored: Issue #378 — business logic extracted to router modules
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Annotated, Any
 
 from drift.mcp_catalog import get_tool_catalog  # noqa: F401
+
+_LOGGER = logging.getLogger(__name__)
 
 MCPFastMCPImpl: Any
 
@@ -1390,6 +1394,45 @@ _EXPORTED_MCP_TOOLS = (
 # ---------------------------------------------------------------------------
 
 
+def _assert_mcp_tools_registered() -> None:
+    """Verify all expected MCP tools are registered in the FastMCP runtime registry.
+
+    Runs synchronously before the event loop starts (called from main()).  Raises
+    ``RuntimeError`` if any tool declared in ``_EXPORTED_MCP_TOOLS`` is absent from
+    the FastMCP tool registry so that silent schema-generation failures are surfaced
+    immediately at server startup rather than discovered only when a tool is invoked.
+    """
+    if not _MCP_AVAILABLE:
+        return
+
+    expected = {f.__name__ for f in _EXPORTED_MCP_TOOLS}
+    _LOGGER.debug("Verifying %d expected MCP tools in FastMCP registry…", len(expected))
+
+    try:
+        registered_tools = asyncio.run(mcp.list_tools())
+        registered = {t.name for t in registered_tools}
+    except Exception as exc:
+        raise RuntimeError(
+            f"MCP tool registry introspection failed: {exc!r}. "
+            "The server cannot guarantee all tools are available. "
+            "Try reinstalling: pip install --upgrade 'drift-analyzer[mcp]'"
+        ) from exc
+
+    missing = expected - registered
+    if missing:
+        missing_str = ", ".join(sorted(missing))
+        raise RuntimeError(
+            f"MCP tool registration incomplete: {len(missing)} tool(s) not in FastMCP "
+            f"registry: {missing_str}. This may indicate a FastMCP schema-generation "
+            f"failure. Try reinstalling: pip install --upgrade 'drift-analyzer[mcp]'"
+        )
+    _LOGGER.info(
+        "MCP server startup: %d/%d tools verified in FastMCP registry.",
+        len(registered),
+        len(expected),
+    )
+
+
 def _eager_imports() -> None:
     """Pre-import heavy modules before the event loop starts.
 
@@ -1415,4 +1458,5 @@ def main() -> None:
     # Ensure plugin signals are registered before API tools are exercised.
     load_all_plugins()
     _eager_imports()
+    _assert_mcp_tools_registered()
     mcp.run(transport="stdio")
