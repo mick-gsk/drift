@@ -58,6 +58,12 @@ fail_on: none  # recommended for the first rollout pass
 # Set to 1.0 to disable dampening (tags are metadata-only).  default: 0.5 (active)
 # context_dampening: 0.5
 
+# Nudge baseline TTL: how long (in seconds) a baseline stays valid before
+# a full re-scan is triggered.  Lower values suit high-churn repos; higher
+# values reduce re-scan overhead in slow CI or rarely-changing codebases.
+# default: 900 (15 minutes)
+# nudge_baseline_ttl_seconds: 900
+
 # Delta gate (ADR-005): exit 1 if score increases by more than this value
 # compared to the mean of the last N snapshots.  default: disabled
 # fail_on_delta: 0.05

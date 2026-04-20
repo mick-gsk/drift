@@ -399,6 +399,7 @@ def nudge(
             baseline = BaselineSnapshot(
                 file_hashes=file_hashes,
                 score=analysis.drift_score,
+                ttl_seconds=cfg.nudge_baseline_ttl_seconds,
             )
             mgr.store(
                 repo_path,

@@ -130,6 +130,16 @@ class DriftConfig(BaseModel):
             "artifacts (manifest + commits jsonl)."
         ),
     )
+    nudge_baseline_ttl_seconds: int = Field(
+        default=900,
+        description=(
+            "Time-to-live in seconds for nudge baselines. "
+            "After this period a full re-scan is triggered to refresh the baseline. "
+            "Lower values suit high-churn repos; higher values reduce re-scan frequency "
+            "in slow CI or infrequently-changing codebases. "
+            "Default: 900 (15 minutes)."
+        ),
+    )
     fail_on: str = "high"
     context_dampening: float = 0.5
     fail_on_delta: float | None = None

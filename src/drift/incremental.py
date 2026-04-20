@@ -585,7 +585,7 @@ class BaselineManager:
                 file_hashes=file_hashes,
                 score=float(payload.get("score", 0.0)),
                 created_at=float(payload.get("created_at", time.time())),
-                ttl_seconds=int(payload.get("ttl_seconds", 900)),
+                ttl_seconds=config.nudge_baseline_ttl_seconds,
             )
             self._nudge_key_meta[repo_key] = key_meta
             git_state = _capture_git_state(repo_path)
