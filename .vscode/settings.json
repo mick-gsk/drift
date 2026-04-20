@@ -10,5 +10,6 @@
   },
   "task.allowAutomaticTasks": "on",
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-  "python-envs.defaultEnvManager": "ms-python.python:system"
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "drift.driftCommand": "C:\\Users\\mickg\\PWBS\\drift\\.venv\\Scripts\\drift.exe"
 }

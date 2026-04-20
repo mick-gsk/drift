@@ -1,4 +1,4 @@
-## [Unreleased]
+## [2.20.0] – 2026-04-20
 
 Short version: guard_contract API and `drift context` CLI for pre-edit architectural constraints; nudge finding cluster summary and dynamic agent_instruction; enriched feedback response.
 
