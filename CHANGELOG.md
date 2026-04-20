@@ -1,4 +1,4 @@
-## [Unreleased]
+## [2.18.1] – 2026-04-20
 
 Short version: Nudge baseline TTL configurable, drift analyze --no-cache flag, cohesion deficit FP reduction for private helpers, A2A scan param forwarding.
 
