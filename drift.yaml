@@ -42,6 +42,12 @@ path_overrides:
   "src/drift/api":
     exclude_signals:
       - pattern_fragmentation
+  # ADR files reference directory names (calibration/, serve/, etc.) as
+  # architecture descriptions — the actual directories exist under src/drift/
+  # with full package paths. DIA bare-name matching produces FPs here.
+  "decisions/*":
+    exclude_signals:
+      - doc_impl_drift
 
 calibration:
   enabled: true

@@ -187,8 +187,11 @@ def _handle_scan(params: dict[str, Any]) -> dict[str, Any]:
     path = _validate_repo_path(params.get("path", "."))
     return scan(
         path=path,
+        target_path=params.get("target_path"),
         response_detail=params.get("response_detail", "detailed"),
         since_days=params.get("since_days", 90),
+        max_findings=int(params.get("max_findings", 10)),
+        strategy=params.get("strategy", "diverse"),
     )
 
 

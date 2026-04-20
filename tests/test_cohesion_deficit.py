@@ -245,6 +245,36 @@ def test_issue_284_test_helpers_file_is_ignored() -> None:
     assert findings == []
 
 
+def test_cod_private_helper_extraction_does_not_flag() -> None:
+    """Private helpers extracted from public functions must not trigger COD.
+
+    A module with 1–2 public functions + several private helpers is the normal
+    'helper extraction' refactoring pattern. COD should not fire because private
+    functions are implementation details, not independent semantic responsibilities.
+    """
+    file_path = "invoicing/processor.py"
+    parse_result = ParseResult(
+        file_path=Path(file_path),
+        language="python",
+        functions=[
+            # public API — two distinct but file-level responsibilities
+            _function("process_invoice", file_path, 1),
+            _function("send_invoice_alert", file_path, 20),
+            # private helpers extracted from the two public functions
+            _function("_parse_invoice_xml", file_path, 40),
+            _function("_normalize_amount", file_path, 50),
+            _function("_format_alert_body", file_path, 60),
+            _function("_validate_recipient", file_path, 70),
+        ],
+    )
+
+    findings = CohesionDeficitSignal().analyze([parse_result], {}, DriftConfig())
+    assert findings == [], (
+        "Private helpers must not count as isolated units; "
+        "only public functions are semantic units for COD"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Parametrized ground-truth fixture tests
 # ---------------------------------------------------------------------------

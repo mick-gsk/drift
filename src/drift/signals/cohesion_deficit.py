@@ -173,6 +173,10 @@ def _jaccard(left: frozenset[str], right: frozenset[str]) -> float:
 def _function_unit(fn: FunctionInfo) -> _SemanticUnit | None:
     if "." in fn.name:
         return None
+    if fn.name.startswith("_"):
+        # Private helpers are implementation details, not independent semantic units.
+        # Counting them inflates isolation_ratio and causes FPs after helper extraction.
+        return None
     tokens = _tokenize_name(fn.name)
     if len(tokens) < 1:
         return None

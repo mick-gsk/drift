@@ -266,6 +266,28 @@ Or auto-generate: `pip install drift-analyzer[mcp] && drift init --mcp`
 
 📖 [Full integration guide →](https://mick-gsk.github.io/drift/integrations/)
 
+### VS Code Extension
+
+The `vscode-drift` extension shows findings as inline **CodeLens** annotations — no terminal needed.
+
+```
+auth/handler.py             [Drift · C · score 0.71 · 3 findings (1 high, 2 medium)]
+  def authenticate(...):    [Drift · PFS · co-change coupling to auth/service.py · high]
+```
+
+**Install from VSIX:**
+```bash
+pip install drift-analyzer          # drift must be on PATH
+code --install-extension vscode-drift-0.1.0.vsix
+```
+
+Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page, or build from source:
+```bash
+cd extensions/vscode-drift && npm install && npm run compile
+```
+
+📖 [Extension README →](extensions/vscode-drift/README.md)
+
 ---
 
 ## 🎛️ Configuration profiles

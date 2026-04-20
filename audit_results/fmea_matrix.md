@@ -1,5 +1,12 @@
 # FMEA Matrix
 
+## 2026-04-20 - COD FP: Private Helper Extraction in Mono-Function Files
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| COD / `_function_unit` | FP: `_private_helper`-Funktionen als eigenständige semantische Einheiten gezählt | `_function_unit` prüfte nur auf `.` im Namen (Klassen-Methoden-Filter), nicht auf `_`-Präfix | `isolation_ratio` überhöht nach Helfer-Extraktion aus 1–2 öffentlichen Funktionen → high-severity COD-Finding in kohärenten Mono-Funktion-Modulen | `test_cod_private_helper_extraction_does_not_flag`; `cod_private_helpers_tn` Ground-Truth-Fixture | `_function_unit` gibt `None` zurück wenn `fn.name.startswith("_")`; private Funktionen werden aus der Unit-Sammlung ausgeschlossen | 5 | 3 | 2 | 30 | Mitigated |
+| COD / `_function_unit` | FN-Risiko: Modul mit ausschließlich privaten Funktionen (kein Public API) erzeugt 0 Units → kein Finding | Neuer `_`-Filter entfernt alle Einheiten | Datei mit unzusammenhängenden privaten Verantwortlichkeiten wird nicht erkannt | `cod_tp` und `test_cod_true_positive_fixture` bleiben aktiv (alle-öffentliche Mixed-Domain) | Akzeptiertes Residual-Risiko: Dateien ohne Public API haben keine semantisch erkennbaren Verantwortlichkeiten im COD-Sinne; Scope der Entscheidung in `_function_unit` kommentiert | 3 | 1 | 5 | 15 | Accepted |
+
 ## 2026-04-19 - Issue #526: PFS FP-Reduktion error_handling-Propagation und Exception-Typ-Normalisierung
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

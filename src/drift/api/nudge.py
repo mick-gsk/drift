@@ -204,6 +204,482 @@ def _removed_file_prune_warning(pruned_count: int) -> dict[str, Any] | None:
     }
 
 
+class _NudgeExecution:
+    """Command object that encapsulates a single nudge() call.
+
+    Splits the execution into focused phase methods so every method stays
+    below the CXS threshold of 15.
+    """
+
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        changed_files: list[str] | None,
+        uncommitted: bool,
+        signals: list[str] | None,
+        exclude_signals: list[str] | None,
+        response_profile: str | None,
+        task_signal: str | None,
+        task_edit_kind: str | None,
+        task_context_class: str | None,
+    ) -> None:
+        import time as _time
+
+        self._time = _time
+        self._start_ms = _time.monotonic()
+        self.repo_path = Path(path).resolve()
+        self.repo_key = self.repo_path.as_posix()
+        self.params: dict[str, Any] = {
+            "path": str(path),
+            "changed_files": changed_files,
+            "uncommitted": uncommitted,
+        }
+        self._initial_changed_files = changed_files
+        self.uncommitted = uncommitted
+        self.signals = signals
+        self.exclude_signals = exclude_signals
+        self.response_profile = response_profile
+        self.task_signal = task_signal
+        self.task_edit_kind = task_edit_kind
+        self.task_context_class = task_context_class
+        self.parse_failed_files: list[dict[str, Any]] = []
+
+        # Set during execution phases
+        self.cfg: Any = None
+        self.changed_set: set[str] = set()
+        self.ignored_changed_files: list[str] = []
+        self.git_detection_failed: bool = False
+        self.baseline: Any = None
+        self.baseline_findings: list[Any] = []
+        self.baseline_parse_map: dict[str, Any] = {}
+        self.baseline_refresh_reason: str | None = None
+        self.current_parse: dict[str, Any] = {}
+        self.effective_changed_set: set[str] = set()
+        self.unchanged_hash_skips: int = 0
+        self.inc_result: Any = None
+
+    def elapsed_ms(self) -> int:
+        return int((self._time.monotonic() - self._start_ms) * 1_000)
+
+    def _record_parse_failure(
+        self,
+        *,
+        file_path: str,
+        stage: str,
+        reason: str,
+        errors: list[str] | None = None,
+    ) -> None:
+        entry: dict[str, Any] = {
+            "file": file_path,
+            "stage": stage,
+            "reason": reason,
+        }
+        if errors:
+            entry["errors"] = list(errors)
+        self.parse_failed_files.append(entry)
+
+    def _load_config(self) -> None:
+        self.cfg = _load_config_cached(self.repo_path)
+        _warn_config_issues(self.cfg)
+
+    def _detect_changed_files(self) -> None:
+        changed_files = self._initial_changed_files
+        self.git_detection_failed = False
+        if changed_files is None:
+            detected = _get_changed_files_from_git(
+                self.repo_path, uncommitted=self.uncommitted
+            )
+            if detected is None:
+                self.git_detection_failed = True
+                changed_files = []
+            else:
+                changed_files = detected
+        self.changed_set = set(changed_files)
+        self.ignored_changed_files = sorted(
+            fp for fp in self.changed_set if _is_derived_cache_artifact(fp)
+        )
+        if self.ignored_changed_files:
+            self.changed_set.difference_update(self.ignored_changed_files)
+
+    def _ensure_baseline(self) -> None:
+        from drift.incremental import BaselineManager
+
+        cfg = self.cfg
+        mgr = BaselineManager.instance()
+        stored = mgr.get(self.repo_path, config=cfg)
+        self.baseline_refresh_reason = None
+        if stored is not None:
+            self.baseline_refresh_reason = mgr.consume_refresh_reason(self.repo_path)
+
+        if stored is None:
+            stored = self._create_baseline(mgr)
+
+        self.baseline, self.baseline_findings, self.baseline_parse_map = stored
+
+    def _create_baseline(self, mgr: Any) -> Any:
+        from drift.analyzer import analyze_repo
+        from drift.cache import ParseCache
+        from drift.incremental import BaselineSnapshot
+        from drift.ingestion.ast_parser import parse_file
+        from drift.ingestion.file_discovery import discover_files
+
+        cfg = self.cfg
+        self.baseline_refresh_reason = (
+            mgr.consume_refresh_reason(self.repo_path) or "baseline_missing"
+        )
+        all_files = discover_files(
+            self.repo_path,
+            include=cfg.include,
+            exclude=cfg.exclude,
+            max_files=cfg.thresholds.max_discovery_files,
+            cache_dir=cfg.cache_dir,
+        )
+        analysis = analyze_repo(self.repo_path, config=cfg)
+
+        pcache = ParseCache(self.repo_path / cfg.cache_dir)
+        file_hashes: dict[str, str] = {}
+        parse_map: dict[str, Any] = {}
+        for finfo in all_files:
+            full_path = self.repo_path / finfo.path
+            posix = finfo.path.as_posix()
+            try:
+                h = ParseCache.file_hash(full_path)
+                file_hashes[posix] = h
+            except OSError:
+                continue
+
+            cached_pr = pcache.get(h)
+            if cached_pr is not None:
+                if cached_pr.file_path != finfo.path:
+                    cached_pr.file_path = finfo.path
+                parse_map[posix] = cached_pr
+                continue
+
+            try:
+                pr = parse_file(finfo.path, self.repo_path, finfo.language)
+                parse_map[posix] = pr
+                if pr.parse_errors:
+                    self._record_parse_failure(
+                        file_path=posix,
+                        stage="baseline",
+                        reason="parse_errors",
+                        errors=pr.parse_errors,
+                    )
+            except Exception as exc:
+                self._record_parse_failure(
+                    file_path=posix,
+                    stage="baseline",
+                    reason="parse_exception",
+                    errors=[str(exc)],
+                )
+
+        baseline = BaselineSnapshot(
+            file_hashes=file_hashes,
+            score=analysis.drift_score,
+            ttl_seconds=cfg.nudge_baseline_ttl_seconds,
+        )
+        mgr.store(
+            self.repo_path,
+            baseline,
+            list(analysis.findings),
+            parse_map,
+            config=cfg,
+        )
+        stored = (baseline, list(analysis.findings), parse_map)
+        # Sync legacy store for backward compat
+        _baseline_store[self.repo_key] = stored
+        return stored
+
+    def _parse_changed_files(self) -> None:
+        from drift.cache import ParseCache
+        from drift.ingestion.ast_parser import parse_file
+        from drift.ingestion.file_discovery import (
+            _matches_any_prepared,
+            _prepare_patterns,
+            detect_language,
+        )
+
+        cfg = self.cfg
+        exclude_patterns = cfg.exclude or [
+            "**/node_modules/**", "**/__pycache__/**", "**/venv/**",
+            "**/.venv/**", "**/.git/**", "**/dist/**", "**/build/**",
+            "**/site-packages/**", "**/tests/**", "**/scripts/**",
+        ]
+        prepared_exclude = _prepare_patterns(tuple(exclude_patterns))
+
+        for fp in self.changed_set:
+            self._parse_single_changed_file(
+                fp, prepared_exclude, ParseCache, parse_file, detect_language,
+                _matches_any_prepared,
+            )
+
+        # De-duplicate for deterministic response contracts.
+        self.parse_failed_files = sorted(
+            {
+                (
+                    e["file"],
+                    e["stage"],
+                    e["reason"],
+                    tuple(e.get("errors", [])),
+                ): e
+                for e in self.parse_failed_files
+            }.values(),
+            key=lambda e: (e["stage"], e["file"], e["reason"]),
+        )
+
+    def _parse_single_changed_file(
+        self,
+        fp: str,
+        prepared_exclude: Any,
+        ParseCache: Any,
+        parse_file: Any,
+        detect_language: Any,
+        matches_any: Any,
+    ) -> None:
+        full_path = self.repo_path / fp
+        if matches_any(fp, prepared_exclude):
+            return
+        if not full_path.is_file():
+            self._record_parse_failure(
+                file_path=fp,
+                stage="changed",
+                reason="file_not_discovered",
+                errors=["changed file is not part of discoverable source set"],
+            )
+            self.effective_changed_set.add(fp)
+            return
+
+        lang = detect_language(full_path)
+        if lang is None:
+            return
+
+        try:
+            current_hash = ParseCache.file_hash(full_path)
+        except OSError:
+            current_hash = None
+
+        baseline_parse_result = self.baseline_parse_map.get(fp)
+        baseline_has_parse_errors = bool(
+            baseline_parse_result and baseline_parse_result.parse_errors
+        )
+        if (
+            current_hash is not None
+            and self.baseline.file_hashes.get(fp) == current_hash
+            and not baseline_has_parse_errors
+        ):
+            self.unchanged_hash_skips += 1
+            return
+
+        self.effective_changed_set.add(fp)
+        try:
+            pr = parse_file(Path(fp), self.repo_path, lang)
+            self.current_parse[fp] = pr
+            if pr.parse_errors:
+                self._record_parse_failure(
+                    file_path=fp,
+                    stage="changed",
+                    reason="parse_errors",
+                    errors=pr.parse_errors,
+                )
+        except Exception as exc:
+            self._record_parse_failure(
+                file_path=fp,
+                stage="changed",
+                reason="parse_exception",
+                errors=[str(exc)],
+            )
+
+    def _run_incremental_analysis(self) -> None:
+        from drift.incremental import IncrementalResult, IncrementalSignalRunner
+
+        parse_failure_count = len(self.parse_failed_files)
+        if not self.effective_changed_set and parse_failure_count == 0:
+            self.inc_result = IncrementalResult(
+                direction="stable",
+                delta=0.0,
+                score=self.baseline.score,
+                new_findings=[],
+                resolved_findings=[],
+                confidence={},
+                file_local_signals_run=[],
+                cross_file_signals_estimated=[],
+                baseline_valid=True,
+            )
+            return
+
+        runner = IncrementalSignalRunner(
+            baseline=self.baseline,
+            config=self.cfg,
+            baseline_findings=self.baseline_findings,
+            baseline_parse_results=self.baseline_parse_map,
+            repo_path=self.repo_path,
+        )
+        self.inc_result = runner.run(self.effective_changed_set, self.current_parse)
+
+    def _filter_findings(self) -> tuple[list[Any], list[Any]]:
+        from drift.models import Finding  # noqa: F401 — used via type narrowing
+
+        _new = self.inc_result.new_findings
+        _resolved = self.inc_result.resolved_findings
+        if not (self.signals or self.exclude_signals):
+            return _new, _resolved
+
+        _include = {s.upper() for s in self.signals} if self.signals else None
+        _exclude = {s.upper() for s in self.exclude_signals} if self.exclude_signals else set()
+
+        def _sig_match(f: Any) -> bool:
+            abbr = signal_abbrev(f.signal_type)
+            if _include is not None and abbr not in _include:
+                return False
+            return abbr not in _exclude
+
+        return [f for f in _new if _sig_match(f)], [f for f in _resolved if _sig_match(f)]
+
+    def _build_nudge_message(
+        self, *, safe_to_commit: bool
+    ) -> str:
+        direction = self.inc_result.direction
+        if direction == "improving":
+            return "Changes improve architectural coherence. Safe to proceed."
+        if direction == "stable":
+            return "No measurable drift impact. Continue."
+        if safe_to_commit:
+            return (
+                "Minor degradation detected but within acceptable bounds. "
+                "Consider reviewing before committing."
+            )
+        return (
+            "Significant drift detected. Review the blocking reasons "
+            "before committing."
+        )
+
+    def _collect_warnings(self) -> list[dict[str, Any]]:
+        warnings: list[dict[str, Any]] = []
+        blind_spot = _cross_file_blind_spot_warning(
+            self.inc_result.cross_file_signals_estimated
+        )
+        if blind_spot is not None:
+            warnings.append(blind_spot)
+        prune = _removed_file_prune_warning(
+            self.inc_result.pruned_removed_cross_file_findings
+        )
+        if prune is not None:
+            warnings.append(prune)
+        return warnings
+
+    def _build_response(self) -> dict[str, Any]:
+        parse_failure_count = len(self.parse_failed_files)
+        blocking_state = _build_nudge_blocking_state(
+            inc_result=self.inc_result,
+            git_detection_failed=self.git_detection_failed,
+            changed_set_empty=not self.changed_set,
+            parse_failure_count=parse_failure_count,
+            significant_delta_threshold=_NUDGE_SIGNIFICANT_DELTA,
+        )
+        safe_to_commit = blocking_state.safe_to_commit
+        magnitude = _nudge_magnitude_label(self.inc_result.delta)
+        nudge_msg = self._build_nudge_message(safe_to_commit=safe_to_commit)
+        warnings = self._collect_warnings()
+        _new, _resolved = self._filter_findings()
+
+        result = _base_response(
+            direction=self.inc_result.direction,
+            delta=self.inc_result.delta,
+            magnitude=magnitude,
+            score=round(self.inc_result.score, 4),
+            safe_to_commit=safe_to_commit,
+            blocking_reasons=blocking_state.blocking_reasons,
+            nudge=nudge_msg,
+            new_findings=[_finding_concise(f) for f in _new[:5]],
+            resolved_findings=[_finding_concise(f) for f in _resolved[:5]],
+            confidence=self.inc_result.confidence,
+            expected_transient=False,  # MVP: always false (Step 14)
+            baseline_age_seconds=round(
+                self._time.time() - self.baseline.created_at, 1
+            ),
+            baseline_valid=self.inc_result.baseline_valid,
+            baseline_refresh_reason=self.baseline_refresh_reason,
+            file_local_signals_run=self.inc_result.file_local_signals_run,
+            cross_file_signals_estimated=self.inc_result.cross_file_signals_estimated,
+            parse_failure_count=parse_failure_count,
+            parse_failed_files=self.parse_failed_files,
+            parse_failure_treatment={
+                "affects_safe_to_commit": True,
+                "policy": "blocking",
+                "condition": "parse_failure_count > 0",
+                "explanation": (
+                    "Nudge marks safe_to_commit as false when parse failures are present "
+                    "because impacted files were not fully analyzable."
+                ),
+            },
+            changed_files=sorted(self.changed_set),
+            ignored_changed_files=self.ignored_changed_files,
+            analyzed_changed_files=sorted(self.effective_changed_set),
+            unchanged_hash_skips=self.unchanged_hash_skips,
+            warnings=warnings,
+            agent_instruction=(
+                "Use drift_nudge between edits for fast direction checks. "
+                "If safe_to_commit is false, address blocking_reasons first. "
+                "Call drift_diff after completing a batch for full verification."
+            ),
+        )
+        result.update(_nudge_next_step_contract(safe_to_commit=safe_to_commit))
+        return result
+
+    def _record_outcome(self) -> None:
+        if not (
+            self.task_signal
+            and self.task_edit_kind
+            and self.inc_result.direction in ("improving", "regressing")
+        ):
+            return
+        try:
+            from drift.repair_template_registry import get_registry as _get_reg
+            _get_reg().record_outcome(
+                signal=self.task_signal,
+                edit_kind=self.task_edit_kind,
+                context_class=self.task_context_class or "production",
+                direction=self.inc_result.direction,
+                score_delta=self.inc_result.delta,
+            )
+        except Exception:  # pragma: no cover
+            pass  # registry failures must never break nudge
+
+    def _emit_telemetry(
+        self, *, status: str, result: dict[str, Any] | None, error: Exception | None
+    ) -> None:
+        _emit_api_telemetry(
+            tool_name="api.nudge",
+            params=self.params,
+            status=status,
+            elapsed_ms=self.elapsed_ms(),
+            result=result,
+            error=error,
+            repo_root=self.repo_path,
+        )
+
+    def _execute(self) -> dict[str, Any]:
+        self._load_config()
+        self._detect_changed_files()
+        self._ensure_baseline()
+        self._parse_changed_files()
+        self._run_incremental_analysis()
+        self._record_outcome()
+        result = self._build_response()
+        result = apply_output_mode(result, getattr(self.cfg, "output_mode", "full"))
+        return shape_for_profile(result, self.response_profile)
+
+    def run(self) -> dict[str, Any]:
+        try:
+            result = self._execute()
+            self._emit_telemetry(status="ok", result=result, error=None)
+            return result
+        except Exception as exc:
+            self._emit_telemetry(status="error", result=None, error=exc)
+            return _error_response("DRIFT-5001", str(exc), recoverable=True)
+
+
 def nudge(
     path: str | Path = ".",
     *,
@@ -265,423 +741,17 @@ def nudge(
     incremental and usually complete in 0.1–0.5 s.  Callers should expect
     the warm-up cost on the initial invocation.
     """
-    import time as _time
-
-    from drift.incremental import BaselineSnapshot, IncrementalSignalRunner
-    from drift.ingestion.ast_parser import parse_file
-    from drift.ingestion.file_discovery import discover_files
-
-    start_ms = _time.monotonic()
-    repo_path = Path(path).resolve()
-    repo_key = repo_path.as_posix()
-
-    params: dict[str, Any] = {
-        "path": str(path),
-        "changed_files": changed_files,
-        "uncommitted": uncommitted,
-    }
-    parse_failed_files: list[dict[str, Any]] = []
-
-    def record_parse_failure(
-        *,
-        file_path: str,
-        stage: str,
-        reason: str,
-        errors: list[str] | None = None,
-    ) -> None:
-        entry: dict[str, Any] = {
-            "file": file_path,
-            "stage": stage,
-            "reason": reason,
-        }
-        if errors:
-            entry["errors"] = list(errors)
-        parse_failed_files.append(entry)
-
-    def elapsed_ms() -> int:
-        return int((_time.monotonic() - start_ms) * 1_000)
-
-    try:
-        cfg = _load_config_cached(repo_path)
-        _warn_config_issues(cfg)
-
-        # -- Auto-detect changed files if not provided ----------------------
-        git_detection_failed = False
-        if changed_files is None:
-            detected = _get_changed_files_from_git(
-                repo_path, uncommitted=uncommitted
-            )
-            if detected is None:
-                git_detection_failed = True
-                changed_files = []
-            else:
-                changed_files = detected
-        changed_set = set(changed_files)
-        ignored_changed_files = sorted(
-            fp for fp in changed_set if _is_derived_cache_artifact(fp)
-        )
-        if ignored_changed_files:
-            changed_set.difference_update(ignored_changed_files)
-
-        # -- Ensure baseline exists via BaselineManager (Phase 5) -----------
-        from drift.incremental import BaselineManager
-
-        mgr = BaselineManager.instance()
-        stored = mgr.get(repo_path, config=cfg)
-        baseline_refresh_reason: str | None = None
-        if stored is not None:
-            baseline_refresh_reason = mgr.consume_refresh_reason(repo_path)
-
-        if stored is None:
-            baseline_refresh_reason = (
-                mgr.consume_refresh_reason(repo_path) or "baseline_missing"
-            )
-            # Run full scan to create baseline
-            from drift.analyzer import analyze_repo
-
-            # Discover files once and reuse for both analysis and baseline.
-            all_files = discover_files(
-                repo_path,
-                include=cfg.include,
-                exclude=cfg.exclude,
-                max_files=cfg.thresholds.max_discovery_files,
-                cache_dir=cfg.cache_dir,
-            )
-            analysis = analyze_repo(repo_path, config=cfg)
-
-            # Build file_hashes + parse_results map.
-            # analyze_repo() already parsed all files via the pipeline,
-            # so ParseCache will serve warm hits here — no re-parse cost
-            # for unchanged files.
-            from drift.cache import ParseCache
-
-            pcache = ParseCache(repo_path / cfg.cache_dir)
-            file_hashes: dict[str, str] = {}
-            parse_map: dict[str, ParseResult] = {}
-            for finfo in all_files:
-                full_path = repo_path / finfo.path
-                posix = finfo.path.as_posix()
-                try:
-                    h = ParseCache.file_hash(full_path)
-                    file_hashes[posix] = h
-                except OSError:
-                    continue
-
-                # Try cache first (warm from analyze_repo pipeline)
-                cached_pr = pcache.get(h)
-                if cached_pr is not None:
-                    # Fix stale path from content-hash cache
-                    if cached_pr.file_path != finfo.path:
-                        cached_pr.file_path = finfo.path
-                    parse_map[posix] = cached_pr
-                    continue
-
-                # Fallback: parse (should rarely happen after analyze_repo)
-                try:
-                    pr = parse_file(finfo.path, repo_path, finfo.language)
-                    parse_map[posix] = pr
-                    if pr.parse_errors:
-                        record_parse_failure(
-                            file_path=posix,
-                            stage="baseline",
-                            reason="parse_errors",
-                            errors=pr.parse_errors,
-                        )
-                except Exception as exc:
-                    record_parse_failure(
-                        file_path=posix,
-                        stage="baseline",
-                        reason="parse_exception",
-                        errors=[str(exc)],
-                    )
-                    continue
-
-            baseline = BaselineSnapshot(
-                file_hashes=file_hashes,
-                score=analysis.drift_score,
-                ttl_seconds=cfg.nudge_baseline_ttl_seconds,
-            )
-            mgr.store(
-                repo_path,
-                baseline,
-                list(analysis.findings),
-                parse_map,
-                config=cfg,
-            )
-            stored = (baseline, list(analysis.findings), parse_map)
-            # Sync legacy store for backward compat
-            _baseline_store[repo_key] = stored
-
-        baseline, baseline_findings, baseline_parse_map = stored
-
-        # -- Parse only files that are changed vs baseline snapshot ----------
-        # A file can stay in ``git diff`` for a long time. If its current
-        # content hash already matches the baseline snapshot, re-parsing it
-        # on every nudge call is pure overhead and does not improve quality.
-        from drift.cache import ParseCache
-
-        current_parse: dict[str, ParseResult] = {}
-        effective_changed_set: set[str] = set()
-        unchanged_hash_skips = 0
-
-        # Resolve language + exclude checks for changed files directly
-        # instead of walking the entire file tree via discover_files().
-        # Nudge typically touches 1-5 files, so per-file checks are
-        # significantly cheaper than a full glob walk.
-        from drift.ingestion.file_discovery import (
-            _matches_any_prepared,
-            _prepare_patterns,
-            detect_language,
-        )
-
-        exclude_patterns = cfg.exclude or [
-            "**/node_modules/**", "**/__pycache__/**", "**/venv/**",
-            "**/.venv/**", "**/.git/**", "**/dist/**", "**/build/**",
-            "**/site-packages/**", "**/tests/**", "**/scripts/**",
-        ]
-        prepared_exclude = _prepare_patterns(tuple(exclude_patterns))
-
-        for fp in changed_set:
-            full_path = repo_path / fp
-
-            # Quick exclude/language check instead of full tree walk
-            if _matches_any_prepared(fp, prepared_exclude):
-                continue
-            if not full_path.is_file():
-                record_parse_failure(
-                    file_path=fp,
-                    stage="changed",
-                    reason="file_not_discovered",
-                    errors=["changed file is not part of discoverable source set"],
-                )
-                # Keep this in the changed set for conservative downstream handling.
-                effective_changed_set.add(fp)
-                continue
-
-            lang = detect_language(full_path)
-            if lang is None:
-                # Unsupported file type — skip silently
-                continue
-
-            try:
-                current_hash = ParseCache.file_hash(full_path)
-            except OSError:
-                current_hash = None
-
-            baseline_hash = baseline.file_hashes.get(fp)
-            baseline_parse_result = baseline_parse_map.get(fp)
-            baseline_has_parse_errors = bool(
-                baseline_parse_result and baseline_parse_result.parse_errors
-            )
-            if (
-                current_hash is not None
-                and baseline_hash == current_hash
-                and not baseline_has_parse_errors
-            ):
-                unchanged_hash_skips += 1
-                continue
-
-            effective_changed_set.add(fp)
-            try:
-                pr = parse_file(Path(fp), repo_path, lang)
-                current_parse[fp] = pr
-                if pr.parse_errors:
-                    record_parse_failure(
-                        file_path=fp,
-                        stage="changed",
-                        reason="parse_errors",
-                        errors=pr.parse_errors,
-                    )
-            except Exception as exc:
-                record_parse_failure(
-                    file_path=fp,
-                    stage="changed",
-                    reason="parse_exception",
-                    errors=[str(exc)],
-                )
-                continue
-
-        # De-duplicate for deterministic response contracts.
-        parse_failed_files = sorted(
-            {
-                (
-                    e["file"],
-                    e["stage"],
-                    e["reason"],
-                    tuple(e.get("errors", [])),
-                ): e
-                for e in parse_failed_files
-            }.values(),
-            key=lambda e: (e["stage"], e["file"], e["reason"]),
-        )
-        parse_failure_count = len(parse_failed_files)
-
-        # -- Run incremental analysis ---------------------------------------
-        # Fast path: no effective source-file changes means no directional
-        # signal delta; avoid invoking the full incremental runner.
-        if not effective_changed_set and parse_failure_count == 0:
-            from drift.incremental import IncrementalResult
-
-            inc_result = IncrementalResult(
-                direction="stable",
-                delta=0.0,
-                score=baseline.score,
-                new_findings=[],
-                resolved_findings=[],
-                confidence={},
-                file_local_signals_run=[],
-                cross_file_signals_estimated=[],
-                baseline_valid=True,
-            )
-        else:
-            runner = IncrementalSignalRunner(
-                baseline=baseline,
-                config=cfg,
-                baseline_findings=baseline_findings,
-                baseline_parse_results=baseline_parse_map,
-                repo_path=repo_path,
-            )
-            inc_result = runner.run(effective_changed_set, current_parse)
-
-        # -- safe_to_commit hardrule (Step 13) ------------------------------
-        blocking_state = _build_nudge_blocking_state(
-            inc_result=inc_result,
-            git_detection_failed=git_detection_failed,
-            changed_set_empty=not changed_set,
-            parse_failure_count=parse_failure_count,
-            significant_delta_threshold=_NUDGE_SIGNIFICANT_DELTA,
-        )
-        safe_to_commit = blocking_state.safe_to_commit
-        blocking_reasons = blocking_state.blocking_reasons
-
-        # -- Magnitude label -----------------------------------------------
-        magnitude = _nudge_magnitude_label(inc_result.delta)
-
-        # -- Nudge message --------------------------------------------------
-        if inc_result.direction == "improving":
-            nudge_msg = "Changes improve architectural coherence. Safe to proceed."
-        elif inc_result.direction == "stable":
-            nudge_msg = "No measurable drift impact. Continue."
-        elif safe_to_commit:
-            nudge_msg = (
-                "Minor degradation detected but within acceptable bounds. "
-                "Consider reviewing before committing."
-            )
-        else:
-            nudge_msg = (
-                "Significant drift detected. Review the blocking reasons "
-                "before committing."
-            )
-
-        warnings: list[dict[str, Any]] = []
-        blind_spot_warning = _cross_file_blind_spot_warning(
-            inc_result.cross_file_signals_estimated
-        )
-        if blind_spot_warning is not None:
-            warnings.append(blind_spot_warning)
-        prune_warning = _removed_file_prune_warning(
-            inc_result.pruned_removed_cross_file_findings
-        )
-        if prune_warning is not None:
-            warnings.append(prune_warning)
-
-        # -- Build response -------------------------------------------------
-        # Apply signal filtering to new/resolved findings if requested
-        _new = inc_result.new_findings
-        _resolved = inc_result.resolved_findings
-        if signals or exclude_signals:
-            _include = {s.upper() for s in signals} if signals else None
-            _exclude = {s.upper() for s in exclude_signals} if exclude_signals else set()
-            def _sig_match(f: Finding) -> bool:
-                abbr = signal_abbrev(f.signal_type)
-                if _include is not None and abbr not in _include:
-                    return False
-                return abbr not in _exclude
-            _new = [f for f in _new if _sig_match(f)]
-            _resolved = [f for f in _resolved if _sig_match(f)]
-
-        result = _base_response(
-            direction=inc_result.direction,
-            delta=inc_result.delta,
-            magnitude=magnitude,
-            score=round(inc_result.score, 4),
-            safe_to_commit=safe_to_commit,
-            blocking_reasons=blocking_reasons,
-            nudge=nudge_msg,
-            new_findings=[_finding_concise(f) for f in _new[:5]],
-            resolved_findings=[
-                _finding_concise(f) for f in _resolved[:5]
-            ],
-            confidence=inc_result.confidence,
-            expected_transient=False,  # MVP: always false (Step 14)
-            baseline_age_seconds=round(
-                _time.time() - baseline.created_at, 1
-            ),
-            baseline_valid=inc_result.baseline_valid,
-            baseline_refresh_reason=baseline_refresh_reason,
-            file_local_signals_run=inc_result.file_local_signals_run,
-            cross_file_signals_estimated=inc_result.cross_file_signals_estimated,
-            parse_failure_count=parse_failure_count,
-            parse_failed_files=parse_failed_files,
-            parse_failure_treatment={
-                "affects_safe_to_commit": True,
-                "policy": "blocking",
-                "condition": "parse_failure_count > 0",
-                "explanation": (
-                    "Nudge marks safe_to_commit as false when parse failures are present "
-                    "because impacted files were not fully analyzable."
-                ),
-            },
-            changed_files=sorted(changed_set),
-            ignored_changed_files=ignored_changed_files,
-            analyzed_changed_files=sorted(effective_changed_set),
-            unchanged_hash_skips=unchanged_hash_skips,
-            warnings=warnings,
-            agent_instruction=(
-                "Use drift_nudge between edits for fast direction checks. "
-                "If safe_to_commit is false, address blocking_reasons first. "
-                "Call drift_diff after completing a batch for full verification."
-            ),
-        )
-        result.update(_nudge_next_step_contract(safe_to_commit=safe_to_commit))
-
-        # -- Repair template outcome capture (ADR-065) ----------------------
-        if task_signal and task_edit_kind and inc_result.direction in ("improving", "regressing"):
-            try:
-                from drift.repair_template_registry import get_registry as _get_reg
-                _get_reg().record_outcome(
-                    signal=task_signal,
-                    edit_kind=task_edit_kind,
-                    context_class=task_context_class or "production",
-                    direction=inc_result.direction,
-                    score_delta=inc_result.delta,
-                )
-            except Exception:  # pragma: no cover
-                pass  # registry failures must never break nudge
-
-        _emit_api_telemetry(
-            tool_name="api.nudge",
-            params=params,
-            status="ok",
-            elapsed_ms=elapsed_ms(),
-            result=result,
-            error=None,
-            repo_root=repo_path,
-        )
-        result = apply_output_mode(result, getattr(cfg, "output_mode", "full"))
-        return shape_for_profile(result, response_profile)
-
-    except Exception as exc:
-        _emit_api_telemetry(
-            tool_name="api.nudge",
-            params=params,
-            status="error",
-            elapsed_ms=elapsed_ms(),
-            result=None,
-            error=exc,
-            repo_root=repo_path,
-        )
-        return _error_response("DRIFT-5001", str(exc), recoverable=True)
+    return _NudgeExecution(
+        path,
+        changed_files=changed_files,
+        uncommitted=uncommitted,
+        signals=signals,
+        exclude_signals=exclude_signals,
+        response_profile=response_profile,
+        task_signal=task_signal,
+        task_edit_kind=task_edit_kind,
+        task_context_class=task_context_class,
+    ).run()
 
 
 def invalidate_nudge_baseline(path: str | Path = ".") -> None:

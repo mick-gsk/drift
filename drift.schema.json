@@ -1319,6 +1319,12 @@
     "languages": {
       "$ref": "#/$defs/LanguagesConfig"
     },
+    "nudge_baseline_ttl_seconds": {
+      "default": 900,
+      "description": "Time-to-live in seconds for nudge baselines. After this period a full re-scan is triggered to refresh the baseline. Lower values suit high-churn repos; higher values reduce re-scan frequency in slow CI or infrequently-changing codebases. Default: 900 (15 minutes).",
+      "title": "Nudge Baseline Ttl Seconds",
+      "type": "integer"
+    },
     "output_mode": {
       "default": "full",
       "description": "Controls how much prescriptive guidance drift includes in API responses. 'full' (default): all repair instructions, constraints, verify plans, and tool choreography. 'mirror': diagnostic facts only \u2014 structural observations, scores, and deltas without prescribing what the agent should do.",

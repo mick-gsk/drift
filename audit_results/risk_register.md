@@ -1,5 +1,26 @@
 # Risk Register
 
+## 2026-04-20 - COD FP: Private Helper Extraction in Mono-Function Files
+
+- Risk ID: RISK-COD-PRIVATE-HELPERS-2026-04-20
+- Component: `src/drift/signals/cohesion_deficit.py` — `_function_unit`
+- Type: Signal precision hardening (false-positive reduction)
+- Description: `_function_unit` previously counted `_private_helper` functions as independent
+  semantic units, inflating `isolation_ratio` after helper extraction refactorings in
+  single-responsibility modules (e.g. `drift_map_api.py`, `github_correlator.py`). Private
+  functions are implementation details of their file, not independent domain responsibilities.
+  Fix: `_function_unit` returns `None` for any `fn.name.startswith("_")`.
+- Recall risk: Modules whose *only* units are private functions (no public API) will produce zero
+  units and never trigger COD. This is acceptable — such files have no public surface area to
+  represent independent responsibilities.
+- FN risk: A file with 5+ unrelated private functions (unusual) would no longer be flagged.
+  Assessed as LOW: private functions are not discoverable API and are not independent
+  responsibilities in the COD sense.
+- Detection: `test_cod_private_helper_extraction_does_not_flag` (unit); `cod_private_helpers_tn`
+  ground-truth fixture; existing TP fixtures (`cod_tp`, `test_cod_true_positive_fixture`) verify
+  recall is preserved for all-public mixed-domain files.
+- Residual risk: LOW — no scoring model or threshold change; only unit collection scope narrowed.
+
 ## 2026-04-19 - ADR-042: drift explain <fingerprint> — Finding-Level-Explain
 
 - Risk ID: RISK-OUTPUT-2026-04-19-ADR042-EXPLAIN-FINGERPRINT

@@ -2216,6 +2216,53 @@ COD_TRUE_NEGATIVE = GroundTruthFixture(
     ],
 )
 
+COD_PRIVATE_HELPER_EXTRACTION_TN = GroundTruthFixture(
+    name="cod_private_helpers_tn",
+    description=(
+        "Module with 2 public functions backed by private helpers — "
+        "helper extraction pattern must NOT trigger COD"
+    ),
+    kind=FixtureKind.CONFOUNDER,
+    files={
+        "invoicing/__init__.py": "",
+        "invoicing/processor.py": """\
+            def process_invoice(raw: str) -> dict:
+                data = _parse_invoice_xml(raw)
+                amount = _normalize_amount(data.get("amount", "0"))
+                return {"id": data["id"], "amount": amount}
+
+            def _parse_invoice_xml(raw: str) -> dict:
+                return {"id": "INV-001", "amount": raw.strip()}
+
+            def _normalize_amount(s: str) -> float:
+                return float(s.replace(",", "."))
+
+            def send_invoice_alert(message: str, recipient: str) -> None:
+                body = _format_alert_body(message)
+                _validate_recipient(recipient)
+                print(f"sending to {recipient}: {body}")
+
+            def _format_alert_body(message: str) -> str:
+                return f"[ALERT] {message}"
+
+            def _validate_recipient(recipient: str) -> None:
+                if "@" not in recipient:
+                    raise ValueError(f"Invalid recipient: {recipient}")
+        """,
+    },
+    expected=[
+        ExpectedFinding(
+            signal_type=SignalType.COHESION_DEFICIT,
+            file_path="invoicing/processor.py",
+            should_detect=False,
+            description=(
+                "Private helpers are implementation details; "
+                "only 2 public units remain after filtering — below min_units threshold"
+            ),
+        ),
+    ],
+)
+
 
 # ── Registry of all fixtures ─────────────────────────────────────────────
 
@@ -2270,6 +2317,7 @@ ALL_FIXTURES: list[GroundTruthFixture] = [
     GCD_DECORATOR_GUARD_TN,
     COD_TRUE_POSITIVE,
     COD_TRUE_NEGATIVE,
+    COD_PRIVATE_HELPER_EXTRACTION_TN,
     # ── NBV / BAT fixtures below ──
 ]
 
