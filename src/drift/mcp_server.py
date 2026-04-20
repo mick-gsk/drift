@@ -588,7 +588,7 @@ async def drift_nudge(
     )
 
 
-@mcp.tool()
+@mcp.tool()  # drift:ignore[DCA]
 async def drift_shadow_verify(
     path: Annotated[str, Field(description="Repository path to analyze.")] = ".",
     scope_files: Annotated[

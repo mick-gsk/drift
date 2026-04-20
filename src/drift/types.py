@@ -9,13 +9,13 @@ JsonDict: TypeAlias = dict[str, object]
 JsonList: TypeAlias = list[object]
 
 
-class SupportsAppend(Protocol):
+class SupportsAppend(Protocol):  # drift:ignore[DCA]
     """Minimal append protocol for line-oriented builders."""
 
     def append(self, item: str, style: str | None = None) -> object: ...
 
 
-class TreeSitterNode(Protocol):
+class TreeSitterNode(Protocol):  # drift:ignore[DCA]
     """Subset of tree-sitter node API used by Drift."""
 
     type: str
@@ -30,13 +30,13 @@ class TreeSitterNode(Protocol):
     def child_by_field_name(self, name: str) -> TreeSitterNode | None: ...
 
 
-class TreeSitterTree(Protocol):
+class TreeSitterTree(Protocol):  # drift:ignore[DCA]
     """Subset of tree-sitter tree API used by Drift."""
 
     root_node: TreeSitterNode
 
 
-class TreeSitterParser(Protocol):
+class TreeSitterParser(Protocol):  # drift:ignore[DCA]
     """Subset of tree-sitter parser API used by Drift."""
 
     def parse(self, source: bytes) -> TreeSitterTree: ...

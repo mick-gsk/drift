@@ -41,7 +41,7 @@ CACHE_SCHEMA_VERSION = 2
 _PARSE_CACHE_VERSION = CACHE_SCHEMA_VERSION
 
 
-class ParseCache:
+class ParseCache:  # drift:ignore[DCA]
     """Disk-backed parse result cache."""
 
     # Evict entries not accessed in the last 7 days.
@@ -272,7 +272,7 @@ def _deser_pattern(d: dict[str, Any]) -> PatternInstance:
 _SIGNAL_CACHE_VERSION = 4
 
 
-class SignalCache:
+class SignalCache:  # drift:ignore[DCA]
     """Disk-backed cache for per-signal findings keyed by content hashes.
 
     The cache key is ``(signal_type, config_fingerprint, content_hash)``

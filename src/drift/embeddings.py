@@ -61,7 +61,7 @@ def _safe_model_name(model_name: str) -> str:
     return model_name.replace("/", "_").replace("\\", "_")
 
 
-class EmbeddingCache:
+class EmbeddingCache:  # drift:ignore[DCA]
     """Disk-backed embedding vector cache.
 
     Keys are SHA-256 hashes of input text.  Values are stored as raw
@@ -142,7 +142,7 @@ _HF_HUB_DOWNLOAD_TIMEOUT_ENV = "HF_HUB_DOWNLOAD_TIMEOUT"
 _MODEL_LOAD_TIMEOUT_SECONDS_DEFAULT = 30.0
 
 
-class EmbeddingService:
+class EmbeddingService:  # drift:ignore[DCA]
     """High-level embedding API with caching and optional FAISS indexing.
 
     The underlying model is loaded lazily on first call to avoid startup

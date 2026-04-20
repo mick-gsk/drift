@@ -45,7 +45,7 @@ _DEFAULT_EFFECTIVENESS_THRESHOLDS: dict[str, float] = {
 
 
 @dataclass
-class OrchestrationMetrics:
+class OrchestrationMetrics:  # drift:ignore[DCA]
     """Tracks orchestration-level metrics for a session (ADR-025 Phase G)."""
 
     # -- Efficiency ----------------------------------------------------------
@@ -223,7 +223,7 @@ class OrchestrationMetrics:
 
 
 @dataclass
-class DriftSession:
+class DriftSession:  # drift:ignore[DCA]
     """In-memory session for a multi-step MCP workflow.
 
     Tracks active scope, last scan results, fix-plan task queue,

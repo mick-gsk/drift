@@ -48,7 +48,7 @@ def compute_fingerprint(finding: Finding) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-class OutcomeTracker:
+class OutcomeTracker:  # drift:ignore[DCA]
     """Persists finding outcomes in a repo-local JSONL file.
 
     Parameters
