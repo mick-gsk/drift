@@ -437,7 +437,7 @@ def _compute_hub_nodes(graph: nx.DiGraph, percentile: float = 0.90) -> set[str]:
 
 
 @register_signal
-class ArchitectureViolationSignal(BaseSignal):
+class ArchitectureViolationSignal(BaseSignal):  # drift:ignore[DCA]
     """Detect imports that violate architectural layer boundaries."""
 
     uses_embeddings = True

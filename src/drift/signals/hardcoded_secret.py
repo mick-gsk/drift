@@ -402,7 +402,7 @@ def _is_dynamic_template_literal(quote: str, string_val: str) -> bool:
 
 
 @register_signal
-class HardcodedSecretSignal(BaseSignal):
+class HardcodedSecretSignal(BaseSignal):  # drift:ignore[DCA]
     """Detect hardcoded secrets and credentials in source code."""
 
     incremental_scope = "file_local"

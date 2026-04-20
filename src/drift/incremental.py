@@ -33,7 +33,7 @@ logger = logging.getLogger("drift")
 
 
 @dataclass(slots=True)
-class BaselineSnapshot:
+class BaselineSnapshot:  # drift:ignore[DCA]
     """Immutable snapshot of file hashes captured after a full scan.
 
     The snapshot tracks which files existed and their content hashes so
@@ -251,7 +251,7 @@ def _capture_git_state_uncached(repo_path: Path) -> _GitState | None:
 # ---------------------------------------------------------------------------
 
 
-class BaselineManager:
+class BaselineManager:  # drift:ignore[DCA]
     """Per-repo baseline management with automatic git-event invalidation.
 
     Usage::
