@@ -42,6 +42,7 @@ demos
 docs
 docs-site
 drift.example.yaml
+drift.intent.baselines.yaml
 drift.output.schema.json
 drift.schema.json
 drift-guided-mode-prd-v2.md
@@ -56,6 +57,7 @@ overrides
 package.json
 pyproject.toml
 scripts
+skills-lock.json
 src
 tests
 uv.lock
