@@ -239,7 +239,7 @@ jobs:
           & $env:PYTHON_BIN -m pytest -v --tb=short -m "not slow"
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.12'
+        if: matrix.python-version == '3.12' && always()
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
