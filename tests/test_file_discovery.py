@@ -428,11 +428,14 @@ class TestMtimeFingerprint:
 
         import os
 
-        os.utime(
-            link,
-            ns=(link.lstat().st_atime_ns + 1, link.lstat().st_mtime_ns + 1),
-            follow_symlinks=False,
-        )
+        try:
+            os.utime(
+                link,
+                ns=(link.lstat().st_atime_ns + 1, link.lstat().st_mtime_ns + 1),
+                follow_symlinks=False,
+            )
+        except NotImplementedError:
+            pytest.skip("os.utime follow_symlinks=False not available on this platform")
 
         fp_after_touch = _mtime_fingerprint(tmp_path, ["**/*.py"], (), {"python"})
 
