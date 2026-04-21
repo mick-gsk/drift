@@ -244,6 +244,7 @@ def _git_touched_files(repo: Path, base_sha: str | None) -> list[str]:
                 text=True,
                 check=False,
                 timeout=10,
+                stdin=subprocess.DEVNULL,
             )
             if out.returncode == 0:
                 touched.update(
@@ -257,6 +258,7 @@ def _git_touched_files(repo: Path, base_sha: str | None) -> list[str]:
                 text=True,
                 check=False,
                 timeout=10,
+                stdin=subprocess.DEVNULL,
             )
             if out.returncode == 0:
                 touched.update(
@@ -270,7 +272,8 @@ def _git_touched_files(repo: Path, base_sha: str | None) -> list[str]:
 def _trace_touched_files(session: DriftSession) -> list[str]:
     """Fallback: collect ``touched_files`` metadata from session trace entries."""
     collected: set[str] = set()
-    for entry in getattr(session, "trace", []):
+    trace = getattr(session, "trace", None) or []
+    for entry in trace:
         tf = entry.get("touched_files") if isinstance(entry, dict) else None
         if isinstance(tf, (list, tuple)):
             collected.update(str(p) for p in tf if p)
@@ -283,7 +286,8 @@ def detect_touched_files(session: DriftSession) -> list[str]:
     Primary source: ``git diff`` against ``session.git_head_at_plan``.
     Fallback: ``touched_files`` metadata in trace entries.
     """
-    repo = Path(session.repo_path) if session.repo_path else Path.cwd()
+    repo_path = getattr(session, "repo_path", None)
+    repo = Path(repo_path) if repo_path else Path.cwd()
     base = getattr(session, "git_head_at_plan", None)
     git_files = _git_touched_files(repo, base)
     if git_files:
@@ -693,7 +697,8 @@ def validate(
         change_class = classify_touched(touched)
 
     required = required_artifacts(change_class, session)
-    repo = Path(session.repo_path) if session.repo_path else Path.cwd()
+    repo_path = getattr(session, "repo_path", None)
+    repo = Path(repo_path) if repo_path else Path.cwd()
 
     missing, resolved = _check_existence(repo, required, path_overrides)
 
