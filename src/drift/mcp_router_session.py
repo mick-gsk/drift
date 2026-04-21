@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
 from collections.abc import Callable
@@ -126,6 +127,40 @@ async def run_session_start(
 
     session = mgr.get(session_id)
 
+    # ADR-081 Nachschärfung (Q3): best-effort concurrent-writer detection.
+    # Read any existing writer-advisory lock *before* we take ownership so
+    # we can surface a live previous holder in the response.  ADR-081 keeps
+    # the cooperative single-writer contract, so we do not hard-block.
+    from drift.session_writer_lock import (
+        acquire_writer_advisory,
+        read_current_holder,
+    )
+
+    concurrent_writer: dict[str, object] | None = None
+    concurrent_sessions_detected = False
+    repo_for_lock: Path | str | None = None
+    if session is not None:
+        repo_candidate = getattr(session, "repo_path", None)
+        if isinstance(repo_candidate, (str, Path)):
+            repo_for_lock = repo_candidate
+    if repo_for_lock is not None:
+        try:
+            holder = read_current_holder(repo_for_lock)
+        except Exception as exc:  # noqa: BLE001 - best-effort advisory
+            logging.getLogger("drift").debug(
+                "concurrent-writer probe failed: %s", exc
+            )
+            holder = None
+        if holder is not None and holder.session_id != session_id:
+            concurrent_sessions_detected = True
+            concurrent_writer = holder.to_dict()
+        try:
+            acquire_writer_advisory(repo_for_lock, session_id=session_id)
+        except OSError as exc:
+            logging.getLogger("drift").debug(
+                "writer-advisory acquire failed: %s", exc
+            )
+
     # Queue-log replay: rehydrate selected_tasks / completed / failed from a
     # previous session's append-only log so agent work survives MCP server
     # restarts and session TTL expiry.  ADR-081.
@@ -136,10 +171,22 @@ async def run_session_start(
     resumed_plan_created_at: float | None = None
     resumed_plan_age_seconds: float | None = None
     resumed_plan_stale = False
+    resumed_older_plans_discarded = 0
+    resumed_next_task_id: str | None = None
     if session is not None and not fresh_start:
         events = replay_events(session.repo_path)
         if events:
             state = reduce_events(events)
+            # ADR-081 Nachschärfung (Q4): count any ``plan_created`` events
+            # older than the one that wins the replay; purely informational
+            # so reviewers can audit that replan semantics are intentional.
+            if state.plan_created_at is not None:
+                resumed_older_plans_discarded = sum(
+                    1
+                    for evt in events
+                    if evt.type == "plan_created"
+                    and float(evt.timestamp) < float(state.plan_created_at)
+                )
             if state.selected_tasks:
                 # Session was just created and is not yet exposed to other
                 # tool calls, so direct field assignment is safe.
@@ -162,6 +209,40 @@ async def run_session_start(
                     resumed_plan_age_seconds = age
                     if age > _queue_plan_stale_threshold():
                         resumed_plan_stale = True
+                # ADR-081 Nachschärfung (Q5): pick the first pending task so
+                # the response can route the agent straight to
+                # ``drift_fix_apply`` instead of a generic ``drift_scan``.
+                # Pending = in selected_tasks and not in completed/failed.
+                # Order: ``priority_score`` DESC (from drift_fix_plan) with
+                # original index as deterministic tiebreaker.
+                completed_set = set(state.completed_task_ids)
+                failed_set = set(state.failed_task_ids)
+                pending: list[tuple[int, dict[str, Any]]] = []
+                for idx, task in enumerate(state.selected_tasks):
+                    candidate = task.get("id") or task.get("task_id")
+                    if not isinstance(candidate, str) or not candidate:
+                        continue
+                    if candidate in completed_set or candidate in failed_set:
+                        continue
+                    pending.append((idx, task))
+
+                def _score(entry: tuple[int, dict[str, Any]]) -> tuple[float, int]:
+                    idx, task = entry
+                    raw = task.get("priority_score")
+                    try:
+                        score = float(raw) if raw is not None else 0.0
+                    except (TypeError, ValueError):
+                        score = 0.0
+                    # DESC on score, ASC on idx — invert score sign so the
+                    # built-in ASC sort gives DESC on score.
+                    return (-score, idx)
+
+                pending.sort(key=_score)
+                if pending:
+                    first = pending[0][1]
+                    first_tid = first.get("id") or first.get("task_id")
+                    if isinstance(first_tid, str) and first_tid:
+                        resumed_next_task_id = first_tid
 
     result: dict[str, Any] = {
         "status": "ok",
@@ -177,6 +258,10 @@ async def run_session_start(
         "resumed_plan_created_at": resumed_plan_created_at,
         "resumed_plan_age_seconds": resumed_plan_age_seconds,
         "resumed_plan_stale": resumed_plan_stale,
+        "resumed_older_plans_discarded": resumed_older_plans_discarded,
+        "resumed_next_task_id": resumed_next_task_id,
+        "concurrent_sessions_detected": concurrent_sessions_detected,
+        "concurrent_writer": concurrent_writer,
         "agent_instruction": (
             f"Session {session_id[:8]} created. Pass session_id=\"{session_id}\" "
             "to subsequent drift tools to use session defaults and track state. "
@@ -217,6 +302,46 @@ async def run_session_start(
             "tool": "drift_scan",
             "params": {"session_id": session_id},
         }
+    elif (
+        resumed_from_log
+        and resumed_next_task_id is not None
+        and resumed_tasks > 0
+    ):
+        # ADR-081 Nachschärfung (Q5): fresh resume with pending work —
+        # route the agent straight to ``drift_fix_apply`` so the queue is
+        # worked off instead of re-scanning.  Only applies when the plan
+        # is NOT stale (P2 override above wins otherwise) and fresh_start
+        # is not in effect (resumed_from_log remains False then).
+        result["agent_instruction"] = (
+            f"Session {session_id[:8]} resumed with {resumed_tasks} pending "
+            f"tasks. Address the queue with drift_fix_apply "
+            f"(task_id={resumed_next_task_id!r}) before launching new scans."
+        )
+        result["next_tool_call"] = {
+            "tool": "drift_fix_apply",
+            "params": {
+                "session_id": session_id,
+                "task_id": resumed_next_task_id,
+            },
+        }
+        result["fallback_tool_call"] = {
+            "tool": "drift_fix_plan",
+            "params": {"session_id": session_id},
+        }
+
+    # ADR-081 Nachschärfung (Q3): if a live previous writer was detected
+    # (before replay), annotate the agent_instruction so the operator
+    # knows to pause the other session.  Advisory only — ADR-081 stays
+    # cooperative.
+    if concurrent_sessions_detected and concurrent_writer is not None:
+        holder_pid = concurrent_writer.get("pid")
+        holder_sid = concurrent_writer.get("session_id", "unknown")
+        existing = result.get("agent_instruction", "")
+        result["agent_instruction"] = (
+            f"{existing} Concurrent writer detected (pid={holder_pid}, "
+            f"session={str(holder_sid)[:8]}) — pause the other session or "
+            "queue writes may interleave."
+        ).strip()
 
     if autopilot:
         from drift.analyzer import analyze_repo
@@ -455,8 +580,6 @@ async def run_session_end(
     evidence_path: str | None = None,
     adr_path: str | None = None,
 ) -> str:
-    import logging
-
     from drift.api_helpers import _error_response
     from drift.session import DriftSession, SessionManager
     from drift.session_handover import (
@@ -570,6 +693,16 @@ async def run_session_end(
                 bypass_reason,
             )
 
+    # ADR-081 Nachschärfung (Q3): release the writer-advisory lock so a
+    # subsequent session on the same repo does not see us as a live holder.
+    # Real DriftSessions always expose ``repo_path``; test fakes may not,
+    # so we probe via ``getattr`` and skip the release cleanly.
+    repo_for_release: Path | str | None = None
+    if session is not None:
+        repo_candidate = getattr(session, "repo_path", None)
+        if isinstance(repo_candidate, (str, Path)):
+            repo_for_release = repo_candidate
+
     summary = mgr.destroy(session_id)
     if summary is None:
         return session_error_response(
@@ -577,6 +710,16 @@ async def run_session_end(
             f"Session {session_id[:8]} not found or already ended.",
             session_id,
         )
+
+    if repo_for_release is not None:
+        from drift.session_writer_lock import release_writer_advisory
+
+        try:
+            release_writer_advisory(repo_for_release, session_id=session_id)
+        except OSError as exc:
+            logging.getLogger("drift").debug(
+                "writer-advisory release failed: %s", exc
+            )
 
     summary["status"] = "ok"
     if gate_payload is not None:

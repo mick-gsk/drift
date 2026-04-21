@@ -557,8 +557,9 @@ class TestResumedPlanStaleness:
         assert isinstance(data["resumed_plan_created_at"], float)
         assert isinstance(data["resumed_plan_age_seconds"], float)
         assert data["resumed_plan_age_seconds"] < 3600.0
-        # Fresh plan keeps the default next_tool_call → drift_scan
-        assert data["next_tool_call"]["tool"] == "drift_scan"
+        # Fresh plan with pending tasks: P5 routes straight to fix_apply
+        # (see TestResumedNextToolCall); stale-override does not kick in.
+        assert data["next_tool_call"]["tool"] == "drift_fix_apply"
 
     def test_stale_plan_flips_stale_and_redirects_next_tool_call(
         self, tmp_path: Path
@@ -707,3 +708,366 @@ class TestResumedPlanStaleness:
             "Session capacity warning" in message
             for message in caplog.messages
         )
+
+
+# ---------------------------------------------------------------------------
+# Concurrent-writer advisory (ADR-081 Q3)
+# ---------------------------------------------------------------------------
+
+
+class TestConcurrentWriterAdvisory:
+    """``run_session_start`` surfaces a live previous writer so operators
+    can pause a competing session; release happens on ``run_session_end``.
+    """
+
+    def _start(self, repo: Path, *, session_id_hint: str | None = None):
+        import asyncio
+
+        from drift.mcp_router_session import run_session_start
+
+        SessionManager.reset_instance()
+        raw = asyncio.run(
+            run_session_start(
+                path=str(repo),
+                signals=None,
+                exclude_signals=None,
+                target_path=None,
+                exclude_paths=None,
+                ttl_seconds=60,
+                autopilot=False,
+                autopilot_payload="summary",
+                response_profile=None,
+                fresh_start=False,
+            )
+        )
+        return json.loads(raw)
+
+    def test_no_lockfile_reports_no_concurrent_writer(self, tmp_path: Path) -> None:
+        data = self._start(tmp_path)
+        assert data["concurrent_sessions_detected"] is False
+        assert data["concurrent_writer"] is None
+
+    def test_live_previous_writer_is_surfaced(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        import os as _os
+
+        from drift.session_writer_lock import _lock_path
+
+        # Seed a lockfile that looks like a live, foreign session.
+        path = _lock_path(tmp_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "pid": _os.getpid(),  # our pid → guaranteed alive
+                    "session_id": "foreign-session-1234",
+                    "started_at": time.time() - 5.0,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["concurrent_sessions_detected"] is True
+        assert data["concurrent_writer"] is not None
+        assert data["concurrent_writer"]["session_id"] == "foreign-session-1234"
+        assert data["concurrent_writer"]["pid"] == _os.getpid()
+        assert "Concurrent writer detected" in data["agent_instruction"]
+
+    def test_dead_pid_holder_is_ignored(self, tmp_path: Path) -> None:
+        from drift.session_writer_lock import _lock_path
+
+        path = _lock_path(tmp_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "pid": 2**31 - 2,  # highly improbable / dead
+                    "session_id": "ghost-session",
+                    "started_at": time.time(),
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["concurrent_sessions_detected"] is False
+        assert data["concurrent_writer"] is None
+
+    def test_session_start_always_takes_ownership(self, tmp_path: Path) -> None:
+        """ADR-081 'last session wins' — lockfile is overwritten on start."""
+        import json as _json
+
+        from drift.session_writer_lock import _lock_path
+
+        # Pre-seed with a stale lockfile.
+        _lock_path(tmp_path).parent.mkdir(parents=True, exist_ok=True)
+        _lock_path(tmp_path).write_text(
+            _json.dumps(
+                {
+                    "pid": 2**31 - 2,
+                    "session_id": "previous",
+                    "started_at": time.time() - 10.0,
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        data = self._start(tmp_path)
+
+        # After session start, the lockfile belongs to the new session.
+        after = _json.loads(_lock_path(tmp_path).read_text(encoding="utf-8"))
+        assert after["session_id"] == data["session_id"]
+
+    def test_session_end_releases_writer_advisory(self, tmp_path: Path) -> None:
+        import asyncio
+
+        from drift.mcp_router_session import run_session_end, run_session_start
+        from drift.session_writer_lock import _lock_path
+
+        SessionManager.reset_instance()
+        start_raw = asyncio.run(
+            run_session_start(
+                path=str(tmp_path),
+                signals=None,
+                exclude_signals=None,
+                target_path=None,
+                exclude_paths=None,
+                ttl_seconds=60,
+                autopilot=False,
+                autopilot_payload="summary",
+                response_profile=None,
+                fresh_start=False,
+            )
+        )
+        session_id = json.loads(start_raw)["session_id"]
+        assert _lock_path(tmp_path).exists()
+
+        def _err(code: str, msg: str, sid: str) -> str:
+            return json.dumps({"error": code, "msg": msg, "sid": sid})
+
+        asyncio.run(
+            run_session_end(
+                session_id=session_id,
+                session_error_response=_err,
+                force=True,
+                bypass_reason=(
+                    "chore: release writer-advisory lock in test so the "
+                    "next session on this repo does not see us as holder."
+                ),
+            )
+        )
+
+        assert not _lock_path(tmp_path).exists()
+
+
+# ---------------------------------------------------------------------------
+# Resume-UX routing (ADR-081 Q5) and replan-semantics counter (Q4)
+# ---------------------------------------------------------------------------
+
+
+class TestResumedNextToolCall:
+    """When replay restores pending tasks, ``next_tool_call`` should route
+    the agent straight to ``drift_fix_apply``.  Stale plans (Q2) and
+    empty queues continue to use the defaults.
+    """
+
+    def _seed_plan(
+        self,
+        repo: Path,
+        *,
+        tasks: list[dict],
+        ts: float | None = None,
+        session_id: str = "prev",
+    ) -> None:
+        from drift.session_queue_log import QueueEvent, append_event
+
+        append_event(
+            repo,
+            QueueEvent(
+                type="plan_created",
+                session_id=session_id,
+                timestamp=ts if ts is not None else time.time() - 60.0,
+                payload={"tasks": tasks},
+            ),
+        )
+
+    def _start(self, repo: Path) -> dict:
+        import asyncio
+
+        from drift.mcp_router_session import run_session_start
+
+        SessionManager.reset_instance()
+        raw = asyncio.run(
+            run_session_start(
+                path=str(repo),
+                signals=None,
+                exclude_signals=None,
+                target_path=None,
+                exclude_paths=None,
+                ttl_seconds=60,
+                autopilot=False,
+                autopilot_payload="summary",
+                response_profile=None,
+                fresh_start=False,
+            )
+        )
+        return json.loads(raw)
+
+    def test_fresh_resume_points_next_tool_call_at_fix_apply(
+        self, tmp_path: Path
+    ) -> None:
+        self._seed_plan(
+            tmp_path,
+            tasks=[
+                {"id": "A", "priority_score": 0.5},
+                {"id": "B", "priority_score": 0.9},
+                {"id": "C", "priority_score": 0.2},
+            ],
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["resumed_from_log"] is True
+        assert data["resumed_tasks"] == 3
+        # B has the highest priority_score → routed first.
+        assert data["resumed_next_task_id"] == "B"
+        assert data["next_tool_call"]["tool"] == "drift_fix_apply"
+        assert data["next_tool_call"]["params"]["task_id"] == "B"
+        assert data["fallback_tool_call"]["tool"] == "drift_fix_plan"
+
+    def test_priority_ties_break_by_original_order(self, tmp_path: Path) -> None:
+        self._seed_plan(
+            tmp_path,
+            tasks=[
+                {"id": "A", "priority_score": 0.5},
+                {"id": "B", "priority_score": 0.5},
+            ],
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["resumed_next_task_id"] == "A"
+
+    def test_missing_priority_score_falls_back_to_zero(self, tmp_path: Path) -> None:
+        self._seed_plan(
+            tmp_path,
+            tasks=[
+                {"id": "A"},
+                {"id": "B", "priority_score": 0.1},
+            ],
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["resumed_next_task_id"] == "B"
+
+    def test_completed_tasks_are_skipped(self, tmp_path: Path) -> None:
+        from drift.session_queue_log import QueueEvent, append_event
+
+        ts = time.time() - 60.0
+        self._seed_plan(
+            tmp_path,
+            ts=ts,
+            tasks=[
+                {"id": "A", "priority_score": 0.9},
+                {"id": "B", "priority_score": 0.1},
+            ],
+        )
+        append_event(
+            tmp_path,
+            QueueEvent(
+                type="task_completed",
+                session_id="prev",
+                timestamp=ts + 1.0,
+                payload={"task_id": "A"},
+            ),
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["resumed_next_task_id"] == "B"
+        assert data["next_tool_call"]["params"]["task_id"] == "B"
+
+    def test_all_tasks_terminal_yields_no_next_task_redirect(
+        self, tmp_path: Path
+    ) -> None:
+        """When no pending task remains after replay, fall back to
+        ``selected_tasks`` default (``drift_scan``) — the plan is a
+        finished artifact, not active work."""
+        from drift.session_queue_log import QueueEvent, append_event
+
+        ts = time.time() - 60.0
+        self._seed_plan(
+            tmp_path,
+            ts=ts,
+            tasks=[{"id": "A", "priority_score": 0.5}],
+        )
+        append_event(
+            tmp_path,
+            QueueEvent(
+                type="task_completed",
+                session_id="prev",
+                timestamp=ts + 1.0,
+                payload={"task_id": "A"},
+            ),
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["resumed_from_log"] is True
+        assert data["resumed_next_task_id"] is None
+        # No pending work → default ``drift_scan`` route unchanged.
+        assert data["next_tool_call"]["tool"] == "drift_scan"
+
+    def test_stale_plan_wins_over_fix_apply_routing(self, tmp_path: Path) -> None:
+        """Q2 stale-override must take precedence over Q5 fix-apply routing."""
+        self._seed_plan(
+            tmp_path,
+            tasks=[{"id": "A", "priority_score": 0.5}],
+            ts=time.time() - 48 * 3600.0,  # 48 h old
+        )
+
+        data = self._start(tmp_path)
+
+        assert data["resumed_plan_stale"] is True
+        # Stale wins — agent must re-plan before touching fix_apply.
+        assert data["next_tool_call"]["tool"] == "drift_fix_plan"
+        assert data["fallback_tool_call"]["tool"] == "drift_scan"
+
+    def test_resumed_older_plans_counter_tracks_discards(
+        self, tmp_path: Path
+    ) -> None:
+        """Q4: count of older plan_created events discarded during replay."""
+        from drift.session_queue_log import QueueEvent, append_event
+
+        base = time.time() - 3600.0
+        for idx, ts in enumerate([base, base + 10.0, base + 20.0]):
+            append_event(
+                tmp_path,
+                QueueEvent(
+                    type="plan_created",
+                    session_id=f"plan-{idx}",
+                    timestamp=ts,
+                    payload={"tasks": [{"id": f"task-{idx}"}]},
+                ),
+            )
+
+        data = self._start(tmp_path)
+
+        # Latest plan (index 2) wins; two older plans were discarded.
+        assert data["resumed_older_plans_discarded"] == 2
+        assert data["resumed_next_task_id"] == "task-2"
+
+    def test_no_queue_yields_zero_discards_and_no_redirect(
+        self, tmp_path: Path
+    ) -> None:
+        data = self._start(tmp_path)
+
+        assert data["resumed_older_plans_discarded"] == 0
+        assert data["resumed_next_task_id"] is None
+        assert data["next_tool_call"]["tool"] == "drift_scan"
+

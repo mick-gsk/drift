@@ -1,5 +1,20 @@
 # STRIDE Threat Model
 
+## 2026-04-21 - ADR-081 Nachschärfung (Q3): Concurrent-Writer-Advisory-Lock
+
+- Scope: New module [src/drift/session_writer_lock.py](src/drift/session_writer_lock.py) introducing an advisory single-writer lockfile at `<repo>/.drift-cache/queue.lock`. Integration points: acquire on `drift_session_start`, release on `drift_session_end` in [src/drift/mcp_router_session.py](src/drift/mcp_router_session.py). Cooperates with, but does not replace, the OS-level write lock already used by `session_queue_log.append_event`.
+- Input path changes: None in the tool surface; internally, session-start now reads `<repo>/.drift-cache/queue.lock` (may not exist) before replay.
+- Output path changes: New artefact `<repo>/.drift-cache/queue.lock` (small JSON file, ~80 bytes). Overwritten on each session-start ("last session wins"). Removed by `drift_session_end` when `session_id` matches.
+- External interface changes: Additive. Response of `drift_session_start` gains fields `concurrent_sessions_detected: bool` and `concurrent_writer: {pid, session_id, started_at, age_seconds, pid_alive} | null`.
+- Trust boundary: Lockfile lives alongside `queue.jsonl` inside the user's repo `.drift-cache/`. No new trust boundary crossed; same local-filesystem scope as ADR-081's queue log. `.drift-cache/` is gitignored.
+- STRIDE review:
+  - S (Spoofing): Lockfile records `pid` + `session_id` as labels only. A forged pid/sid cannot elevate access. Detection is a warning, not an authorisation decision.
+  - T (Tampering): A local user with write access to `.drift-cache/queue.lock` can inject a fake alive-looking holder to nudge other sessions with false warnings, or suppress the warning by deleting the lockfile. Impact is strictly advisory — no code path blocks, denies or redirects based on lockfile contents; worst case is an unnecessary or missing operator hint. Already requires local write access to the repo.
+  - R (Repudiation): The lockfile is overwritten without rotation; it does not serve as an audit trail. Queue events in `queue.jsonl` (ADR-081 original) remain the durable audit source.
+  - I (Information Disclosure): Lockfile exposes `pid` + `session_id`. `session_id` is already present in queue events and in MCP responses; `pid` is local-host only. No secrets, no source paths.
+  - D (Denial of Service): A stale lockfile with a non-existent PID is ignored after the liveness probe (`os.kill(pid, 0)` / `OpenProcess`). A lockfile older than 24 h is ignored regardless of PID liveness so a crashed session cannot permanently poison the detection. Because we do not hard-block on the presence of the lockfile, no DoS surface against legitimate starts.
+  - E (Elevation of Privilege): None — lockfile is consulted for advisory reporting only, never for access decisions.
+
 ## 2026-04-21 - ADR-081: Session-Queue-Persistenz via Append-Log
 
 - Scope: New module [src/drift/session_queue_log.py](src/drift/session_queue_log.py) (append-only JSONL log at `<repo>/.drift-cache/queue.jsonl`). Write hooks in [src/drift/session.py](src/drift/session.py) (`claim_task`, `complete_task`, `release_task`) and [src/drift/mcp_orchestration.py](src/drift/mcp_orchestration.py) (`_update_session_from_fix_plan`). Read hook and new `fresh_start` parameter on `drift_session_start` in [src/drift/mcp_router_session.py](src/drift/mcp_router_session.py) / [src/drift/mcp_server.py](src/drift/mcp_server.py).

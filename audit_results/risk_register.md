@@ -1,5 +1,24 @@
 # Risk Register
 
+## 2026-04-21 - Q3 (ADR-081 Nachschärfung): concurrent-writer advisory lock
+
+- Risk ID: RISK-ADR-081-CONCURRENT-WRITER
+- Component: `src/drift/session_writer_lock.py` (new), integration in `src/drift/mcp_router_session.py::run_session_start` and `::run_session_end`.
+- Type: Persistence integrity risk (additive detection, no hard-block).
+- Description: ADR-081 required single-writer per repo but offered no detection; two overlapping MCP sessions (restart window, second editor, parallel agents) could interleave writes into `queue.jsonl` and leave the log corrupt. Replay tolerates corrupt single lines but a corrupted `plan_created` can erase recoverable state.
+- Severity: LOW — same-host, same-user, additive response fields only, lockfile is advisory (never denies a session start).
+- Triggers (concrete): opening the same repo in two VS Code windows after a session timeout; a crashed previous MCP process leaving an orphaned session context; CI harnesses starting a second drift MCP against the same repo for smoke tests.
+- Impact without mitigation: Silent queue corruption, lost terminal events, agent follows a state-diverged queue on next start.
+- Mitigations:
+  - `.drift-cache/queue.lock` records `{pid, session_id, started_at}` at session-start; released on session-end when `session_id` matches.
+  - Session-start reads the existing holder: dead PID → ignored; lockfile older than 24 h → ignored; live PID within window → surfaced as `concurrent_sessions_detected=true` and `concurrent_writer={…}` in the response, with an added warning in `agent_instruction`.
+  - "Last session wins" — overwrite is unconditional so a crashed session cannot block the next one.
+  - Liveness uses only stdlib: POSIX `os.kill(pid, 0)`; Windows `OpenProcess`/`GetExitCodeProcess` via `ctypes`.
+- Verification: `tests/test_session_writer_lock.py` (15 unit tests covering liveness probe, acquire/overwrite, release-owner-check, read-holder happy path, stale/malformed/non-mapping/bad-pid fallbacks); `tests/test_session.py::TestConcurrentWriterAdvisory` (5 integration tests: no-lockfile, live foreign writer surfaced, dead PID ignored, last-session-wins ownership, end releases lock).
+- STRIDE: `audit_results/stride_threat_model.md` 2026-04-21 "ADR-081 Nachschärfung (Q3)" covers Spoofing (labels only), Tampering (advisory only), R/I/D/E mitigations.
+- FMEA: `audit_results/fmea_matrix.md` 2026-04-21 Q3-Zeile (RPN = 12, mitigated).
+- Residual risk: Hard-block variant deliberately deferred to a separate ADR — a stale lockfile never blocks a start, so in a pathological interleaving window two live sessions could both overwrite the lockfile in quick succession. The queue.jsonl still carries OS-level append locks to bound corruption within a single write call, so this residual window produces noisy warnings, not silent data loss.
+
 ## 2026-04-21 - Q2 (ADR-081 Nachschärfung): plan-staleness surfacing in run_session_start
 
 - Risk ID: RISK-ADR-081-STALE-PLAN-REPLAY
