@@ -1,3 +1,35 @@
+## [2.25.0] – 2026-04-21
+
+Short version: Brief-staleness tracking; session score fields; SG enforcement order hardened.
+
+### Added
+
+- Session tracks `last_brief_at`, `last_brief_score`, `last_scan_score`, `tool_calls_since_brief`; `_brief_staleness_reason()` detects stale briefs by score delta, time, or call count.
+- SG-005/SG-006 enforcement hardened: `drift_fix_apply` and `drift_patch_begin` now also reset brief-staleness counters.
+
+### Fixed
+
+- Mypy: correct `prepared_exclude` type annotations in `file_discovery`; `getattr` fallback for `repo_path` in `session_handover`.
+- Ruff: simplify conditionals in `session_handover`; break overlong line in `nudge.py`.
+
+## [2.25.0] – 2026-04-21
+
+Short version: Handover-artifact gate at `drift_session_end` (ADR-079); deterministic L1–L3 validation (existence, shape, placeholder denylist) with optional L4 LLM-review hook; `force`/`bypass_reason` escape hatch with auditable logging and bounded retries.
+
+### Added
+
+- `drift.session_handover` module: `ChangeClass`, `RequiredArtifact`, `ShapeError`, `PlaceholderFlag`, `ValidationResult`, `classify_session`, `required_artifacts`, `validate`, `validate_bypass_reason`.
+- `drift_session_end(force=..., bypass_reason=..., session_md_path=..., evidence_path=..., adr_path=...)` parameters; agent-provided paths skip server-side discovery.
+- Error codes `DRIFT-6100` (handover artifacts missing/invalid, session remains alive for retry) and `DRIFT-6101` (force=true with invalid/placeholder bypass reason).
+- `DriftSession.handover_retries` counter; `MAX_HANDOVER_RETRIES=5` bound on retries before bypass becomes mandatory.
+- Opt-in L4 LLM-review hook via `DRIFT_SESSION_END_LLM_REVIEW=1` or injected `llm_reviewer` callable; fails closed on reviewer exception.
+- ADR-079, session-handover contract partial, Markdown handover template, `drift-session-handover-authoring` skill.
+
+### Changed
+
+- Audit artifacts updated per Policy §18: new FMEA rows, risk-register entry, and fault tree for handover-gate bypass and false-accept paths.
+- `drift_session_end` now classifies touched files via git diff against `git_head_at_plan` (fallback: trace metadata); empty sessions (no tool work, no completed tasks, CHORE class) are exempted to preserve read-only exploration.
+
 ## [2.24.0] – 2026-04-21
 
 Short version: ADR scanner; enriched `brief` API (layer_contract, relevant_tests, active_adrs); nudge post-edit regression detector; MCP strict guardrail rules SG-005/SG-006.
