@@ -320,6 +320,187 @@ class TestSessionManager:
         assert session is not None
         assert session.exclude_paths == ["tests/", "docs/"]
 
+
+# ---------------------------------------------------------------------------
+# Queue-log write hooks (ADR-078)
+# ---------------------------------------------------------------------------
+
+
+class TestQueueLogHooks:
+    def test_claim_complete_emits_events(self, tmp_path: Path) -> None:
+        from drift.session_queue_log import log_path, replay_events
+
+        mgr = SessionManager.instance()
+        sid = mgr.create(str(tmp_path))
+        session = mgr.get(sid)
+        assert session is not None
+        session.selected_tasks = [{"id": "T1", "signal": "AVS"}]
+
+        claim = session.claim_task(agent_id="bob", task_id="T1")
+        assert claim is not None
+        result = session.complete_task(agent_id="bob", task_id="T1")
+        assert result["status"] == "completed"
+
+        assert log_path(tmp_path).exists()
+        events = replay_events(tmp_path)
+        types = [e.type for e in events]
+        assert "task_claimed" in types
+        assert "task_completed" in types
+
+    def test_release_emits_released_event(self, tmp_path: Path) -> None:
+        from drift.session_queue_log import replay_events
+
+        mgr = SessionManager.instance()
+        sid = mgr.create(str(tmp_path))
+        session = mgr.get(sid)
+        assert session is not None
+        session.selected_tasks = [{"id": "T1"}]
+        session.claim_task(agent_id="bob", task_id="T1")
+        session.release_task(agent_id="bob", task_id="T1")
+
+        events = replay_events(tmp_path)
+        types = [e.type for e in events]
+        assert "task_released" in types
+
+    def test_release_beyond_max_reclaim_emits_failed_event(
+        self, tmp_path: Path
+    ) -> None:
+        from drift.session_queue_log import replay_events
+
+        mgr = SessionManager.instance()
+        sid = mgr.create(str(tmp_path))
+        session = mgr.get(sid)
+        assert session is not None
+        session.selected_tasks = [{"id": "T1"}]
+        for _ in range(2):
+            session.claim_task(
+                agent_id="bob", task_id="T1", max_reclaim=2
+            )
+            session.release_task(
+                agent_id="bob", task_id="T1", max_reclaim=2
+            )
+        events = replay_events(tmp_path)
+        assert "task_failed" in {e.type for e in events}
+
+
+# ---------------------------------------------------------------------------
+# Restart-replay integration (ADR-078)
+# ---------------------------------------------------------------------------
+
+
+class TestRestartReplay:
+    def test_new_session_resumes_queue_from_log(self, tmp_path: Path) -> None:
+        import asyncio
+
+        from drift.mcp_router_session import run_session_start
+        from drift.session_queue_log import QueueEvent, append_event
+
+        # Seed log as if a previous session had built a plan and completed one task
+        append_event(
+            tmp_path,
+            QueueEvent(
+                type="plan_created",
+                session_id="old-session",
+                payload={"tasks": [{"id": "A"}, {"id": "B"}, {"id": "C"}]},
+            ),
+        )
+        append_event(
+            tmp_path,
+            QueueEvent(
+                type="task_completed",
+                session_id="old-session",
+                payload={"task_id": "A"},
+            ),
+        )
+
+        SessionManager.reset_instance()
+        raw = asyncio.run(
+            run_session_start(
+                path=str(tmp_path),
+                signals=None,
+                exclude_signals=None,
+                target_path=None,
+                exclude_paths=None,
+                ttl_seconds=60,
+                autopilot=False,
+                autopilot_payload="summary",
+                response_profile=None,
+                fresh_start=False,
+            )
+        )
+        data = json.loads(raw)
+        assert data["resumed_from_log"] is True
+        assert data["resumed_tasks"] == 3
+        assert data["resumed_completed"] == 1
+
+        new_sid = data["session_id"]
+        session = SessionManager.instance().get(new_sid)
+        assert session is not None
+        assert session.selected_tasks is not None
+        assert [t["id"] for t in session.selected_tasks] == ["A", "B", "C"]
+        assert session.completed_task_ids == ["A"]
+
+    def test_fresh_start_skips_replay(self, tmp_path: Path) -> None:
+        import asyncio
+
+        from drift.mcp_router_session import run_session_start
+        from drift.session_queue_log import QueueEvent, append_event
+
+        append_event(
+            tmp_path,
+            QueueEvent(
+                type="plan_created",
+                session_id="old",
+                payload={"tasks": [{"id": "A"}]},
+            ),
+        )
+
+        SessionManager.reset_instance()
+        raw = asyncio.run(
+            run_session_start(
+                path=str(tmp_path),
+                signals=None,
+                exclude_signals=None,
+                target_path=None,
+                exclude_paths=None,
+                ttl_seconds=60,
+                autopilot=False,
+                autopilot_payload="summary",
+                response_profile=None,
+                fresh_start=True,
+            )
+        )
+        data = json.loads(raw)
+        assert data["resumed_from_log"] is False
+        assert data["resumed_tasks"] == 0
+        session = SessionManager.instance().get(data["session_id"])
+        assert session is not None
+        assert not session.selected_tasks
+
+    def test_no_log_yields_no_resume(self, tmp_path: Path) -> None:
+        import asyncio
+
+        from drift.mcp_router_session import run_session_start
+
+        SessionManager.reset_instance()
+        raw = asyncio.run(
+            run_session_start(
+                path=str(tmp_path),
+                signals=None,
+                exclude_signals=None,
+                target_path=None,
+                exclude_paths=None,
+                ttl_seconds=60,
+                autopilot=False,
+                autopilot_payload="summary",
+                response_profile=None,
+                fresh_start=False,
+            )
+        )
+        data = json.loads(raw)
+        assert data["resumed_from_log"] is False
+        assert data["resumed_tasks"] == 0
+
     def test_update_isolates_selected_tasks_list(self):
         mgr = SessionManager.instance()
         sid = mgr.create("/tmp/repo")

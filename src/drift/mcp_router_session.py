@@ -24,10 +24,12 @@ async def run_session_start(
     autopilot: bool,
     autopilot_payload: str,
     response_profile: str | None,
+    fresh_start: bool = False,
 ) -> str:
     from drift.api_helpers import _error_response
     from drift.mcp_enrichment import _enrich_response_with_session
     from drift.session import SessionManager
+    from drift.session_queue_log import reduce_events, replay_events
 
     payload_mode = str(autopilot_payload).strip().lower()
     if payload_mode not in AUTOPILOT_PAYLOAD_MODES:
@@ -89,6 +91,33 @@ async def run_session_start(
         return json.dumps(error, default=str)
 
     session = mgr.get(session_id)
+
+    # Queue-log replay: rehydrate selected_tasks / completed / failed from a
+    # previous session's append-only log so agent work survives MCP server
+    # restarts and session TTL expiry.  ADR-081.
+    resumed_from_log = False
+    resumed_tasks = 0
+    resumed_completed = 0
+    resumed_failed = 0
+    if session is not None and not fresh_start:
+        events = replay_events(session.repo_path)
+        if events:
+            state = reduce_events(events)
+            if state.selected_tasks:
+                # Session was just created and is not yet exposed to other
+                # tool calls, so direct field assignment is safe.
+                session.selected_tasks = list(state.selected_tasks)
+                for tid in state.completed_task_ids:
+                    if tid not in session.completed_task_ids:
+                        session.completed_task_ids.append(tid)
+                for tid in state.failed_task_ids:
+                    if tid not in session.failed_task_ids:
+                        session.failed_task_ids.append(tid)
+                resumed_from_log = True
+                resumed_tasks = len(state.selected_tasks)
+                resumed_completed = len(state.completed_task_ids)
+                resumed_failed = len(state.failed_task_ids)
+
     result: dict[str, Any] = {
         "status": "ok",
         "session_id": session_id,
@@ -96,6 +125,10 @@ async def run_session_start(
         "scope": session.scope_label() if session else "all",
         "ttl_seconds": ttl_seconds,
         "created_at": session.created_at if session else None,
+        "resumed_from_log": resumed_from_log,
+        "resumed_tasks": resumed_tasks,
+        "resumed_completed": resumed_completed,
+        "resumed_failed": resumed_failed,
         "agent_instruction": (
             f"Session {session_id[:8]} created. Pass session_id=\"{session_id}\" "
             "to subsequent drift tools to use session defaults and track state. "

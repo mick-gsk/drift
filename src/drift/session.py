@@ -620,6 +620,27 @@ class DriftSession:  # drift:ignore[DCA]
                     return t
         return None
 
+    def _emit_queue_event(self, event_type: str, payload: dict[str, Any]) -> None:
+        """Append a queue-log event for cross-session persistence.
+
+        Best-effort: failures are swallowed and logged to avoid blocking
+        session state mutations if the log file is unavailable.  See
+        ``drift.session_queue_log`` and ADR-081 for the persistence contract.
+        """
+        try:
+            from drift.session_queue_log import QueueEvent, append_event
+
+            append_event(
+                self.repo_path,
+                QueueEvent(
+                    type=event_type,
+                    session_id=self.session_id,
+                    payload=payload,
+                ),
+            )
+        except Exception as exc:  # pragma: no cover - defensive only
+            logger.debug("queue-log emit failed (%s): %s", event_type, exc)
+
     def _record_lease(
         self,
         tid: str,
@@ -675,6 +696,10 @@ class DriftSession:  # drift:ignore[DCA]
             now = time.time()
             lease = self._record_lease(tid, agent_id, now, lease_ttl_seconds)
             self.touch()
+            self._emit_queue_event(
+                "task_claimed",
+                {"task_id": tid, "agent_id": agent_id},
+            )
             return {"task": target_task, "lease": lease}
 
     def renew_lease(
@@ -763,6 +788,10 @@ class DriftSession:  # drift:ignore[DCA]
                 state = "released"
             self.metrics.tasks_released += 1
             self.touch()
+            self._emit_queue_event(
+                "task_failed" if state == "failed" else "task_released",
+                {"task_id": task_id, "reclaim_count": reclaim_count},
+            )
             return {
                 "task_id": task_id,
                 "status": state,
@@ -842,6 +871,7 @@ class DriftSession:  # drift:ignore[DCA]
                 self.metrics.first_completion_at = now
             self.metrics.last_completion_at = now
             self.touch()
+            self._emit_queue_event("task_completed", {"task_id": task_id})
             return {
                 "task_id": task_id,
                 "status": "completed",

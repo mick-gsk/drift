@@ -879,6 +879,16 @@ async def drift_session_start(
             ),
         ),
     ] = None,
+    fresh_start: Annotated[
+        bool,
+        Field(
+            description=(
+                "When true, skip queue-log replay and start with an empty "
+                "queue even if a previous session's .drift-cache/queue.jsonl "
+                "exists. Default: false (resume from log when available)."
+            ),
+        ),
+    ] = False,
 ) -> str:
     """Start a new stateful session for multi-step agent workflows."""
     from drift.mcp_router_session import run_session_start
@@ -893,6 +903,7 @@ async def drift_session_start(
         autopilot=autopilot,
         autopilot_payload=autopilot_payload,
         response_profile=response_profile,
+        fresh_start=fresh_start,
     )
 
 

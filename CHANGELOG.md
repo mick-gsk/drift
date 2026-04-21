@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixed
+
+- **Persistent fix-plan queue survives MCP session restarts (ADR-081).** New append-only event log at `<repo>/.drift-cache/queue.jsonl` records `plan_created` plus terminal `task_completed` / `task_failed` events. `drift_session_start` replays the log by default and reconstructs `selected_tasks`, `completed_task_ids`, `failed_task_ids` — eliminating the ad-hoc-fix cycle where each MCP server restart or 30 min TTL expiry silently lost agent progress. New optional parameter `fresh_start: bool = False` on `drift_session_start` opts out of replay. Response gains `resumed_from_log`, `resumed_tasks`, `resumed_completed`, `resumed_failed` fields. Thread-safe appends with corrupt-line tolerance and automatic rotation at 10 MB.
+
 ## [2.26.1] – 2026-04-22
 
 Short version: Vulture dead-code fix; yes flag now forwarded to require_clean_git in fix_plan CLI.

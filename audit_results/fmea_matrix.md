@@ -1,5 +1,15 @@
 # FMEA Matrix
 
+## 2026-04-21 - ADR-081: Session-Queue-Persistenz via Append-Log
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `drift.session_queue_log.replay_events` | Korrupte Einzelzeile bricht den Replay ab und verhindert Session-Resume | JSON-Parse-Fehler propagiert als Exception | Neue Session startet leer obwohl valider Plan-State existiert | `tests/test_session_queue_log.py::test_replay_skips_corrupt_lines` | Pro-Zeile-try/except; fehlerhafte Zeilen werden geloggt und übersprungen, Replay liefert die restlichen validen Events | 3 | 3 | 1 | 9 | Mitigated |
+| `drift.session_queue_log.append_event` | Race-Condition bei parallelen Append-Writern zerreißt eine JSONL-Zeile | Kein Write-Lock / nicht-atomares Schreiben | Eine korrupte Zeile → beim Replay übersprungen, Event verloren | `tests/test_session_queue_log.py::test_threaded_appends_do_not_corrupt_lines` | Intra-Prozess `threading.Lock` + Best-Effort-OS-Lock (msvcrt/fcntl); single-writer-per-repo als dokumentierter Vertrag | 3 | 2 | 2 | 12 | Mitigated |
+| `drift.session_queue_log.reduce_events` | Replay rekonstruiert Task-State aus veraltetem Plan, weil kein jüngerer `plan_created` existiert | Alter Log nach Signal-Mutation nicht invalidiert | Agent arbeitet gegen veralteten Plan → Edits passen nicht mehr zum aktuellen Scan | `tests/test_session_queue_log.py::test_reduce_events_latest_plan_wins`; Agent kann via `fresh_start=true` überspringen; Autopilot erzeugt frischen Plan | Dokumentierter Opt-Out-Parameter; Event-Log-Rotation verwirft Zwischenzustand, Plan-Events bleiben | 3 | 3 | 3 | 27 | Accepted-with-mitigations |
+| `drift.mcp_router_session.run_session_start` | Replay hängt auf sehr großem `queue.jsonl` (Millionen Zeilen) | Keine Rotation ausgelöst, Datei unbegrenzt gewachsen | `drift_session_start` wird langsam, blockiert Agent-Tools | `_rotate_if_needed` bei 10 MB; `tests/test_session_queue_log.py::test_rotation_compacts_oversized_log` | Rotation nach jedem Append geprüft; Kompaktierung verwirft transiente Events (`task_claimed`/`task_released`) | 2 | 2 | 3 | 12 | Mitigated |
+| `drift.session_queue_log._rotate_if_needed` | Rotation unterbricht konkurrenten Append → Datenverlust | `os.replace` während paralleler Schreiboperation | Verlust terminaler Events | Single-writer-Vertrag; Tests mit `tmp_path` | Dokumentierter Vertrag "ein Writer pro Repo-Arbeitskopie"; Rotation läuft synchron mit dem vorausgegangenen Append im selben Thread | 3 | 1 | 4 | 12 | Accepted |
+
 ## 2026-04-22 - v2.26.0: Strict MCP default, SG-007, SG-005a/SG-006a, nudge revert gate
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

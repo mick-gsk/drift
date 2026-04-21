@@ -116,6 +116,25 @@ def _update_session_from_fix_plan(session: Any, result: dict[str, Any]) -> None:
     tasks = result.get("tasks")
     if tasks:
         session.selected_tasks = tasks
+        # Persist plan to the append-only queue log so a future session can
+        # replay it after an MCP server restart (ADR-081).
+        try:
+            from drift.session_queue_log import QueueEvent, append_event
+
+            append_event(
+                session.repo_path,
+                QueueEvent(
+                    type="plan_created",
+                    session_id=session.session_id,
+                    payload={"tasks": list(tasks)},
+                ),
+            )
+        except Exception:  # pragma: no cover - defensive only
+            import logging
+
+            logging.getLogger("drift").debug(
+                "queue-log: plan_created emit failed", exc_info=True
+            )
     # Auto-advance phase from scan → fix
     if session.phase in ("init", "scan"):
         session.advance_phase("fix")

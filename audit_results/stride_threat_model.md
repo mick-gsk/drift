@@ -1,5 +1,20 @@
 # STRIDE Threat Model
 
+## 2026-04-21 - ADR-081: Session-Queue-Persistenz via Append-Log
+
+- Scope: New module [src/drift/session_queue_log.py](src/drift/session_queue_log.py) (append-only JSONL log at `<repo>/.drift-cache/queue.jsonl`). Write hooks in [src/drift/session.py](src/drift/session.py) (`claim_task`, `complete_task`, `release_task`) and [src/drift/mcp_orchestration.py](src/drift/mcp_orchestration.py) (`_update_session_from_fix_plan`). Read hook and new `fresh_start` parameter on `drift_session_start` in [src/drift/mcp_router_session.py](src/drift/mcp_router_session.py) / [src/drift/mcp_server.py](src/drift/mcp_server.py).
+- Input path changes: New optional parameter `fresh_start: bool` on `drift_session_start` (default `false`, resumes from log). Replay reads `<repo>/.drift-cache/queue.jsonl` — path derived from session `repo_path`.
+- Output path changes: Additive. New artefact `<repo>/.drift-cache/queue.jsonl` (text/JSONL). Rotation overwrites the file in place with a compacted snapshot.
+- External interface changes: Additive MCP tool parameter. Response of `drift_session_start` gains fields `resumed_from_log`, `resumed_tasks`, `resumed_completed`, `resumed_failed`.
+- Trust boundary: Writer is the MCP server process (same trust as the session itself). Reader is the MCP server on session start. No network boundary crossed. `.drift-cache/` is already gitignored.
+- STRIDE review:
+  - S (Spoofing): Log carries `session_id` as a label only — it is not used for authorisation. A forged sid cannot elevate access; the MCP server never acts on behalf of a specific sid recovered from the log.
+  - T (Tampering): A local user with write access to `.drift-cache/queue.jsonl` can inject fake `plan_created` events and cause the next session to load attacker-chosen tasks. Mitigations: (a) the path is in the user's repo, not a shared location, so the attacker already needs local write access; (b) the replay only restores task dicts with no code-execution semantics — tasks are fed to agents which must still go through `drift_brief`, `drift_fix_apply` and the strict guardrail stack; (c) best-effort OS-lock on writes reduces accidental corruption from parallel writers.
+  - R (Repudiation): Every event carries `ts`, `sid`, `type`, `payload`. Terminal events (`task_completed`/`task_failed`) form a durable audit trail surviving restarts. Compaction keeps all terminal events; only transient `task_claimed`/`task_released` are dropped at rotation.
+  - I (Information Disclosure): The log stores task metadata (ids, titles, file paths, signal types) identical to what `drift_fix_plan` already returns to agents. No secrets or credentials. Risk: task payloads may reference source file paths — same exposure as existing `drift.json` outputs.
+  - D (Denial of Service): Unbounded log growth could slow `drift_session_start`. Mitigation: rotation at `_ROTATE_THRESHOLD_BYTES = 10 MB` drops transient events and keeps only the latest plan plus terminal events. Corrupt-line tolerance prevents a single malformed line from aborting the replay.
+  - E (Elevation of Privilege): Replay does not execute code; it populates in-memory session fields only. Tasks themselves are still subject to the strict guardrail stack (SG-005/SG-006/SG-007) before any fix-apply.
+
 ## 2026-04-19 - ADR-042: drift explain <fingerprint> — Finding-Level-Explain
 
 - Scope: New private functions `_extract_code_context()` and `_explain_finding_from_analysis_file()` in [src/drift/api/explain.py](src/drift/api/explain.py). Extended `explain()` API function with `from_file` parameter. Extended CLI command `drift explain` in [src/drift/commands/explain.py](src/drift/commands/explain.py) with fingerprint routing, `--from-file` option and `_print_finding_detail()` renderer.

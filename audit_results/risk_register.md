@@ -1,5 +1,21 @@
 # Risk Register
 
+## 2026-04-21 - ADR-081: Session-Queue-Persistenz via Append-Log
+
+- Risk ID: RISK-ADR-081-SESSION-QUEUE-LOG
+- Component: `src/drift/session_queue_log.py`, `src/drift/session.py` (write hooks on `claim_task`/`complete_task`/`release_task`), `src/drift/mcp_orchestration.py::_update_session_from_fix_plan`, `src/drift/mcp_router_session.py::run_session_start`
+- Type: Persistence / replay consistency risk (additive behaviour, minimal blast radius)
+- Description: Introduces an append-only event log at `<repo>/.drift-cache/queue.jsonl` that persists fix-plan queue mutations across MCP server restarts and session TTL expiry. `drift_session_start` replays the log by default and reconstructs `selected_tasks`, `completed_task_ids`, `failed_task_ids` from the most recent `plan_created` event plus all subsequent terminal events (`task_completed`/`task_failed`). Transient events (`task_claimed`/`task_released`) are deliberately ignored on replay.
+- Severity: LOW — no breaking interface change; new optional `fresh_start: bool = False` parameter on `drift_session_start` allows opt-out; the log path is already gitignored via `.drift-cache/`. Write failures are swallowed (logged debug) so they never block session state mutations.
+- Mitigations:
+  - `fresh_start=true` skips replay entirely; use in tests or when the log is suspected stale.
+  - Corrupt lines are logged and skipped per `tests/test_session_queue_log.py::test_replay_skips_corrupt_lines`.
+  - Thread-safe writes via `threading.Lock` + best-effort OS lock (`msvcrt`/`fcntl`); single-writer-per-repo is the documented contract.
+  - Rotation at 10 MB drops transient events; terminal audit events survive (see `_compact_events`).
+  - STRIDE review (`audit_results/stride_threat_model.md` 2026-04-21) notes Tampering risk: attacker with local write access to `.drift-cache/queue.jsonl` can inject fake `plan_created` events; tasks are still subject to SG-005/SG-006/SG-007 strict guardrail enforcement before any fix-apply.
+- FMEA: `audit_results/fmea_matrix.md` 2026-04-21 (5 failure modes, highest RPN = 27 "Replay rekonstruiert Task-State aus veraltetem Plan", accepted-with-mitigations).
+- Tests: `tests/test_session_queue_log.py` (13 unit tests), `tests/test_session.py::TestQueueLogHooks`, `tests/test_session.py::TestRestartReplay` (end-to-end restart simulation).
+
 ## 2026-04-22 - v2.26.0: Strict MCP guardrails default, SG-007 / SG-005a / SG-006a, nudge revert enforcement
 
 - Risk ID: RISK-MCP-2026-04-22-STRICT-DEFAULT
