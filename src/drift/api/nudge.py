@@ -323,60 +323,19 @@ class _NudgeExecution:
 
     def _create_baseline(self, mgr: Any) -> Any:
         from drift.analyzer import analyze_repo
-        from drift.cache import ParseCache
         from drift.incremental import BaselineSnapshot
-        from drift.ingestion.ast_parser import parse_file
-        from drift.ingestion.file_discovery import discover_files
 
         cfg = self.cfg
         self.baseline_refresh_reason = (
             mgr.consume_refresh_reason(self.repo_path) or "baseline_missing"
         )
-        all_files = discover_files(
-            self.repo_path,
-            include=cfg.include,
-            exclude=cfg.exclude,
-            max_files=cfg.thresholds.max_discovery_files,
-            cache_dir=cfg.cache_dir,
-        )
-        analysis = analyze_repo(self.repo_path, config=cfg)
-
-        pcache = ParseCache(self.repo_path / cfg.cache_dir)
         file_hashes: dict[str, str] = {}
+        analysis = analyze_repo(self.repo_path, config=cfg, file_hashes_out=file_hashes)
+
+        # parse_map is left empty — identical to the disk warm-load path
+        # (BaselineManager._load_persisted_nudge_baseline returns {} for parse_map).
+        # IncrementalSignalRunner handles an empty parse_map correctly.
         parse_map: dict[str, Any] = {}
-        for finfo in all_files:
-            full_path = self.repo_path / finfo.path
-            posix = finfo.path.as_posix()
-            try:
-                h = ParseCache.file_hash(full_path)
-                file_hashes[posix] = h
-            except OSError:
-                continue
-
-            cached_pr = pcache.get(h)
-            if cached_pr is not None:
-                if cached_pr.file_path != finfo.path:
-                    cached_pr.file_path = finfo.path
-                parse_map[posix] = cached_pr
-                continue
-
-            try:
-                pr = parse_file(finfo.path, self.repo_path, finfo.language)
-                parse_map[posix] = pr
-                if pr.parse_errors:
-                    self._record_parse_failure(
-                        file_path=posix,
-                        stage="baseline",
-                        reason="parse_errors",
-                        errors=pr.parse_errors,
-                    )
-            except Exception as exc:
-                self._record_parse_failure(
-                    file_path=posix,
-                    stage="baseline",
-                    reason="parse_exception",
-                    errors=[str(exc)],
-                )
 
         baseline = BaselineSnapshot(
             file_hashes=file_hashes,

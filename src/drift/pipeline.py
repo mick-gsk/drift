@@ -1394,6 +1394,7 @@ class AnalysisPipeline:
         active_signals: set[str] | None = None,
         discover_duration_seconds: float = 0.0,
         no_cache: bool = False,
+        file_hashes_out: dict[str, str] | None = None,
     ) -> RepoAnalysis:
         started_at = time.monotonic()
         degradation = DegradationInfo(causes=set(), components=set(), events=[])
@@ -1411,6 +1412,8 @@ class AnalysisPipeline:
             progress=on_progress,
             no_cache=no_cache,
         )
+        if file_hashes_out is not None:
+            file_hashes_out.update(parsed.file_hashes)
         phase_timings.update(parsed.phase_timings)
         signaled = self._signals.run(
             repo_path,

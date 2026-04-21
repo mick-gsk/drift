@@ -14,14 +14,11 @@ def _write_issue_317_fixture(tmp_path: Path) -> Path:
     file_path = tmp_path / ISSUE_317_FILE
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(
-        "type PluginRuntime = { logging: unknown; system: unknown; channel: unknown };\n"
-        "type RuntimeEnv = { error: unknown };\n"
-        "type PollStore = { recordVote: unknown };\n"
-        "type Logger = { info: unknown; debug: unknown; error: unknown };\n"
-        "const runtime = {} as unknown as PluginRuntime;\n"
-        "const env = {} as unknown as RuntimeEnv;\n"
-        "const pollStore = {} as unknown as PollStore;\n"
-        "const log = {} as unknown as Logger;\n"
+        "// Test-support stubs for message-handler integration tests.\n"
+        "const runtime = {} as any;\n"
+        "const env = {} as any;\n"
+        "const pollStore = {} as any;\n"
+        "const log = {} as any;\n"
         "export { runtime, env, pollStore, log };\n",
         encoding="utf-8",
     )
@@ -44,7 +41,7 @@ def test_issue_317_tsb_excludes_by_default_and_reduces_to_low_when_configured(
         classes=[],
         imports=[],
         patterns=[],
-        line_count=9,
+        line_count=6,
     )
 
     default_findings = TypeSafetyBypassSignal().analyze([parse_result], {}, DriftConfig())
@@ -61,4 +58,4 @@ def test_issue_317_tsb_excludes_by_default_and_reduces_to_low_when_configured(
     assert finding.severity == Severity.LOW
     assert finding.finding_context == "test"
     assert finding.metadata.get("finding_context") == "test"
-    assert finding.metadata["kind_distribution"].get("double_cast", 0) == 4
+    assert finding.metadata["kind_distribution"].get("as_any", 0) == 4
