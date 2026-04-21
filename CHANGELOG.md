@@ -6,13 +6,12 @@ Short version: ADR scanner; enriched `brief` API (layer_contract, relevant_tests
 
 - `adr_scanner`: stdlib-only parser for `decisions/*.md`; returns active ADRs (accepted/proposed) filtered by scope paths and task keywords.
 - `brief` API: response now includes `layer_contract`, `relevant_tests`, `active_adrs`; prompt block extended with Layer Constraints and Active ADR Constraints sections.
-- Nudge regression detector: `timeout_ms` param (default 1000 ms); new fields `revert_recommended`, `latency_ms`, `latency_exceeded`, `auto_fast_path`; explicit REVERT directive in `agent_instruction` on degrading+unsafe edits.
+- Nudge regression detector: `timeout_ms` param (default 1000 ms); new fields `revert_recommended`, `latency_ms`, `latency_exceeded`, `auto_fast_path`; explicit REVERT directive on degrading+unsafe edits.
 - MCP SG-005/SG-006: `drift_fix_apply` and `drift_patch_begin` require prior `drift_brief` in strict sessions.
-- `copilot-instructions.md`: mandatory Post-Edit Drift-Nudge workflow section for all coding agents.
 
 ### Changed
 
-- `drift.yaml`: `doc_impl_drift` excluded from `decisions/*` to suppress ADR-file false positives.
+- `copilot-instructions.md`: mandatory Post-Edit Drift-Nudge section; `drift.yaml`: `doc_impl_drift` excluded from `decisions/*`.
 
 ## [2.22.0] – 2026-04-20
 
