@@ -1,5 +1,11 @@
 # FMEA Matrix
 
+## 2026-04-21 - Q1 (ADR-081 Nachschärfung): SG-008/SG-009 queue-driven mutation gates
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `mcp_orchestration._strict_guardrail_violations` (SG-008/SG-009) | Agent ruft `drift_fix_apply`/`drift_patch_begin` an der Queue vorbei, obwohl `drift_fix_plan` verfügbar wäre | ADR-081-Persistenz rettet nur die Queue über Neustarts hinweg, erzwingt aber keine Queue-Nutzung; SG-005/006 prüfen nur `drift_brief` | Ad-hoc-Fixes ohne Priorisierung, Queue bleibt unbearbeitet, Verlust der "erst diagnostizieren, dann priorisieren, dann patchen"-Disziplin | `tests/test_mcp_orchestration_coverage.py::TestQueueDrivenMutationRules` (8 neue Tests); SG-008/SG-009 block-response mit `reason=empty_queue` | SG-008 blockt `drift_fix_apply`, SG-009 blockt `drift_patch_begin`, wenn `session.selected_tasks` leer/None ist; Violation-Message nennt explizite Auswege `drift_fix_plan` (Queue) und `drift_nudge`/`drift_diff` (Ad-hoc-Feedback); wirkt nur im strict-mode, konsistent mit SG-005/006 | 4 | 3 | 2 | 24 | Mitigated |
+
 ## 2026-04-21 - ADR-081: Session-Queue-Persistenz via Append-Log
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

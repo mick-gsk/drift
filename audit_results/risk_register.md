@@ -1,5 +1,23 @@
 # Risk Register
 
+## 2026-04-21 - Q1 (ADR-081 Nachschärfung): SG-008/SG-009 queue-driven mutation gates
+
+- Risk ID: RISK-ADR-081-QUEUE-BYPASS
+- Component: `src/drift/mcp_orchestration.py::_strict_guardrail_violations`
+- Type: Orchestration / enforcement risk (additive strict-mode rule, no interface change)
+- Description: ADR-081 queue persistence makes `selected_tasks` durable across session restarts but does not enforce that agents actually use the queue. Before Q1, an agent in strict mode could satisfy SG-005/SG-006 with only `drift_brief` and then call `drift_fix_apply` / `drift_patch_begin` directly, bypassing `drift_fix_plan` and the queue entirely. This reintroduces the "ad-hoc fixes instead of prioritised queue" failure mode that ADR-081 tried to solve at the persistence layer.
+- Severity: LOW — strict-mode-only; `agent.strict_guardrails: false` opt-out fully restores prior behaviour; additive rule surfaces via existing `DRIFT-6002` block-response contract.
+- Triggers (concrete): agent calls `drift_fix_apply(session_id=sid)` on a fresh session after only `drift_validate` + `drift_brief`; agent skips `drift_fix_plan` after a scan because the finding count is low; agent calls `drift_patch_begin` directly after re-briefing without re-planning.
+- Impact: Without SG-008/009, priorities from `drift_fix_plan` are silently ignored; queue persistence (ADR-081) cannot recover lost intent because no plan ever existed.
+- Mitigations:
+  - SG-008 blocks `drift_fix_apply` when `session.selected_tasks` is empty or `None`.
+  - SG-009 blocks `drift_patch_begin` with the same precondition.
+  - Violation message names both recovery paths: `drift_fix_plan` for queue-driven mutation and `drift_nudge` / `drift_diff` for ad-hoc regression feedback (no mutation).
+  - Resumed sessions (ADR-081 replay) restore `selected_tasks` from the log, so a session that resumed a non-empty plan satisfies SG-008/009 automatically.
+- Verification: `tests/test_mcp_orchestration_coverage.py::TestQueueDrivenMutationRules` (8 tests covering empty queue block, non-empty pass, `None` selected_tasks, and explicit non-triggering for `drift_nudge`, `drift_diff`, `drift_scan`).
+- FMEA: `audit_results/fmea_matrix.md` 2026-04-21 "Q1 (ADR-081 Nachschärfung): SG-008/SG-009 queue-driven mutation gates" (RPN = 24, mitigated).
+- Residual risk: Agent can still call `drift_session_end` or `drift_scan` without queue; these do not mutate code and remain intentionally unblocked. Gates cannot detect a malicious fork where an attacker pre-seeds `selected_tasks` via queue-log tampering — existing STRIDE tampering mitigation (SG-005/006/007 stack) still applies.
+
 ## 2026-04-21 - ADR-081: Session-Queue-Persistenz via Append-Log
 
 - Risk ID: RISK-ADR-081-SESSION-QUEUE-LOG

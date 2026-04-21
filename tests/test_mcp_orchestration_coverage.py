@@ -424,6 +424,99 @@ class TestStrictGuardrailViolations:
 
 
 # ---------------------------------------------------------------------------
+# _strict_guardrail_violations — SG-008 and SG-009 (queue-driven mutation)
+# ---------------------------------------------------------------------------
+
+
+class TestQueueDrivenMutationRules:
+    """SG-008 (fix_apply) and SG-009 (patch_begin) block when the session
+    queue is empty, enforcing queue-driven mutation per ADR-081."""
+
+    def _briefed_session(self, **overrides: Any) -> _FakeSession:
+        # Session that passes SG-005/SG-006 (brief called) so SG-008/009
+        # can be observed in isolation.
+        return _FakeSession(guardrails=[{"id": "GR-001"}], **overrides)
+
+    def test_sg008_fix_apply_blocked_with_empty_queue(self):
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session(selected_tasks=[])
+        violations = _strict_guardrail_violations("drift_fix_apply", session)
+        sg008 = [v for v in violations if v["rule_id"] == "SG-008"]
+        assert len(sg008) == 1
+        assert sg008[0]["reason"] == "empty_queue"
+        assert sg008[0]["observed"] == {"selected_tasks_count": 0}
+        assert "drift_fix_plan" in sg008[0]["message"]
+        assert "drift_nudge" in sg008[0]["message"]
+
+    def test_sg008_fix_apply_passes_with_non_empty_queue(self):
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session(
+            selected_tasks=[{"id": "T-1", "title": "Fix X"}]
+        )
+        violations = _strict_guardrail_violations("drift_fix_apply", session)
+        assert not any(v["rule_id"] == "SG-008" for v in violations)
+
+    def test_sg009_patch_begin_blocked_with_empty_queue(self):
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session(selected_tasks=[])
+        violations = _strict_guardrail_violations("drift_patch_begin", session)
+        sg009 = [v for v in violations if v["rule_id"] == "SG-009"]
+        assert len(sg009) == 1
+        assert sg009[0]["reason"] == "empty_queue"
+
+    def test_sg009_patch_begin_passes_with_non_empty_queue(self):
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session(
+            selected_tasks=[{"id": "T-1", "title": "Fix X"}]
+        )
+        violations = _strict_guardrail_violations("drift_patch_begin", session)
+        assert not any(v["rule_id"] == "SG-009" for v in violations)
+
+    def test_sg008_not_triggered_for_drift_nudge(self):
+        # Ad-hoc regression feedback must remain unblocked even with an
+        # empty queue — this is SG-008's explicit escape hatch.
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session(
+            selected_tasks=[],
+            last_scan_score=0.5,  # satisfies SG-003
+        )
+        violations = _strict_guardrail_violations("drift_nudge", session)
+        assert not any(v["rule_id"] in {"SG-008", "SG-009"} for v in violations)
+
+    def test_sg008_not_triggered_for_drift_diff(self):
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session(
+            selected_tasks=[],
+            last_scan_score=0.5,
+        )
+        violations = _strict_guardrail_violations("drift_diff", session)
+        assert not any(v["rule_id"] in {"SG-008", "SG-009"} for v in violations)
+
+    def test_sg008_not_triggered_for_drift_scan(self):
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session(selected_tasks=[])
+        violations = _strict_guardrail_violations("drift_scan", session)
+        assert not any(v["rule_id"] in {"SG-008", "SG-009"} for v in violations)
+
+    def test_sg008_with_none_selected_tasks_treated_as_empty(self):
+        # Fresh session prior to any fix_plan: selected_tasks may be None
+        # rather than []. Both must trigger SG-008.
+        from drift.mcp_orchestration import _strict_guardrail_violations
+
+        session = self._briefed_session()
+        session.selected_tasks = None  # type: ignore[assignment]
+        violations = _strict_guardrail_violations("drift_fix_apply", session)
+        assert any(v["rule_id"] == "SG-008" for v in violations)
+
+
+# ---------------------------------------------------------------------------
 # _strict_guardrail_violations — SG-007 (scope_gate) and SG-005a (stale brief)
 # ---------------------------------------------------------------------------
 

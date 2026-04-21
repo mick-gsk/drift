@@ -672,6 +672,31 @@ def _strict_guardrail_violations(tool_name: str, session: Any) -> list[dict[str,
             "observed": sorted(called_tools),
         })
 
+    # SG-008 / SG-009: block fix/patch when the queue is empty, i.e. no
+    # drift_fix_plan has produced tasks yet.  This enforces queue-driven
+    # mutation: agents must either (a) call drift_fix_plan to pull tasks
+    # from prioritised diagnosis, or (b) use drift_nudge / drift_diff for
+    # ad-hoc regression feedback.  Consistent with ADR-081 queue
+    # persistence: a replayed queue restores selected_tasks, so a
+    # resumed session satisfies this gate automatically.
+    if tool_name in {"drift_fix_apply", "drift_patch_begin"}:
+        selected_tasks = getattr(session, "selected_tasks", None)
+        queue_empty = not bool(selected_tasks)
+        if queue_empty:
+            rule = "SG-008" if tool_name == "drift_fix_apply" else "SG-009"
+            violations.append({
+                "rule_id": rule,
+                "reason": "empty_queue",
+                "message": (
+                    f"{tool_name} is blocked: no tasks in the session queue. "
+                    "Call drift_fix_plan first to pull prioritised tasks, or "
+                    "use drift_nudge / drift_diff for ad-hoc regression "
+                    "feedback without mutation."
+                ),
+                "required": ["drift_fix_plan"],
+                "observed": {"selected_tasks_count": 0},
+            })
+
     # SG-007: block fix/patch when the last brief raised a scope_gate.
     # The agent must ask the user to confirm the scope before proceeding.
     if tool_name in {"drift_fix_apply", "drift_patch_begin"}:

@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **SG-008 / SG-009 queue-driven mutation gates (Q1, ADR-081 Nachschärfung).** `drift_fix_apply` (SG-008) and `drift_patch_begin` (SG-009) are now blocked in strict mode when `session.selected_tasks` is empty or `None`. The violation message names both recovery paths explicitly: call `drift_fix_plan` to pull prioritised queue tasks, or use `drift_nudge` / `drift_diff` for ad-hoc regression feedback without mutation. Closes the last-mile gap from ADR-081: queue persistence made the queue durable across restarts, but agents could still satisfy SG-005/SG-006 and bypass `drift_fix_plan` entirely. Strict-mode-only — `agent.strict_guardrails: false` opt-out unchanged. Resumed sessions (ADR-081 replay) satisfy the new gates automatically because `selected_tasks` is restored from the event log.
+
 ### Fixed
 
 - **Persistent fix-plan queue survives MCP session restarts (ADR-081).** New append-only event log at `<repo>/.drift-cache/queue.jsonl` records `plan_created` plus terminal `task_completed` / `task_failed` events. `drift_session_start` replays the log by default and reconstructs `selected_tasks`, `completed_task_ids`, `failed_task_ids` — eliminating the ad-hoc-fix cycle where each MCP server restart or 30 min TTL expiry silently lost agent progress. New optional parameter `fresh_start: bool = False` on `drift_session_start` opts out of replay. Response gains `resumed_from_log`, `resumed_tasks`, `resumed_completed`, `resumed_failed` fields. Thread-safe appends with corrupt-line tolerance and automatic rotation at 10 MB.
