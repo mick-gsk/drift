@@ -14,21 +14,15 @@ def _write_issue_317_fixture(tmp_path: Path) -> Path:
     file_path = tmp_path / ISSUE_317_FILE
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(
-        "import { vi } from 'vitest';\n"
         "type PluginRuntime = { logging: unknown; system: unknown; channel: unknown };\n"
         "type RuntimeEnv = { error: unknown };\n"
         "type PollStore = { recordVote: unknown };\n"
         "type Logger = { info: unknown; debug: unknown; error: unknown };\n"
-        "const runtime = {\n"
-        "  logging: { shouldLogVerbose: () => false },\n"
-        "  system: {},\n"
-        "  channel: {},\n"
-        "} as unknown as PluginRuntime;\n"
-        "const deps = {\n"
-        "  runtime: { error: vi.fn() } as unknown as RuntimeEnv,\n"
-        "  pollStore: { recordVote: vi.fn(async () => null) } as unknown as PollStore,\n"
-        "  log: { info: vi.fn(), debug: vi.fn(), error: vi.fn() } as unknown as Logger,\n"
-        "};\n",
+        "const runtime = {} as unknown as PluginRuntime;\n"
+        "const env = {} as unknown as RuntimeEnv;\n"
+        "const pollStore = {} as unknown as PollStore;\n"
+        "const log = {} as unknown as Logger;\n"
+        "export { runtime, env, pollStore, log };\n",
         encoding="utf-8",
     )
     return file_path
@@ -50,7 +44,7 @@ def test_issue_317_tsb_excludes_by_default_and_reduces_to_low_when_configured(
         classes=[],
         imports=[],
         patterns=[],
-        line_count=16,
+        line_count=9,
     )
 
     default_findings = TypeSafetyBypassSignal().analyze([parse_result], {}, DriftConfig())
