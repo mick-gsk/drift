@@ -66,7 +66,7 @@ def _enrich_tasks_with_similar_outcomes(tasks: list[AgentTask]) -> None:
 
 
 def _annotate_cross_signal_pfs_risk(
-    tasks: list["AgentTask"],
+    tasks: list[AgentTask],
     analysis: Any,
     out_warnings: list[str],
 ) -> None:
