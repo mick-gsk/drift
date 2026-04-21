@@ -228,7 +228,7 @@ def guardrails_to_prompt_block(
     active_adrs: list[dict[str, str]] | None = None,
     anti_patterns: list[dict[str, Any]] | None = None,
 ) -> str:
-    """Format guardrails as a copy-pastable text block for agent prompts.
+    """Build a markdown prompt block from guardrails and optional constraints.
 
     Optional *layer_contract*, *active_adrs*, and *anti_patterns* inject
     additional sections (``## Layer Constraints``, ``## Active ADR
