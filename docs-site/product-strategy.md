@@ -54,3 +54,9 @@ Recommended reading order for new users:
 ## Operational implication
 
 When there is tension between adding more surface area and making findings more credible, credibility wins.
+
+---
+
+Update 2026-04-21: Hybrid-Positionierung per ADR-084 Option C freigegeben.
+Nische bleibt Go-to-Market; agenten-native Evolution ist der explizite
+Folge-Pfad. Siehe [`docs/PRODUCT_STRATEGY.md` Abschnitt "Evolutions-Perspektive (ADR-084 Option C)"](../docs/PRODUCT_STRATEGY.md) für Details.

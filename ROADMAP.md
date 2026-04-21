@@ -26,6 +26,68 @@ Exceptions: bugfixes that block installation or first-run experience.
 
 Vollständige Gate-Kriterien und vorbereitete PR-Texte: [`docs/distribution/awesome-submissions.md`](docs/distribution/awesome-submissions.md)
 
+## Strategische Epochen (additiv zu POLICY §14-Phasen)
+
+> **Status:** ADR-084 Option C akzeptiert (2026-04-21, Maintainer-Freigabe) —
+> [`decisions/ADR-084-positionierung-vibe-coding-tool.md`](decisions/ADR-084-positionierung-vibe-coding-tool.md).
+> Diese Sektion ergänzt die bestehende Distribution-Sektion und bricht
+> nichts. Die "Currently important"-Liste und der Distribution-Track
+> bleiben unverändert maßgeblich für laufende Arbeit.
+
+### Begriffsabgrenzung
+
+Drift verwendet zwei orthogonale Phasen-Begriffe. Sie dürfen nicht
+miteinander verwechselt werden:
+
+| Begriff | Bedeutung | Quelle |
+|---------|-----------|--------|
+| POLICY §14 Phase 1–4 | Qualitätsreifegrad: Trust → Relevance → Adoptability → Scaling | [`POLICY.md`](POLICY.md) §14 |
+| Strategische Epoche A/B/C | Go-to-Market-Epoche: Adoption → Agenten-First → Universal | diese Sektion |
+
+POLICY §14 ist dominante Begriffsachse für interne Qualitätsreife und
+hat Vorrang. Strategische Epochen beschreiben die Außenpositionierung
+und sind auf POLICY §14 abgebildet, ohne sie zu verdrängen.
+
+### Epoche A — Adoption (laufend)
+
+Identisch mit der oben dokumentierten Distribution-Phase. Ziel: ≥ 10
+externe Nutzer, messbare Retention, klares ICP. Keine neuen
+Meilensteine über das hinaus, was im Distribution-Track oben steht.
+
+Validiert wird Epoche A durch das Experiment in
+[`master-backlog/04-audience-validation-experiment.md`](master-backlog/04-audience-validation-experiment.md).
+
+### Epoche B — Agenten-First (active)
+
+**Aktiv per ADR-084 Option C (Maintainer-Freigabe 2026-04-21). Sub-ADRs
+pro Item sind weiterhin erforderlich vor Code-Änderungen.**
+
+Kandidaten-Items (alle `proposed`, jeweils mit Gate-Verweis):
+
+- [Item 06 — Trend-Gate Enforcement](master-backlog/06-trend-gate-enforcement.md)
+- [Item 07 — `drift patch --auto` Apply-and-Verify Loop](master-backlog/07-patch-auto-verify-loop.md)
+- [Item 08 — VS Code Extension (Beta)](master-backlog/08-vscode-extension-beta.md)
+
+Ergänzend:
+[Item 05 — drift_nudge Cold-Start Latenz](master-backlog/05-drift-nudge-cold-start.md)
+ist Voraussetzung, falls Z3 (Agent-Framework-Entwickler) als Zielgruppe
+adoptiert.
+
+### Epoche C — Universelle Plattform (Platzhalter)
+
+**Erfordert Epoche-B-Abschluss.** Reine Stubs, kein Commitment:
+
+- [Item 09 — Cross-Language IR](master-backlog/09-cross-language-ir.md)
+- [Item 10 — Agent-Framework SDK Bindings](master-backlog/10-agent-framework-sdk.md)
+- [Item 11 — Cloud Trend-Storage](master-backlog/11-cloud-trend-storage.md)
+
+### Verhältnis zu Go-Support-MVP
+
+Der unten stehende Go-Support-MVP-Track ist **unabhängig** von den
+strategischen Epochen. Er bleibt im Post-Moratorium-Status und wird
+nicht durch Epoche B vorgezogen. Eine Epoche-C-Entscheidung kann ihn
+priorisieren, muss aber nicht.
+
 ## Go support MVP (post-moratorium track)
 
 Go support is a plausible future direction, but it is not scheduled during the

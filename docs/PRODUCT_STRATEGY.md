@@ -248,6 +248,31 @@ Files: 490 | Functions: 5,073
 
 ---
 
+## Evolutions-Perspektive (ADR-084 Option C, 2026-04-21)
+
+Die Kategorie-Definition in Abschnitt 1 bleibt vollständig gültig.
+Drift bleibt ein deterministischer Static-Analyzer für architekturelle
+Erosion in AI-assistierten Codebases — das ist Go-to-Market und
+Glaubwürdigkeitsbasis.
+
+Agenten-native Nutzung (MCP-Server, Fix-Loop, Post-Edit-Nudge) ist
+der natürliche Evolutionspfad: Drift wird nicht breiter, sondern tiefer
+in Agenten-Workflows verankert. Diese Evolution ist additiv, nicht
+substituierend.
+
+Konkrete nächste Epoche-B-Schritte (alle mit eigenem Sub-ADR vor
+Code-Änderungen):
+
+- [Item 05 — Cold-Start-Latenz](../master-backlog/05-drift-nudge-cold-start.md) — Voraussetzung für reibungslosen Agent-Loop
+- [Item 06 — Trend-Gate Enforcement](../master-backlog/06-trend-gate-enforcement.md) — Score-Trend als CI-Gate
+- [Item 07 — `drift patch --auto`](../master-backlog/07-patch-auto-verify-loop.md) — autonome Remediation für hochpräzise Signale
+- [Item 08 — VS Code Extension](../master-backlog/08-vscode-extension-beta.md) — Findings ohne Terminal-Wechsel
+
+Trennung: Nische ist Go-to-Market, universell ist Evolutionsrichtung.
+Epoche C (universelle Plattform) bleibt Platzhalter und erfordert
+Epoche-B-Abschluss.
+
+
 ## 7. Erfolgsmetriken
 
 | Metrik | Ziel | Messmethode |
