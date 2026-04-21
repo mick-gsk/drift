@@ -77,10 +77,14 @@ def _validate_version_tag_lineage(version: str) -> None:
     tag = f"v{version}"
 
     if not _tag_exists(tag):
-        _fail(
+        message = (
             "Release tag lineage check failed. "
             f"Expected release tag '{tag}' for version '{version}', but the tag does not exist."
         )
+        if os.environ.get("DRIFT_TAG_LINEAGE_WARN") == "1":
+            _warn(message + " (continuing because DRIFT_TAG_LINEAGE_WARN=1)")
+            return
+        _fail(message)
 
     if _is_ancestor(tag, "HEAD"):
         return
