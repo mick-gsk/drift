@@ -510,3 +510,166 @@ def test_fix_plan_format_json_via_shorthand(tmp_path: Path) -> None:
     output = _run_format(tmp_path, ["-f", "json"])
     data = json.loads(output)
     assert "tasks" in data
+
+
+# ---------------------------------------------------------------------------
+# Issue #529: cross-signal PFS risk annotation for CXS extract_function tasks
+# ---------------------------------------------------------------------------
+
+
+def _make_pfs_error_handling_finding(*, module: str = "src/scripts") -> MagicMock:
+    """Build a PFS finding for error_handling category in the given module."""
+    f = MagicMock()
+    f.signal_type = "pattern_fragmentation_signal"
+    f.title = f"error_handling: 2 variants in {module}/"
+    f.deferred = False
+    fp = MagicMock()
+    fp.as_posix.return_value = module
+    f.file_path = fp
+    f.metadata = {
+        "category": "error_handling",
+        "module": module,
+        "canonical_exemplar": f"{module}/aggregate.py:87",
+        "canonical_snippet": "try:\n    return load()\nexcept Exception:\n    return None",
+        "canonical_count": 4,
+        "num_variants": 3,
+    }
+    return f
+
+
+def _make_cxs_extract_function_task(
+    *, task_id: str = "cxs-001", file_path: str = "src/scripts/complex.py"
+) -> AgentTask:
+    """Build a CXS task that uses extract_function."""
+    from drift.models import SignalType
+
+    t = AgentTask(
+        id=task_id,
+        signal_type=SignalType.COGNITIVE_COMPLEXITY,
+        severity=Severity.HIGH,
+        priority=80,
+        title="High cognitive complexity in process()",
+        description="Function process() has CC=22",
+        action="Extract helper functions to reduce complexity",
+        file_path=file_path,
+        metadata={
+            "finding_context": "production",
+            "fix_template_class": "extract_function",
+        },
+    )
+    return t
+
+
+def test_cxs_extract_function_annotated_with_cross_signal_risk(tmp_path: Path) -> None:
+    """CXS extract_function task in a directory with PFS error_handling gets cross_signal_risk."""
+    cxs_task = _make_cxs_extract_function_task()
+    pfs_finding = _make_pfs_error_handling_finding(module="src/scripts")
+
+    from drift.models import SignalType
+    analysis = _make_analysis(findings=[pfs_finding])
+    analysis.findings[0].signal_type = SignalType.PATTERN_FRAGMENTATION
+    cfg = _make_cfg()
+
+    with patch("drift.output.agent_tasks.analysis_to_agent_tasks", return_value=[cxs_task]):
+        result = _build_fix_plan_response_from_analysis(
+            analysis=analysis,
+            cfg=cfg,
+            repo_path=tmp_path,
+            finding_id=None,
+            signal=None,
+            max_tasks=5,
+            automation_fit_min=None,
+            target_path=None,
+            exclude_paths=None,
+            include_deferred=True,
+            include_non_operational=True,
+        )
+
+    tasks = result.get("tasks", [])
+    assert len(tasks) == 1
+
+    cross_risk = tasks[0].get("cross_signal_risk")
+    assert cross_risk is not None, "cross_signal_risk must be annotated on the CXS task"
+    assert cross_risk["signal"] == "PFS"
+    assert cross_risk["category"] == "error_handling"
+    assert "extract_function" in cross_risk["risk"]
+    assert "fragmentation" in cross_risk["risk"]
+    assert "dominant_pattern_exemplar" in cross_risk
+    assert cross_risk["dominant_pattern_count"] == 4
+    assert cross_risk["num_existing_variants"] == 3
+
+    warnings = result.get("warnings", [])
+    assert any("PFS" in w and "fragmentation" in w for w in warnings), (
+        "A top-level warning about PFS fragmentation risk must be present"
+    )
+
+
+def test_cxs_without_pfs_eh_has_no_cross_signal_risk(tmp_path: Path) -> None:
+    """CXS task in a directory with NO PFS error_handling finding is not annotated."""
+    cxs_task = _make_cxs_extract_function_task()
+    # Only a non-error_handling PFS finding
+    pfs_finding = MagicMock()
+    pfs_finding.signal_type = "pattern_fragmentation_signal"
+    pfs_finding.deferred = False
+    fp = MagicMock()
+    fp.as_posix.return_value = "other/module"
+    pfs_finding.file_path = fp
+    pfs_finding.metadata = {
+        "category": "return_pattern",  # not error_handling
+        "module": "src/scripts",
+    }
+
+    from drift.models import SignalType
+    analysis = _make_analysis(findings=[pfs_finding])
+    analysis.findings[0].signal_type = SignalType.PATTERN_FRAGMENTATION
+    cfg = _make_cfg()
+
+    with patch("drift.output.agent_tasks.analysis_to_agent_tasks", return_value=[cxs_task]):
+        result = _build_fix_plan_response_from_analysis(
+            analysis=analysis,
+            cfg=cfg,
+            repo_path=tmp_path,
+            finding_id=None,
+            signal=None,
+            max_tasks=5,
+            automation_fit_min=None,
+            target_path=None,
+            exclude_paths=None,
+            include_deferred=True,
+            include_non_operational=True,
+        )
+
+    tasks = result.get("tasks", [])
+    assert len(tasks) == 1
+    assert "cross_signal_risk" not in tasks[0]
+
+
+def test_non_cxs_task_not_annotated_with_cross_signal_risk(tmp_path: Path) -> None:
+    """Non-CXS tasks are never annotated with cross_signal_risk."""
+    pfs_task = _make_task(task_id="pfs-001", signal_type="PFS", file_path="src/scripts/foo.py")
+    pfs_task.metadata["fix_template_class"] = "normalize_pattern"
+    pfs_finding = _make_pfs_error_handling_finding(module="src/scripts")
+
+    from drift.models import SignalType
+    analysis = _make_analysis(findings=[pfs_finding])
+    analysis.findings[0].signal_type = SignalType.PATTERN_FRAGMENTATION
+    cfg = _make_cfg()
+
+    with patch("drift.output.agent_tasks.analysis_to_agent_tasks", return_value=[pfs_task]):
+        result = _build_fix_plan_response_from_analysis(
+            analysis=analysis,
+            cfg=cfg,
+            repo_path=tmp_path,
+            finding_id=None,
+            signal=None,
+            max_tasks=5,
+            automation_fit_min=None,
+            target_path=None,
+            exclude_paths=None,
+            include_deferred=True,
+            include_non_operational=True,
+        )
+
+    tasks = result.get("tasks", [])
+    assert len(tasks) == 1
+    assert "cross_signal_risk" not in tasks[0]

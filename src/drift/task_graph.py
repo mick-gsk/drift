@@ -220,6 +220,10 @@ def _task_to_api_dict(t: Any) -> dict[str, Any]:
     result["similar_outcomes"] = getattr(t, "similar_outcomes", None)
     # ADR-073: consolidation group back-reference
     result["consolidation_group_id"] = getattr(t, "consolidation_group_id", None)
+    # Issue #529: expose cross_signal_risk annotation when present
+    cross_signal_risk = t.metadata.get("cross_signal_risk") if hasattr(t, "metadata") else None
+    if cross_signal_risk is not None:
+        result["cross_signal_risk"] = cross_signal_risk
     return result
 
 

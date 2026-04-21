@@ -65,6 +65,93 @@ def _enrich_tasks_with_similar_outcomes(tasks: list[AgentTask]) -> None:
             task.similar_outcomes = outcomes
 
 
+def _annotate_cross_signal_pfs_risk(
+    tasks: list["AgentTask"],
+    analysis: Any,
+    out_warnings: list[str],
+) -> None:
+    """Annotate CXS extract_function tasks with PFS cross-signal risk (Issue #529).
+
+    When fix_plan recommends extract_function for a CXS finding in a directory
+    that already has an established error_handling PFS pattern, new helper
+    functions may introduce pattern fragmentation. This helper adds a
+    ``cross_signal_risk`` key to the task metadata and a top-level warning so
+    agents know to follow the dominant pattern before implementing the fix.
+    """
+    from pathlib import Path as _Path
+
+    from drift.fix_intent import EDIT_KIND_EXTRACT_FUNCTION
+    from drift.models import SignalType
+
+    # Build lookup: directory posix path -> PFS error_handling finding metadata
+    pfs_eh_by_dir: dict[str, dict[str, Any]] = {}
+    for finding in analysis.findings:
+        if finding.signal_type != SignalType.PATTERN_FRAGMENTATION:
+            continue
+        meta = finding.metadata or {}
+        if meta.get("category") != "error_handling":
+            continue
+        module = meta.get("module", "")
+        if not module and finding.file_path:
+            module = finding.file_path.as_posix()
+        if module and module not in pfs_eh_by_dir:
+            pfs_eh_by_dir[module] = {
+                "canonical_exemplar": meta.get("canonical_exemplar", ""),
+                "canonical_snippet": meta.get("canonical_snippet", ""),
+                "canonical_count": meta.get("canonical_count", 0),
+                "num_variants": meta.get("num_variants", 0),
+                "module": module,
+            }
+
+    if not pfs_eh_by_dir:
+        return
+
+    warned_dirs: set[str] = set()
+    for task in tasks:
+        if task.signal_type != SignalType.COGNITIVE_COMPLEXITY:
+            continue
+        if task.metadata.get("fix_template_class", "") != EDIT_KIND_EXTRACT_FUNCTION:
+            continue
+        if not task.file_path:
+            continue
+
+        task_dir = _Path(task.file_path).parent.as_posix()
+        pfs_info: dict[str, Any] | None = pfs_eh_by_dir.get(task_dir)
+        if pfs_info is None:
+            for pfs_dir in pfs_eh_by_dir:
+                if task_dir == pfs_dir or task_dir.startswith(pfs_dir + "/"):
+                    pfs_info = pfs_eh_by_dir[pfs_dir]
+                    break
+
+        if pfs_info is None:
+            continue
+
+        cross_risk: dict[str, Any] = {
+            "signal": "PFS",
+            "category": "error_handling",
+            "risk": (
+                "extract_function may introduce error_handling pattern fragmentation. "
+                "New helper functions must follow the directory's dominant pattern."
+            ),
+            "dominant_pattern_exemplar": pfs_info.get("canonical_exemplar", ""),
+            "dominant_pattern_count": pfs_info.get("canonical_count", 0),
+            "num_existing_variants": pfs_info.get("num_variants", 0),
+        }
+        snippet = pfs_info.get("canonical_snippet", "")
+        if snippet:
+            cross_risk["dominant_pattern_snippet"] = snippet
+        task.metadata["cross_signal_risk"] = cross_risk
+
+        if task_dir not in warned_dirs:
+            warned_dirs.add(task_dir)
+            exemplar = pfs_info.get("canonical_exemplar", "")
+            out_warnings.append(
+                f"CXS extract_function task(s) in '{task_dir}/' risk introducing PFS "
+                f"error_handling fragmentation. Follow the dominant pattern "
+                f"(exemplar: {exemplar})."
+            )
+
+
 def _fix_plan_agent_instruction(tasks: list) -> str:
     """Build context-dependent agent_instruction for fix_plan responses."""
     batch_count = sum(1 for t in tasks if getattr(t, "metadata", {}).get("batch_eligible"))
@@ -325,6 +412,9 @@ def _build_fix_plan_response_from_analysis(
             out_warnings.append(
                 f"Excluded {excluded_dismissed} dismissed task(s) from fix-plan scope"
             )
+
+    # Issue #529: annotate CXS extract_function tasks with PFS cross-signal risk
+    _annotate_cross_signal_pfs_risk(tasks, analysis, out_warnings)
 
     limited = tasks[:max_tasks]
 
