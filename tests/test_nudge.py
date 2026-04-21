@@ -1698,6 +1698,32 @@ class TestPostEditRegressionDetector:
 
         assert result["latency_exceeded"] is False
 
+    def test_baseline_created_true_on_cold_start(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """baseline_created=True when no baseline existed and a new one was built."""
+        TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
+        # No pre-seeded baseline → nudge must create one (cold-start).
+        result = nudge(tmp_path, changed_files=[], timeout_ms=None)
+
+        assert result["baseline_created"] is True
+
+    def test_baseline_created_false_when_baseline_exists(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """baseline_created=False when a warm baseline was already available."""
+        TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
+        # Pre-seed baseline so nudge reuses it.
+        BaselineManager.instance().store(
+            tmp_path.resolve(),
+            BaselineSnapshot(file_hashes={}, score=0.0),
+            [],
+            {},
+        )
+        result = nudge(tmp_path, changed_files=[], timeout_ms=None)
+
+        assert result["baseline_created"] is False
+
     def test_auto_fast_path_true_when_only_file_local_signals(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
@@ -1751,8 +1777,10 @@ class TestPostEditRegressionDetector:
         assert "latency_ms" in result
         assert "latency_exceeded" in result
         assert "auto_fast_path" in result
+        assert "baseline_created" in result
         assert isinstance(result["revert_recommended"], bool)
         assert isinstance(result["latency_ms"], int)
         assert isinstance(result["latency_exceeded"], bool)
         assert isinstance(result["auto_fast_path"], bool)
+        assert isinstance(result["baseline_created"], bool)
 

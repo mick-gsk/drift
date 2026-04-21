@@ -256,6 +256,7 @@ class _NudgeExecution:
         self.baseline_findings: list[Any] = []
         self.baseline_parse_map: dict[str, Any] = {}
         self.baseline_refresh_reason: str | None = None
+        self._baseline_was_created: bool = False
         self.current_parse: dict[str, Any] = {}
         self.effective_changed_set: set[str] = set()
         self.unchanged_hash_skips: int = 0
@@ -316,6 +317,7 @@ class _NudgeExecution:
 
         if stored is None:
             stored = self._create_baseline(mgr)
+            self._baseline_was_created = True
 
         self.baseline, self.baseline_findings, self.baseline_parse_map = stored
 
@@ -617,6 +619,7 @@ class _NudgeExecution:
         _latency_exceeded = (
             self.timeout_ms is not None and _latency_ms > self.timeout_ms
         )
+        _baseline_created = self._baseline_was_created
         _auto_fast_path = (
             not self.inc_result.cross_file_signals_estimated
             and bool(self.inc_result.file_local_signals_run)
@@ -709,6 +712,7 @@ class _NudgeExecution:
             revert_recommended=_revert_recommended,
             latency_ms=_latency_ms,
             latency_exceeded=_latency_exceeded,
+            baseline_created=_baseline_created,
             auto_fast_path=_auto_fast_path,
             cross_file_hint=_cross_file_hint,
         )
