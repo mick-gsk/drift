@@ -109,6 +109,31 @@ class TestDiffDecisionState:
         assert state.in_scope_accept is True
         assert state.decision_reason_code == "rejected_out_of_scope_noise_only"
 
+    def test_zero_default_score_basis_does_not_block_on_delta(self):
+        # When no stored baseline exists (zero_default), a positive delta must
+        # NOT add drift_score_regressed as a blocking reason (#528).
+        state = _build_diff_decision_state(
+            scoped_new=[],
+            out_of_scope_new=[],
+            delta=0.303,
+            score_basis="zero_default",
+        )
+        assert "drift_score_regressed" not in state.blocking_reasons
+        assert "score_basis_unreliable" not in state.blocking_reasons
+        assert state.accept_change is True
+        assert state.in_scope_accept is True
+
+    def test_historical_score_basis_blocks_on_regression(self):
+        # With a real baseline (historical), a positive delta must still block.
+        state = _build_diff_decision_state(
+            scoped_new=[],
+            out_of_scope_new=[],
+            delta=0.05,
+            score_basis="historical",
+        )
+        assert "drift_score_regressed" in state.blocking_reasons
+        assert state.in_scope_accept is False
+
 
 # ── _diff_next_actions ───────────────────────────────────────────
 

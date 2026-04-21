@@ -363,6 +363,7 @@ def _build_diff_decision_state(
     scoped_new: list[Any],
     out_of_scope_new: list[Any],
     delta: float,
+    score_basis: str = "historical",
 ) -> _DiffDecisionState:
     """Build acceptance decision fields for diff responses."""
     high_count = sum(
@@ -372,7 +373,13 @@ def _build_diff_decision_state(
     if high_count:
         in_scope_blocking.append("new_high_or_critical_findings")
     if delta > 0.0:
-        in_scope_blocking.append("drift_score_regressed")
+        if score_basis == "zero_default":
+            # Zero-based comparison is unreliable — do not block on score delta
+            # when no stored baseline existed (#528). Agents can inspect the
+            # score_basis field directly to understand the comparison context.
+            pass
+        else:
+            in_scope_blocking.append("drift_score_regressed")
 
     blocking_reasons: list[str] = list(in_scope_blocking)
     if out_of_scope_new:
@@ -511,6 +518,13 @@ def _subtract_pre_existing_head(
 ) -> tuple[list[Any], int]:
     """Subtract findings that already exist in HEAD for uncommitted/staged modes.
 
+    Applies two passes (see ADR-082):
+
+    1. **Exact pass** — v2-fingerprint match. Symbol-based, line-independent.
+    2. **Fuzzy pass** — match on ``(signal, file, stable_title)`` for findings
+       without a stable symbol scope (e.g. TPD repo-wide). Gated by
+       ``thresholds.diff_fuzzy_head_subtraction`` (default ``True``).
+
     Returns (filtered_new_findings, pre_existing_head_count).
     Degrades safely on any error, returning the full finding list unchanged.
     """
@@ -519,8 +533,9 @@ def _subtract_pre_existing_head(
     try:
         import subprocess as _sp
 
-        from drift.analyzer import get_head_fingerprints_for_diff as _head_fps
+        from drift.analyzer import get_head_match_index_for_diff as _head_idx
         from drift.baseline import finding_fingerprint as _fp
+        from drift.baseline import stable_title as _stable_title
 
         _git_cmd = (
             ["git", "diff", "--cached", "--name-only"]
@@ -540,12 +555,38 @@ def _subtract_pre_existing_head(
         _changed_files = [
             line for line in _git_result.stdout.strip().splitlines() if line
         ]
-        if _changed_files:
-            _head_fingerprints = _head_fps(repo_path, _changed_files, cfg)
-            if _head_fingerprints:
-                _pre_existing = [f for f in new if _fp(f) in _head_fingerprints]
-                new = [f for f in new if _fp(f) not in _head_fingerprints]
-                return new, len(_pre_existing)
+        if not _changed_files:
+            return new, 0
+
+        _index = _head_idx(repo_path, _changed_files, cfg)
+        _head_fingerprints = _index.fingerprints
+        _fuzzy_keys = _index.fuzzy_keys
+        if not _head_fingerprints and not _fuzzy_keys:
+            return new, 0
+
+        _thresholds = getattr(cfg, "thresholds", None)
+        _fuzzy_enabled = bool(
+            getattr(_thresholds, "diff_fuzzy_head_subtraction", True)
+        )
+
+        def _fuzzy_key(f: Any) -> tuple[str, str, str]:
+            return (
+                f.signal_type,
+                f.file_path.as_posix() if f.file_path else "",
+                _stable_title(f.title),
+            )
+
+        kept: list[Any] = []
+        pre_existing_count = 0
+        for f in new:
+            if _fp(f) in _head_fingerprints:
+                pre_existing_count += 1
+                continue
+            if _fuzzy_enabled and _fuzzy_key(f) in _fuzzy_keys:
+                pre_existing_count += 1
+                continue
+            kept.append(f)
+        return kept, pre_existing_count
     except Exception:
         pass  # Safe fallback: report all findings as new
     return new, 0
@@ -962,6 +1003,7 @@ def diff(
             scoped_new=scoped_new,
             out_of_scope_new=out_of_scope_new,
             delta=delta,
+            score_basis=score_basis,
         )
         blocking_reasons = decision_state.blocking_reasons
 
@@ -1020,7 +1062,7 @@ def diff(
             score_after=round(score_after, 4),
             delta=delta,
             score_basis=score_basis,
-            score_regressed=delta > 0.0,
+            score_regressed=delta > 0.0 and score_basis != "zero_default",
             confidence=confidence,
             diff_ref=diff_ref,
             diff_mode=diff_mode,
