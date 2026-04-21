@@ -7,7 +7,6 @@ import hashlib
 import json
 import logging
 import os
-import re
 import subprocess
 import tempfile
 import time
@@ -297,7 +296,7 @@ def _serialize_files(files: list[FileInfo]) -> list[dict[str, Any]]:
 def _resolve_cache_invalidator(
     repo_path: Path,
     include_patterns: list[str],
-    prepared_exclude: tuple[re.Pattern[str], ...],
+    prepared_exclude: tuple[PreparedPattern, ...],
     supported: set[str],
 ) -> tuple[str, str]:
     """Return (invalidator_type, invalidator_value) for cache lookup."""
@@ -347,7 +346,7 @@ def _check_discovery_cache(
 def _enumerate_repo_files(
     repo_path: Path,
     include_patterns: list[str],
-    prepared_exclude: tuple[re.Pattern[str], ...],
+    prepared_exclude: tuple[PreparedPattern, ...],
     supported: set[str],
     max_files: int | None,
     skipped_out: dict[str, int] | None,

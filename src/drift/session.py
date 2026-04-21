@@ -596,6 +596,8 @@ class DriftSession:  # drift:ignore[DCA]
 
     def _find_pending_task(self, task_id: str | None) -> dict[str, Any] | None:
         """Find the target task from selected_tasks by ID or first pending."""
+        if not self.selected_tasks:
+            return None
         if task_id is not None:
             for t in self.selected_tasks:
                 tid = t.get("id", t.get("task_id", ""))
