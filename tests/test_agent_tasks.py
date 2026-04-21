@@ -1217,6 +1217,38 @@ class TestVerifyPlan:
         assert step1["target"]["threshold"] == 15
         assert "cognitive_complexity" in step1["predicate"]
 
+    def test_cxs_partial_resolution_flagged_when_cc_above_twice_threshold(self) -> None:
+        """complexity > 2×threshold → partial_resolution=True in metadata (Issue #530)."""
+        f = _make_finding(
+            signal_type=SignalType.COGNITIVE_COMPLEXITY,
+            title="High cognitive complexity in run_loop()",
+            fix="Reduce complexity",
+            metadata={"cognitive_complexity": 38, "threshold": 15, "function_name": "run_loop"},
+        )
+        analysis = _make_analysis(findings=[f])
+        tasks = analysis_to_agent_tasks(analysis)
+        task = tasks[0]
+        assert task.metadata.get("partial_resolution") is True
+        assert "estimated_residual_complexity" in task.metadata
+        est = task.metadata["estimated_residual_complexity"]
+        assert est > 15, "estimated residual must still be above threshold"
+        assert "partial_resolution_reason" in task.metadata
+        assert "PARTIAL-FIX NOTE" in task.success_criteria[-1]
+
+    def test_cxs_no_partial_resolution_when_cc_within_twice_threshold(self) -> None:
+        """complexity <= 2×threshold → no partial_resolution flag (Issue #530)."""
+        f = _make_finding(
+            signal_type=SignalType.COGNITIVE_COMPLEXITY,
+            title="High cognitive complexity in handle()",
+            fix="Reduce complexity",
+            metadata={"cognitive_complexity": 25, "threshold": 15, "function_name": "handle"},
+        )
+        analysis = _make_analysis(findings=[f])
+        tasks = analysis_to_agent_tasks(analysis)
+        task = tasks[0]
+        assert task.metadata.get("partial_resolution") is not True
+        assert "estimated_residual_complexity" not in task.metadata
+
     # --- HSC ---
 
     def test_hsc_verify_plan_shape(self) -> None:

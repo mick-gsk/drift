@@ -1159,12 +1159,20 @@ def _success_criteria_for(finding: Finding) -> list[str]:
 
     if st == SignalType.COGNITIVE_COMPLEXITY:
         func_name = meta.get("function_name", finding.symbol or "?")
+        cc = meta.get("cognitive_complexity", 0)
         threshold = meta.get("threshold", 15)
-        return [
+        criteria = [
             f"Cognitive complexity of '{func_name}' drops below {threshold}",
             "`drift scan` reports no cognitive_complexity finding for this function",
             *base,
         ]
+        if isinstance(cc, (int, float)) and isinstance(threshold, (int, float)) and cc > 2 * threshold:  # noqa: E501
+            criteria.append(
+                f"PARTIAL-FIX NOTE: complexity {cc} > 2 × threshold {threshold} — "
+                "a single extraction pass is unlikely to fully resolve this finding; "
+                "plan for multiple rounds of extract_function"
+            )
+        return criteria
 
     if st == SignalType.FAN_OUT_EXPLOSION:
         return [
@@ -1622,7 +1630,42 @@ def _finding_to_task(
     # Repair template registry enrichment (ADR-065)
     _enrich_task_from_registry(finding, task, refined_edit_kind)
 
+    # Issue #530: CXS tasks for highly complex functions may not resolve in one
+    # extract_function pass.  When cc > 2 × threshold the residual after a single
+    # extraction is likely still above threshold → flag as partial.
+    _annotate_cxs_partial_resolution(finding, task)
+
     return task
+
+
+def _annotate_cxs_partial_resolution(finding: Finding, task: AgentTask) -> None:
+    """Annotate CXS tasks as partial when a single extract_function pass is insufficient.
+
+    When cognitive_complexity > 2 × threshold, mathematically one extraction
+    round cannot guarantee bringing the function below threshold.  The task is
+    flagged with ``partial_resolution=True`` and an ``estimated_residual_complexity``
+    to set correct expectations for the agent.
+
+    Mutates *task* in place.  Never raises.
+    """
+    if finding.signal_type != SignalType.COGNITIVE_COMPLEXITY:
+        return
+    cc = finding.metadata.get("cognitive_complexity", 0)
+    threshold = finding.metadata.get("threshold", 15)
+    if not isinstance(cc, (int, float)) or not isinstance(threshold, (int, float)):
+        return
+    if threshold <= 0 or cc <= 2 * threshold:
+        return
+    # Conservative estimate: a single extraction pass reduces complexity by ~1/3
+    estimated_residual = max(int(cc * 2 // 3), threshold + 1)
+    task.metadata["partial_resolution"] = True
+    task.metadata["estimated_residual_complexity"] = estimated_residual
+    task.metadata["partial_resolution_reason"] = (
+        f"complexity {cc} > 2 × threshold {threshold}: "
+        "a single extract_function pass is unlikely to bring this function "
+        f"below threshold (estimated residual ≈ {estimated_residual}). "
+        "Plan for multiple extraction rounds."
+    )
 
 
 def _enrich_task_from_registry(
