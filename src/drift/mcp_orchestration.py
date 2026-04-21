@@ -15,6 +15,18 @@ from pathlib import Path
 from typing import Any
 
 # ---------------------------------------------------------------------------
+# Brief staleness thresholds (Phase E2)
+# ---------------------------------------------------------------------------
+# Re-briefing is required when any of these hold since the last drift_brief:
+#   - baseline score delta exceeded ``_BRIEF_STALE_DELTA`` (primary trigger,
+#     catches significant structural change),
+#   - tool calls exceeded ``_BRIEF_STALE_TOOL_CALLS`` (heuristic fallback),
+#   - elapsed time exceeded ``_BRIEF_STALE_SECONDS`` (heuristic fallback).
+_BRIEF_STALE_DELTA: float = 0.10
+_BRIEF_STALE_TOOL_CALLS: int = 20
+_BRIEF_STALE_SECONDS: float = 30 * 60
+
+# ---------------------------------------------------------------------------
 # Session helpers — resolve session defaults and enrich responses
 # ---------------------------------------------------------------------------
 
@@ -114,8 +126,18 @@ def _update_session_from_brief(session: Any, result: dict[str, Any]) -> None:
     """Push brief guardrails into the session state."""
     if session is None:
         return
+    import time as _t
     session.guardrails = result.get("guardrails")
     session.guardrails_prompt_block = result.get("guardrails_prompt_block")
+    session.last_brief_scope_gate = result.get("scope_gate")
+    session.last_brief_at = _t.time()
+    # Baseline score at brief time — used as staleness trigger when the
+    # analysis baseline diverges by more than ``_BRIEF_STALE_DELTA``.
+    landscape = result.get("landscape") or {}
+    score = landscape.get("drift_score")
+    if isinstance(score, (int, float)):
+        session.last_brief_score = float(score)
+    session.tool_calls_since_brief = 0
     session.touch()
 
 
@@ -631,7 +653,86 @@ def _strict_guardrail_violations(tool_name: str, session: Any) -> list[dict[str,
             "observed": sorted(called_tools),
         })
 
+    # SG-007: block fix/patch when the last brief raised a scope_gate.
+    # The agent must ask the user to confirm the scope before proceeding.
+    if tool_name in {"drift_fix_apply", "drift_patch_begin"}:
+        scope_gate = getattr(session, "last_brief_scope_gate", None)
+        if (
+            isinstance(scope_gate, dict)
+            and scope_gate.get("action_required") == "ask_user"
+        ):
+            violations.append({
+                "rule_id": "SG-007",
+                "reason": "scope_gate_unresolved",
+                "message": (
+                    f"{tool_name} is blocked: last drift_brief raised a "
+                    "scope_gate (low scope confidence). Ask the user to "
+                    "confirm or provide an explicit scope path, then call "
+                    "drift_brief again."
+                ),
+                "required": ["ask_user", "drift_brief"],
+                "observed": {"scope_gate": scope_gate},
+            })
+
+    # SG-005a / SG-006a: block fix/patch when the last brief is stale.
+    # Stale = baseline score drifted significantly OR too many tool calls
+    # since brief OR too much wall-clock time elapsed.  Forces re-briefing
+    # after meaningful change.
+    if tool_name in {"drift_fix_apply", "drift_patch_begin"}:
+        stale_reason = _brief_staleness_reason(session)
+        if stale_reason is not None:
+            rule = "SG-005a" if tool_name == "drift_fix_apply" else "SG-006a"
+            violations.append({
+                "rule_id": rule,
+                "reason": "stale_brief",
+                "message": (
+                    f"{tool_name} is blocked: drift_brief is stale "
+                    f"({stale_reason}). Re-run drift_brief before editing."
+                ),
+                "required": ["drift_brief (fresh)"],
+                "observed": {"stale_reason": stale_reason},
+            })
+
     return violations
+
+
+def _brief_staleness_reason(session: Any) -> str | None:
+    """Return a human-readable staleness reason or ``None`` if brief is fresh.
+
+    Primary trigger is ``_BRIEF_STALE_DELTA`` on the baseline score —
+    catches meaningful structural change.  Falls back to time/call count.
+    """
+    import time as _t
+
+    if session is None:
+        return None
+
+    last_brief_at = getattr(session, "last_brief_at", None)
+    if last_brief_at is None:
+        return None  # no brief ever called — SG-005/SG-006 handle that
+
+    last_brief_score = getattr(session, "last_brief_score", None)
+    current_score = getattr(session, "last_scan_score", None)
+    if (
+        last_brief_score is not None
+        and isinstance(current_score, (int, float))
+        and abs(float(current_score) - last_brief_score) > _BRIEF_STALE_DELTA
+    ):
+        return (
+            f"baseline score drifted by "
+            f"{abs(float(current_score) - last_brief_score):.3f} "
+            f"(> {_BRIEF_STALE_DELTA})"
+        )
+
+    calls_since = int(getattr(session, "tool_calls_since_brief", 0) or 0)
+    if calls_since > _BRIEF_STALE_TOOL_CALLS:
+        return f"{calls_since} tool calls since brief (> {_BRIEF_STALE_TOOL_CALLS})"
+
+    if (_t.time() - last_brief_at) > _BRIEF_STALE_SECONDS:
+        mins = (_t.time() - last_brief_at) / 60.0
+        return f"{mins:.0f} min elapsed since brief (> {_BRIEF_STALE_SECONDS / 60.0:.0f} min)"
+
+    return None
 
 
 def _strict_guardrail_recovery_tool_call(

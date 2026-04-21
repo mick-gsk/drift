@@ -118,26 +118,62 @@ def _extract_public_api(init_path: Path) -> list[str]:
 
 
 def _find_related_tests(repo_root: Path, target: str) -> list[str]:
-    """Find test files that likely cover the target."""
+    """Find test files that likely cover the target.
+
+    Strategy (in order, results deduplicated, capped at 10):
+      1. Filename match: ``test_<stem>.py`` or ``test_<stem_underscored>.py``.
+      2. Import grep: any test file that imports the target module or the
+         repo's top package with the stem (e.g. ``from drift.<stem> import``,
+         ``import drift.<stem>``).
+    """
     target_norm = target.replace("\\", "/")
     tests_dir = repo_root / "tests"
     if not tests_dir.is_dir():
         return []
 
-    # Derive expected test file names
     target_path = Path(target_norm)
     stem = target_path.stem
-    candidates = [
-        f"test_{stem}.py",
-        f"test_{stem.replace('.', '_')}.py",
-    ]
+    stem_variants = {stem, stem.replace(".", "_"), stem.replace("-", "_")}
 
-    found: list[str] = []
+    # Collect module dotted names that would appear in imports.
+    # For a path like src/drift/api/nudge.py the module is drift.api.nudge
+    # and also the stem "nudge".
+    module_dotted_parts: list[str] = []
+    parts = [p for p in target_path.with_suffix("").parts if p not in ("src", "")]
+    if parts:
+        module_dotted_parts.append(".".join(parts))
+    module_dotted_parts.append(stem)
+    module_dotted_set = {m for m in module_dotted_parts if m}
+
+    candidate_filenames = {f"test_{v}.py" for v in stem_variants}
+
+    found: set[str] = set()
+
     for test_file in tests_dir.rglob("test_*.py"):
-        if test_file.name in candidates:
-            found.append(str(test_file.relative_to(repo_root)).replace("\\", "/"))
+        if test_file.name in candidate_filenames:
+            found.add(
+                str(test_file.relative_to(repo_root)).replace("\\", "/")
+            )
+            continue
+        # Import grep — only read small files to keep this fast.
+        try:
+            if test_file.stat().st_size > 200_000:
+                continue
+            source = test_file.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for mod in module_dotted_set:
+            needle_from = f"from {mod}"
+            needle_import = f"import {mod}"
+            if needle_from in source or needle_import in source:
+                found.add(
+                    str(test_file.relative_to(repo_root)).replace("\\", "/")
+                )
+                break
+        if len(found) >= 10:
+            break
 
-    return sorted(found)
+    return sorted(found)[:10]
 
 
 def _extract_imports(file_path: Path) -> list[str]:

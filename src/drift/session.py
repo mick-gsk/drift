@@ -271,6 +271,10 @@ class DriftSession:  # drift:ignore[DCA]
     # -- Brief state ---------------------------------------------------------
     guardrails: list[dict[str, Any]] | None = None
     guardrails_prompt_block: str | None = None
+    last_brief_scope_gate: dict[str, Any] | None = None
+    last_brief_at: float | None = None
+    last_brief_score: float | None = None
+    tool_calls_since_brief: int = 0
 
     # -- Counters / Metrics --------------------------------------------------
     tool_calls: int = 0
@@ -295,6 +299,9 @@ class DriftSession:  # drift:ignore[DCA]
     diagnostic_hypotheses: dict[str, dict[str, Any]] = field(default_factory=dict)
     git_head_at_plan: str | None = None
 
+    # -- Handover gate (ADR-079) --------------------------------------------
+    handover_retries: int = 0
+
     # -- queries -------------------------------------------------------------
 
     def is_valid(self) -> bool:
@@ -312,6 +319,9 @@ class DriftSession:  # drift:ignore[DCA]
         self._last_touch_ts = now
         self.last_activity = now
         self.tool_calls += 1
+        # Phase E2: count tool calls since the last drift_brief for staleness
+        if self.last_brief_at is not None:
+            self.tool_calls_since_brief += 1
 
     def begin_call(self) -> None:
         """Record the start of a tool call for timing decomposition."""
@@ -929,6 +939,7 @@ class DriftSession:  # drift:ignore[DCA]
             "effectiveness_thresholds": self.effectiveness_thresholds,
             "diagnostic_hypotheses": self.diagnostic_hypotheses,
             "git_head_at_plan": self.git_head_at_plan,
+            "handover_retries": self.handover_retries,
             "seen_verification_payload_hashes": sorted(
                 self._seen_verification_payload_hashes
             ),
@@ -976,6 +987,7 @@ class DriftSession:  # drift:ignore[DCA]
             ),
             diagnostic_hypotheses=data.get("diagnostic_hypotheses", {}),
             git_head_at_plan=data.get("git_head_at_plan"),
+            handover_retries=data.get("handover_retries", 0),
         )
         seen_hashes = data.get("seen_verification_payload_hashes", [])
         if isinstance(seen_hashes, list):

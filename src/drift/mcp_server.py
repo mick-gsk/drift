@@ -960,13 +960,72 @@ async def drift_session_end(
     session_id: Annotated[
         str, Field(description="The session ID to end.")
     ],
+    force: Annotated[
+        bool,
+        Field(
+            description=(
+                "Bypass the handover-artifact gate (ADR-079). Requires "
+                "bypass_reason. Emits a warning log entry and is recorded in "
+                "session trace. Do not use routinely."
+            )
+        ),
+    ] = False,
+    bypass_reason: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Human-meaningful justification for force=true (>= 40 chars, "
+                "no placeholder tokens)."
+            )
+        ),
+    ] = None,
+    session_md_path: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Explicit path to work_artifacts/session_<id>.md if the agent "
+                "wrote it outside the default location."
+            )
+        ),
+    ] = None,
+    evidence_path: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Explicit path to the benchmark_results evidence JSON for "
+                "signal/architecture classes."
+            )
+        ),
+    ] = None,
+    adr_path: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Explicit path to the ADR draft for signal/architecture "
+                "classes."
+            )
+        ),
+    ] = None,
 ) -> str:
-    """End a session and return a final summary."""
+    """End a session and return a final summary.
+
+    ADR-079: Before the session is destroyed the handover-artifact gate runs.
+    It verifies existence, shape, and placeholder-freedom of the required
+    handover artifacts derived from the session's change class. Blocked
+    sessions return DRIFT-6100 with a ``missing_artifacts`` / ``shape_errors``
+    payload and remain alive for retry. Use ``force=true`` with a meaningful
+    ``bypass_reason`` only as a last resort.
+    """
     from drift.mcp_router_session import run_session_end
 
     return await run_session_end(
         session_id=session_id,
         session_error_response=_session_error_response,
+        force=force,
+        bypass_reason=bypass_reason,
+        session_md_path=session_md_path,
+        evidence_path=evidence_path,
+        adr_path=adr_path,
     )
 
 

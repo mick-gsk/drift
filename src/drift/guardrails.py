@@ -226,19 +226,26 @@ def guardrails_to_prompt_block(
     *,
     layer_contract: dict[str, Any] | None = None,
     active_adrs: list[dict[str, str]] | None = None,
+    anti_patterns: list[dict[str, Any]] | None = None,
 ) -> str:
     """Format guardrails as a copy-pastable text block for agent prompts.
 
-    Optional *layer_contract* and *active_adrs* inject additional sections
-    (``## Layer Constraints`` and ``## Active ADR Constraints``) so an agent
-    can see all relevant structural guardrails in a single block.
+    Optional *layer_contract*, *active_adrs*, and *anti_patterns* inject
+    additional sections (``## Layer Constraints``, ``## Active ADR
+    Constraints``, ``## Anti-Patterns (vermeiden)``) so an agent can see
+    all relevant structural guardrails in a single block.
 
     Returns
     -------
     A markdown-flavoured string suitable for direct injection into agent
     system prompts.
     """
-    if not guardrails and not layer_contract and not active_adrs:
+    if (
+        not guardrails
+        and not layer_contract
+        and not active_adrs
+        and not anti_patterns
+    ):
         return ""
 
     lines: list[str] = []
@@ -283,5 +290,25 @@ def guardrails_to_prompt_block(
             title = adr.get("title", "")
             status = adr.get("status", "")
             lines.append(f"- [{status.upper()}] {adr_id}: {title}")
+
+    if anti_patterns:
+        if lines:
+            lines.append("")
+        lines += [
+            "## Anti-Patterns (vermeiden)",
+            "",
+            "Diese Muster wurden im Zielscope bereits als Findings erkannt.",
+            "Neue Edits dürfen sie nicht reproduzieren.",
+            "",
+        ]
+        for ap in anti_patterns:
+            signal = ap.get("signal") or ap.get("signal_type", "")
+            message = ap.get("message") or ap.get("reason") or ap.get("title", "")
+            file_ref = ap.get("file") or ap.get("file_path")
+            suffix = f" ({file_ref})" if file_ref else ""
+            if signal:
+                lines.append(f"- [{signal}] {message}{suffix}")
+            else:
+                lines.append(f"- {message}{suffix}")
 
     return "\n".join(lines)

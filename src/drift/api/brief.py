@@ -157,6 +157,7 @@ def _build_brief_result(
     )
     from drift.guardrails import generate_guardrails, guardrails_to_prompt_block
     from drift.models import Severity
+    from drift.negative_context import findings_to_negative_context
 
     scope_risk = _compute_scope_risk(scoped_findings, cfg)
     level = _risk_level(scope_risk, scoped_findings)
@@ -196,10 +197,32 @@ def _build_brief_result(
         task=task,
     )
 
+    # Anti-patterns (Phase B): Top-3 negative-context items derived from the
+    # in-scope findings.  Injected into the prompt block so the agent sees
+    # actionable "avoid this" context without a separate tool call.
+    anti_patterns: list[dict[str, Any]] = []
+    try:
+        nc_items = findings_to_negative_context(
+            scoped_findings, max_items=3
+        )
+        for nc in nc_items:
+            anti_patterns.append({
+                "id": nc.anti_pattern_id,
+                "signal": nc.source_signal,
+                "severity": nc.severity.value,
+                "message": nc.description,
+                "forbidden_pattern": nc.forbidden_pattern,
+                "canonical_alternative": nc.canonical_alternative,
+                "file": nc.affected_files[0] if nc.affected_files else None,
+            })
+    except Exception:  # pragma: no cover — never break brief on NC errors
+        anti_patterns = []
+
     prompt_block = guardrails_to_prompt_block(
         guardrails,
         layer_contract=layer_contract,
         active_adrs=active_adrs,
+        anti_patterns=anti_patterns,
     )
 
     top_sigs = _top_signals(
@@ -246,6 +269,7 @@ def _build_brief_result(
         layer_contract=layer_contract,
         relevant_tests=relevant_tests,
         active_adrs=active_adrs,
+        anti_patterns=anti_patterns,
         recommended_next=["drift diff --uncommitted", "drift nudge"],
         meta={
             "analysis_duration_ms": elapsed_ms_value,
@@ -255,13 +279,39 @@ def _build_brief_result(
     )
     result.update(_brief_next_step_contract(level))
 
-    # Warn agent when scope confidence is low — the scope may miss relevant files
+    # Phase C: Scope-Confidence-Gate — when the scope resolver is not
+    # confident enough, turn the passive warning into an active ASK_USER
+    # gate.  Downstream MCP tools (drift_fix_apply / drift_patch_begin)
+    # check result["scope_gate"]["action_required"] and refuse to proceed
+    # in strict mode.  The agent_instruction is overridden so agents see
+    # the gate even when they drop the raw payload.
     if scope.confidence < 0.5:
-        result["scope_warning"] = (
+        scope_gate_msg = (
             f"Scope confidence is {scope.confidence:.0%}. "
             "The resolved paths may not cover all relevant files. "
-            "Consider specifying an explicit --scope path."
+            "ASK THE USER to confirm or provide an explicit scope path "
+            "before proceeding with code changes."
         )
+        result["scope_gate"] = {
+            "action_required": "ask_user",
+            "reason": "low_scope_confidence",
+            "scope_confidence": round(scope.confidence, 2),
+            "resolved_paths": scope.paths,
+            "message": scope_gate_msg,
+        }
+        # Keep legacy field for back-compat.
+        result["scope_warning"] = scope_gate_msg
+        # Override top-level agent_instruction with the blocking directive.
+        result["agent_instruction"] = scope_gate_msg
+        result["next_tool"] = "ASK_USER"
+        result["next_tool_params"] = {
+            "question": (
+                "Drift's scope resolver is unsure which files this task "
+                "affects. Please confirm or specify an explicit scope path."
+            ),
+        }
+        result["done_when"] = "user confirms scope"
+        result["blocking"] = True
 
     return result
 

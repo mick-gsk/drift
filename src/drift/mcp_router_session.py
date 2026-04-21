@@ -347,16 +347,128 @@ async def run_session_end(
     *,
     session_id: str,
     session_error_response: Callable[[str, str, str], str],
+    force: bool = False,
+    bypass_reason: str | None = None,
+    session_md_path: str | None = None,
+    evidence_path: str | None = None,
+    adr_path: str | None = None,
 ) -> str:
-    from drift.session import SessionManager
+    import logging
 
-    session = SessionManager.instance().get(session_id)
+    from drift.api_helpers import _error_response
+    from drift.session import DriftSession, SessionManager
+    from drift.session_handover import (
+        MAX_HANDOVER_RETRIES,
+        ChangeClass,
+        classify_session,
+        validate,
+        validate_bypass_reason,
+    )
+
+    mgr = SessionManager.instance()
+    session = mgr.get(session_id)
     if session is not None:
         blocked = _strict_guardrail_block_response("drift_session_end", session)
         if blocked is not None:
             return blocked
 
-    summary = SessionManager.instance().destroy(session_id)
+    # ADR-079: Handover-Artefakt-Gate.
+    # Only run the gate for real DriftSession instances; test fakes bypass it.
+    gate_payload: dict[str, Any] | None = None
+    if isinstance(session, DriftSession):
+        change_class = classify_session(session)
+        empty_session = (
+            not session.completed_task_ids
+            and not session.selected_tasks
+            and session.tool_calls < 3
+            and change_class is ChangeClass.CHORE
+        )
+        retries = session.handover_retries
+        if not empty_session and not force:
+            overrides: dict[str, str] = {}
+            if session_md_path:
+                overrides["session_md"] = session_md_path
+            if evidence_path:
+                overrides["evidence"] = evidence_path
+            if adr_path:
+                overrides["adr"] = adr_path
+
+            result = validate(
+                session,
+                change_class=change_class,
+                path_overrides=overrides or None,
+            )
+            if not result.ok:
+                session.handover_retries = retries + 1
+                session.last_activity = session.last_activity  # keep alive
+                session.record_trace(
+                    tool="drift_session_end",
+                    advisory="session_handover.blocked",
+                    metadata={
+                        "change_class": str(change_class.value),
+                        "retry": session.handover_retries,
+                        "missing": [a.kind for a in result.missing],
+                        "shape_error_count": len(result.shape_errors),
+                        "placeholder_count": len(result.placeholder_flags),
+                    },
+                )
+                # Bounded retry: after the limit, agent must use force=true.
+                if session.handover_retries > MAX_HANDOVER_RETRIES:
+                    pass  # fall through to unblock via force instruction
+                else:
+                    error = _error_response(
+                        "DRIFT-6100",
+                        "Session handover artifacts are missing or invalid.",
+                        recoverable=True,
+                        suggested_fix={
+                            "action": (
+                                "Author the missing handover artifacts per "
+                                "ADR-079 / docs/session_handover_template.md, "
+                                "then retry drift_session_end."
+                            ),
+                            "max_retries": MAX_HANDOVER_RETRIES,
+                            "remaining_retries": max(
+                                MAX_HANDOVER_RETRIES - session.handover_retries, 0
+                            ),
+                        },
+                    )
+                    error["session_id"] = session_id
+                    error["status"] = "blocked"
+                    error.update(result.to_dict())
+                    error["agent_instruction"] = (
+                        f"Session {session_id[:8]} blocked by handover gate "
+                        f"(change_class={change_class.value}). "
+                        "Fill missing artifacts, then retry drift_session_end."
+                    )
+                    return json.dumps(error, default=str)
+            gate_payload = result.to_dict()
+
+        if force:
+            reason_err = validate_bypass_reason(bypass_reason)
+            if reason_err is not None:
+                error = _error_response(
+                    "DRIFT-6101",
+                    f"force=true requires a valid bypass_reason: {reason_err}",
+                    recoverable=True,
+                    suggested_fix={
+                        "action": (
+                            "Provide bypass_reason with a human-meaningful "
+                            "explanation of why the handover gate is being "
+                            "bypassed. Do not use placeholder text."
+                        ),
+                    },
+                )
+                error["session_id"] = session_id
+                error["status"] = "blocked"
+                return json.dumps(error, default=str)
+            logging.getLogger("drift").warning(
+                "Session handover gate bypassed via force=true: "
+                "session=%s reason=%s",
+                session_id[:8],
+                bypass_reason,
+            )
+
+    summary = mgr.destroy(session_id)
     if summary is None:
         return session_error_response(
             "DRIFT-6001",
@@ -365,6 +477,13 @@ async def run_session_end(
         )
 
     summary["status"] = "ok"
+    if gate_payload is not None:
+        summary["handover_gate"] = gate_payload
+    if force:
+        summary["handover_bypass"] = {
+            "forced": True,
+            "reason": bypass_reason,
+        }
     summary["agent_instruction"] = (
         f"Session {session_id[:8]} ended. "
         f"Duration: {summary.get('duration_seconds', 0)}s, "

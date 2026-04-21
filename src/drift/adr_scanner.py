@@ -23,6 +23,22 @@ _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 _KEY_VALUE_RE = re.compile(r"^(\w[\w-]*):\s*(.*)$", re.MULTILINE)
 _HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
 
+# Heading labels (case-insensitive) whose bodies must NOT contribute to
+# relevance matching.  These typically discuss what was NOT chosen and
+# would otherwise cause spurious matches against task keywords.
+_EXCLUDED_SECTION_LABELS: frozenset[str] = frozenset({
+    "rejected alternatives",
+    "alternatives considered",
+    "alternatives",
+    "not chosen",
+    "superseded by",
+    "consequences (rejected)",
+})
+
+# Relevance scan window in characters.  Large enough to cover context and
+# decision sections but small enough to stay fast.
+_SCAN_WINDOW_CHARS: int = 2000
+
 
 def _parse_frontmatter(content: str) -> dict[str, str]:
     """Extract key-value pairs from the YAML frontmatter block."""
@@ -47,17 +63,48 @@ def _extract_title(content: str) -> str:
     return ""
 
 
+def _strip_excluded_sections(content: str) -> str:
+    """Remove bodies of excluded sections (e.g. "Rejected Alternatives").
+
+    Section boundary is any ``##``/``###`` heading.  Content within a
+    matching section is replaced by a single newline so positional matching
+    in the remainder stays stable enough.
+    """
+    lines = content.splitlines()
+    result: list[str] = []
+    in_excluded = False
+    heading_re = re.compile(r"^\s{0,3}#{2,6}\s+(.+?)\s*$")
+    for line in lines:
+        m = heading_re.match(line)
+        if m:
+            label = m.group(1).strip().lower().rstrip(":")
+            # Strip trailing decorations like " (old)" or markdown refs
+            label_clean = re.sub(r"\s*\(.*?\)\s*$", "", label).strip()
+            in_excluded = (
+                label in _EXCLUDED_SECTION_LABELS
+                or label_clean in _EXCLUDED_SECTION_LABELS
+            )
+            if not in_excluded:
+                result.append(line)
+            continue
+        if not in_excluded:
+            result.append(line)
+    return "\n".join(result)
+
+
 def _is_relevant(content: str, scope_paths: list[str], task: str) -> tuple[bool, str]:
     """Return (is_relevant, reason) based on scope_paths and task keywords.
 
-    Relevance window: first 500 characters of content (case-insensitive).
+    Relevance window: first :data:`_SCAN_WINDOW_CHARS` characters after
+    stripping excluded sections (e.g. "Rejected Alternatives").
     Returns True (with no match reason set) when both scope_paths and task
     are empty — i.e. all active ADRs are considered relevant by default.
     """
     if not scope_paths and not task:
         return True, "no_filter"
 
-    snippet = content[:500].lower()
+    filtered = _strip_excluded_sections(content)
+    snippet = filtered[:_SCAN_WINDOW_CHARS].lower()
 
     for path in scope_paths:
         token = path.replace("\\", "/").rstrip("/")
