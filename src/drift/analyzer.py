@@ -520,7 +520,7 @@ def get_head_match_index_for_diff(
                 ts_enabled=config.languages.typescript,
             )
             if not all_files:
-                return frozenset()
+                return empty
 
             effective_workers = resolve_worker_count(
                 config=config,
