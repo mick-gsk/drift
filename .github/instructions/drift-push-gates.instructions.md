@@ -45,13 +45,31 @@ Diese Datei ist nur fuer Commit-/Push-Vorbereitung relevant, nicht fuer allgemei
 3. **Versioned Evidence-Datei vorhanden:** Eine Datei die auf `benchmark_results/vX.Y.Z_feature_evidence.json` matcht (oder entsprechendes Muster).
 4. **STUDY.md aktualisiert:** `docs/STUDY.md` muss im Push enthalten sein (sofern die Datei existiert).
 
+### Gate 2b — Evidence Content Validation (deterministisch)
+
+**Zusatzbedingung:** Die Evidence-Datei muss einen `generated_by`-Block enthalten, der von
+`scripts/generate_feature_evidence.py` erzeugt wurde. Der Block wird maschinell geprüft:
+
+- `generated_by.script` muss `"scripts/generate_feature_evidence.py"` sein.
+- `generated_by.git_sha` muss ein existierender Git-Commit im Repository sein.
+- `generated_by.git_sha` muss ein Ancestor des Push-Heads sein (verhindert SHA-Wiederverwendung).
+- `generated_by.timestamp` muss ein valides ISO-8601-Datum sein, das nicht in der Zukunft liegt.
+- Metriken wie `drift_score` ∈ [0,1], `tests.total_failing == 0`.
+
+**Validierung läuft via:** `python scripts/validate_feature_evidence.py <file> --require-generated-by --push-head <SHA>`  
+**Bypass (Notfall):** `DRIFT_SKIP_EVIDENCE_VALIDATION=1 git push`
+
 **Typische Vorgehensweise bei feat::**
-```
+```bash
 # 1. Tests schreiben
-# 2. benchmark_results/vNEU_feature_evidence.json erzeugen oder aktualisieren
+# 2. Evidence-Datei deterministisch erzeugen (NICHT manuell erstellen):
+python scripts/generate_feature_evidence.py --version X.Y.Z --slug my-feature
 # 3. docs/STUDY.md aktualisieren
 # 4. Alle zusammen committen
 ```
+
+**Backward-Compat:** Bestehende Evidence-Dateien ohne `generated_by`-Block werden nur ohne
+`--require-generated-by` akzeptiert. Für neue `feat:`-Commits ist der Block Pflicht.
 
 ---
 

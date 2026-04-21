@@ -1,6 +1,6 @@
 ---
 name: drift-evidence-artifact-authoring
-description: "Erstellt und befüllt versioned feature-evidence Artefakte für feat:-Commits im Drift-Repo. Verwenden wenn ein benchmark_results/-Artefakt für einen Feature-Commit fehlt oder unklar ist wie es benannt, strukturiert oder befüllt werden soll. Keywords: feature evidence, benchmark_results, versioned evidence file, feat: commit gate, evidence artifact, precision recall, self_analysis, audit_artifacts_updated."
+description: "Erstellt und befüllt versioned feature-evidence Artefakte für feat:-Commits im Drift-Repo. Verwenden wenn ein benchmark_results/-Artefakt für einen Feature-Commit fehlt oder unklar ist wie es benannt, strukturiert oder befüllt werden soll. Keywords: feature evidence, benchmark_results, versioned evidence file, feat: commit gate, evidence artifact, precision recall, self_analysis, audit_artifacts_updated, generate_feature_evidence, deterministisch."
 argument-hint: "Version (z.B. 2.9.0), Feature-Slug (z.B. phr-signal) und kurze Beschreibung der Änderung angeben."
 ---
 
@@ -24,7 +24,42 @@ Dieser Skill produziert ein vollständiges, commit-readies `vX.Y.Z_<feature-slug
 
 ---
 
-## Step 1: Dateinamen bestimmen
+## Step 1: Evidence-Datei deterministisch generieren (PRIMÄRE METHODE)
+
+**Ab Gate 2b ist manuelles Erstellen von Evidence-Dateien für neue `feat:`-Commits nicht
+zulässig.** Der Pre-Push-Hook verifiziert, dass die Datei maschinell erzeugt wurde.
+
+**Befehl:**
+```bash
+python scripts/generate_feature_evidence.py --version X.Y.Z --slug my-feature
+```
+
+Das Script:
+1. Läuft `drift analyze --repo . --format json --exit-zero` → erfasst `drift_score`, `total_findings`
+2. Läuft `pytest tests/ -q --tb=short -m not slow -n auto` → erfasst `total_passing`, `total_failing`
+3. Läuft `pytest tests/test_precision_recall.py` → erfasst Precision/Recall (optional via `--skip-precision-recall`)
+4. Bettet einen `generated_by`-Block mit `git_sha`, Timestamp und Script-Name ein
+5. Schreibt `benchmark_results/vX.Y.Z_{slug}_feature_evidence.json`
+
+**Flags:**
+```
+--version X.Y.Z         Semver-Version (Pflicht)
+--slug    my-feature    Kebab-Case-Slug (Pflicht)
+--feature "Text"        Kurzbeschreibung (optional, Default: Slug)
+--skip-tests            Nur Self-Analysis (kein pytest)
+--skip-precision-recall Precision-Recall-Suite überspringen
+```
+
+**Validierung manuell prüfen:**
+```bash
+python scripts/validate_feature_evidence.py \
+    benchmark_results/vX.Y.Z_my-feature_feature_evidence.json \
+    --require-generated-by --push-head $(git rev-parse HEAD)
+```
+
+---
+
+## Step 1b: Dateinamen-Konvention (zur Referenz)
 
 Konvention:
 
