@@ -97,7 +97,7 @@ def _build_error_payload(
     suggested_action = suggested_action_override or (info.action if info else hint)
     return {
         "error": True,
-        "schema_version": "2.1",
+        "schema_version": "2.2",
         "type": "error",
         "error_code": error_code,
         "category": category,

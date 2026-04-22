@@ -87,7 +87,7 @@ def _execute_fix_plan_operation(
             raise click.UsageError("--dismiss requires a non-empty task id")
         record = dismiss_task(repo_path, task_id, cache_dir, ttl_days=DEFAULT_TTL_DAYS)
         return {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "operation": "dismiss",
             "task_id": record["task_id"],
             "dismissed_at": record["dismissed_at"],
@@ -97,7 +97,7 @@ def _execute_fix_plan_operation(
         }
     if show_dismissed:
         return {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "operation": "show-dismissed",
             "cache_file": f"{cache_dir}/fix-plan-dismissed.json",
             "dismissed": get_active_dismissals(repo_path, cache_dir),
@@ -105,7 +105,7 @@ def _execute_fix_plan_operation(
     if reset_dismissed:
         removed = reset_dismissals(repo_path, cache_dir)
         return {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "operation": "reset",
             "removed": removed,
             "cache_file": f"{cache_dir}/fix-plan-dismissed.json",
@@ -326,3 +326,4 @@ def fix_plan(
         yes=yes,
     )
     _emit_fix_plan_result(result, output, output_format)
+
