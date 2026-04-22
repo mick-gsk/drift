@@ -1,0 +1,38 @@
+name: Drift BLOCK finding
+description: Auto-filed by the drift action for findings with severity critical or high (Paket 2C, ADR-095).
+title: "[drift] "
+labels: ["drift", "agent-block"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue template is used by `scripts/gh_issue_dedup.py` as a
+        human-fallback. The drift action normally files issues
+        programmatically with a machine marker so duplicates are skipped.
+
+  - type: input
+    id: finding-id
+    attributes:
+      label: Drift finding id
+      description: Embedded as `<!-- drift-finding-id: … -->` in the body so the dedup script can recognise it.
+      placeholder: "ARCHITECTURE_VIOLATION:src/x.py:42"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - critical
+        - high
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Why is this finding BLOCK-class? Paste drift rationale verbatim.
+    validations:
+      required: true

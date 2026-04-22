@@ -1,5 +1,13 @@
 # FMEA Matrix
 
+## 2026-05-04 - ADR-095: Issue-Auto-Filing (Paket 2C)
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `scripts/gh_issue_dedup.py` Dedup-Scan | Duplikat-Issue wird gefiled, weil Marker entfernt wurde | Maintainer editiert Body manuell, entfernt HTML-Kommentar | Issue-Tracker-Rauschen, aber keine Dateninkonsistenz | Marker-Konvention ist in ADR-095 und Issue-Template dokumentiert | Marker ist HTML-Kommentar (fuer User unsichtbar); zweite Dedup-Ebene via Titel-Matching koennte ergaenzt werden, ist aber out-of-scope | 2 | 3 | 3 | 18 | Accepted |
+| `action.yml` `create-issue`-Input | Consumer-Repo setzt `create-issue: true` ohne vorhandene Labels | Labels `drift`/`agent-block` nicht im Repo angelegt | `gh issue create` exit !=0, Script exit 1, kein Issue gefiled | Action-Log zeigt `gh`-Error inkl. Label-Name | Pre-Flight-Check (`gh label list`) koennte ergaenzt werden; aktuell: klare Fehlermeldung, kein Retry-Storm | 2 | 3 | 2 | 12 | Mitigated |
+| Policy-Boundary Default | Default `create-issue: true` statt `false` | Refactor ueberschreibt Default | Ungefragte Issues in allen Consumer-Repos bei naechstem Release | YAML-Contract-Test `test_create_issue_input_exists_and_defaults_false` blockt | Test ist assertion-hart; Review via CODEOWNERS (`action.yml` liegt unter Default-Owner) | 4 | 1 | 1 | 4 | Mitigated |
+
 ## 2026-05-04 - ADR-094: Human-Approval-Gate (Paket 2B)
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

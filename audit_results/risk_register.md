@@ -1,5 +1,28 @@
 # Risk Register
 
+## 2026-05-04 - ADR-095: Issue-Auto-Filing (Paket 2C)
+
+- Risk ID: RISK-ADR-095-AUTO-ISSUE
+- Component: `action.yml` (`create-issue`/`issue-labels` Inputs + Auto-File-Step), `scripts/gh_issue_dedup.py`, `.github/ISSUE_TEMPLATE/drift-block.yml`.
+- Type: Process / Public-Action-Contract - erweitert die drift GitHub Action um optionales, opt-in Issue-Filing fuer BLOCK-Findings (Severity critical/high).
+- Description: Wenn ein Consumer-Repo `create-issue: true` setzt, filt `scripts/gh_issue_dedup.py` fuer jede BLOCK-Finding im JSON-Report ein GitHub-Issue mit stabilem Marker `<!-- drift-finding-id: ... -->`. Dedup gegen offene Issues mit dem ersten Label verhindert Re-Filing bei Re-Runs.
+- Severity: MEDIUM - Fehlfunktion fuehrt zu Issue-Spam oder stillen Regressionen, nicht zu Code-Defekten.
+- Triggers:
+  - Consumer setzt `create-issue: true`, aber Labels existieren nicht -> `gh issue create` exit !=0 -> Script exit 1 sichtbar im Action-Log.
+  - BLOCK-Gate schlecht kalibriert -> viele false-positive Issues -> Maintainer deaktiviert create-issue (opt-out moeglich).
+  - Marker wird manuell aus Issue-Body entfernt -> Dedup greift nicht mehr -> neues Issue beim naechsten Run (akzeptiert: menschlicher Edit = bewusste Entscheidung).
+  - gh-CLI nicht auf PATH -> Script exit 2 mit klarer Meldung.
+- Impact without mitigation:
+  - Issue-Tracker-Spam bei breit angelegtem Rollout.
+  - Privatsphaere-/Posting-Policy-Verletzung, falls Default auf true stuende.
+- Mitigations:
+  - Default `create-issue: false` ("kein ungefragtes Posten"); jedes Consumer-Repo aktiviert bewusst.
+  - Dedup via HTML-Marker im Issue-Body, robust gegen Title-Renames.
+  - Labels werden nicht automatisch angelegt - Maintainer muss sie vorbereiten, was als Approval-Signal wirkt.
+  - Dry-Run-Modus fuer lokale Validierung (`--dry-run`).
+  - 12 Unit-Tests (`tests/test_gh_issue_dedup.py`) + 6 YAML-Contract-Tests (`tests/test_action_yml_paket_2c.py`).
+- Residual risk: LOW - Feature ist streng opt-in, Fehlerpfade sind sichtbar und nicht-destruktiv (Issues lassen sich loeschen, keine Repo-Mutation ausserhalb des Issue-Trackers).
+
 ## 2026-05-04 - ADR-094: Human-Approval-Gate (Paket 2B)
 
 - Risk ID: RISK-ADR-094-APPROVAL-GATE

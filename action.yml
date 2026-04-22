@@ -89,6 +89,26 @@ inputs:
     required: false
     default: ""
 
+  create-issue:
+    description: >
+      Paket 2C / ADR-095 — when 'true', automatically open a GitHub issue
+      in the CURRENT repository for every BLOCK-severity drift finding
+      (finding severity = critical or high). Opt-in: default is 'false'
+      to respect the 'no unsolicited posting' contract. Requires the
+      'issues: write' permission on the calling workflow. Deduplicates
+      against existing open issues by embedding the drift finding_id in
+      the issue body so that re-runs do not spam the tracker.
+    required: false
+    default: "false"
+
+  issue-labels:
+    description: >
+      Comma-separated labels applied to auto-filed drift issues.
+      Ignored unless 'create-issue' is 'true'. Labels MUST already exist
+      in the repository; the workflow does not create labels.
+    required: false
+    default: "drift,agent-block"
+
 outputs:
   sarif-file:
     description: "Absolute path to the generated SARIF file (only set when upload-sarif is 'true')."
@@ -151,12 +171,14 @@ runs:
           echo "sarif-file=${SARIF_FILE}" >> "${GITHUB_OUTPUT}"
           # Always produce JSON for metrics outputs
           drift ci ${ARGS} --format json --fail-on none > "${RUNNER_TEMP}/drift-results.json" 2>/dev/null || true
+          echo "report-file=${RUNNER_TEMP}/drift-results.json" >> "${GITHUB_OUTPUT}"
           exit ${DRIFT_EXIT}
         else
           # Always produce JSON for metrics outputs
           JSON_FILE="${RUNNER_TEMP}/drift-results.json"
           DRIFT_EXIT=0
           drift ci ${ARGS} --format json > "${JSON_FILE}" || DRIFT_EXIT=$?
+          echo "report-file=${JSON_FILE}" >> "${GITHUB_OUTPUT}"
           # Also show the user-chosen format on stdout if not already json
           if [ "${DRIFT_FORMAT}" != "json" ]; then
             drift ci ${ARGS} --format "${DRIFT_FORMAT}" --fail-on none 2>/dev/null || true
@@ -388,4 +410,21 @@ runs:
       with:
         sarif_file: ${{ steps.drift-run.outputs.sarif-file }}
         category: drift
+
+    # Paket 2C / ADR-095 — opt-in BLOCK-finding issue filing.
+    # Deduplicates against existing open issues by matching the finding_id
+    # embedded in the issue body. Labels must already exist in the repo.
+    - name: Auto-file BLOCK drift findings as issues
+      if: always() && inputs.create-issue == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        ISSUE_LABELS: ${{ inputs.issue-labels }}
+        DRIFT_REPORT: ${{ steps.drift-run.outputs.report-file }}
+      run: |
+        set -euo pipefail
+        python "${{ github.action_path }}/scripts/gh_issue_dedup.py" \
+          --repo "${{ github.repository }}" \
+          --report "${DRIFT_REPORT:-drift-report.json}" \
+          --labels "${ISSUE_LABELS}"
         wait-for-processing: true
