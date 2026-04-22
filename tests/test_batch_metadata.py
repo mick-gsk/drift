@@ -476,6 +476,67 @@ class TestFixPlanAgentInstructionADR021:
         assert "drift_nudge" in instr
         assert "Do not batch changes across unrelated" in instr
 
+    def test_patch_protocol_in_batch_instruction(self):
+        """Batch-eligible fix_plan instruction includes ADR-074 patch protocol steps."""
+        from drift.api import _fix_plan_agent_instruction
+
+        task = _make_task(metadata={"batch_eligible": True})
+        instr = _fix_plan_agent_instruction([task])
+        assert "drift_patch_begin" in instr
+        assert "drift_patch_check" in instr
+        assert "drift_patch_commit" in instr
+        assert "ADR-074" in instr
+
+    def test_patch_protocol_in_non_batch_instruction(self):
+        """Non-batch fix_plan instruction also includes ADR-074 patch protocol steps."""
+        from drift.api import _fix_plan_agent_instruction
+
+        task = _make_task(metadata={})
+        instr = _fix_plan_agent_instruction([task])
+        assert "drift_patch_begin" in instr
+        assert "drift_patch_check" in instr
+        assert "drift_patch_commit" in instr
+        assert "ADR-074" in instr
+
+
+# ---------------------------------------------------------------------------
+# ADR-074: patch_protocol field in fix_plan response
+# ---------------------------------------------------------------------------
+
+
+class TestFixPlanResponsePatchProtocol:
+    def test_patch_protocol_field_present(self, tmp_path):
+        """fix_plan response always includes a patch_protocol field."""
+        from drift.api import fix_plan
+
+        (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
+        result = fix_plan(str(tmp_path))
+        pp = result.get("patch_protocol")
+        assert pp is not None, "patch_protocol must be in fix_plan response"
+        assert isinstance(pp, dict)
+
+    def test_patch_protocol_has_required_steps(self, tmp_path):
+        """patch_protocol contains the three mandatory ADR-074 steps."""
+        from drift.api import fix_plan
+
+        (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
+        result = fix_plan(str(tmp_path))
+        pp = result["patch_protocol"]
+        steps = pp.get("steps", [])
+        steps_joined = " ".join(steps)
+        assert "drift_patch_begin" in steps_joined
+        assert "drift_patch_check" in steps_joined
+        assert "drift_patch_commit" in steps_joined
+
+    def test_patch_protocol_references_adr_074(self, tmp_path):
+        """patch_protocol references ADR-074."""
+        from drift.api import fix_plan
+
+        (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
+        result = fix_plan(str(tmp_path))
+        pp = result["patch_protocol"]
+        assert pp.get("reference") == "ADR-074"
+
 
 # ---------------------------------------------------------------------------
 # ADR-064: repair_exemplar — concrete snippet + patch_shape

@@ -152,6 +152,15 @@ def build_autopilot_summary(
             "tool": "drift_fix_plan",
             "params": {"session_id": session_id},
         },
+        "patch_protocol": {
+            "steps": [
+                "drift_patch_begin(task_id=<id>, declared_files=[...], expected_outcome=...)",
+                "drift_patch_check(task_id=<id>, declared_files=[...])",
+                "drift_patch_commit(task_id=<id>)",
+            ],
+            "when": "before_editing",
+            "reference": "ADR-074",
+        },
         "findings_preview": {
             "items": finding_preview,
             "count": len(finding_preview),

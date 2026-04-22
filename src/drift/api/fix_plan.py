@@ -152,12 +152,22 @@ def _annotate_cross_signal_pfs_risk(
             )
 
 
+_PATCH_PROTOCOL_PREAMBLE = (
+    "ADR-074 patch protocol is mandatory for every task: "
+    "(1) call drift_patch_begin(task_id=<id>, declared_files=[...], expected_outcome=...) "
+    "BEFORE editing any file, "
+    "(2) call drift_patch_check(task_id=<id>, declared_files=[...]) after editing, "
+    "(3) call drift_patch_commit(task_id=<id>) to generate compliance evidence. "
+)
+
+
 def _fix_plan_agent_instruction(tasks: list) -> str:
     """Build context-dependent agent_instruction for fix_plan responses."""
     batch_count = sum(1 for t in tasks if getattr(t, "metadata", {}).get("batch_eligible"))
     if batch_count > 0:
         return (
-            "Tasks with batch_eligible=true share a fix pattern. "
+            _PATCH_PROTOCOL_PREAMBLE
+            + "Tasks with batch_eligible=true share a fix pattern. "
             "Apply the fix to ALL affected_files_for_pattern, then verify "
             "with a single drift_diff(uncommitted=True). "
             "For non-batch tasks, use drift_nudge after each edit for fast "
@@ -165,7 +175,8 @@ def _fix_plan_agent_instruction(tasks: list) -> str:
             "or before committing."
         )
     return (
-        "After each fix, call drift_nudge for fast directional feedback. "
+        _PATCH_PROTOCOL_PREAMBLE
+        + "After each fix, call drift_nudge for fast directional feedback. "
         "Use drift_diff for full regression analysis before committing. "
         "Do not batch changes across unrelated findings."
     )
@@ -490,6 +501,15 @@ def _build_fix_plan_response_from_analysis(
         suggested_fix=finding_id_suggested_fix,
         recommended_next_actions=next_actions,
         agent_instruction=_fix_plan_agent_instruction(limited),
+        patch_protocol={
+            "steps": [
+                "drift_patch_begin(task_id=<id>, declared_files=[...], expected_outcome=...)",
+                "drift_patch_check(task_id=<id>, declared_files=[...])",
+                "drift_patch_commit(task_id=<id>)",
+            ],
+            "when": "before_editing",
+            "reference": "ADR-074",
+        },
         task_graph=graph.to_api_dict(),
         workflow_plan=workflow.to_api_dict(),
     )

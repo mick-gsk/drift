@@ -368,6 +368,12 @@ class TestFixPlanAgentInstruction:
         result = _fix_plan_agent_instruction([])
         assert "nudge" in result.lower()
 
+    def test_patch_protocol_in_instruction(self):
+        tasks = [SimpleNamespace(metadata={})]
+        result = _fix_plan_agent_instruction(tasks)
+        assert "drift_patch_begin" in result
+        assert "drift_patch_commit" in result
+
 
 # ── _fix_plan_next_step_contract ─────────────────────────────────
 
