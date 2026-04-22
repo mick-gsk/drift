@@ -337,46 +337,155 @@ def _gen_ecm(finding: Finding) -> list[NegativeContext]:
 # Cluster B generators (RPN 200–279)
 # ---------------------------------------------------------------------------
 
+# Human-readable names for integer layer IDs emitted by ArchitectureViolationSignal.
+# Layer 0 is falsy in Python, so a plain `or`-based fallback would misidentify it
+# as "unknown". These names are used in _avs_layer_name() below.
+_AVS_LAYER_NAMES: dict[int, str] = {
+    -1: "cross-cutting",
+    0: "presentation",
+    1: "domain",
+    2: "data",
+}
+
+
+def _avs_layer_name(raw: Any) -> str | None:
+    """Return a human-readable layer name or None when no layer can be resolved.
+
+    Handles both integer layer IDs (from ArchitectureViolationSignal metadata)
+    and arbitrary string values.  Returns None rather than "unknown" so callers
+    can distinguish "resolved as presentation (0)" from "truly absent".
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, int):
+        return _AVS_LAYER_NAMES.get(raw, f"layer-{raw}")
+    sanitized = _sanitize(str(raw))
+    return sanitized if sanitized else None
+
 
 @_register(SignalType.ARCHITECTURE_VIOLATION)
 def _gen_avs(finding: Finding) -> list[NegativeContext]:
     """FM-14 (RPN 240): Architecture layer violation — project-specific."""
     meta = finding.metadata
-    # Phase 3: extract concrete layer identities from actual metadata
-    src_layer = _sanitize(str(meta.get("src_layer") or meta.get("source_layer", "unknown")))
-    dst_layer = _sanitize(str(meta.get("dst_layer") or meta.get("target_layer", "unknown")))
+    rule_id = finding.rule_id or ""
+
+    # Extract layer identity — must use is-not-None to avoid treating layer 0
+    # (presentation) as absent: 0 is falsy, so a plain `or` would fall through
+    # to "unknown" even when the layer is correctly identified as presentation.
+    raw_src = meta.get("src_layer")
+    if raw_src is None:
+        raw_src = meta.get("source_layer")
+    raw_dst = meta.get("dst_layer")
+    if raw_dst is None:
+        raw_dst = meta.get("target_layer")
+
+    src_layer = _avs_layer_name(raw_src)
+    dst_layer = _avs_layer_name(raw_dst)
+    layers_known = src_layer is not None and dst_layer is not None
+
     rule = _sanitize(str(meta.get("rule", "")))
     import_path = _sanitize(str(meta.get("import", "")))
     blast_radius = meta.get("blast_radius")
     instability = meta.get("instability")
 
-    # Build enriched description from real project data
-    desc_parts = [
-        f"Layer violation: '{src_layer}' -> '{dst_layer}'.",
-    ]
-    if rule:
-        desc_parts.append(f"Boundary rule violated: {rule}.")
-    if blast_radius is not None:
-        desc_parts.append(f"Blast radius: {blast_radius} modules affected.")
-    desc_parts.append("Do NOT introduce imports that cross this boundary.")
-
-    # Concrete forbidden import from actual finding
-    if import_path:
-        forbidden = (
-            f"# ANTI-PATTERN: Forbidden cross-layer import\n"
-            f"import {import_path}  # <- violates {src_layer} -> {dst_layer} boundary"
-        )
+    # Build enriched description.  When both layer labels are resolved we emit
+    # the classic "Layer violation: 'X' -> 'Y'" format.  When no layer metadata
+    # is present (avs_zone_of_pain, avs_blast_radius, avs_god_module, …) we emit
+    # a rule-specific description instead of the vacuous "unknown→unknown" text.
+    desc_parts: list[str]
+    if layers_known:
+        desc_parts = [f"Layer violation: '{src_layer}' -> '{dst_layer}'."]
+        if rule:
+            desc_parts.append(f"Boundary rule violated: {rule}.")
+        if blast_radius is not None:
+            desc_parts.append(f"Blast radius: {blast_radius} modules affected.")
+        desc_parts.append("Do NOT introduce imports that cross this boundary.")
     else:
-        forbidden = (
-            f"# ANTI-PATTERN: Importing from forbidden layer\n"
-            f"from {dst_layer} import ...  # <- violates layer boundary"
-        )
+        if rule_id == "avs_zone_of_pain":
+            desc_parts = [
+                "Concrete, stable module in the Zone of Pain: widely depended upon "
+                "yet hard to change. Do NOT add more dependents or reduce abstraction."
+            ]
+        elif rule_id == "avs_blast_radius":
+            br_str = f" ({blast_radius} transitive dependents)" if blast_radius is not None else ""
+            desc_parts = [
+                f"High transitive blast radius{br_str}: a change here propagates widely. "
+                "Do NOT increase coupling to this module."
+            ]
+        elif rule_id == "avs_god_module":
+            desc_parts = [
+                "God module: too many afferent and efferent dependencies. "
+                "Do NOT add further imports to or from this module."
+            ]
+        elif rule_id == "avs_circular_dep":
+            desc_parts = [
+                "Circular dependency detected. Do NOT introduce further imports "
+                "that extend this cycle."
+            ]
+        elif rule_id == "avs_unstable_dep":
+            desc_parts = [
+                "Stable module depends on an unstable/volatile dependency. "
+                "Do NOT add more imports from high-churn modules."
+            ]
+        elif rule_id == "avs_co_change":
+            desc_parts = [
+                "Hidden logical coupling detected via co-change history. "
+                "Do NOT increase implicit dependencies between these modules."
+            ]
+        elif rule_id in ("avs_policy_boundary", "avs_lazy_import_policy"):
+            if rule:
+                desc_parts = [
+                    f"Architecture policy violated: {rule}. "
+                    "Do NOT introduce imports that cross this boundary."
+                ]
+            else:
+                desc_parts = [
+                    "Architecture policy violated. "
+                    "Do NOT introduce imports that cross this boundary."
+                ]
+        else:
+            desc_parts = [
+                "Architecture boundary violation detected. "
+                "Do NOT introduce imports that cross layer boundaries in this project."
+            ]
+        if blast_radius is not None and rule_id != "avs_blast_radius":
+            desc_parts.append(f"Blast radius: {blast_radius} modules affected.")
+
+    # Concrete forbidden-import example
+    if layers_known:
+        if import_path:
+            forbidden = (
+                f"# ANTI-PATTERN: Forbidden cross-layer import\n"
+                f"import {import_path}  # <- violates {src_layer} -> {dst_layer} boundary"
+            )
+        else:
+            forbidden = (
+                f"# ANTI-PATTERN: Importing from forbidden layer\n"
+                f"from {dst_layer} import ...  # <- violates layer boundary"
+            )
+    else:
+        if import_path:
+            forbidden = (
+                f"# ANTI-PATTERN: Forbidden import\n"
+                f"import {import_path}  # <- violates architecture boundary"
+            )
+        else:
+            forbidden = (
+                "# ANTI-PATTERN: Increasing coupling to an over-constrained module\n"
+                "# See finding description for the specific architecture constraint"
+            )
 
     # Stability-aware canonical alternative
-    canonical_parts = [
-        "# REQUIRED: Respect layer boundaries in this project:\n",
-        f"# {src_layer} must NOT depend on {dst_layer}\n",
-    ]
+    if layers_known:
+        canonical_parts = [
+            "# REQUIRED: Respect layer boundaries in this project:\n",
+            f"# {src_layer} must NOT depend on {dst_layer}\n",
+        ]
+    else:
+        canonical_parts = [
+            "# REQUIRED: Respect architecture constraints in this project.\n",
+            "# See the finding description for the specific constraint violated.\n",
+        ]
     if instability is not None:
         canonical_parts.append(
             f"# Module instability={instability:.2f} -- depend on stable (low-I) modules only\n"

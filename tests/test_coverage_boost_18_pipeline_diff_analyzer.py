@@ -28,6 +28,7 @@ def _make_finding(
     file_path: Path | None = Path("src/a.py"),
     related_files: list[str] | None = None,
     metadata: dict | None = None,
+    rule_id: str | None = None,
 ) -> Finding:
     return Finding(
         signal_type=signal_type,
@@ -38,6 +39,7 @@ def _make_finding(
         file_path=file_path,
         related_files=related_files or [],
         metadata=metadata or {},
+        rule_id=rule_id,
     )
 
 
@@ -356,6 +358,114 @@ def test_gen_avs_with_blast_radius_and_import_path() -> None:
     )
     result = findings_to_negative_context([finding])
     assert len(result) > 0
+    # Should resolve layer names from the string metadata
+    assert any("presentation" in r.description or "data" in r.description for r in result)
+
+
+def test_gen_avs_integer_layer_zero_not_treated_as_unknown() -> None:
+    """Issue 533: layer 0 (presentation) is falsy — must not fall back to 'unknown'."""
+    from drift.negative_context import findings_to_negative_context
+
+    # src_layer=2 (data) importing from dst_layer=0 (presentation) — upward import
+    finding = _make_finding(
+        signal_type=SignalType.ARCHITECTURE_VIOLATION,
+        rule_id="avs_upward_import",
+        metadata={
+            "src_layer": 2,  # data layer — integer, truthy
+            "dst_layer": 0,  # presentation layer — integer 0 is falsy!
+            "blast_radius": 5,
+            "import_target": "src/api/routes.py",
+        },
+    )
+    result = findings_to_negative_context([finding])
+    assert len(result) > 0
+    desc = result[0].description
+    # Must resolve layer names from integers — "unknown→unknown" is wrong
+    assert "unknown" not in desc.lower(), f"'unknown' found in description: {desc!r}"
+    assert "presentation" in desc or "data" in desc
+
+
+def test_gen_avs_zone_of_pain_no_layer_metadata() -> None:
+    """Issue 533: avs_zone_of_pain has no src/dst layer — must not produce 'unknown→unknown'."""
+    from drift.negative_context import findings_to_negative_context
+
+    finding = _make_finding(
+        signal_type=SignalType.ARCHITECTURE_VIOLATION,
+        rule_id="avs_zone_of_pain",
+        metadata={
+            "instability": 0.15,
+            "abstraction": 0.0,
+            "distance_main_seq": 0.85,
+            "afferent_coupling": 8,
+            "efferent_coupling": 2,
+        },
+    )
+    result = findings_to_negative_context([finding])
+    assert len(result) > 0
+    desc = result[0].description
+    assert "unknown" not in desc.lower(), f"'unknown' in description: {desc!r}"
+    # Should mention Zone of Pain or stability/coupling concept
+    assert "zone of pain" in desc.lower() or "concrete" in desc.lower() or "stable" in desc.lower()
+
+
+def test_gen_avs_blast_radius_no_layer_metadata() -> None:
+    """Issue 533: avs_blast_radius has no src/dst layer — must not produce 'unknown→unknown'."""
+    from drift.negative_context import findings_to_negative_context
+
+    finding = _make_finding(
+        signal_type=SignalType.ARCHITECTURE_VIOLATION,
+        rule_id="avs_blast_radius",
+        metadata={
+            "blast_radius": 42,
+            "total_modules": 80,
+            "blast_pct": 53,
+        },
+    )
+    result = findings_to_negative_context([finding])
+    assert len(result) > 0
+    desc = result[0].description
+    assert "unknown" not in desc.lower(), f"'unknown' in description: {desc!r}"
+    assert "blast radius" in desc.lower() or "coupling" in desc.lower()
+
+
+def test_gen_avs_god_module_no_layer_metadata() -> None:
+    """Issue 533: avs_god_module has no src/dst layer — must not produce 'unknown→unknown'."""
+    from drift.negative_context import findings_to_negative_context
+
+    finding = _make_finding(
+        signal_type=SignalType.ARCHITECTURE_VIOLATION,
+        rule_id="avs_god_module",
+        metadata={
+            "afferent_coupling": 12,
+            "efferent_coupling": 8,
+            "total_coupling": 20,
+            "blast_radius": 30,
+        },
+    )
+    result = findings_to_negative_context([finding])
+    assert len(result) > 0
+    desc = result[0].description
+    assert "unknown" not in desc.lower(), f"'unknown' in description: {desc!r}"
+
+
+def test_gen_avs_policy_boundary_no_layer_metadata() -> None:
+    """Issue 533: avs_policy_boundary has no src/dst layer — description must use rule name."""
+    from drift.negative_context import findings_to_negative_context
+
+    finding = _make_finding(
+        signal_type=SignalType.ARCHITECTURE_VIOLATION,
+        rule_id="avs_policy_boundary",
+        metadata={
+            "rule": "no-direct-db-access",
+            "import": "db.models.User",
+            "import_target": "src/db/models.py",
+        },
+    )
+    result = findings_to_negative_context([finding])
+    assert len(result) > 0
+    desc = result[0].description
+    assert "unknown" not in desc.lower(), f"'unknown' in description: {desc!r}"
+    assert "no-direct-db-access" in desc
 
 
 def test_gen_ccc_with_co_change_weight_and_commit_samples() -> None:
