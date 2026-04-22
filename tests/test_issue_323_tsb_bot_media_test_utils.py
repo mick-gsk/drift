@@ -2,10 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from drift.config import DriftConfig
 from drift.ingestion.test_detection import classify_file_context, is_test_file
+from drift.ingestion.ts_parser import tree_sitter_available
 from drift.models import ParseResult, Severity
 from drift.signals.type_safety_bypass import TypeSafetyBypassSignal
+
+needs_tree_sitter = pytest.mark.skipif(
+    not tree_sitter_available(),
+    reason="tree-sitter-typescript not installed",
+)
 
 ISSUE_323_FILE = Path("extensions/telegram/src/bot.media.test-utils.ts")
 
@@ -29,6 +37,7 @@ def test_issue_323_bot_media_test_utils_is_test_context() -> None:
     assert classify_file_context(ISSUE_323_FILE) == "test"
 
 
+@needs_tree_sitter
 def test_issue_323_tsb_excludes_by_default_and_reduces_to_low_when_configured(
     tmp_path: Path,
 ) -> None:
