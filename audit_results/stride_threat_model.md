@@ -1,5 +1,25 @@
 # STRIDE Threat Model
 
+## 2026-04-22 - ADR-090: Agent-Telemetry Schema 2.2 (Paket 1B)
+
+- Scope: Output-Schema-Erweiterung (`drift.output.schema.json`, `scripts/generate_output_schema.py`), neue Modellklassen `AgentAction` / `AgentTelemetry` / `AgentActionType` (`src/drift/models/_findings.py`, `src/drift/models/_enums.py`), Serialiser `_agent_telemetry_to_dict` (`src/drift/output/json_output.py`), `OUTPUT_SCHEMA_VERSION` Bump 2.1 → 2.2.
+- Input path changes: Keine. Drift selbst konsumiert den neuen Block nicht; `agent_telemetry` ist ausschließlich Output-Surface.
+- Output path changes: `drift analyze --format json` gibt Top-Level-Key `agent_telemetry` aus. Default ist JSON-`null` (explizit, kein Missing-Key). Wenn ein externer Agent `RepoAnalysis.agent_telemetry` befüllt, serialisiert der Block Schema-Version `"2.2"`, `session_id`, drei berechnete Counter (`total_auto`, `total_review`, `total_block`) und eine geordnete `agent_actions_taken`-Liste.
+- External interface changes: Additiv, Minor-Version-Bump (Schema 2.1 → 2.2). `additionalProperties: True` bleibt Top-Level; bestehende Konsumenten, die `agent_telemetry` ignorieren, brechen nicht. Neue Pflichtfelder innerhalb des Sub-Blocks: `schema_version`, `agent_actions_taken`.
+- Trust boundary: Neue Output-Boundary — Drift schreibt den Block nie selbst; nur externe Agent-Loops (ADR-089 Gate-Routing) befüllen ihn. Die Boundary ist also "Drift-Analyse → Agent-Nachbearbeitung → Drift-JSON-Datei". Drift trägt keine Verantwortung für Inhalt oder Integrität der Agent-Aktionen, sondern nur für das schema-konforme Format.
+- STRIDE review:
+  - S (Spoofing): Low. Telemetrie enthält keine User-Identitäten; `session_id` ist opaque MCP-Session-Marker, keine Auth-Credential. Ein Angreifer kann keine Identität spoofen, die Drift nicht selbst ausstellt.
+  - T (Tampering): Medium — der grösste Angriffsvektor des Pakets. Ein Agent mit Write-Access auf die JSON-Datei kann `auto_fix`-Einträge für Findings fingieren, die er nie gefixt hat, oder `BLOCK`-Aktionen unterdrücken. MVP-Mitigation: (1) Drift-Scoring ist vollständig unabhängig vom Telemetrie-Block; es existiert aktuell kein automatischer Downstream-Konsument, der die Telemetrie trusted. (2) `finding_id` folgt dem Schema `^[0-9a-f]{16}$` und ist Content-Hash aus Drift-Findings — ein Angreifer müsste reale Finding-IDs kennen, um plausibel zu lügen. Phase 3 (Human-Approval-Gate) MUSS signed oder hash-chained Einträge einführen, bevor Telemetrie für Weight-Updates oder CI-Gates genutzt wird.
+  - R (Repudiation): Improves auditability. Jede Aktion trägt `action_type`, `reason`, optional `timestamp` (ISO-8601), `finding_id` und `gate`-Routing — retrospektive Analyse kann Agent-Entscheidungen nachvollziehen. `AgentActionType`-StrEnum schließt das Action-Vokabular. Ohne MVP-Signierung bleibt Repudiation durch kompromittierten Agent jedoch möglich; ADR-090 dokumentiert das explizit als Residual Risk.
+  - I (Information Disclosure): Low. Telemetrie enthält nur Daten, die bereits anderswo im Output vorkommen (Finding-IDs, Severity-Labels, Gate-Routing-Entscheidungen). `metadata` ist ein freies Dict — Agent-Implementierer sind verantwortlich, dort keine Secrets abzulegen. ADR-090 dokumentiert die Erwartung.
+  - D (Denial of Service): Negligible. Serialisierung ist O(n) über `agent_actions_taken`; Drift selbst schreibt keine Aktionen, daher existiert keine Drift-interne Explosionsgefahr. Malicious Agent könnte Millionen Aktionen in die Datei schreiben — das ist ein Output-Pipeline-Problem, kein Drift-Problem.
+  - E (Elevation of Privilege): None. Keine neuen privilegierten Operationen. Serialisierung erbt File-Permissions vom aufrufenden Prozess.
+- Adversarial considerations:
+  - Schema-Drift als Angriffsvektor: Wenn ein Angreifer das eingecheckte `drift.output.schema.json` heimlich divergieren lässt, könnten externe Validatoren kompromittierte Telemetrie akzeptieren. Mitigation: `scripts/generate_output_schema.py --check` läuft als CI-Gate via `tests/test_output_schema_drift.py::test_schema_file_is_up_to_date` und schlägt bei jeder Divergenz fehl.
+  - Enum-Drift zwischen `AgentActionType` StrEnum und Schema-Enum: Behandelt durch `test_agent_action_type_enum_complete` (Mengenvergleich).
+  - `gate`-Feld ausserhalb `{AUTO, REVIEW, BLOCK, null}` (ADR-089) wird durch Schema-Validation und expliziten Negativ-Test abgelehnt.
+- ADR-090 MVP scope constraint: Kein Weight-Update- oder Scoring-Pfad konsumiert die Telemetrie. Jede Bedrohung, die davon abhängt, dass Telemetrie trusted calibration source ist, ist auf Phase 3 verschoben und hier explizit out-of-scope.
+
 ## 2026-04-24 - ADR-088: Outcome-Feedback-Ledger (K2 MVP)
 
 - Scope: Detached-worktree rescore (`src/drift/api/analyze_commit_pair.py`), merge-commit walker (`src/drift/outcome_ledger/walker.py`), JSONL ledger (`src/drift/outcome_ledger/ledger_io.py`), ops runner (`scripts/ops_outcome_trajectory_cycle.py`).

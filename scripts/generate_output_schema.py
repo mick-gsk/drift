@@ -175,6 +175,71 @@ _TREND = {
     },
 }
 
+# ADR-090 Paket 1B: AgentTelemetry audit trail for autonomous-agent runs.
+_AGENT_ACTION_TYPE_ENUM = [
+    "auto_fix",
+    "review_request",
+    "block",
+    "revert",
+    "feedback",
+    "nudge",
+]
+
+_AGENT_ACTION = {
+    "type": "object",
+    "required": ["action_type", "reason"],
+    "properties": {
+        "action_type": {"type": "string", "enum": _AGENT_ACTION_TYPE_ENUM},
+        "reason": {"type": "string"},
+        "finding_id": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9a-f]{16}$",
+        },
+        "severity": {
+            "type": ["string", "null"],
+            "enum": [*_SEVERITY_ENUM, None],
+        },
+        "gate": {
+            "type": ["string", "null"],
+            "enum": ["AUTO", "REVIEW", "BLOCK", None],
+            "description": "Routing decision from the severity gate (ADR-089).",
+        },
+        "safe_to_commit": {"type": ["boolean", "null"]},
+        "feedback_mark": {"type": ["string", "null"]},
+        "timestamp": {"type": ["string", "null"], "format": "date-time"},
+        "metadata": {"type": "object"},
+    },
+}
+
+_AGENT_TELEMETRY = {
+    "type": ["object", "null"],
+    "description": (
+        "Machine-readable audit trail emitted by the autonomous agent loop "
+        "(ADR-089 / ADR-090). Written by the agent after `drift analyze`, "
+        "not by drift itself; `null` when no agent has post-processed the run."
+    ),
+    "required": ["schema_version", "agent_actions_taken"],
+    "properties": {
+        "schema_version": {
+            "type": "string",
+            "const": "2.2",
+            "description": "Telemetry block version, tracks OUTPUT_SCHEMA_VERSION.",
+        },
+        "session_id": {
+            "type": ["string", "null"],
+            "description": "Optional MCP session identifier.",
+        },
+        "total_auto": {"type": "integer", "minimum": 0},
+        "total_review": {"type": "integer", "minimum": 0},
+        "total_block": {"type": "integer", "minimum": 0},
+        "agent_actions_taken": {
+            "type": "array",
+            "items": _AGENT_ACTION,
+            "description": "Ordered agent actions recorded during this run.",
+        },
+    },
+}
+
 
 def build_output_schema() -> dict:
     """Build the complete JSON Schema for drift CLI JSON output."""
@@ -286,6 +351,7 @@ def build_output_schema() -> dict:
                 "items": _FINDING_FULL,
                 "description": "Suppressed findings (omitted in compact mode).",
             },
+            "agent_telemetry": _AGENT_TELEMETRY,
         },
         "additionalProperties": True,
     }
@@ -295,7 +361,8 @@ def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="Generate drift output JSON schema.")
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="drift.output.schema.json",
         help="Output file path (default: drift.output.schema.json)",
     )

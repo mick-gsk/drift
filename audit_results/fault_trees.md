@@ -1,5 +1,35 @@
 # Fault Tree Analysis
 
+## 2026-04-22 - ADR-090: Agent-Telemetry Schema 2.2 (Paket 1B)
+
+### Top Event (TE-AGENT-TELEMETRY-DRIFT)
+External consumers validate agent telemetry against a schema that does not match the code-defined serializer, silently accepting malformed or fabricated `agent_telemetry` blocks.
+
+- OR
+  - **G1 — Schema file out of sync with generator**
+    - AND
+      - B1: Developer edits `scripts/generate_output_schema.py` or modifies `AgentActionType` / `OUTPUT_SCHEMA_VERSION` without regenerating `drift.output.schema.json`.
+      - B2: CI drift gate `tests/test_output_schema_drift.py::test_schema_file_is_up_to_date` is disabled or bypassed.
+    - Mitigation: Drift-gate test calls `scripts/generate_output_schema.py --check` via subprocess and fails on any divergence; README+CHANGELOG document the regenerate command.
+  - **G2 — Enum drift between `AgentActionType` and schema**
+    - AND
+      - B3: New `AgentActionType` member added without updating generator `_AGENT_ACTION_TYPE_ENUM`.
+      - B4: `test_agent_action_type_enum_complete` is removed or weakened.
+    - Mitigation: Set-equality test enforces exact match; generator imports `OUTPUT_SCHEMA_VERSION` directly from code so version bumps cannot drift silently.
+  - **G3 — Malicious agent writes fake telemetry**
+    - AND
+      - B5: External agent has write access to Drift JSON output file.
+      - B6: Downstream consumer trusts `agent_telemetry` for automated decisions (weight updates, CI gates) without independent verification.
+    - Mitigation (MVP): No downstream consumer currently trusts telemetry for calibration. ADR-090 explicitly defers signing/hash-chaining to Phase 3 (Human-Approval-Gate). Scoring and signal pipeline are fully independent of the telemetry block.
+  - **G4 — Invalid `gate` routing silently accepted**
+    - AND
+      - B7: Schema `gate` enum widens beyond `{AUTO, REVIEW, BLOCK, null}` (ADR-089).
+      - B8: Negative-path test `test_invalid_gate_value_rejected` is removed.
+    - Mitigation: Enum is pinned in the generator; negative Draft-7 validation test asserts rejection of arbitrary gate strings.
+
+### Residual Risk
+G3 (malicious agent tampering) is the dominant residual. MVP acceptance is explicit in ADR-090 because no automated consumer of telemetry exists. Phase 3 must introduce cryptographic integrity before telemetry influences Drift scoring, weight updates, or gate decisions.
+
 ## 2026-04-24 - ADR-088: Outcome-Feedback-Ledger (K2 MVP)
 
 ### Top Event (TE-OUTCOME-MISCALIBRATION)

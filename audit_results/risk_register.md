@@ -1,5 +1,30 @@
 # Risk Register
 
+## 2026-04-22 - ADR-090: Agent-Telemetry Schema 2.2 (Paket 1B)
+
+- Risk ID: RISK-ADR-090-AGENT-TELEMETRY-SCHEMA
+- Component: `drift.output.schema.json` (Property `agent_telemetry`), `src/drift/models/_findings.py` (`AgentAction`, `AgentTelemetry`), `src/drift/models/_enums.py` (`AgentActionType`, `OUTPUT_SCHEMA_VERSION="2.2"`), `src/drift/output/json_output.py` (`_agent_telemetry_to_dict`), `scripts/generate_output_schema.py`, `tests/test_output_schema_drift.py`, `tests/test_agent_telemetry_schema.py`.
+- Type: Output-/Audit-Schema (additiv, Backward-Compatible — keine Breaking-Change für Konsumenten ohne `agent_telemetry`-Nutzung).
+- Description: Drift-JSON-Output bekommt optionalen Block `agent_telemetry` (Schema 2.2), der Agent-Aktionen einer Loop-Iteration protokolliert (ADR-089 Gate-Routing → ADR-090 Audit-Trail). Block ist rein additiv; `schema_version` wird von "2.1" auf "2.2" gehoben. Drift selbst schreibt den Block nicht — externe Agenten befüllen ihn nach `drift analyze`.
+- Severity: LOW — Additiv, kein Score- oder Signal-Effekt, kein Weight-Update. Risiko beschränkt auf stille Schema-Drift zwischen Code und eingechecktem JSON-Schema oder auf falsch attribuierte Agent-Aktionen in retrospektiven Reports.
+- Triggers:
+  - Änderungen an `AgentActionType` / Severity-Gate / `_agent_telemetry_to_dict()` ohne Schema-Regenerate.
+  - Externe Agent-Implementierungen, die `agent_telemetry` manuell konstruieren statt über Drift-Modelle.
+- Impact without mitigation: Konsumenten validieren gegen falsches Schema; Tampering durch Agent mit Write-Access auf Output-JSON ist möglich (keine Signatur); Repudiation-Risk, wenn Agent `auto_fix` mit fingiertem `finding_id` protokolliert.
+- Mitigations:
+  - `scripts/generate_output_schema.py --check` als CI-Gate (via `tests/test_output_schema_drift.py::test_schema_file_is_up_to_date`).
+  - `test_agent_action_type_enum_complete` macht Enum-Drift zwischen `AgentActionType` und Schema zum harten Test-Fail.
+  - Echte `analysis_to_json`-Ausgabe wird gegen Draft-7-Schema validiert (positiv + negativ Test mit ungültigem Gate-Wert).
+  - `additionalProperties: True` auf Top-Level bleibt erhalten → kein Breaking-Change für bestehende Konsumenten.
+  - `AgentTelemetry.total_auto/review/block` sind computed properties, keine frei schreibbaren Felder → keine In-Schema-Inkonsistenz möglich.
+- Monitoring:
+  - 29 Tests: 20 in `tests/test_agent_telemetry_schema.py` + 9 in `tests/test_output_schema_drift.py` (Schema-Drift, Enum-Sync, Gate-Enum, Positiv/Negativ-Validation).
+  - Feature-Evidence: `benchmark_results/v_next_paket_1b_agent_telemetry_schema_feature_evidence.json`.
+- Residual Risk:
+  - Agent-Tampering: Telemetrie-Block ist nicht signiert; malicious agent kann `auto_fix`-Aktionen für fremde Findings fingieren. Blast-Radius MVP-begrenzt, weil Drift-Scoring/-Findings unberührt bleiben und kein automatischer Downstream-Konsument die Telemetrie aktuell verwendet. Phase 3 (Human-Approval-Gate) MUSS vor Scoring-Kopplung signierte oder hash-kettete Einträge einführen.
+  - Schema-Drift für externe Consumer: Nur Drift-Repo-eigener CI-Gate schützt; externe Projekte, die `drift.output.schema.json` gepinnt haben, müssen manuell migrieren. ADR-090 dokumentiert additive Minor-Bump-Konvention explizit.
+- Status: MITIGATED (MVP; keine Rückkopplung in Scoring/Weight-Updates).
+
 ## 2026-04-24 - ADR-088: Outcome-Feedback-Ledger (K2 MVP)
 
 - Risk ID: RISK-ADR-088-OUTCOME-LEDGER

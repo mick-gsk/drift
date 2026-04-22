@@ -1,5 +1,13 @@
 # FMEA Matrix
 
+## 2026-04-22 - ADR-090: Agent-Telemetry Schema 2.2 (Paket 1B)
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `drift.output.schema.json` `agent_telemetry` property | Schema-Drift: Generator-Output und eingechecktes Schema divergieren; Konsumenten validieren gegen veraltete Version | Entwickler ändert `build_output_schema()` ohne `scripts/generate_output_schema.py -o drift.output.schema.json` zu laufen | Externe Agent-Loops validieren gegen falsches Schema → silently akzeptierte oder abgelehnte Telemetrie-Blöcke, Vertrauen in `agent_telemetry` erodiert | `tests/test_output_schema_drift.py::test_schema_file_is_up_to_date` (ruft `--check` subprocess auf, FAIL bei jeder Divergenz) | Generator ist Single-Source; CI-Drift-Test; README/CHANGELOG dokumentieren Regenerate-Befehl | 3 | 3 | 2 | 18 | Mitigated |
+| `drift.models.AgentActionType` StrEnum vs. Schema-Enum | Agent schreibt `action_type`-Wert, der im Schema nicht whitelisted ist, oder Schema listet toten Wert | Neues StrEnum-Member ohne Schema-Update (oder umgekehrt) | Konsumenten lehnen gültige Telemetrie ab / akzeptieren ungültige Aktion; nachgelagerte Prioritäten-Zählung wird inkonsistent | `tests/test_output_schema_drift.py::test_agent_action_type_enum_complete` (Mengenvergleich StrEnum ↔ Schema-Enum) | Enum-Sync-Test als harter Gate; `AgentActionType` einzige Quelle für Action-Vokabular; Generator importiert `OUTPUT_SCHEMA_VERSION` direkt aus Code | 3 | 2 | 2 | 12 | Mitigated |
+| `AgentTelemetry.total_auto/review/block` Properties | Counter-Drift: properties zählen andere Buckets als Schema-/Doku-Definition | Neuer `AgentActionType` wird in Zähllogik vergessen (REVERT/FEEDBACK/NUDGE sind bewusst ausgeschlossen) | Dashboards und Human-Approval-Metriken lügen still über Agent-Aktionen | `tests/test_agent_telemetry_schema.py::TestAgentTelemetryCounters` (expliziter TP/TN-Cover für jedes Bucket + REVERT-Ausschluss) | Properties kapseln Semantik in einem Modul; ADR-090 dokumentiert Bucket-Definition verbindlich | 2 | 2 | 3 | 12 | Mitigated |
+
 ## 2026-04-24 - ADR-088: Outcome-Feedback-Ledger (K2 MVP)
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

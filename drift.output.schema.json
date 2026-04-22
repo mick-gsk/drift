@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://drift-analyzer.dev/schemas/output/v2.1",
+  "$id": "https://drift-analyzer.dev/schemas/output/v2.2",
   "title": "Drift Analysis Output",
-  "description": "JSON output schema for 'drift analyze --format json' (v2.1). Major version = breaking changes, minor version = additive fields.",
+  "description": "JSON output schema for 'drift analyze --format json' (v2.2). Major version = breaking changes, minor version = additive fields.",
   "type": "object",
   "required": [
     "schema_version",
@@ -15,7 +15,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "const": "2.1",
+      "const": "2.2",
       "description": "Output format version (semver-like: major.minor)."
     },
     "version": {
@@ -40,15 +40,6 @@
       "type": "number",
       "minimum": 0.0,
       "maximum": 1.0
-    },
-    "grade": {
-      "type": "string",
-      "enum": ["A", "B", "C", "D", "F"],
-      "description": "Letter grade derived from drift_score (A=best, F=worst)."
-    },
-    "grade_label": {
-      "type": "string",
-      "description": "Human-readable label for the grade, e.g. 'Good' or 'Critical Drift'."
     },
     "drift_score_scope": {
       "type": "string"
@@ -153,13 +144,6 @@
             "number",
             "null"
           ]
-        },
-        "skipped_languages": {
-          "type": ["object", "null"],
-          "description": "Languages skipped due to missing runtime (e.g. tree-sitter). Keys are language names, values are file counts.",
-          "additionalProperties": {
-            "type": "integer"
-          }
         }
       }
     },
@@ -182,7 +166,7 @@
           "finding_id": {
             "type": "string",
             "pattern": "^[0-9a-f]{16}$",
-            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
+            "description": "Deterministic content-based fingerprint (SHA256 prefix)."
           },
           "signal": {
             "type": "string"
@@ -233,11 +217,6 @@
               "string",
               "null"
             ]
-          },
-          "language": {
-            "type": ["string", "null"],
-            "description": "Source language of the file (e.g. python, typescript).",
-            "enum": ["python", "typescript", "tsx", "javascript", "jsx", null]
           },
           "start_line": {
             "type": [
@@ -303,8 +282,7 @@
           },
           "finding_id": {
             "type": "string",
-            "pattern": "^[0-9a-f]{16}$",
-            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
+            "pattern": "^[0-9a-f]{16}$"
           },
           "priority_class": {
             "type": "string"
@@ -348,11 +326,6 @@
               "string",
               "null"
             ]
-          },
-          "language": {
-            "type": ["string", "null"],
-            "description": "Source language of the file (e.g. python, typescript).",
-            "enum": ["python", "typescript", "tsx", "javascript", "jsx", null]
           },
           "start_line": {
             "type": [
@@ -459,7 +432,7 @@
           "finding_id": {
             "type": "string",
             "pattern": "^[0-9a-f]{16}$",
-            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
+            "description": "Deterministic content-based fingerprint (SHA256 prefix)."
           },
           "signal": {
             "type": "string"
@@ -519,11 +492,6 @@
               "string",
               "null"
             ]
-          },
-          "language": {
-            "type": ["string", "null"],
-            "description": "Source language of the file (e.g. python, typescript).",
-            "enum": ["python", "typescript", "tsx", "javascript", "jsx", null]
           },
           "start_line": {
             "type": [
@@ -695,7 +663,7 @@
           "finding_id": {
             "type": "string",
             "pattern": "^[0-9a-f]{16}$",
-            "description": "Canonical stable finding identifier across Drift JSON surfaces. Deterministic content-based fingerprint (SHA256 prefix). Some non-schema surfaces may also expose 'fingerprint' as a backward-compat alias."
+            "description": "Deterministic content-based fingerprint (SHA256 prefix)."
           },
           "signal": {
             "type": "string"
@@ -755,11 +723,6 @@
               "string",
               "null"
             ]
-          },
-          "language": {
-            "type": ["string", "null"],
-            "description": "Source language of the file (e.g. python, typescript).",
-            "enum": ["python", "typescript", "tsx", "javascript", "jsx", null]
           },
           "start_line": {
             "type": [
@@ -916,6 +879,126 @@
         }
       },
       "description": "Suppressed findings (omitted in compact mode)."
+    },
+    "agent_telemetry": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Machine-readable audit trail emitted by the autonomous agent loop (ADR-089 / ADR-090). Written by the agent after `drift analyze`, not by drift itself; `null` when no agent has post-processed the run.",
+      "required": [
+        "schema_version",
+        "agent_actions_taken"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "2.2",
+          "description": "Telemetry block version, tracks OUTPUT_SCHEMA_VERSION."
+        },
+        "session_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional MCP session identifier."
+        },
+        "total_auto": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_review": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_block": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "agent_actions_taken": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "action_type",
+              "reason"
+            ],
+            "properties": {
+              "action_type": {
+                "type": "string",
+                "enum": [
+                  "auto_fix",
+                  "review_request",
+                  "block",
+                  "revert",
+                  "feedback",
+                  "nudge"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "finding_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-f]{16}$"
+              },
+              "severity": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "critical",
+                  "high",
+                  "medium",
+                  "low",
+                  "info",
+                  null
+                ]
+              },
+              "gate": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "AUTO",
+                  "REVIEW",
+                  "BLOCK",
+                  null
+                ],
+                "description": "Routing decision from the severity gate (ADR-089)."
+              },
+              "safe_to_commit": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "feedback_mark": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "timestamp": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "metadata": {
+                "type": "object"
+              }
+            }
+          },
+          "description": "Ordered agent actions recorded during this run."
+        }
+      }
     }
   },
   "additionalProperties": true
