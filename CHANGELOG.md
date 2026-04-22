@@ -7,12 +7,8 @@ Short version: Agent-workflow shortcuts (Makefile targets, companion scripts), `
 - **Agent-Workflow Shortcuts.** New `make` targets (`feat-start`, `fix-start`, `catalog`, `gate-check`, `handover`, `changelog-entry`, `audit-diff`) and companion scripts (`catalog.py`, `gate_check.py`, `generate_changelog_entry.py`, `risk_audit_diff.py`, `session_handover.py`, `sync_version.py`) codify agent-driven development workflows. `drift adr` CLI subcommand lists ADRs with optional task-relevance filter. `TaskSpec.to_patch_intent()` converts a TaskSpec to PatchIntent for patch-engine integration.
 - **Trend-Gate Enforcement (ADR-086).** `drift check` and `drift ci` support an optional `gate.trend` block that blocks on persistent score degradation over a commit window; configurable via `enabled`, `window_commits`, `delta_threshold`, `require_remediation_activity`; CLI overrides `--trend-gate/--no-trend-gate`.
 - **Fingerprint v2 + Fuzzy HEAD-subtraction (ADR-082, ADR-083).** `finding_fingerprint()` now hashes `(signal_type, file, symbol_identity, stable_title)` — line numbers excluded, renames/refactors stable. `drift_diff` falls back to fuzzy `(signal, file, stable_title)` key for symbol-less findings. Baseline schema v2 writes `fingerprint_v1` alias for two release cycles.
-- **ADR-081 Queue/Session Hardening (Q1-Q5).** SG-008/SG-009 gate `drift_fix_apply`/`drift_patch_begin` on non-empty `selected_tasks`; concurrent-writer advisory lockfile; plan-staleness surfacing with auto-redirect to `drift_fix_plan`; `drift_session_start` resumes with `next_tool_call` pointing to first pending task.
+- **ADR-081 Queue/Session Hardening (Q1-Q5).** SG-008/SG-009 gate `drift_fix_apply`/`drift_patch_begin` on non-empty `selected_tasks`; concurrent-writer advisory lockfile; plan-staleness surfacing with auto-redirect to `drift_fix_plan`; `drift_session_start` resumes with `next_tool_call` pointing to first pending task. Persistent fix-plan queue survives MCP session restarts via append-only `queue.jsonl`; `fresh_start=True` opts out of replay.
 - **`drift_nudge` cold-start latency −3.5 s (ADR-085).** Eliminated redundant post-analysis file-hash pass; `file_hashes_out` parameter surfaces hashes from `IngestionPhase` to callers.
-
-### Fixed
-
-- **Persistent fix-plan queue survives MCP session restarts (ADR-081).** Append-only `queue.jsonl` event log; `drift_session_start` replays and reconstructs `selected_tasks`, `completed_task_ids`, `failed_task_ids`; `fresh_start=True` opts out.
 
 ## [2.28.1] – 2026-04-22
 
