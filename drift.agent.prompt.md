@@ -110,10 +110,10 @@ Pro-Contract-Routing (aus `drift.intent.json`):
 
 - True-Positive / False-Positive: `drift feedback mark --finding <id> --outcome tp|fp`.
 - Label-basierter Feedback-Pfad: PR-Labels werden durch `.github/workflows/drift-label-feedback.yml` in Kalibrierungsinput übersetzt.
-- Der Agent aktualisiert `agent_telemetry.agent_actions_taken` (sobald Schema 2.2 aktiv ist, siehe Paket 1B) mit dem `feedback_mark`-Eintrag.
+- Der Agent schreibt einen `AgentAction(action_type=feedback, ...)`-Eintrag in `agent_telemetry.agent_actions_taken` (Schema 2.2, ADR-090).
 
 ## Rollback-Trigger
 
 - Wenn `drift_nudge(...).revert_recommended == true`: Edit SOFORT revertieren und einen anderen Ansatz wählen.
 - Wenn ein `AUTO`-Patch bei erneutem `drift_nudge` `direction: degrading` liefert: Patch revertieren und auf `REVIEW` eskalieren.
-- Rollback wird in `agent_telemetry.agent_actions_taken` mit `action_type: auto_fix` und `reason: reverted_on_degrading` dokumentiert.
+- Rollback wird in `agent_telemetry.agent_actions_taken` mit `action_type: revert` und `reason: reverted_on_degrading` dokumentiert (Schema 2.2, ADR-090).

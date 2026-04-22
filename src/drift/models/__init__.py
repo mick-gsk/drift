@@ -12,6 +12,9 @@ from drift.models._enums import (
     OUTPUT_SCHEMA_VERSION as OUTPUT_SCHEMA_VERSION,
 )
 from drift.models._enums import (
+    AgentActionType as AgentActionType,
+)
+from drift.models._enums import (
     AnalysisStatus as AnalysisStatus,
 )
 from drift.models._enums import (
@@ -64,6 +67,12 @@ from drift.models._enums import (
 )
 from drift.models._enums import (
     severity_for_score as severity_for_score,
+)
+from drift.models._findings import (
+    AgentAction as AgentAction,
+)
+from drift.models._findings import (
+    AgentTelemetry as AgentTelemetry,
 )
 from drift.models._findings import (
     AnalyzerWarning as AnalyzerWarning,
@@ -141,6 +150,7 @@ from drift.models._policy import (
 __all__ = [
     # Enums & constants
     "OUTPUT_SCHEMA_VERSION",
+    "AgentActionType",
     "Severity",
     "FindingStatus",
     "TrendDirection",
@@ -178,6 +188,8 @@ __all__ = [
     "ModuleScore",
     "TrendContext",
     "RepoAnalysis",
+    "AgentAction",
+    "AgentTelemetry",
     # Agent
     "AgentTask",
     "ConsolidationGroup",

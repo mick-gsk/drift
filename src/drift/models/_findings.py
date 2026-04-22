@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from drift.models._enums import (
+    AgentActionType,
     AnalysisStatus,
     FindingStatus,
     Severity,
@@ -151,6 +152,67 @@ class TrendContext:
     transition_ratio: float
 
 
+# ---------------------------------------------------------------------------
+# Agent Telemetry (ADR-090, Schema 2.2, Paket 1B)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class AgentAction:
+    """A single action taken by the autonomous drift agent.
+
+    Written by the agent into the JSON output artefact after analysis.
+    ``drift analyze`` itself never populates this — it remains the agent's
+    protocol field.
+
+    Field semantics follow ADR-090.
+    """
+
+    action_type: AgentActionType
+    reason: str
+    finding_id: str | None = None
+    severity: str | None = None
+    gate: str | None = None
+    safe_to_commit: bool | None = None
+    feedback_mark: str | None = None
+    timestamp: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class AgentTelemetry:
+    """Telemetry block for one autonomous agent cycle (ADR-090).
+
+    Attached to RepoAnalysis as an optional field.  Null when no agent has
+    acted; populated by the agent after analysis.
+
+    The ``schema_version`` field is always ``"2.2"`` to allow consumers to
+    distinguish this block from potential future revisions.
+    """
+
+    agent_actions_taken: list[AgentAction] = field(default_factory=list)
+    session_id: str | None = None
+    schema_version: str = "2.2"
+
+    @property
+    def total_auto(self) -> int:
+        return sum(
+            1 for a in self.agent_actions_taken if a.action_type == AgentActionType.AUTO_FIX
+        )
+
+    @property
+    def total_review(self) -> int:
+        return sum(
+            1 for a in self.agent_actions_taken if a.action_type == AgentActionType.REVIEW_REQUEST
+        )
+
+    @property
+    def total_block(self) -> int:
+        return sum(
+            1 for a in self.agent_actions_taken if a.action_type == AgentActionType.BLOCK
+        )
+
+
 @dataclass
 class RepoAnalysis:
     """Complete analysis result for a repository."""
@@ -186,6 +248,7 @@ class RepoAnalysis:
     skipped_languages: dict[str, int] = field(default_factory=dict)
     preflight: PreflightResult | None = None
     analyzer_warnings: list[AnalyzerWarning] = field(default_factory=list)
+    agent_telemetry: AgentTelemetry | None = None
 
     @property
     def severity(self) -> Severity:

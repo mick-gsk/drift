@@ -203,6 +203,38 @@ def _phase_timing_summary(analysis: RepoAnalysis) -> dict[str, float | dict[str,
     }
 
 
+def _agent_telemetry_to_dict(telemetry: object | None) -> dict[str, object] | None:
+    """Serialize an AgentTelemetry instance, or return None."""
+    if telemetry is None:
+        return None
+    # Import here to avoid circular imports at module level
+    from drift.models._findings import AgentTelemetry
+
+    if not isinstance(telemetry, AgentTelemetry):
+        return None
+    return {
+        "schema_version": telemetry.schema_version,
+        "session_id": telemetry.session_id,
+        "total_auto": telemetry.total_auto,
+        "total_review": telemetry.total_review,
+        "total_block": telemetry.total_block,
+        "agent_actions_taken": [
+            {
+                "action_type": a.action_type,
+                "reason": a.reason,
+                "finding_id": a.finding_id,
+                "severity": a.severity,
+                "gate": a.gate,
+                "safe_to_commit": a.safe_to_commit,
+                "feedback_mark": a.feedback_mark,
+                "timestamp": a.timestamp,
+                "metadata": a.metadata,
+            }
+            for a in telemetry.agent_actions_taken
+        ],
+    }
+
+
 def analysis_to_json(
     analysis: RepoAnalysis,
     indent: int = 2,
@@ -301,6 +333,7 @@ def analysis_to_json(
             negative_context_to_dict(nc)
             for nc in findings_to_negative_context(analysis.findings, max_items=20)
         ],
+        "agent_telemetry": _agent_telemetry_to_dict(analysis.agent_telemetry),
     }
 
     if group_by:

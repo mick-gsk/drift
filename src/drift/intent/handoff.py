@@ -161,8 +161,8 @@ def _render_feedback_loop_section() -> list[str]:
         "- Label-basierter Feedback-Pfad: PR-Labels werden durch"
         " `.github/workflows/drift-label-feedback.yml` in Kalibrierungsinput"
         " übersetzt.",
-        "- Der Agent aktualisiert `agent_telemetry.agent_actions_taken` (sobald"
-        " Schema 2.2 aktiv ist, siehe Paket 1B) mit dem `feedback_mark`-Eintrag.",
+        "- Der Agent schreibt einen `AgentAction(action_type=feedback, ...)`-Eintrag"
+        " in `agent_telemetry.agent_actions_taken` (Schema 2.2, ADR-090).",
         "",
     ]
 
@@ -176,7 +176,7 @@ def _render_rollback_section() -> list[str]:
         "- Wenn ein `AUTO`-Patch bei erneutem `drift_nudge` `direction: degrading`"
         " liefert: Patch revertieren und auf `REVIEW` eskalieren.",
         "- Rollback wird in `agent_telemetry.agent_actions_taken` mit"
-        " `action_type: auto_fix` und `reason: reverted_on_degrading` dokumentiert.",
+        " `action_type: revert` und `reason: reverted_on_degrading` dokumentiert (Schema 2.2, ADR-090).",
         "",
     ]
 

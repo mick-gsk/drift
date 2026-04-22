@@ -6,11 +6,12 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 # ---------------------------------------------------------------------------
-# Output schema version (ADR-042)
+# Output schema version (ADR-042, ADR-090)
 # ---------------------------------------------------------------------------
 # Shared across CLI JSON output and API responses.
 # Major: incompatible field removals/renames.  Minor: additive new fields.
-OUTPUT_SCHEMA_VERSION = "2.1"
+# 2.2: added optional agent_telemetry block (ADR-090, Paket 1B).
+OUTPUT_SCHEMA_VERSION = "2.2"
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -203,3 +204,23 @@ def severity_for_score(score: float) -> Severity:
     if score >= 0.2:
         return Severity.LOW
     return Severity.INFO
+
+
+# ---------------------------------------------------------------------------
+# Agent Telemetry (ADR-090, Schema 2.2, Paket 1B)
+# ---------------------------------------------------------------------------
+
+
+class AgentActionType(StrEnum):
+    """Closed set of actions a drift autonomous agent may take.
+
+    Used in AgentAction.action_type to enable structured CI queries without
+    free-text parsing.
+    """
+
+    AUTO_FIX = "auto_fix"
+    REVIEW_REQUEST = "review_request"
+    BLOCK = "block"
+    REVERT = "revert"
+    FEEDBACK = "feedback"
+    NUDGE = "nudge"
