@@ -28,6 +28,7 @@ def _run_git(repo: Path, *args: str) -> str:
         text=True,
         encoding="utf-8",
         check=True,
+        stdin=subprocess.DEVNULL,
     )
     return result.stdout
 
