@@ -25,6 +25,12 @@ MCP mode (Cursor, Claude Code, Copilot):
   drift_nudge → safe_to_commit: true/false after each edit
   drift_diff → before/after comparison before push
   drift_feedback → mark findings as TP/FP to calibrate signal weights
+  drift_retrieve → BM25 search over drift's own verified fact sources (POLICY, ADRs, audits, signal rationale, benchmark evidence) with stable fact_ids
+  drift_cite → expand a fact_id to its verbatim chunk with sha256 anchor for grounded agent citations
+
+## Fact-Grounding Contract (ADR-091)
+
+Agents making claims about drift itself (policy, signals, ADR decisions, audit artefacts, benchmark evidence) MUST call drift_retrieve first and cite at least one fact_id. See .github/instructions/drift-rag-grounding.instructions.md. Retrieval is deterministic (lexical BM25, no LLM, no embeddings in MVP); the corpus_sha256 in every response anchors reproducibility.
 
 ## safe_to_commit
 

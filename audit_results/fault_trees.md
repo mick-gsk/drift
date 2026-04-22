@@ -1,5 +1,45 @@
 # Fault Tree Analysis
 
+## 2026-04-27 - ADR-091: Drift-Retrieval-RAG
+
+### Top Event (TE-RETRIEVAL-GROUNDING-ILLUSION)
+A coding agent presents an authoritative-sounding claim about drift (policy rule, signal rationale, ADR decision, audit finding, or benchmark number) backed by a `fact_id` + `sha256` anchor that the user trusts, but the underlying chunk is stale, drifted, or does not semantically match the claim.
+
+- OR
+  - **G1 — Fact-ID drift without migration entry**
+    - AND
+      - B1: Refactor changes slug algorithm, heading-scan heuristic, or zero-padding in `src/drift/retrieval/fact_ids.py`/`corpus_builder.py`.
+      - B2: `decisions/fact_id_migrations.jsonl` not updated with `{old_id, new_id}` pair.
+    - Mitigation: `MigrationRegistry` supports transitive, cycle-safe resolution; ADR-091 makes the append-only JSONL the single source for ID remapping; regression tests pin canonical POLICY / ADR fact_ids.
+  - **G2 — Stale corpus served from cache**
+    - AND
+      - B3: Edit to POLICY/ADR/audit source does not update `mtime_ns` (rare editor behaviour) or cache files on read-only FS persist across edits.
+      - B4: `_manifest_matches_disk` SHA fallback is disabled or cache corruption slips past manifest check.
+    - Mitigation: 3-layer cache (memory → disk → rebuild) compares path-set → mtime → sha256 in that order; `corpus_sha256` is echoed in every `drift_retrieve`/`drift_cite` response for client-side reproducibility checks; `force_rebuild=False` default, `clear_memory_cache()` for tests.
+  - **G3 — Gold-set precision regression**
+    - AND
+      - B5: Tokenizer / k1 / b / tag-expansion change without re-running `test_gold_set_precision_at_5`.
+      - B6: CI does not include the retrieval test file (mis-configured glob or pytest marker exclusion).
+    - Mitigation: Gold-set is a hard >= 80% gate in `tests/test_retrieval_search.py`; deterministic tie-break by `fact_id` ascending makes scoring reproducible; ADR-091 acceptance criterion 4 enforces the threshold.
+  - **G4 — Agent ignores grounding contract**
+    - AND
+      - B7: `.github/instructions/drift-rag-grounding.instructions.md` is not loaded into the agent context (scope misconfig) or agent chooses to skip the "Drift Grounding Gate".
+      - B8: No hard CI/MCP-side enforcement in MVP (soft-gate by design).
+    - Mitigation (MVP): Instruction is discovery-reachable via `applyTo: "**"`; llms.txt and ADR-091 both document the contract; Phase 4 will add a CI-side linter that inspects agent outputs for claims-without-fact-ids.
+  - **G5 — Fabricated fact_id slips past client**
+    - AND
+      - B9: Agent invents a plausible-looking `fact_id` (e.g. `POLICY#S99.p1`) without calling `drift_cite`.
+      - B10: Human reviewer does not spot-check the citation.
+    - Mitigation: `drift_cite` returns structured `DRIFT-RAG-006` error on unknown IDs; grounding instruction explicitly forbids invented IDs (§13 finding-quality coupling); reviewer education via llms.txt.
+  - **G6 — Signal chunk false positive**
+    - AND
+      - B11: Helper class with `Signal` substring in base name matches the MVP heuristic.
+      - B12: Agent grounds a `kind="signal"` claim on that irrelevant chunk.
+    - Mitigation: Accepted residual in FMEA (RPN 12); Phase-2 hook introduces explicit `@register_signal` sentinel as authoritative source.
+
+### Residual Risk
+G4 (agent ignores soft grounding gate) is the dominant residual and is explicit in ADR-091's Phase-4 demarcation: MVP delivers the corpus + tools + instruction-level contract, but does not enforce citation hard via CI. A misconfigured agent environment that drops the instruction from its context can still produce ungrounded claims with full plausibility. Phase 4 introduces a CI-side claim-vs-citation lint gate once the MVP proves the retrieval surface in field tests.
+
 ## 2026-04-22 - ADR-090: Agent-Telemetry Schema 2.2 (Paket 1B)
 
 ### Top Event (TE-AGENT-TELEMETRY-DRIFT)

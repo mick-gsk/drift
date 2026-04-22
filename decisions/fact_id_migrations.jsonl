@@ -1,0 +1,1 @@
+{"schema_version": 1, "note": "Append-only registry for drift_retrieve fact-ID migrations. Each non-comment line: {\"old_id\": str, \"new_id\": str, \"reason\": str, \"migrated_at\": ISO8601-date}. Introduced by ADR-091. Lines starting with {\"schema_version\"...} or {\"note\"...} are metadata and ignored by the resolver. Never delete or reorder entries."}

@@ -1731,3 +1731,28 @@ the [self-analysis template](https://github.com/mick-gsk/drift/issues/new?templa
 Aggregation script: `scripts/study_self_analysis_aggregate.py`.
 
 **Results:** *Awaiting community contributions.*
+
+---
+
+## §16 Drift-Retrieval-RAG (ADR-091)
+
+**Research question:** Can a deterministic lexical retrieval layer (BM25 Okapi, no LLM, no embeddings) over drift's own verified documentation reduce hallucinated claims in coding-agent outputs about drift itself (policy, signals, ADR decisions, audit findings, benchmark evidence)?
+
+**Design:** Build a fact corpus from POLICY.md, ROADMAP.md, decisions/ADR-*.md, audit_results/*.md, src/drift/signals/*.py, and benchmark_results/v*_feature_evidence.json. Assign stable Fact-IDs (`POLICY#S<n>.p<m>`, `ADR-<nnn>#<section>`, `AUDIT/<file>#<row>`, `SIGNAL/<id>#<field>`, `EVIDENCE/v<version>#<key>`) with an append-only migration registry for renames. Expose via two MCP tools (`drift_retrieve`, `drift_cite`) that return SHA-256-anchored chunks. Enforce grounding via `.github/instructions/drift-rag-grounding.instructions.md` (Phase-1 soft gate).
+
+**MVP corpus metrics (drift self-analysis):**
+
+- 1318 chunks across 164 sources (504 ADR, 365 evidence, 331 audit, 75 policy, 25 signal, 18 roadmap).
+- `corpus_sha256 = 82bc1229b87ea51d5791d257c83f3240731945a80ec900c87aaf01c2639991a1` (deterministic across rebuilds).
+- Cold-start index build: ~142 ms (Windows, Python 3.11.9).
+- Warm retrieve p50 = 0.35 ms, p99 < 2.1 ms over 10 representative queries.
+
+**Gold-set precision@5 (15 hand-curated query -> fact_id-prefix pairs spanning POLICY sections and major ADRs):** 15/15 = 100% (threshold gate: ≥ 80%).
+
+**Scope demarcation:** Lexical-only MVP. Semantic/embedding retrieval remains out of scope (ADR-031). Corpus covers drift itself only (not target repos; Phase 3). CI-side hard enforcement of the grounding contract is Phase 4.
+
+**Reproduction:**
+
+```bash
+pytest tests/test_retrieval_corpus.py tests/test_retrieval_search.py tests/test_mcp_retrieval_tools.py
+```

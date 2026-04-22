@@ -1,5 +1,39 @@
 # Risk Register
 
+## 2026-04-27 - ADR-091: Drift-Retrieval-RAG
+
+- Risk ID: RISK-ADR-091-RETRIEVAL-CORPUS
+- Component: `src/drift/retrieval/{corpus_builder,cache,index,search,fact_ids,models}.py`, `src/drift/mcp_router_retrieval.py`, neue MCP-Tools `drift_retrieve` / `drift_cite`, `.github/instructions/drift-rag-grounding.instructions.md`, `decisions/fact_id_migrations.jsonl`.
+- Type: Trust-Boundary (neu): Corpus-Loader liest Repo-eigene Markdown-, JSON- und Python-Quellen und emittiert daraus SHA-verankerte Fact-Chunks, die von Coding-Agenten als Ground-Truth zitiert werden.
+- Description: Lexical-BM25-Retrieval über POLICY, ROADMAP, ADRs, Audit-Artefakte, Signal-Docstrings und benchmark-evidence; exponiert als zwei MCP-Tools. Kein LLM, keine Embeddings, keine Net-I/O. MVP ist Instruction-Level Grounding (soft gate), keine harte CI-Erzwingung.
+- Severity: MEDIUM — Soft-Gate erzeugt ein neues Vertrauensartefakt (`fact_id` + `sha256`) ohne direkten Scoring- oder Weight-Update-Pfad; Hauptrisiko ist Grounding-Illusion durch Staleness, Fact-ID-Drift oder manipulierten Corpus.
+- Triggers:
+  - Refactor an `POLICY.md`, ADR-Struktur, oder Slug-/Heading-Heuristik ohne Migration-Registry-Eintrag.
+  - Änderungen an BM25-Tokenizer oder k1/b-Parametern ohne Re-Run des Gold-Set-Tests.
+  - Zusätzliche Corpus-Quellen (z. B. `docs/`) ohne Trust-Boundary-Review.
+  - Optionaler Phase-2-Hook (semantisches Retrieval gemäss ADR-031-Demarkation) ohne erneute STRIDE-Runde.
+- Impact without mitigation:
+  - Agent zitiert veraltete Policy als Fakt (Staleness), Maintainer erkennt den Drift spät.
+  - Externe Skills/Tools pinnen Fact-IDs, die nach einem stillen Slug-Refactor nicht mehr auflösbar sind → Zitat-Verlust.
+  - Manipulierter Checkout (z. B. im Field-Test auf Fremdrepo mit injected POLICY.md) liefert Corpus-Treffer mit SHA-Anker, die Agenten als glaubwürdig behandeln.
+- Mitigations:
+  - `CorpusManifest` mit `corpus_sha256` und `SourceEntry(mtime_ns, sha256)` macht Staleness auditierbar; 3-Layer-Cache prüft Memory → Disk → SHA.
+  - `MigrationRegistry` (append-only JSONL mit transitiver, zyklus-sicherer Auflösung) entkoppelt stabile Fact-IDs von internen Slug-Algorithmen.
+  - Gold-Set-Gate `tests/test_retrieval_search.py::test_gold_set_precision_at_5` (>= 80%) macht Precision-Regressionen zum Test-Fail.
+  - `drift_retrieve`-Response enthält `corpus_sha256` + `chunk_count` als Reproduzierbarkeits-Anker.
+  - `.github/instructions/drift-rag-grounding.instructions.md` setzt den Grounding-Contract als operatives Gate (Zitations-Pflicht + „keine erfundenen Fact-IDs").
+  - ADR-091 demarkiert MVP-Umfang (lexical-only) explizit gegen Phase-2 (Semantic), Phase-3 (Target-Repo-Facts) und Phase-4 (harte CI-Enforcement).
+- Monitoring:
+  - 28 Tests (27 grün, 1 Skip ohne FastMCP) in `tests/test_retrieval_corpus.py`, `tests/test_retrieval_search.py`, `tests/test_mcp_retrieval_tools.py`.
+  - Feature-Evidence: `benchmark_results/v_next_drift_retrieval_rag_feature_evidence.json`.
+  - Determinismus verifiziert: `corpus_sha256 == 82bc1229b87ea51d5791d257c83f3240731945a80ec900c87aaf01c2639991a1` (1318 Chunks über 164 Sources).
+- Residual Risk:
+  - Instruction-Level Grounding ist freiwillig — ein Agent, der das Gate ignoriert, kann weiterhin halluzinieren. Harte CI/MCP-Validator-Enforcement ist Phase 4.
+  - Signal-Class-Detection ist Heuristik (Substring `Signal` im Base-Namen); seltene False-Positives sind dokumentiert (FMEA RPN 12 accepted).
+  - Der Corpus spiegelt ausschliesslich den lokalen Repo-Checkout — ein Agent, der auf einem manipulierten Branch arbeitet, bekommt SHA-konsistente, aber inhaltlich falsche Facts. Field-Test-Prompts verwenden ohnehin den Drift-Workspace-Checkout als Ground Truth.
+  - Embedding-/semantic Retrieval ist bewusst exkludiert (ADR-091 + ADR-031-Demarkation); Queries mit starker Paraphrase können unter 80% Precision fallen, wenn der Gold-Set nicht mitwächst.
+- Status: MITIGATED (MVP; keine Rückkopplung in Scoring; soft-gate grounding).
+
 ## 2026-04-22 - ADR-090: Agent-Telemetry Schema 2.2 (Paket 1B)
 
 - Risk ID: RISK-ADR-090-AGENT-TELEMETRY-SCHEMA

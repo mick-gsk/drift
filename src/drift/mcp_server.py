@@ -1862,6 +1862,93 @@ async def drift_generate_skills(
     )
 
 
+# ---------------------------------------------------------------------------
+# MCP Tools — Retrieval (ADR-091: fact-grounded agent retrieval)
+# ---------------------------------------------------------------------------
+
+
+@mcp.tool()
+async def drift_retrieve(
+    query: Annotated[
+        str,
+        Field(
+            description=(
+                "Natural-language question or keywords. Retrieval searches"
+                " drift's own verified fact sources (POLICY, ROADMAP, ADRs,"
+                " audit artefacts, signal docstrings, benchmark evidence)."
+            ),
+        ),
+    ],
+    path: Annotated[
+        str, Field(description="Repository path that hosts the fact corpus.")
+    ] = ".",
+    top_k: Annotated[
+        int,
+        Field(description="Maximum number of fact chunks to return (1-20 recommended)."),
+    ] = 5,
+    kind: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Filter by chunk kind: 'policy', 'roadmap', 'adr', 'audit',"
+                " 'signal', or 'evidence'. Omit for all kinds."
+            ),
+        ),
+    ] = None,
+    signal_id: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Filter signal chunks by signal identifier (e.g."
+                " 'pattern_fragmentation'). Implies kind='signal' when set."
+            ),
+        ),
+    ] = None,
+) -> str:
+    """Retrieve verified fact chunks from drift's own documentation corpus.
+
+    Agents MUST use this tool before making claims about drift's policy,
+    signals, ADR decisions, audit results, or benchmark evidence. Each hit
+    carries a stable ``fact_id`` and ``sha256`` anchor for verbatim citation;
+    see ``drift_cite`` to expand a fact_id to its full text.
+    """
+    from drift.mcp_router_retrieval import run_retrieve
+
+    return await run_retrieve(
+        path=path,
+        query=query,
+        top_k=top_k,
+        kind=kind,
+        signal_id=signal_id,
+    )
+
+
+@mcp.tool()
+async def drift_cite(
+    fact_id: Annotated[
+        str,
+        Field(
+            description=(
+                "Stable Fact-ID returned by drift_retrieve, e.g."
+                " 'POLICY#S8.p3' or 'ADR-091#decision'."
+            ),
+        ),
+    ],
+    path: Annotated[
+        str, Field(description="Repository path that hosts the fact corpus.")
+    ] = ".",
+) -> str:
+    """Expand a Fact-ID to its verbatim chunk text with a SHA-256 anchor.
+
+    Resolves migrated IDs transitively via
+    ``decisions/fact_id_migrations.jsonl``. Use the returned text verbatim
+    when grounding claims about drift in agent responses.
+    """
+    from drift.mcp_router_retrieval import run_cite
+
+    return await run_cite(path=path, fact_id=fact_id)
+
+
 _EXPORTED_MCP_TOOLS = (
     drift_scan,
     drift_diff,
@@ -1898,6 +1985,8 @@ _EXPORTED_MCP_TOOLS = (
     drift_compile_policy,
     drift_suggest_rules,
     drift_generate_skills,
+    drift_retrieve,
+    drift_cite,
 )
 
 
