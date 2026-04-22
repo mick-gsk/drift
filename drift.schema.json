@@ -336,6 +336,17 @@
       "title": "FindingContextRule",
       "type": "object"
     },
+    "GateConfig": {
+      "additionalProperties": false,
+      "description": "Top-level gate configuration section.",
+      "properties": {
+        "trend": {
+          "$ref": "#/$defs/TrendGateConfig"
+        }
+      },
+      "title": "GateConfig",
+      "type": "object"
+    },
     "GradeBandConfig": {
       "additionalProperties": false,
       "description": "A single grade band entry for the composite drift score.\n\nGrade bands map score ranges to letter grades and human-readable labels.\nThresholds are evaluated in order; the first entry whose ``threshold``\nexceeds the score is selected.\n\nExample::\n\n    - threshold: 0.20\n      grade: A\n      label: \"Excellent\"",
@@ -1161,6 +1172,36 @@
       },
       "title": "ThresholdsConfig",
       "type": "object"
+    },
+    "TrendGateConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for trend-based CI gate checks.\n\nThe gate evaluates score degradation across a commit window and can\nrequire at least one remediated finding fingerprint in that window.",
+      "properties": {
+        "delta_threshold": {
+          "default": 0.05,
+          "minimum": 0.0,
+          "title": "Delta Threshold",
+          "type": "number"
+        },
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "require_remediation_activity": {
+          "default": true,
+          "title": "Require Remediation Activity",
+          "type": "boolean"
+        },
+        "window_commits": {
+          "default": 3,
+          "minimum": 2,
+          "title": "Window Commits",
+          "type": "integer"
+        }
+      },
+      "title": "TrendGateConfig",
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1282,6 +1323,9 @@
     },
     "finding_context": {
       "$ref": "#/$defs/FindingContextPolicy"
+    },
+    "gate": {
+      "$ref": "#/$defs/GateConfig"
     },
     "git_history_index_enabled": {
       "default": false,
