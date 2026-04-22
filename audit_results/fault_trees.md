@@ -1,5 +1,32 @@
 # Fault Tree Analysis
 
+## 2026-04-23 - ADR-087: Blast-Radius-Gate false-accept / false-block
+
+### Top Event (TE-BLAST-FALSE-ACCEPT)
+Push invalidiert einen ADR mit `criticality: critical` oder POLICY.md, aber
+Gate 9 blockiert nicht und Maintainer-Ack wird nie angefordert.
+
+### FT-A1: Scope-Glob zu eng / fehlt
+- AND
+  - ADR hat `criticality: critical`, aber `scope:`-Liste deckt den geänderten Pfad nicht ab.
+  - Text-Fallback findet kein Pfad-Token im ADR-Body (z. B. Refactor hat Pfad umbenannt).
+- Mitigation: `scripts/validate_adr_frontmatter.py` warnt/errort bei fehlendem Scope; Maintainer-Review bei ADR-Create.
+
+### FT-A2: Engine-Degradation verdeckt Impact
+- AND
+  - Git-Diff-Call timeout/fehlgeschlagen → `changed_files=()`.
+  - Gate läuft im `DRIFT_BLAST_LIVE=1` Pfad und akzeptiert leeren Report als "kein Trigger".
+- Mitigation: `degraded=True` wird im Gate-Log sichtbar als Warning ausgegeben; Agent soll `changed_files` explizit übergeben, wenn Git nicht verfügbar ist.
+
+### Top Event (TE-BLAST-FALSE-BLOCK)
+Gate 9 blockiert einen harmlosen Push hart, obwohl keine architektonische Invalidierung vorliegt.
+
+### FT-B1: Überbreiter Policy-/ADR-Scope
+- OR
+  - `POLICY.md` wird für reine Typo-Fixes geändert → CRITICAL + Ack-Pflicht.
+  - ADR-Scope deckt kompletten Top-Level-Ordner ab, aber Änderung betrifft nur Tests/Docs darin.
+- Mitigation: `POLICY.md`-Änderungen sind bewusst Maintainer-gated (Ack-Datei in 30 s geschrieben); ADR-Scopes sollen laut ADR-087 möglichst eng formuliert werden; `DRIFT_SKIP_BLAST_GATE=1` als Notfall-Bypass.
+
 ## 2026-04-22 - ADR-082: drift_diff false-new fault tree
 
 ### Top Event (TE-FP-DIFF-NEW)

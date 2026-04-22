@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **K1 — Blast-Radius-Engine (ADR-087).** Neue deterministische Engine unter `src/drift/blast_radius/**`, die vor strukturellen Änderungen berechnet, welche ADRs, Guard-Skills, Arch-Module und Policy-Gates invalidiert würden. Exponiert als MCP-Tool `blast_radius` via A2A-Router und als Pre-Push-Gate 9 (`scripts/check_blast_radius_gate.py`). Reports werden als versionierte Artefakte unter `blast_reports/<timestamp>_<sha>.json` persistiert; kritische Impacts (`criticality: critical`) erfordern eine Maintainer-Ack-Datei unter `blast_reports/acks/<sha>.yaml`, andernfalls blockiert der Push. Bypass via `DRIFT_SKIP_BLAST_GATE=1`, Live-Generierung via `DRIFT_BLAST_LIVE=1`. Optionale ADR-Frontmatter-Felder `scope:` und `criticality:` plus Validator `scripts/validate_adr_frontmatter.py`. Text-Fallback für ADRs ohne Frontmatter und Namenskonvention für Guard-Skills ohne `applies_to:` erhalten Migrations-Kompatibilität. Tests: `tests/test_blast_radius_core.py` (8) + `tests/test_blast_radius_mcp.py` (4), alle grün. Audit-Artefakte FMEA, Risk-Register und Fault-Trees aktualisiert.
+
 ### Fixed
 
 - **Add `@needs_tree_sitter` skip guard for TSB issue-318–325 tests.** Six additional TSB regression test files (issues 318, 319, 322, 323, 324, 325) were missing the tree-sitter skip guard on their `analyze`-dependent tests, causing CI failures on matrix entries without `tree-sitter-typescript`. Added skip decorator to all affected tests.

@@ -1,5 +1,13 @@
 # FMEA Matrix
 
+## 2026-04-23 - ADR-087: Blast-Radius-Engine (K1)
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `drift.blast_radius.engine.compute_blast_report` | Engine liefert falsch-negatives Ergebnis (kritischer ADR-Scope nicht erkannt), Gate lässt invalidierenden Push durch | `scope:`-Glob fehlt im ADR oder Text-Fallback findet Pfad-Token nicht | Strukturelle Erosion: kritischer ADR wird ohne Ack invalidiert, Architektur-Invariante silent gebrochen | `tests/test_blast_radius_core.py` (ADR-Fallback-Test deckt Pfad-Token-Matches ab); ADR-Frontmatter-Validator `scripts/validate_adr_frontmatter.py` macht fehlenden Scope bei `criticality: critical` zum Error | ADR-087: Dual-Strategy (strukturiertes Scope-Glob + Text-Fallback); Validator erzwingt Scope bei kritischen ADRs; Gate loggt degradation_notes sichtbar | 4 | 2 | 3 | 24 | Mitigated |
+| `scripts/check_blast_radius_gate.py` | Gate blockiert false-positive (Agent kann nicht pushen, weil harmlose Änderung als kritisch klassifiziert wird) | Überbreiter `scope:`-Glob in ADR oder Policy-Regel erzeugt CRITICAL für nicht-invalidierende Änderung | Agent-Flow bricht ab, Maintainer muss Ack schreiben → Friction | `tests/test_blast_radius_mcp.py::test_blast_radius_handler_returns_summary`; reale Reports im Field-Test | Maintainer-Ack-Dateien (Override-Pfad); `DRIFT_SKIP_BLAST_GATE=1` Bypass für Notfälle; ADR-087 begrenzt CRITICAL auf explizit whitelisted Paths (POLICY.md) | 2 | 3 | 2 | 12 | Mitigated |
+| `drift.blast_radius._change_detector.detect_changes` | Git-Call schlägt fehl oder timeout >10 s, Engine degradiert | Shallow-Clone, kein Git, großer Merge-Commit, langsames FS | Report `degraded=True` mit leerer Impact-Liste, Gate lässt Push durch (Warning) | `degradation_notes` im Report; Gate loggt "Report degraded" sichtbar | Hartes Timeout 10 s; degraded-Pfad blockiert nicht hart; Agent kann `changed_files` explizit übergeben | 2 | 3 | 2 | 12 | Mitigated |
+
 ## 2026-04-22 - ADR-082/083: Fingerprint v2 & Pre-Edit Pattern-Scan
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

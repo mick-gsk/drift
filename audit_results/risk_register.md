@@ -1,5 +1,32 @@
 # Risk Register
 
+## 2026-04-23 - ADR-087: Blast-Radius-Engine (K1)
+
+- Risk ID: RISK-ADR-087-BLAST-RADIUS
+- Component: `src/drift/blast_radius/**`, `scripts/check_blast_radius_gate.py`, `scripts/validate_adr_frontmatter.py`, `.githooks/pre-push` (Gate 9), MCP-Tool `blast_radius`.
+- Type: Governance-/Pre-Push-Kontrollpfad (kein Signal, kein Score).
+- Description: Die Engine berechnet deterministisch, welche ADRs (via `scope:`-Glob oder Text-Fallback), Guard-Skills (via `applies_to:` oder Namenskonvention), Arch-Module und Policy-Gates durch einen Diff invalidiert werden, und blockiert Push, wenn kritische Impacts ohne Maintainer-Ack vorliegen.
+- Severity: MEDIUM — Gate greift nur vor Push. Degraded-Pfade (fehlender ArchGraph, fehlendes Git, fehlendes Frontmatter) werden als Warnings durchgelassen, hartes Block nur bei `criticality: critical` + fehlendem Ack.
+- Triggers:
+  - Änderungen in `src/drift/**`, `decisions/**`, `POLICY.md`, `.github/skills/**`.
+  - Kritische ADR-Scope-Matches ohne `blast_reports/acks/<sha>.yaml`.
+- Impact without mitigation: Strukturelle Erosion durch unbemerkte ADR-Invalidierung; Policy-/Audit-Artefakt-Drift nach Signal-Änderungen.
+- Mitigations:
+  - Text-Fallback für ADRs ohne Frontmatter (Migration-Toleranz, kein harter Break).
+  - Guard-Skill-Matching via Namenskonvention, wenn `applies_to` fehlt.
+  - Live-Modus `DRIFT_BLAST_LIVE=1` für Gate, wenn kein gespeicherter Report vorliegt.
+  - Bypass `DRIFT_SKIP_BLAST_GATE=1` mit Warning-Log (analog zu §7-Gates).
+  - Agent-Boundary: Engine und Gate erzeugen nur Reports; Ack-Dateien sind Maintainer-only.
+- Monitoring:
+  - `tests/test_blast_radius_core.py` (8 Tests: Analyzer-Kontrakte, Severity-Order, Persistence-Roundtrip, Immutability).
+  - `tests/test_blast_radius_mcp.py` (4 Tests: Dispatch, Summary, Input-Validation, Default-Persistierung).
+  - Pre-Push-Gate 9: blockiert Push hart bei kritischen Impacts ohne Ack.
+- Residual Risk:
+  - False Positives durch überbreite `scope:`-Globs → Maintainer kann Ack schreiben; Policy-Gate ist auditierbar.
+  - Bypass-Missbrauch via `DRIFT_SKIP_BLAST_GATE=1` → Warning ist im Push-Log; ADR-087 dokumentiert akzeptierte Risiken.
+  - Performance: Live-Scan >10 s bei >5k geänderten Dateien → Timeout setzt Report auf `degraded=True`, Gate warnt statt blockt.
+- Status: MITIGATED (v-next Release-Kandidat; ADR-087 proposed).
+
 ## 2026-04-22 - ADR-082: Fingerprint v2 (Symbol-based, Line-independent)
 
 - Risk ID: RISK-ADR-082-FINGERPRINT-V2

@@ -177,6 +177,32 @@ Vor jedem Push sicherstellen: `make check` lokal bestanden.
 
 ---
 
+## Gate 9 — Blast-Radius-Gate (ADR-087)
+
+**Auslöser:** Push berührt `src/drift/**`, `decisions/**`, `POLICY.md` oder `.github/skills/**`.
+
+**Schritte:**
+1. Hook ermittelt den Diff zwischen Remote- und Local-SHA.
+2. `scripts/check_blast_radius_gate.py` sucht einen gespeicherten Report unter `blast_reports/*_<short_sha>.json`.
+   - Fehlt er und `DRIFT_BLAST_LIVE=1` ist **nicht** gesetzt → Gate blockiert mit Hinweis auf `python -m drift.blast_radius --persist`.
+   - Ist `DRIFT_BLAST_LIVE=1` gesetzt, erzeugt das Gate den Report live und persistiert ihn.
+3. Schema-/Ancestry-Check: `trigger.head_sha` im Report muss mit HEAD übereinstimmen.
+4. Enthält der Report Impacts mit `requires_maintainer_ack=true` (nur bei `criticality: critical`), ist eine Ack-Datei `blast_reports/acks/<short_sha>.yaml` Pflicht.
+5. `degraded=True` erzeugt Warnings, blockiert aber nicht.
+
+**Artefakte:**
+- Reports unter `blast_reports/<yyyymmdd_hhmmss>_<short_sha>.json` (deterministisch, schema_v=1).
+- Ack-Dateien unter `blast_reports/acks/<short_sha>.yaml` — **nur Maintainer** dürfen diese schreiben.
+- ADR-Frontmatter-Validator: `python scripts/validate_adr_frontmatter.py` (lokal aufrufbar).
+
+**Bypass:**
+- `DRIFT_SKIP_BLAST_GATE=1` überspringt das Gate mit Warning (Notfall).
+- `DRIFT_BLAST_LIVE=1` erlaubt Live-Generierung statt Blockade bei fehlendem Report.
+
+**Agent-Regel:** Der Agent berechnet Reports (via MCP-Tool `blast_radius` oder Script), darf aber **niemals** Ack-Dateien schreiben. Kritische Invalidierungen müssen an den Maintainer eskaliert werden.
+
+---
+
 ## Bypass-Übersicht (Notfall)
 
 ```bash
@@ -186,6 +212,8 @@ DRIFT_SKIP_VERSION_BUMP=1 git push
 DRIFT_SKIP_LOCKFILE=1 git push
 DRIFT_SKIP_DOCSTRING=1 git push
 DRIFT_SKIP_RISK_AUDIT=1 git push
+DRIFT_SKIP_BLAST_GATE=1 git push   # Gate 9 — Blast-Radius
+DRIFT_BLAST_LIVE=1 git push        # Gate 9 — Live-Report statt Blockade
 
 # Kombinierbar:
 DRIFT_SKIP_RISK_AUDIT=1 DRIFT_SKIP_CHANGELOG=1 git push

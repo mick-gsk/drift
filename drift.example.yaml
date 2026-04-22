@@ -53,6 +53,15 @@ auto_calibrate: true
 # but do NOT contribute to the composite score and do NOT trigger this gate.
 fail_on: none  # recommended for the first rollout pass
 
+# Blast-Radius-Engine (ADR-087): berechnet vor strukturellen Änderungen,
+# welche ADRs, Guard-Skills und Policy-Gates invalidiert würden.
+# Aktiviert das MCP-Tool `blast_radius` und Pre-Push-Gate 9.
+# blast_radius:
+#   include_skills: true     # Guard-Skill-Impacts einbeziehen
+#   include_policy: true     # Pre-Push-Gate-Pflichten einbeziehen
+#   persist_reports: false   # Reports automatisch in blast_reports/ speichern
+#   timeout_seconds: 10      # Hartes Zeitlimit für Live-Berechnung im Gate
+
 # Context-tagging dampening factor (ADR-006): findings annotated with
 # # drift:context <tag> have their score multiplied by this value.
 # Set to 1.0 to disable dampening (tags are metadata-only).  default: 0.5 (active)

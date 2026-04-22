@@ -47,6 +47,7 @@ def _ensure_dispatch_table() -> dict[str, Any]:
             "capture_intent": _handle_capture_intent,
             "verify_intent": _handle_verify_intent,
             "feedback_for_agent": _handle_feedback_for_agent,
+            "blast_radius": _handle_blast_radius,
         }
     )
     return _SKILL_DISPATCH
@@ -358,3 +359,66 @@ def _handle_feedback_for_agent(params: dict[str, Any]) -> dict[str, Any]:
         msg = "Parameter 'artifact_path' is required for feedback_for_agent."
         raise ValueError(msg)
     return feedback_for_agent(intent_id=intent_id, path=path, artifact_path=artifact_path)
+
+
+def _handle_blast_radius(params: dict[str, Any]) -> dict[str, Any]:
+    """A2A-Handler für die Blast-Radius-Engine (ADR-087).
+
+    Parameter (alle optional, Defaults konservativ):
+
+    - ``path``: Repo-Root (default: ``"."``).
+    - ``changed_files``: Liste POSIX-Pfade, die Git-Diff ersetzt.
+    - ``ref``: Git-Basis-Ref (default: ``"HEAD"``).
+    - ``head``: Git-HEAD (default: ``"HEAD"``).
+    - ``include_skills``: Guard-Skill-Analyse aktivieren (default: True).
+    - ``include_policy``: Policy-Gate-Impacts aktivieren (default: True).
+    - ``persist``: Report auf Disk schreiben (default: False; Gate schreibt selbst).
+
+    Schreibt **nie** Maintainer-Ack-Dateien.
+    """
+    from drift.blast_radius import compute_blast_report, save_blast_report
+    from drift.blast_radius._change_detector import resolve_repo_path
+
+    path = _validate_repo_path(params.get("path", "."))
+    changed_files_raw = params.get("changed_files")
+    changed_files: list[str] | None = None
+    if changed_files_raw is not None:
+        if not isinstance(changed_files_raw, list) or not all(
+            isinstance(x, str) for x in changed_files_raw
+        ):
+            msg = "Parameter 'changed_files' must be a list of strings."
+            raise ValueError(msg)
+        changed_files = list(changed_files_raw)
+
+    report = compute_blast_report(
+        path,
+        ref=str(params.get("ref", "HEAD")),
+        head=str(params.get("head", "HEAD")),
+        changed_files=changed_files,
+        include_skills=bool(params.get("include_skills", True)),
+        include_policy=bool(params.get("include_policy", True)),
+    )
+
+    result: dict[str, Any] = report.model_dump(mode="json")
+    if bool(params.get("persist", False)):
+        target = save_blast_report(resolve_repo_path(path), report)
+        result["persisted_to"] = target.as_posix()
+
+    # Kompakte Human-Summary ergänzen (Top-3 kritische Impacts)
+    top = [
+        {
+            "kind": imp.kind.value,
+            "severity": imp.severity.value,
+            "target_id": imp.target_id,
+            "reason": imp.reason,
+        }
+        for imp in report.impacts[:3]
+    ]
+    result["summary"] = {
+        "impact_count": len(report.impacts),
+        "requires_maintainer_ack": report.has_critical_impacts(),
+        "critical_ids": list(report.critical_impact_ids()),
+        "top_impacts": top,
+        "degraded": report.degraded,
+    }
+    return result

@@ -35,6 +35,8 @@ LAST_SUCCESS_SHA_FILE="$GIT_DIR_PATH/.drift-prepush-last-success"
 # Escape hatches (export VAR=1 to skip a specific gate):
 # DRIFT_SKIP_CHANGELOG, DRIFT_SKIP_VERSION_BUMP,
 # DRIFT_SKIP_LOCKFILE, DRIFT_SKIP_DOCSTRING, DRIFT_SKIP_RISK_AUDIT
+# DRIFT_SKIP_BLAST_GATE=1 skips the Blast-Radius gate (ADR-087)
+# DRIFT_BLAST_LIVE=1 lets the Blast-Radius gate generate a live report instead of blocking
 # DRIFT_SKIP_EVIDENCE_VALIDATION=1 skips content validation of evidence files (emergency only)
 # DRIFT_SKIP_HOOKS=1 skips ALL gates (emergency only)
 # DRIFT_PYTEST_WORKERS=N overrides the parallel worker cap (default: 4)
@@ -452,6 +454,61 @@ enforce_risk_audit_gate() {
 	done
 }
 
+# Gate 9 — Blast-Radius (ADR-087)
+# Blockiert Pushes, die Module mit criticality=critical ADRs invalidieren,
+# ohne dass ein Maintainer-Ack vorliegt.
+enforce_blast_radius_gate() {
+	if [ "${DRIFT_SKIP_BLAST_GATE:-0}" = "1" ]; then
+		echo ">>> [pre-push] WARN: Blast-Radius gate skipped (DRIFT_SKIP_BLAST_GATE=1)."
+		return 0
+	fi
+
+	# Nur ausführen, wenn blast-relevante Pfade geändert wurden
+	has_blast_trigger=0
+	if echo "$push_changed_files" | grep -Eq '^(src/drift/|decisions/|POLICY\.md$|\.github/skills/)'; then
+		has_blast_trigger=1
+	fi
+	if [ "$has_blast_trigger" -ne 1 ]; then
+		return 0
+	fi
+
+	# Script muss vorhanden sein — in Test-Repos oder Forks ohne Script
+	# degradieren wir zu einer Warnung statt hart zu blockieren.
+	if [ ! -f "scripts/check_blast_radius_gate.py" ]; then
+		echo ">>> [pre-push] WARN: Blast-Radius gate script missing — skipping Gate 9."
+		return 0
+	fi
+
+	python_bin="python"
+	if [ -x ".venv/Scripts/python.exe" ]; then
+		python_bin=".venv/Scripts/python.exe"
+	elif [ -x ".venv/bin/python" ]; then
+		python_bin=".venv/bin/python"
+	fi
+
+	# Ref/Head aus dem gesammelten Push-Kontext ableiten, Fallback HEAD~1..HEAD
+	gate_ref="HEAD~1"
+	gate_head="HEAD"
+	if [ -n "${push_local_sha:-}" ]; then
+		gate_head="$push_local_sha"
+	fi
+	if [ -n "${push_remote_sha:-}" ] && [ "$push_remote_sha" != "0000000000000000000000000000000000000000" ]; then
+		gate_ref="$push_remote_sha"
+	fi
+
+	if ! "$python_bin" scripts/check_blast_radius_gate.py --ref "$gate_ref" --head "$gate_head"; then
+		echo ">>> [pre-push] ERROR: Blast-Radius gate failed (Gate 9, ADR-087)."
+		echo ">>> [pre-push]"
+		echo ">>> [pre-push] Options:"
+		echo ">>>   - Store a report: python -m drift.blast_radius --persist"
+		echo ">>>   - Live-generate + persist during gate: DRIFT_BLAST_LIVE=1 git push"
+		echo ">>>   - Maintainer ack for critical impacts:"
+		echo ">>>       add blast_reports/acks/<short_sha>.yaml"
+		echo ">>>   - Emergency skip: DRIFT_SKIP_BLAST_GATE=1 git push"
+		exit 1
+	fi
+}
+
 reject_push_for_blocked_paths() {
 	local_ref="$1"
 	local_sha="$2"
@@ -496,6 +553,7 @@ else
 	enforce_lockfile_sync_gate
 	enforce_public_api_docstring_gate
 	enforce_risk_audit_gate
+	enforce_blast_radius_gate
 fi
 
 can_reuse_previous_local_ci_success=0
