@@ -117,3 +117,14 @@ Pro-Contract-Routing (aus `drift.intent.json`):
 - Wenn `drift_nudge(...).revert_recommended == true`: Edit SOFORT revertieren und einen anderen Ansatz wählen.
 - Wenn ein `AUTO`-Patch bei erneutem `drift_nudge` `direction: degrading` liefert: Patch revertieren und auf `REVIEW` eskalieren.
 - Rollback wird in `agent_telemetry.agent_actions_taken` mit `action_type: revert` und `reason: reverted_on_degrading` dokumentiert (Schema 2.2, ADR-090).
+
+## Fact-Grounding
+
+Jede Aussage des Agenten über drift selbst (POLICY-Regeln, Signal-Rationale, ADR-Entscheidungen, Audit-Artefakte, Benchmark-Evidence, Roadmap-Phasen) MUSS in einer verifizierten `fact_id` verankert sein (ADR-091).
+
+1. Vor der Antwort `drift_retrieve(query="<Frage>", top_k=5)` aufrufen. Optional `kind` (`policy|roadmap|adr|audit|signal|evidence`) oder `signal_id` einschränken.
+2. Mindestens eine passende `fact_id` aus den Treffern auswählen und im Antworttext in Backticks zitieren (z. B. ``gemäss `POLICY#S8.p2` …``).
+3. Bei unsicherem Wortlaut `drift_cite(fact_id=...)` aufrufen und den `text`-Wert wortgetreu übernehmen; `sha256` und `corpus_sha256` machen die Zitation reproduzierbar.
+4. Keine Fact-IDs erfinden. Ein halluzinierter Fact-ID-Treffer ist ein Policy-Bruch nach §13 (Finding-Qualität) und muss als `unverified:` markiert werden, falls kein Treffer existiert.
+
+Vollständiger Vertrag: `.github/instructions/drift-rag-grounding.instructions.md`.

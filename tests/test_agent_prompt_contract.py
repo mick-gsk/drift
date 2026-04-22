@@ -47,6 +47,15 @@ class TestRequiredSections:
         # The incorrect legacy form must no longer appear.
         assert "drift intent --phase 4" not in result.replace("drift intent run --phase 4", "")
 
+    def test_fact_grounding_section_cites_retrieval_tools(self) -> None:
+        """ADR-091: the generated prompt must teach agents to ground claims via retrieval."""
+        result = handoff("test prompt", _intent([]))
+        assert "## Fact-Grounding" in result
+        assert "drift_retrieve" in result
+        assert "drift_cite" in result
+        assert "ADR-091" in result
+        assert "drift-rag-grounding.instructions.md" in result
+
 
 class TestSeverityGateMapping:
     @pytest.mark.parametrize(
