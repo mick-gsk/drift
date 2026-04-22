@@ -323,6 +323,16 @@ class TestPathToModule:
     def test_empty_parts(self):
         assert _path_to_module(Path("")) == ""
 
+    def test_windows_backslash_src_layout(self):
+        # Regression: PurePosixPath("src\\mypackage\\foo.py").parts == ("src\\mypackage\\foo.py",)
+        # on Windows — Path.parts handles the OS-native separator correctly.
+        p = Path("src") / "mypackage" / "utils.py"
+        assert _path_to_module(p) == "mypackage.utils"
+
+    def test_windows_backslash_lib_layout(self):
+        p = Path("lib") / "mypackage" / "utils.py"
+        assert _path_to_module(p) == "mypackage.utils"
+
 
 # ---------------------------------------------------------------------------
 # _build_project_symbols

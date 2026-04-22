@@ -26,7 +26,7 @@ import sys
 import threading
 import types
 from collections import defaultdict
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import ClassVar, Literal
 
 from drift.config import DriftConfig
@@ -407,8 +407,7 @@ def _path_to_module(file_path: Path) -> str:
     Strips common layout prefixes (``src/``, ``lib/``) so that the
     resulting dotted name matches what ``import`` statements use.
     """
-    posix = PurePosixPath(file_path)
-    parts = list(posix.parts)
+    parts = list(Path(file_path).parts)
     if not parts:
         return ""
     # Strip common source layout prefixes
