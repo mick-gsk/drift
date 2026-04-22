@@ -71,6 +71,12 @@ from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
     default=False,
     help="Minimal output.",
 )
+@click.option(
+    "--trend-gate/--no-trend-gate",
+    "trend_gate_override",
+    default=None,
+    help="Override config trend-gate enabled setting.",
+)
 def ci(
     repo: Path,
     fail_on: str | None,
@@ -82,6 +88,7 @@ def ci(
     config: Path | None,
     since: int,
     quiet: bool,
+    trend_gate_override: bool | None,
 ) -> None:
     """Zero-config CI analysis with auto-environment detection.
 
@@ -159,6 +166,12 @@ def ci(
     # Emit output
     _emit_output(analysis, output_format, output_file, cfg)
 
+    # Trend gate
+    if _trend_gate_enabled(cfg, trend_gate_override):
+        _enforce_trend_gate(
+            repo=repo, cfg=cfg, output_format=output_format, quiet=quiet, exit_zero=exit_zero
+        )
+
     # Severity gate
     from drift.scoring.engine import severity_gate_pass
 
@@ -175,6 +188,41 @@ def ci(
             f"drift ci: PASSED (threshold: {threshold})",
             err=True,
         )
+
+
+def _trend_gate_enabled(cfg, override: bool | None) -> bool:
+    if override is not None:
+        return override
+    return cfg.gate.trend.enabled
+
+
+def _enforce_trend_gate(
+    *,
+    repo: Path,
+    cfg,
+    output_format: str,
+    quiet: bool,
+    exit_zero: bool,
+) -> None:
+    from drift.quality_gate import evaluate_trend_gate
+    from drift.trend_history import load_trend_history
+
+    gate_cfg = cfg.gate.trend
+    snapshots = load_trend_history(repo)
+    decision = evaluate_trend_gate(
+        snapshots=snapshots,
+        window_commits=gate_cfg.window_commits,
+        delta_threshold=gate_cfg.delta_threshold,
+        require_remediation_activity=gate_cfg.require_remediation_activity,
+    )
+    if decision.blocked:
+        if not quiet:
+            click.echo(
+                f"drift ci: TREND GATE BLOCKED — {decision.reason}",
+                err=True,
+            )
+        if not exit_zero:
+            sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
 
 
 def _emit_output(

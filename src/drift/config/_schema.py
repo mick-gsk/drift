@@ -304,6 +304,29 @@ class PathOverride(BaseModel):
     severity_gate: str | None = None
 
 
+class TrendGateConfig(BaseModel):
+    """Configuration for trend-based CI gate checks.
+
+    The gate evaluates score degradation across a commit window and can
+    require at least one remediated finding fingerprint in that window.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = Field(default=False)
+    window_commits: int = Field(default=3, ge=2)
+    delta_threshold: float = Field(default=0.05, ge=0.0)
+    require_remediation_activity: bool = Field(default=True)
+
+
+class GateConfig(BaseModel):
+    """Top-level gate configuration section."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    trend: TrendGateConfig = Field(default_factory=TrendGateConfig)
+
+
 class DeferredArea(BaseModel):
     """A glob-matched area marked as known technical debt (not excluded).
 

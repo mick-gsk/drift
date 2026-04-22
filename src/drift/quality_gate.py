@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from drift.remediation_activity import has_remediation_activity
+
 
 @dataclass(frozen=True, slots=True)
 class RunSnapshot:
@@ -40,6 +42,18 @@ class QualityDrift:
     score_delta: float
     finding_delta: int
     advisory: str
+
+
+@dataclass(frozen=True, slots=True)
+class TrendGateDecision:
+    """Decision payload for trend-gate enforcement."""
+
+    blocked: bool
+    reason: str
+    score_delta: float
+    window_commits: int
+    remediation_activity_detected: bool
+    history_points: int
 
 
 # Thresholds below which changes are considered noise.
@@ -134,4 +148,119 @@ def quality_drift_from_history(
         ),
         score_tolerance=score_tolerance,
         finding_tolerance=finding_tolerance,
+    )
+
+
+def _trend_snapshot_score(snapshot: dict[str, Any]) -> float | None:
+    score = snapshot.get("drift_score")
+    if isinstance(score, (int, float)):
+        return float(score)
+    return None
+
+
+def _trend_commit_key(snapshot: dict[str, Any], index: int) -> str:
+    commit_hash = snapshot.get("commit_hash")
+    if isinstance(commit_hash, str) and commit_hash.strip():
+        return f"commit:{commit_hash.strip()}"
+    return f"run:{index}"
+
+
+def _last_commit_window(
+    snapshots: list[dict[str, Any]],
+    *,
+    window_commits: int,
+) -> list[dict[str, Any]]:
+    valid = [s for s in snapshots if _trend_snapshot_score(s) is not None]
+    if not valid:
+        return []
+
+    selected_rev: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for index in range(len(valid) - 1, -1, -1):
+        snap = valid[index]
+        commit_key = _trend_commit_key(snap, index)
+        if commit_key in seen:
+            continue
+        seen.add(commit_key)
+        selected_rev.append(snap)
+        if len(selected_rev) >= window_commits:
+            break
+
+    selected_rev.reverse()
+    return selected_rev
+
+
+def evaluate_trend_gate(
+    *,
+    snapshots: list[dict[str, Any]],
+    window_commits: int,
+    delta_threshold: float,
+    require_remediation_activity: bool,
+) -> TrendGateDecision:
+    """Evaluate trend-gate blocking logic for a commit window.
+
+    Gate condition:
+        score_delta >= delta_threshold over N commits AND
+        (if enabled) no remediation activity was detected in the same window.
+    """
+    if window_commits < 2:
+        raise ValueError("window_commits must be >= 2")
+
+    window = _last_commit_window(snapshots, window_commits=window_commits)
+    if len(window) < window_commits:
+        return TrendGateDecision(
+            blocked=False,
+            reason="insufficient_history",
+            score_delta=0.0,
+            window_commits=window_commits,
+            remediation_activity_detected=False,
+            history_points=len(window),
+        )
+
+    first_score = _trend_snapshot_score(window[0])
+    last_score = _trend_snapshot_score(window[-1])
+    if first_score is None or last_score is None:
+        return TrendGateDecision(
+            blocked=False,
+            reason="insufficient_history",
+            score_delta=0.0,
+            window_commits=window_commits,
+            remediation_activity_detected=False,
+            history_points=len(window),
+        )
+
+    score_delta = round(last_score - first_score, 4)
+    if score_delta < delta_threshold:
+        return TrendGateDecision(
+            blocked=False,
+            reason="below_delta_threshold",
+            score_delta=score_delta,
+            window_commits=window_commits,
+            remediation_activity_detected=False,
+            history_points=len(window),
+        )
+
+    remediation_detected = has_remediation_activity(window, window_commits=window_commits)
+
+    if require_remediation_activity and remediation_detected:
+        return TrendGateDecision(
+            blocked=False,
+            reason="remediation_detected",
+            score_delta=score_delta,
+            window_commits=window_commits,
+            remediation_activity_detected=True,
+            history_points=len(window),
+        )
+
+    return TrendGateDecision(
+        blocked=True,
+        reason=(
+            "degradation_without_remediation"
+            if require_remediation_activity
+            else "degradation_threshold_exceeded"
+        ),
+        score_delta=score_delta,
+        window_commits=window_commits,
+        remediation_activity_detected=remediation_detected,
+        history_points=len(window),
     )

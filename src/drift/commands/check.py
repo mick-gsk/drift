@@ -58,6 +58,58 @@ def _print_check_result(
             )
 
 
+def _trend_gate_is_enabled(cfg: object, trend_gate_override: bool | None) -> bool:
+    if trend_gate_override is not None:
+        return trend_gate_override
+    gate_cfg = getattr(cfg, "gate", None)
+    trend_cfg = getattr(gate_cfg, "trend", None)
+    return bool(getattr(trend_cfg, "enabled", False))
+
+
+def _apply_trend_gate(
+    *,
+    repo: Path,
+    cfg: object,
+    scope: str,
+    effective_console: Console,
+    quiet: bool,
+    output_format: str,
+) -> tuple[bool, str]:
+    from drift.quality_gate import evaluate_trend_gate
+    from drift.trend_history import load_history, snapshot_scope
+
+    gate_cfg = getattr(cfg, "gate", None)
+    trend_cfg = getattr(gate_cfg, "trend", None)
+    if trend_cfg is None:
+        return False, "trend config missing"
+
+    window_commits = int(getattr(trend_cfg, "window_commits", 3))
+    delta_threshold = float(getattr(trend_cfg, "delta_threshold", 0.05))
+    require_remediation = bool(getattr(trend_cfg, "require_remediation_activity", True))
+
+    history_file = repo / getattr(cfg, "cache_dir", ".drift-cache") / "history.json"
+    scoped_history = [s for s in load_history(history_file) if snapshot_scope(s) == scope]
+
+    decision = evaluate_trend_gate(
+        snapshots=scoped_history,
+        window_commits=window_commits,
+        delta_threshold=delta_threshold,
+        require_remediation_activity=require_remediation,
+    )
+    if not decision.blocked:
+        return False, decision.reason
+
+    message = (
+        f"Trend gate blocked: delta {decision.score_delta:+.4f} over "
+        f"{decision.window_commits} commits without remediation activity."
+    )
+    if output_format == "rich" and not quiet:
+        effective_console.print(f"\n[bold red]✗ {message}[/bold red]")
+    else:
+        click.echo(f"drift check: FAILED — {message}", err=True)
+    return True, decision.reason
+
+
 @click.command(short_help="CI drift gate — diff analysis (also: drift gate).")
 @click.option(
     "--repo",
@@ -187,6 +239,12 @@ def _print_check_result(
     help="Disable colored output (also respects NO_COLOR env variable).",
 )
 @click.option(
+    "--trend-gate/--no-trend-gate",
+    "trend_gate_override",
+    default=None,
+    help="Override config gate.trend.enabled for this run.",
+)
+@click.option(
     "--save-baseline",
     "save_baseline_path",
     type=click.Path(path_type=Path),
@@ -222,6 +280,7 @@ def check(
     json_shortcut: bool,
     compact_json: bool,
     no_color: bool,
+    trend_gate_override: bool | None,
     save_baseline_path: Path | None,
     max_findings: int,
 ) -> None:
@@ -308,6 +367,18 @@ def check(
             f"[bold green]\u2713 Baseline saved:[/bold green] {save_baseline_path} "
             f"({len(analysis.findings)} findings)",
         )
+
+    if _trend_gate_is_enabled(cfg, trend_gate_override):
+        trend_blocked, _trend_reason = _apply_trend_gate(
+            repo=repo,
+            cfg=cfg,
+            scope="diff",
+            effective_console=effective_console,
+            quiet=quiet,
+            output_format=output_format,
+        )
+        if trend_blocked and not exit_zero:
+            sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
 
     _print_check_result(
         analysis=analysis,

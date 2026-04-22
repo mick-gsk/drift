@@ -17,6 +17,7 @@ from drift.config._schema import (
     DeferredArea,
     DocImplDriftConfig,
     FindingContextPolicy,
+    GateConfig,
     GuidedThresholds,
     IntegrationsGlobalConfig,
     LanguagesConfig,
@@ -153,6 +154,7 @@ class DriftConfig(BaseModel):
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_batch_size: int = 64
     path_overrides: dict[str, PathOverride] = Field(default_factory=dict)
+    gate: GateConfig = Field(default_factory=GateConfig)
     deferred: list[DeferredArea] = Field(default_factory=list)
     finding_context: FindingContextPolicy = Field(default_factory=FindingContextPolicy)
     brief: BriefConfig = Field(default_factory=BriefConfig)

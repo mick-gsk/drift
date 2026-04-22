@@ -42,6 +42,9 @@ from drift.config._schema import (
     FindingContextRule as FindingContextRule,
 )
 from drift.config._schema import (
+    GateConfig as GateConfig,
+)
+from drift.config._schema import (
     GradeBandConfig as GradeBandConfig,
 )
 from drift.config._schema import (
@@ -80,6 +83,9 @@ from drift.config._schema import (
 from drift.config._schema import (
     ThresholdsConfig as ThresholdsConfig,
 )
+from drift.config._schema import (
+    TrendGateConfig as TrendGateConfig,
+)
 from drift.config._signals import (
     SIGNAL_ABBREV as SIGNAL_ABBREV,
 )
@@ -101,6 +107,7 @@ __all__ = [
     "DeferredArea",
     "FindingContextRule",
     "FindingContextPolicy",
+    "GateConfig",
     "GradeBandConfig",
     "GuidedThresholds",
     "AgentEffectivenessThresholds",
@@ -114,6 +121,7 @@ __all__ = [
     "RecommendationsConfig",
     "ScoringConfig",
     "AttributionConfig",
+    "TrendGateConfig",
     # Loader
     "DriftConfig",
     "build_config_json_schema",

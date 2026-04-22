@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import subprocess
 import tempfile
 import time
 from contextlib import suppress
@@ -151,6 +152,11 @@ def apply_trend_and_persist_snapshot(
         )
 
     signal_scores = compute_signal_scores(analysis.findings)
+    from drift.baseline import finding_fingerprint
+
+    commit_hash = _resolve_head_commit_hash(repo_path)
+    finding_fingerprints = sorted({finding_fingerprint(f) for f in analysis.findings})
+
     snapshots.append(
         {
             "timestamp": analysis.analyzed_at.isoformat(),
@@ -158,8 +164,30 @@ def apply_trend_and_persist_snapshot(
             "signal_scores": {s: v for s, v in signal_scores.items()},
             "total_files": analysis.total_files,
             "total_findings": len(analysis.findings),
+            "commit_hash": commit_hash,
+            "finding_fingerprints": finding_fingerprints,
             "scope": scope,
         }
     )
     save_history(history_file, snapshots)
     return history_corrupt
+
+
+def _resolve_head_commit_hash(repo_path: Path) -> str | None:
+    """Return the current HEAD commit hash for the repository, if available."""
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=repo_path,
+            check=True,
+            stdin=subprocess.DEVNULL,
+        )
+    except Exception:
+        return None
+
+    commit_hash = completed.stdout.strip()
+    return commit_hash or None
