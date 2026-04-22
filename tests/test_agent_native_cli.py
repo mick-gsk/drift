@@ -75,7 +75,7 @@ def test_validate_exits_2_when_api_reports_invalid(monkeypatch, tmp_path: Path) 
         validate_command,
         "api_validate",
         lambda *args, **kwargs: {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "valid": False,
             "warnings": ["Config error: weight sum invalid"],
             "git_available": True,
@@ -99,7 +99,7 @@ def test_validate_exits_0_when_api_reports_valid(monkeypatch, tmp_path: Path) ->
         validate_command,
         "api_validate",
         lambda *args, **kwargs: {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "valid": True,
             "warnings": [],
             "git_available": True,
@@ -123,7 +123,7 @@ def test_scan_outputs_json(monkeypatch, tmp_path: Path) -> None:
         scan_command,
         "api_scan",
         lambda *args, **kwargs: {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "accept_change": True,
             "blocking_reasons": [],
         },
@@ -146,7 +146,7 @@ def test_scan_accepts_signals_alias(monkeypatch, tmp_path: Path) -> None:
     def _fake_scan(*args, **kwargs):
         captured.update(kwargs)
         return {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "accept_change": True,
             "blocking_reasons": [],
         }
@@ -178,7 +178,7 @@ def test_scan_passes_exclude_and_max_per_signal(monkeypatch, tmp_path: Path) -> 
     def _fake_scan(*args, **kwargs):
         captured.update(kwargs)
         return {
-            "schema_version": "2.1",
+            "schema_version": "2.2",
             "accept_change": True,
             "blocking_reasons": [],
         }
@@ -294,7 +294,7 @@ def test_fix_plan_target_path_filters(monkeypatch) -> None:
 
     def fake_fix_plan(*args, **kwargs):
         captured.update(kwargs)
-        return {"schema_version": "2.1", "tasks": [], "task_count": 0}
+        return {"schema_version": "2.2", "tasks": [], "task_count": 0}
 
     monkeypatch.setattr(fp_module, "api_fix_plan", fake_fix_plan)
 
@@ -315,7 +315,7 @@ def test_fix_plan_exclude_paths_pass_through(monkeypatch) -> None:
 
     def fake_fix_plan(*args, **kwargs):
         captured.update(kwargs)
-        return {"schema_version": "2.1", "tasks": [], "task_count": 0}
+        return {"schema_version": "2.2", "tasks": [], "task_count": 0}
 
     monkeypatch.setattr(fp_module, "api_fix_plan", fake_fix_plan)
 
@@ -347,7 +347,7 @@ def test_fix_plan_include_deferred_pass_through(monkeypatch) -> None:
 
     def fake_fix_plan(*args, **kwargs):
         captured.update(kwargs)
-        return {"schema_version": "2.1", "tasks": [], "task_count": 0}
+        return {"schema_version": "2.2", "tasks": [], "task_count": 0}
 
     monkeypatch.setattr(fp_module, "api_fix_plan", fake_fix_plan)
 
@@ -491,3 +491,4 @@ def test_success_criteria_signal_specific() -> None:
         # At least one criterion beyond the generic base
         non_generic = [c for c in criteria if c != generic_only]
         assert len(non_generic) > 0, f"Signal {st.value} only returns generic criteria"
+
