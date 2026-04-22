@@ -11,9 +11,9 @@ import hashlib
 import json
 import logging
 import threading
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
 
 from drift.retrieval.corpus_builder import build_corpus, compute_corpus_sha256
 from drift.retrieval.models import (
@@ -86,7 +86,7 @@ def _build_manifest(
         corpus_sha256=compute_corpus_sha256(chunks),
         chunk_count=len(chunks),
         sources=tuple(sources),
-        built_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        built_at=datetime.now(UTC).isoformat(timespec="seconds"),
     )
     return manifest
 

@@ -22,7 +22,7 @@ def _isolate_engine_cache() -> None:
     clear_engine_cache()
 
 
-def _call(coro: "asyncio.Future[str]") -> dict:  # type: ignore[type-arg]
+def _call(coro: asyncio.Future[str]) -> dict:  # type: ignore[type-arg]
     return json.loads(asyncio.run(coro))
 
 

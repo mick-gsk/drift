@@ -1311,7 +1311,7 @@ _FEEDBACK_HINT_THRESHOLD: int = 50
 
 def render_feedback_calibration_hint(
     analysis: RepoAnalysis,
-    feedback_path: "Path",
+    feedback_path: Path,
     console: Console | None = None,
     *,
     threshold: int = _FEEDBACK_HINT_THRESHOLD,

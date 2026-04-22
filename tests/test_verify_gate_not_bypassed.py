@@ -13,12 +13,9 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from verify_gate_not_bypassed import (  # noqa: E402
-    ArtifactResult,
-    FindingGateRecord,
     _parse_artifact,
     main,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -216,7 +213,12 @@ class TestMainCLI:
         monkeypatch.setattr(vg, "ARTIFACTS_DIR", artifacts_dir)
         assert main([]) == 1
 
-    def test_json_output_clean(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_json_output_clean(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
         import verify_gate_not_bypassed as vg
         artifacts_dir = tmp_path / "work_artifacts"
         artifacts_dir.mkdir()

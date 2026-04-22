@@ -20,12 +20,12 @@ from typing import Any
 import pytest
 
 from drift.models import (
+    OUTPUT_SCHEMA_VERSION,
     AgentAction,
     AgentActionType,
     AgentTelemetry,
     Finding,
     ModuleScore,
-    OUTPUT_SCHEMA_VERSION,
     RepoAnalysis,
     Severity,
     SignalType,

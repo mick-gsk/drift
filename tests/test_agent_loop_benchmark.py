@@ -206,9 +206,21 @@ class TestBuildAgentTelemetry:
         self, name: str, *, auto: int, review: int, block: int
     ) -> ProfileResult:
         actions = (
-            [{"contract_id": f"a{i}", "severity": "low",    "auto_repair_eligible": True,  "gate": "AUTO"}   for i in range(auto)]
-            + [{"contract_id": f"r{i}", "severity": "medium", "auto_repair_eligible": False, "gate": "REVIEW"} for i in range(review)]
-            + [{"contract_id": f"b{i}", "severity": "high",   "auto_repair_eligible": False, "gate": "BLOCK"}  for i in range(block)]
+            [
+                {"contract_id": f"a{i}", "severity": "low",
+                 "auto_repair_eligible": True, "gate": "AUTO"}
+                for i in range(auto)
+            ]
+            + [
+                {"contract_id": f"r{i}", "severity": "medium",
+                 "auto_repair_eligible": False, "gate": "REVIEW"}
+                for i in range(review)
+            ]
+            + [
+                {"contract_id": f"b{i}", "severity": "high",
+                 "auto_repair_eligible": False, "gate": "BLOCK"}
+                for i in range(block)
+            ]
         )
         return ProfileResult(
             name=name,
@@ -332,9 +344,24 @@ class TestAgentTelemetryModelsIntegration:
         from drift.models import AgentAction, AgentActionType, AgentTelemetry
 
         actions = [
-            AgentAction(action_type=AgentActionType.AUTO_FIX,       reason="low/auto", gate="AUTO",   severity="low"),
-            AgentAction(action_type=AgentActionType.REVIEW_REQUEST,  reason="medium",   gate="REVIEW", severity="medium"),
-            AgentAction(action_type=AgentActionType.BLOCK,           reason="high",     gate="BLOCK",  severity="high"),
+            AgentAction(
+                action_type=AgentActionType.AUTO_FIX,
+                reason="low/auto",
+                gate="AUTO",
+                severity="low",
+            ),
+            AgentAction(
+                action_type=AgentActionType.REVIEW_REQUEST,
+                reason="medium",
+                gate="REVIEW",
+                severity="medium",
+            ),
+            AgentAction(
+                action_type=AgentActionType.BLOCK,
+                reason="high",
+                gate="BLOCK",
+                severity="high",
+            ),
         ]
         t = AgentTelemetry(session_id="benchmark-integration", agent_actions_taken=actions)
         assert t.total_auto   == 1

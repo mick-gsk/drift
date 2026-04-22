@@ -19,7 +19,7 @@ _DEFAULT_MIGRATION_REGISTRY_PATH = Path("decisions") / "fact_id_migrations.jsonl
 _EXCERPT_MAX_CHARS = 800
 
 _engine_lock = threading.Lock()
-_engines: dict[Path, "RetrievalEngine"] = {}
+_engines: dict[Path, RetrievalEngine] = {}
 
 
 class RetrievalEngine:

@@ -13,9 +13,9 @@ import hashlib
 import json
 import logging
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from drift.retrieval.fact_ids import (
     generate_adr_id,
@@ -359,13 +359,21 @@ def _signal_id_from_class(node: ast.ClassDef) -> str | None:
     for stmt in node.body:
         if isinstance(stmt, ast.Assign):
             for tgt in stmt.targets:
-                if isinstance(tgt, ast.Name) and tgt.id in {"signal_type", "signal_id", "id"}:
-                    if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
-                        return stmt.value.value
-        if isinstance(stmt, ast.AnnAssign) and isinstance(stmt.target, ast.Name):
-            if stmt.target.id in {"signal_type", "signal_id", "id"}:
-                if isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                if (
+                    isinstance(tgt, ast.Name)
+                    and tgt.id in {"signal_type", "signal_id", "id"}
+                    and isinstance(stmt.value, ast.Constant)
+                    and isinstance(stmt.value.value, str)
+                ):
                     return stmt.value.value
+        if (
+            isinstance(stmt, ast.AnnAssign)
+            and isinstance(stmt.target, ast.Name)
+            and stmt.target.id in {"signal_type", "signal_id", "id"}
+            and isinstance(stmt.value, ast.Constant)
+            and isinstance(stmt.value.value, str)
+        ):
+            return stmt.value.value
     return None
 
 
