@@ -636,13 +636,6 @@ class CalibrationConfig(BaseModel):
         default=20,
         description="Maximum number of scan snapshots to retain.",
     )
-    threshold_adaptation_enabled: bool = Field(
-        default=False,
-        description=(
-            "Enable adaptive threshold adjustment per signal based on "
-            "feedback metrics.  Experimental — disabled by default."
-        ),
-    )
 
 
 class RecommendationsConfig(BaseModel):
