@@ -1,0 +1,131 @@
+name: Benchmark Baseline Loop
+
+# Two automatic triggers:
+#   A) After a successful release → fast KPI snapshot (drift analyze only)
+#   B) Weekly Sunday → full mutation benchmark + regression comparison + issue-on-regression
+#
+# Commits updated perf_baseline_latest.json back to main with [skip ci].
+# Never modifies ci.yml / release.yml / fp-oracle-audit.yml.
+
+on:
+  workflow_run:
+    workflows: ["Release (python-semantic-release)"]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * 0"   # Sunday 02:00 UTC
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "quick (drift analyze only) or full (+ mutation benchmark)"
+        required: false
+        default: "quick"
+        type: choice
+        options: [quick, full]
+
+concurrency:
+  group: benchmark-baseline-loop
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  # ── Job A: KPI snapshot (fast, runs after every release or on workflow_dispatch quick) ──────────
+  kpi-snapshot:
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'quick')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dev dependencies
+        run: pip install -e ".[dev]" --quiet
+
+      - name: Generate KPI snapshot (drift analyze only)
+        run: |
+          python scripts/generate_benchmark_baseline.py --skip-drift-analyze
+        # Note: mutation_benchmark.json already committed; only drift_score refresh needs re-analyze.
+        # We run without --skip-drift-analyze only in the full job to keep this step fast.
+
+      - name: Generate KPI snapshot with drift analyze
+        run: python scripts/generate_benchmark_baseline.py
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
+      - name: Commit updated baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add benchmark_results/perf_baseline_latest.json
+          git diff --cached --quiet && echo "No changes to commit." && exit 0
+          git pull --rebase origin main
+          git commit -m "chore(baseline): update KPI snapshot after release [skip ci]"
+          git push origin main
+
+  # ── Job B: Full mutation benchmark + regression gate (weekly or manual full) ─────────────────
+  mutation-baseline:
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'full')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dev dependencies
+        run: pip install -e ".[dev]" --quiet
+
+      - name: Run mutation benchmark
+        run: python scripts/mutation_benchmark.py
+
+      - name: Generate baseline + compare against previous
+        id: compare
+        run: |
+          python scripts/generate_benchmark_baseline.py \
+            --compare-previous \
+            --gh-issue-on-regression
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        continue-on-error: true
+
+      - name: Record regression outcome
+        id: regression
+        if: steps.compare.outcome == 'failure'
+        run: echo "detected=true" >> $GITHUB_OUTPUT
+
+      - name: Commit updated baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add benchmark_results/perf_baseline_latest.json benchmark_results/mutation_benchmark.json
+          git diff --cached --quiet && echo "No changes to commit." && exit 0
+          git pull --rebase origin main
+          git commit -m "chore(baseline): update weekly mutation benchmark baseline [skip ci]"
+          git push origin main
+
+      - name: Fail workflow on regression (after committing baseline)
+        if: steps.regression.outputs.detected == 'true'
+        run: |
+          echo "::error::Benchmark regression detected -- see opened GitHub issue."
+          exit 1

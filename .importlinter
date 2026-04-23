@@ -1,0 +1,65 @@
+[importlinter]
+root_packages =
+    drift
+
+# NOTE: This config uses 'forbidden' contracts rather than a full 'layers'
+# contract because drift has many cross-cutting modules (telemetry, cache,
+# errors, types, ...) that legitimately touch multiple layers.
+# The contracts below enforce only the non-negotiable boundaries.
+#
+# Run locally: pip install import-linter && lint-imports
+# CI step uses: continue-on-error: true (warn-only phase)
+# Harden to false after running lint-imports locally and fixing violations.
+
+# --- Contract 1 -----------------------------------------------------------
+# ingestion must not depend on output or commands.
+# Rationale: ingestion is pure data collection; it must not trigger rendering.
+[importlinter:contract:ingestion-no-output]
+name = ingestion must not import from output
+type = forbidden
+source_modules =
+    drift.ingestion
+forbidden_modules =
+    drift.output
+    drift.commands
+
+# --- Contract 2 -----------------------------------------------------------
+# models must not import from higher-level layers.
+# Rationale: models are the base layer; they must stay import-free from
+# analysis, scoring and rendering logic.
+[importlinter:contract:models-independence]
+name = models must not import from signals, scoring, output or commands
+type = forbidden
+source_modules =
+    drift.models
+forbidden_modules =
+    drift.signals
+    drift.scoring
+    drift.output
+    drift.commands
+    drift.api
+
+# --- Contract 3 -----------------------------------------------------------
+# signals must not import from output or commands.
+# Rationale: signal logic is pure detection; it must not trigger rendering
+# or know about CLI mechanics.
+[importlinter:contract:signals-no-output]
+name = signals must not import from output or commands
+type = forbidden
+source_modules =
+    drift.signals
+forbidden_modules =
+    drift.output
+    drift.commands
+
+# --- Contract 4 -----------------------------------------------------------
+# scoring must not import from output or commands.
+# Rationale: scoring is a pure computation layer; rendering is output's job.
+[importlinter:contract:scoring-no-output]
+name = scoring must not import from output or commands
+type = forbidden
+source_modules =
+    drift.scoring
+forbidden_modules =
+    drift.output
+    drift.commands

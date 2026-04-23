@@ -1,0 +1,126 @@
+name: Coverage Regression Loop
+
+# After each CI run on main: download coverage.xml, compare against stored
+# baseline, and open a GitHub Issue (assigned to @copilot) on regression.
+# Updates the baseline JSON on every run.
+#
+# Never modifies ci.yml.
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: coverage-regression-loop
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  check-coverage:
+    runs-on: ubuntu-latest
+    # Run after a successful CI, or on manual dispatch
+    if: |
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install script dependencies (stdlib only)
+        run: pip install --quiet lxml  # ElementTree fallback; stdlib ET also works
+
+      # Download the coverage artifact from the triggering CI run
+      - name: Download coverage artifact (workflow_run)
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-py3.12
+          path: /tmp/coverage-artifact
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Locate coverage.xml
+        id: locate
+        run: |
+          if [ -f /tmp/coverage-artifact/coverage.xml ]; then
+            echo "xml=/tmp/coverage-artifact/coverage.xml" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::coverage.xml artifact not found -- skipping regression check."
+            echo "xml=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check coverage regression
+        id: check
+        if: steps.locate.outputs.xml != ''
+        run: |
+          python scripts/coverage_issue_body.py \
+            "${{ steps.locate.outputs.xml }}" \
+            --baseline benchmark_results/coverage_baseline.json \
+            --output coverage_issue_body.md \
+            --update-baseline
+        continue-on-error: true
+
+      - name: Commit updated baseline
+        if: steps.locate.outputs.xml != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add benchmark_results/coverage_baseline.json
+          git diff --cached --quiet && echo "No baseline change." && exit 0
+          git pull --rebase origin main
+          git commit -m "chore(coverage): update coverage baseline [skip ci]"
+          git push origin main
+
+      - name: Open / update coverage regression issue
+        if: steps.check.outcome == 'failure' && steps.locate.outputs.xml != ''
+        run: |
+          BODY=$(cat coverage_issue_body.md)
+          # Check if an open issue already exists
+          EXISTING=$(gh issue list \
+            --label "coverage-regression" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --body "$BODY"
+            echo "Updated existing issue #$EXISTING"
+          else
+            NUM=$(gh issue create \
+              --title "Coverage regression detected on main" \
+              --label "coverage-regression" \
+              --body "$BODY")
+            echo "Opened issue $NUM"
+            # Assign to copilot for AI-assisted fix
+            NUM_ONLY=$(echo "$NUM" | grep -oE '[0-9]+$')
+            gh issue edit "$NUM_ONLY" --add-assignee copilot || true
+          fi
+
+      - name: Close stale coverage issue if coverage is healthy
+        if: steps.check.outcome == 'success' && steps.locate.outputs.xml != ''
+        run: |
+          EXISTING=$(gh issue list \
+            --label "coverage-regression" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue close "$EXISTING" \
+              --reason completed \
+              --comment "Coverage regression resolved automatically by coverage-regression-loop.yml."
+            echo "Closed stale issue #$EXISTING"
+          fi

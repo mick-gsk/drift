@@ -1,0 +1,146 @@
+# action-smoke.yml
+#
+# Purpose:  Verify that action.yml wires inputs → steps → outputs correctly
+#           by running the *local* composite action via `uses: ./`.
+#           This is the only workflow that tests action.yml itself — all other
+#           workflows use the drift CLI directly.
+#
+# Trigger:  push › main (action.yml or this file changed)
+#           pull_request (action.yml or this file changed)
+#           schedule: weekly (catch regressions from new PyPI releases)
+#           workflow_dispatch
+#
+# Jobs:
+#   smoke-outputs  — run with fail-on none; assert all outputs are set and
+#                    badge-svg file exists on disk; assert score is in [0, 1].
+#   smoke-fail-on  — run with fail-on high (continue-on-error); assert the
+#                    action exits with success or failure, NOT error/cancelled,
+#                    which would indicate a setup crash rather than a finding gate.
+#
+# Notes:
+#   - Uses `uses: ./` (local action from the checked-out workspace).
+#   - The action installs drift-analyzer from PyPI (default drift-version input),
+#     so this test intentionally targets the *published* package — matching what
+#     external users experience with `uses: mick-gsk/drift@main`.
+#   - PR-only features (comment, brief) are not tested here because they require
+#     pull_request context and pull-requests: write permission. They are covered
+#     by integration in drift-brief-on-issue.yml and the PR comment path in ci.yml.
+
+name: Action — Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "action.yml"
+      - ".github/workflows/action-smoke.yml"
+  pull_request:
+    paths:
+      - "action.yml"
+      - ".github/workflows/action-smoke.yml"
+  schedule:
+    - cron: "0 4 * * 1"  # Monday 04:00 UTC — catch regressions from new PyPI releases
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "action-smoke-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  # ─── Job 1: all outputs are populated and in expected range ───────────────
+  smoke-outputs:
+    name: "Smoke: outputs populated and valid"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0  # required for temporal signals
+
+      - name: Run action (fail-on none)
+        id: drift
+        uses: ./
+        with:
+          fail-on: none
+
+      - name: Assert core outputs are set and score is in [0, 1]
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SCORE="${{ steps.drift.outputs.drift-score }}"
+          COUNT="${{ steps.drift.outputs.finding-count }}"
+          SEV="${{ steps.drift.outputs.severity }}"
+          GRADE="${{ steps.drift.outputs.grade }}"
+          BADGE="${{ steps.drift.outputs.badge-svg }}"
+
+          echo "drift-score  = ${SCORE}"
+          echo "finding-count= ${COUNT}"
+          echo "severity     = ${SEV}"
+          echo "grade        = ${GRADE}"
+          echo "badge-svg    = ${BADGE}"
+
+          [[ -n "${SCORE}" && "${SCORE}" != "N/A" ]] \
+            || { echo "FAIL: drift-score is empty or N/A"; exit 1; }
+
+          [[ -n "${COUNT}" ]] \
+            || { echo "FAIL: finding-count not set"; exit 1; }
+
+          [[ -n "${SEV}" && "${SEV}" != "N/A" ]] \
+            || { echo "FAIL: severity is empty or N/A"; exit 1; }
+
+          [[ -n "${GRADE}" && "${GRADE}" != "N/A" ]] \
+            || { echo "FAIL: grade is empty or N/A"; exit 1; }
+
+          # Score must be a float in [0.0, 1.0]
+          python3 -c "
+          s = float('${SCORE}')
+          assert 0.0 <= s <= 1.0, f'drift-score {s!r} outside [0, 1]'
+          print(f'OK: drift-score={s:.4f} is within [0, 1]')
+          "
+
+          # Badge file must exist on disk
+          [[ -n "${BADGE}" && -f "${BADGE}" ]] \
+            || { echo "FAIL: badge-svg='${BADGE}' is not a file on disk"; exit 1; }
+
+          echo "All output assertions passed."
+
+  # ─── Job 2: fail-on wiring does not crash the action ──────────────────────
+  smoke-fail-on:
+    name: "Smoke: fail-on wiring (no setup crash)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Run action (fail-on high)
+        id: drift
+        uses: ./
+        with:
+          fail-on: high
+        continue-on-error: true  # accept both outcomes; we test the exit type below
+
+      - name: Assert outcome is success or failure, not error
+        shell: bash
+        run: |
+          OUTCOME="${{ steps.drift.outcome }}"
+          echo "action outcome: ${OUTCOME}"
+          # success  = no HIGH-or-above findings
+          # failure  = findings at or above HIGH threshold triggered exit 1
+          # error    = action setup/install crashed (the bad case we are guarding against)
+          # cancelled= unexpected; should not happen here
+          if [[ "${OUTCOME}" == "success" || "${OUTCOME}" == "failure" ]]; then
+            echo "OK: action exited deterministically (outcome=${OUTCOME})"
+          else
+            echo "FAIL: unexpected outcome '${OUTCOME}' — action may have crashed during setup"
+            exit 1
+          fi
