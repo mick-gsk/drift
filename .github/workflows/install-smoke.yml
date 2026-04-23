@@ -12,6 +12,11 @@ on:
         description: "Version to test (e.g. 1.2.0). Leave empty for latest."
         required: false
         type: string
+      use_testpypi:
+        description: "Install from TestPyPI instead of production PyPI (pre-release validation)."
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -43,12 +48,17 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ inputs.version || '' }}"
+          INDEX_ARGS=()
+          if [ "${{ inputs.use_testpypi || 'false' }}" = "true" ]; then
+            INDEX_ARGS=(--index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/)
+            echo "Installing from TestPyPI"
+          fi
           MAX_RETRIES=5
           for i in $(seq 1 $MAX_RETRIES); do
             if [ -n "$VERSION" ]; then
-              pip install "drift-analyzer==$VERSION" && break
+              pip install "${INDEX_ARGS[@]}" "drift-analyzer==$VERSION" && break
             else
-              pip install drift-analyzer && break
+              pip install "${INDEX_ARGS[@]}" drift-analyzer && break
             fi
             if [ $i -lt $MAX_RETRIES ]; then
               WAIT=$((i * 30))

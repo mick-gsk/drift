@@ -15,9 +15,14 @@ on:
         required: false
         type: boolean
         default: true
+      use_dev_version:
+        description: 'Install dev version from workspace instead of published PyPI package'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -33,9 +38,14 @@ jobs:
           python-version: '3.12'
 
       - name: Install drift
+        shell: bash
         run: |
           pip install --upgrade pip
-          pip install -e ".[dev]"
+          if [ "${{ inputs.use_dev_version || 'false' }}" = "true" ]; then
+            pip install -e ".[dev]"
+          else
+            pip install drift-analyzer
+          fi
 
       - name: Run Oracle FP Audit
         run: |
@@ -65,3 +75,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python scripts/ci_fp_threshold_alert.py
+
+      - name: Commit oracle report to repo
+        if: ${{ inputs.save_history == true || inputs.save_history == 'true' }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add benchmark_results/oracle_fp_report.json benchmark_results/oracle_fp_history.json 2>/dev/null || true
+          git diff --cached --quiet && echo "nothing to commit" && exit 0
+          git commit -m "chore(oracle): update fp oracle report [skip ci]"
+          git push
