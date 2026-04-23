@@ -5,17 +5,27 @@ from __future__ import annotations
 def test_capture_intent_registered() -> None:
     from drift.serve.a2a_router import _SKILL_DISPATCH, _ensure_dispatch_table
 
-    _SKILL_DISPATCH.clear()
-    table = _ensure_dispatch_table()
-    assert "capture_intent" in table
+    original = dict(_SKILL_DISPATCH)
+    try:
+        _SKILL_DISPATCH.clear()
+        table = _ensure_dispatch_table()
+        assert "capture_intent" in table
+    finally:
+        _SKILL_DISPATCH.clear()
+        _SKILL_DISPATCH.update(original)
 
 
 def test_verify_intent_registered() -> None:
     from drift.serve.a2a_router import _SKILL_DISPATCH, _ensure_dispatch_table
 
-    _SKILL_DISPATCH.clear()
-    table = _ensure_dispatch_table()
-    assert "verify_intent" in table
+    original = dict(_SKILL_DISPATCH)
+    try:
+        _SKILL_DISPATCH.clear()
+        table = _ensure_dispatch_table()
+        assert "verify_intent" in table
+    finally:
+        _SKILL_DISPATCH.clear()
+        _SKILL_DISPATCH.update(original)
 
 
 def test_feedback_for_agent_registered() -> None:

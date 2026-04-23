@@ -429,29 +429,36 @@ def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
 
     import drift.serve.a2a_router as router
 
-    router._SKILL_DISPATCH.clear()
-    router._SKILL_DISPATCH.update({"scan": lambda p: {"ok": True}})
+    original_dispatch = dict(router._SKILL_DISPATCH)
+    try:
+        router._SKILL_DISPATCH.clear()
+        router._SKILL_DISPATCH.update({"scan": lambda p: {"ok": True}})
 
-    params_ok = A2AMessageSendParams(
-        message=A2AMessage(
-            metadata={"skillId": "scan"},
-            parts=[A2AMessagePart(kind="data", data={"skill": "scan", "path": str(tmp_path)})],
+        params_ok = A2AMessageSendParams(
+            message=A2AMessage(
+                metadata={"skillId": "scan"},
+                parts=[A2AMessagePart(kind="data", data={"skill": "scan", "path": str(tmp_path)})],
+            )
         )
-    )
-    r_ok = dispatch(params_ok, "1")
-    assert hasattr(r_ok, "result")
+        r_ok = dispatch(params_ok, "1")
+        assert hasattr(r_ok, "result")
 
-    router._SKILL_DISPATCH.clear()
-    router._SKILL_DISPATCH.update(
-        {"scan": lambda p: (_ for _ in ()).throw(ValueError("bad params"))}
-    )
-    r_val = dispatch(params_ok, "1")
-    assert hasattr(r_val, "error")
+        router._SKILL_DISPATCH.clear()
+        router._SKILL_DISPATCH.update(
+            {"scan": lambda p: (_ for _ in ()).throw(ValueError("bad params"))}
+        )
+        r_val = dispatch(params_ok, "1")
+        assert hasattr(r_val, "error")
 
-    router._SKILL_DISPATCH.clear()
-    router._SKILL_DISPATCH.update({"scan": lambda p: (_ for _ in ()).throw(RuntimeError("boom"))})
-    r_err = dispatch(params_ok, "1")
-    assert hasattr(r_err, "error")
+        router._SKILL_DISPATCH.clear()
+        router._SKILL_DISPATCH.update(
+            {"scan": lambda p: (_ for _ in ()).throw(RuntimeError("boom"))}
+        )
+        r_err = dispatch(params_ok, "1")
+        assert hasattr(r_err, "error")
+    finally:
+        router._SKILL_DISPATCH.clear()
+        router._SKILL_DISPATCH.update(original_dispatch)
 
 
 def test_markdown_report_generation(tmp_path: Path) -> None:

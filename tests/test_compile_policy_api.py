@@ -92,9 +92,14 @@ class TestCompilePolicyMCPHandler:
     def test_dispatch_table_includes_compile_policy(self):
         from drift.serve.a2a_router import _SKILL_DISPATCH, _ensure_dispatch_table
 
-        _SKILL_DISPATCH.clear()  # Reset so _ensure_dispatch_table repopulates fully
-        _ensure_dispatch_table()
-        assert "compile_policy" in _SKILL_DISPATCH
+        original = dict(_SKILL_DISPATCH)
+        try:
+            _SKILL_DISPATCH.clear()  # Reset so _ensure_dispatch_table repopulates fully
+            _ensure_dispatch_table()
+            assert "compile_policy" in _SKILL_DISPATCH
+        finally:
+            _SKILL_DISPATCH.clear()
+            _SKILL_DISPATCH.update(original)
 
     @patch("drift.serve.a2a_router._validate_repo_path", side_effect=lambda p: p)
     def test_handler_calls_api(self, mock_validate):
