@@ -252,11 +252,11 @@ def _refine_recommendations_with_are(
             rec.effort = effort_map[primary_finding.signal_type]  # type: ignore[union-attr, attr-defined]
         reward = compute_reward(
             outcome,
-            rec,
+            rec,  # type: ignore[arg-type]
             primary_finding,
             all_outcomes=outcomes,
             calibrated_effort=effort_map.get(primary_finding.signal_type),
-        )  # type: ignore[arg-type]
+        )
         reward_log_path = repo_root / ".drift" / "reward_log.jsonl"
         append_reward_log(
             reward_log_path,
@@ -264,7 +264,7 @@ def _refine_recommendations_with_are(
                 ts=_datetime.now(UTC).isoformat(),
                 signal_type=str(primary_finding.signal_type),
                 finding_id=str(primary_finding.id) if primary_finding.id else "",
-                recommendation_id=str(rec.id) if rec.id else None,  # type: ignore[union-attr]
+                recommendation_id=str(rec.id) if rec.id else None,  # type: ignore[union-attr, attr-defined]
                 total=reward.total,
                 breakdown=reward.breakdown,
                 confidence=reward.confidence,
