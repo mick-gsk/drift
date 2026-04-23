@@ -6,7 +6,7 @@ import datetime as _dt
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -78,7 +78,7 @@ def _safe_load_json(path: Path) -> dict[str, Any] | list[Any] | None:
     if not path.exists():
         return None
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return cast(dict[str, Any] | list[Any], json.loads(path.read_text(encoding="utf-8")))
     except (json.JSONDecodeError, OSError):
         return None
 
@@ -121,7 +121,7 @@ def _regressive_signal_proposal(
     worst_slope = 0.0
 
     for key in metric_keys:
-        values = [r.get(key) for r in tail if isinstance(r.get(key), (int, float))]
+        values: list[int | float] = [v for r in tail if isinstance(v := r.get(key), (int, float))]
         if len(values) < 2:
             continue
         slope = (values[-1] - values[0]) / max(1, len(values) - 1)

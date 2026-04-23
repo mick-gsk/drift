@@ -396,14 +396,14 @@ def status(
         try:
             fingerprints = load_baseline(bl_path)
         except Exception:  # noqa: BLE001 — best-effort status command
-            fingerprints = []
+            fingerprints = set()
             bl_exists = False
         new, known = baseline_diff(analysis.findings, fingerprints) if fingerprints else (
             analysis.findings,
             [],
         )
     else:
-        fingerprints = []
+        fingerprints = set()
         new, known = analysis.findings, []
 
     if output_format == "json":
