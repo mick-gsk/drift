@@ -1,5 +1,25 @@
 # Risk Register
 
+## 2025-11-23 - ADR-097: Drift Self-Improvement Loop (DSOL)
+
+- Risk ID: RISK-ADR-097-DSOL
+- Component: `src/drift/self_improvement/engine.py`, `src/drift/commands/self_improve.py`, `.github/workflows/self-improvement-loop.yml`.
+- Type: Process / Continuous Self-Optimization Loop — wöchentlicher Cron emittiert Verbesserungsvorschläge ohne Auto-Merge.
+- Description: DSOL beobachtet drift-eigene KPI-Trends, Hotspot-Findings und Audit-Stale-Status, emittiert maximal `DEFAULT_MAX_PROPOSALS=10` priorisierte Vorschläge pro Cycle, trackt sie in `.drift/self_improvement_ledger.jsonl`, und nutzt Recurrence (`= 2`) um wiederkehrende Probleme automatisch nach oben zu sortieren. Workflow lädt Artefakte hoch (365 Tage Retention), kommentiert weder PRs noch Issues, pusht nichts.
+- Severity: MEDIUM — Fehlverhalten führt zu Aufmerksamkeits-Rauschen oder verlorenem Compounding, nicht zu Code-Defekten.
+- Triggers:
+  - Wöchentlicher Cron (`17 4 * * 0`).
+  - Manueller `workflow_dispatch` mit `max-proposals`-Override.
+  - Lokaler `drift self-improve run`.
+- Specific risks:
+  - Loop-Runaway → Cap via `--max-proposals` und Per-Signal-Cap = `max_items // 3`.
+  - Metric Gaming durch Self-Modifying Scoring → ADR-097 Out-of-Scope, kein Patch-Pfad im Code.
+  - Ledger-Korruption → `_safe_load_jsonl` graceful skip, append-only.
+  - Push without Consent → Workflow Permissions `contents: read`, kein `git push`/`gh pr`.
+- Detection: Tests `tests/test_self_improvement_loop.py` (11) decken Cap, Per-Signal-Dominance, Recurrence, Determinismus, CLI ab.
+- Mitigations: Hard-Cap, frozen Pydantic, deterministische Sortierung, Workflow-Permissions read-only, Job-Summary statt PR-Comment.
+- Status: Mitigated (proposed, awaiting first cycle in production).
+
 ## 2026-05-04 - ADR-095: Issue-Auto-Filing (Paket 2C)
 
 - Risk ID: RISK-ADR-095-AUTO-ISSUE

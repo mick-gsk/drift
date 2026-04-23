@@ -1,5 +1,14 @@
 # FMEA Matrix
 
+## 2025-11-23 - ADR-097: Drift Self-Improvement Loop (DSOL)
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `SelfImprovementEngine.run` | Loop-Runaway / Proposal-Flood | regressive KPI-Daten oder breit gestreute Findings ohne Cap | Maintainer wird mit hunderten Proposals geflutet, Effekt sinkt auf null | Cycle-Artefakte zeigen Anzahl, Job-Summary listet Top-N | `DEFAULT_MAX_PROPOSALS=10`, Per-Signal-Cap = `max_items // 3`, deterministische Sortierung `(-recurrence, -score, proposal_id)` — Test `test_max_proposals_cap_enforced` und `test_per_signal_dominance_capped` blocken | 3 | 2 | 1 | 6 | Mitigated |
+| DSOL → Codepath | Metric Gaming: Loop modifiziert Scoring-Gewichte zur eigenen "Verbesserung" | Observation-Behavior-Coupling | Manipulierte KPIs, falsche Verlässlichkeit | ADR-097 listet das explizit als Out-of-Scope; CLI hat keinen Patch-Pfad; Workflow `permissions: contents: read` only | DSOL emittiert ausschließlich Vorschläge in `work_artifacts/`; weder Code-Patches noch Config-Edits; Maintainer-Approval Pflicht | 5 | 1 | 1 | 5 | Mitigated |
+| `.drift/self_improvement_ledger.jsonl` | Ledger-Korruption | Crash mid-write, Konflikt-Merge, manuelle Edits | Recurrence-Tracking verloren, Compounding bricht | `_safe_load_jsonl` skippt malformed lines silently | Append-only Format minimiert Schreibrisiko; nächster Cycle initialisiert sauber neu | 2 | 2 | 2 | 8 | Accepted |
+| `.github/workflows/self-improvement-loop.yml` | Push without Consent | Workflow erhält schreibende Permissions | Auto-Commit ohne Maintainer-Review | YAML-Review via CODEOWNERS, expliziter `permissions: contents: read` Block | Workflow lädt nur Artefakte hoch und schreibt Job-Summary; kein `gh pr`-/`git push`-Aufruf vorhanden | 5 | 1 | 1 | 5 | Mitigated |
+
 ## 2026-05-04 - ADR-095: Issue-Auto-Filing (Paket 2C)
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

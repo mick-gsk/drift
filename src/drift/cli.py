@@ -298,6 +298,7 @@ from drift.commands.preset import preset
 from drift.commands.roi_estimate import roi_estimate
 from drift.commands.scan import scan
 from drift.commands.self_analyze import self_analyze
+from drift.commands.self_improve import self_improve
 from drift.commands.serve import serve
 from drift.commands.session_report import session_report
 from drift.commands.setup import setup
@@ -347,6 +348,7 @@ main.add_command(timeline)
 main.add_command(trend)
 main.add_command(validate)
 main.add_command(self_analyze)
+main.add_command(self_improve)
 main.add_command(badge)
 main.add_command(verify)
 main.add_command(patch)

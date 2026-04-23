@@ -1,0 +1,87 @@
+# Drift Self-Improvement Loop (DSOL) — ADR-097.
+#
+# Runs once a week (and on manual dispatch). Executes one bounded
+# DSOL cycle, uploads the proposals.json + summary.md artefact, and
+# pings the maintainer via the workflow run summary. Does NOT open
+# PRs, does NOT comment on issues, does NOT push commits — fully
+# consistent with the repo "kein ungefragtes Posten" policy.
+
+name: Drift — Self-Improvement Loop
+
+on:
+  schedule:
+    # Every Sunday at 04:17 UTC. Off-peak so it never collides with
+    # release jobs.
+    - cron: "17 4 * * 0"
+  workflow_dispatch:
+    inputs:
+      max-proposals:
+        description: Hard cap on proposals per cycle.
+        required: false
+        type: string
+        default: "10"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: drift-self-improvement-loop
+  cancel-in-progress: false
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install drift
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run self-scan (best-effort)
+        # Best-effort: if it fails, the DSOL cycle still produces a
+        # meaningful artefact based on the existing kpi trend log and
+        # whatever drift_self.json already lives in benchmark_results/.
+        continue-on-error: true
+        run: |
+          drift analyze --repo . --format json --output benchmark_results/drift_self.json --exit-zero
+
+      - name: Run DSOL cycle
+        env:
+          DRIFT_DSOL_MAX: ${{ inputs.max-proposals || '10' }}
+        run: |
+          drift self-improve run --max-proposals "${DRIFT_DSOL_MAX}" --format text
+
+      - name: Locate cycle artefacts
+        id: locate
+        run: |
+          set -euo pipefail
+          CYCLE_DIR="$(ls -1d work_artifacts/self_improvement/*/ | tail -n 1)"
+          echo "cycle_dir=${CYCLE_DIR}" >> "$GITHUB_OUTPUT"
+          echo "Cycle dir: ${CYCLE_DIR}"
+
+      - name: Render summary into job summary
+        run: |
+          if [ -f "${{ steps.locate.outputs.cycle_dir }}summary.md" ]; then
+            cat "${{ steps.locate.outputs.cycle_dir }}summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload cycle artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsol-cycle-${{ github.run_id }}
+          path: |
+            work_artifacts/self_improvement/**
+            .drift/self_improvement_ledger.jsonl
+          if-no-files-found: warn
+          retention-days: 365
