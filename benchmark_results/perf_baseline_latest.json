@@ -1,12 +1,12 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-23T11:14:17.220509+00:00",
+    "generated_at": "2026-04-23T11:18:39.507250+00:00",
     "generated_by": "benchmark-baseline-loop",
-    "sha": "11190e696ed175d6ec21e2b0b185ee56cf172ddf",
+    "sha": "51db233bd9affad0611876240f6e217d0a169b37",
     "ref": "main"
   },
-  "version": "2.35.1",
-  "sha": "11190e696ed175d6ec21e2b0b185ee56cf172ddf",
+  "version": "2.36.0",
+  "sha": "51db233bd9affad0611876240f6e217d0a169b37",
   "drift_score": 0.379,
   "grade": "B",
   "findings_count": 772,
