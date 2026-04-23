@@ -415,7 +415,7 @@ def _derive_diagnostic_hypothesis_id(payload: dict[str, Any]) -> str:
         ).strip(),
         "non_goals": sorted([str(item).strip() for item in payload.get("non_goals", [])]),
     }
-    digest = hashlib.sha1(  # noqa: S324
+    digest = hashlib.sha256(
         json.dumps(normalized, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()[:12]
     return f"hyp-{digest}"

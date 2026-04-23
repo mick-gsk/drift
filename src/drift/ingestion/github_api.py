@@ -76,7 +76,7 @@ class GitHubClient:
         req = urllib.request.Request(url, headers=headers)
 
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
+            with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310  # nosec B310
                 # Update rate-limit tracking
                 self._rate_remaining = _int_header(resp, "X-RateLimit-Remaining")
                 self._rate_reset = _float_header(resp, "X-RateLimit-Reset")

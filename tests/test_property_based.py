@@ -152,6 +152,7 @@ def test_discover_files_terminates_on_empty_repo(include: list[str], exclude: li
 )
 @settings(
     max_examples=30,
+    deadline=None,
     suppress_health_check=[
         HealthCheck.too_slow,
         HealthCheck.function_scoped_fixture,

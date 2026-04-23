@@ -45,6 +45,7 @@ master-backlog/*
 !master-backlog/11-cloud-trend-storage.md
 .internal/
 scripts/_*
+!scripts/_context_mapping.py
 tagesplanung/
 *-ruleset.json
 docs/issue-claim-playbook.md

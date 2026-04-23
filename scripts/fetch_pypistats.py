@@ -44,7 +44,7 @@ def _aggregate_monthly_downloads(rows: list[dict[str, object]]) -> dict[str, int
 def _fetch_overall(package: str, timeout: int) -> list[dict[str, object]]:
     url = f"https://pypistats.org/api/packages/{package}/overall?mirrors=false"
     request = Request(url, headers={"User-Agent": "drift-package-kpis/1"})
-    with urlopen(request, timeout=timeout) as response:  # noqa: S310
+    with urlopen(request, timeout=timeout) as response:  # noqa: S310  # nosec B310
         payload = json.loads(response.read().decode("utf-8"))
     return list(payload.get("data", []))
 

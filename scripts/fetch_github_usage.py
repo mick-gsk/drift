@@ -46,7 +46,7 @@ def _github_get_json(url: str, token: str | None, timeout: int) -> dict[str, obj
         headers["Authorization"] = f"Bearer {token}"
 
     request = Request(url, headers=headers)
-    with urlopen(request, timeout=timeout) as response:  # noqa: S310
+    with urlopen(request, timeout=timeout) as response:  # noqa: S310  # nosec B310
         return json.loads(response.read().decode("utf-8"))
 
 
