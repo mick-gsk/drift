@@ -7,6 +7,10 @@ name: Performance Regression Loop
 # iterations are reached.
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/drift/**"
   workflow_dispatch:
     inputs:
       budget:
@@ -50,7 +54,7 @@ jobs:
       issue_body: ${{ steps.gate.outputs.issue_body }}
       findings_count: ${{ steps.gate.outputs.findings_count }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           fetch-depth: 0
 
@@ -78,7 +82,7 @@ jobs:
           }
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.12"
 
@@ -109,9 +113,14 @@ jobs:
         id: gate
         shell: powershell
         run: |
-          $budget = "${{ inputs.budget || '30' }}"
-          $maxIter = "${{ inputs.max_iterations || '5' }}"
-          $targetPath = "${{ inputs.target_path || 'src/drift' }}"
+          # Use perf_budget.json defaults; inputs override when provided.
+          $budgetDefaults = Get-Content benchmarks/perf_budget.json | ConvertFrom-Json
+          $budget = "${{ inputs.budget }}"
+          if (-not $budget) { $budget = $budgetDefaults.wall_clock_budget_seconds }
+          $maxIter = "${{ inputs.max_iterations }}"
+          if (-not $maxIter) { $maxIter = $budgetDefaults.max_iterations }
+          $targetPath = "${{ inputs.target_path }}"
+          if (-not $targetPath) { $targetPath = $budgetDefaults.target_path }
           $iteration = "${{ steps.iter.outputs.iteration }}"
 
           $raw = & $env:PYTHON_BIN scripts/perf_gate.py `

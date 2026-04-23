@@ -1,0 +1,7 @@
+{
+  "wall_clock_budget_seconds": 30,
+  "max_iterations": 5,
+  "target_path": "src/drift",
+  "benchmark_runs": 3,
+  "warmup_runs": 1
+}
