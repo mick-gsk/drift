@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import datetime as _dt
+import json
 from pathlib import Path
+from typing import Any
 
 import click
 
@@ -31,7 +34,17 @@ from drift.signal_mapping import signal_abbrev
     default=None,
     help="Path to drift config file.",
 )
-def watch(repo: Path, debounce: float, config: Path | None) -> None:
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=None,
+    help=(
+        "Write latest nudge result as JSON to this file "
+        "(machine-readable; updated on every change)."
+    ),
+)
+def watch(repo: Path, debounce: float, config: Path | None, output: Path | None) -> None:
     """Watch for file changes and show incremental drift feedback.
 
     Runs an initial analysis to establish a baseline, then watches for
@@ -79,6 +92,8 @@ def watch(repo: Path, debounce: float, config: Path | None) -> None:
     try:
         result = nudge(path=repo_path)
         _print_nudge_summary(result, initial=True)
+        if output is not None:
+            _write_output_file(output, result, initial=True)
     except Exception as exc:  # noqa: BLE001
         console.print(f"[red]Initial analysis failed:[/] {exc}")
         raise SystemExit(1) from exc
@@ -135,12 +150,44 @@ def watch(repo: Path, debounce: float, config: Path | None) -> None:
                     changed_files=changed_files,
                 )
                 _print_nudge_summary(result)
+                if output is not None:
+                    _write_output_file(
+                        output, result, initial=False, changed_files=changed_files
+                    )
             except Exception as exc:  # noqa: BLE001
                 console.print(f"[red]Analysis error:[/] {exc}")
+                if output is not None:
+                    _write_output_file(
+                        output, {}, initial=False,
+                        changed_files=changed_files, error=str(exc),
+                    )
 
     except KeyboardInterrupt:
         console.print("\n[dim]Stopped watching.[/]")
         raise SystemExit(0) from None
+
+
+def _write_output_file(
+    path: Path,
+    result: dict[str, Any],
+    *,
+    initial: bool,
+    changed_files: list[str] | None = None,
+    error: str | None = None,
+) -> None:
+    """Write a machine-readable nudge summary to *path* (schema_version 1)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "schema_version": "1",
+        "timestamp": _dt.datetime.now(_dt.UTC).isoformat(),
+        "initial": initial,
+        "error": error,
+        "direction": result.get("direction") if not error else None,
+        "delta": result.get("delta", 0.0) if not error else None,
+        "safe_to_commit": result.get("safe_to_commit") if not error else None,
+        "changed_files": changed_files or [],
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def _print_nudge_summary(result: dict, *, initial: bool = False) -> None:
