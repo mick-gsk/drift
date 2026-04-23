@@ -16,6 +16,9 @@ concurrency:
   group: "docker-${{ github.ref_name }}"
   cancel-in-progress: true
 
+# Job-level permissions override these defaults; see build-and-push below.
+permissions: {}
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}

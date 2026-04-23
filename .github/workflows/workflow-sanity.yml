@@ -86,3 +86,32 @@ jobs:
               sys.exit(1)
           print('No conflict markers.')
           "
+
+      - name: Install actionlint v1.7.11 (checksummed)
+        # Download a pinned binary and verify its SHA-256 digest before running.
+        # This is the checksummed-binary pattern — no curl | bash, no floating
+        # action tag. The digest matches the GitHub API asset digest for
+        # actionlint_1.7.11_windows_amd64.zip.
+        shell: powershell
+        run: |
+          $ver    = "1.7.11"
+          $sha256 = "5414b7124a91f4b5abee62e5c9d84802237734f8d15b9b7032732a32c3ebffa3"
+          $url    = "https://github.com/rhysd/actionlint/releases/download/v${ver}/actionlint_${ver}_windows_amd64.zip"
+          $zip    = "$env:RUNNER_TEMP\actionlint.zip"
+          Invoke-RestMethod -Uri $url -OutFile $zip
+          $actual = (Get-FileHash -Algorithm SHA256 -Path $zip).Hash.ToLower()
+          if ($actual -ne $sha256) {
+            Write-Error "actionlint SHA256 mismatch:`n  expected: $sha256`n  actual:   $actual"
+            exit 1
+          }
+          Expand-Archive -Path $zip -DestinationPath "$env:RUNNER_TEMP\actionlint"
+          "$env:RUNNER_TEMP\actionlint" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "actionlint v${ver} installed (SHA-256 verified)"
+
+      - name: Lint workflow files (actionlint)
+        # Fast targeted check on workflow files — runs before the heavier
+        # security-hygiene job completes. Actionlint already runs there via
+        # pre-commit, but only on full CI; this catches errors earlier for
+        # workflow-only PRs.
+        shell: powershell
+        run: actionlint -color

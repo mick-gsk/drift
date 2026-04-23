@@ -19,6 +19,9 @@ concurrency:
   group: "ci-${{ github.event.pull_request.number || github.ref }}"
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   version-check:
     name: Version format check
