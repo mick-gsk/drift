@@ -71,3 +71,5 @@ drift.intent.report.md
 .gitattributes
 .importlinter
 vulture_whitelist.py
+blast_reports
+drift.strict.yaml
