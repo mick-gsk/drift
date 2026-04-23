@@ -202,6 +202,12 @@ exclude = ["benchmarks/corpus"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# libcst visitor/transformer methods must use PascalCase suffixes (visit_Module,
+# leave_If, …). N802 and N805 violations here are false positives from the API
+# contract; suppressing them per-directory avoids noqa noise on every method.
+"scripts/quality_loop/**" = ["N802", "N805"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true

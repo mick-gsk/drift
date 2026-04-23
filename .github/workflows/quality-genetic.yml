@@ -1,0 +1,83 @@
+name: "Quality Loop - Hybrid GA (weekly)"
+
+on:
+  schedule:
+    # 02:00 UTC every Sunday
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      ga_generations:
+        description: "Number of GA generations"
+        required: false
+        default: "20"
+      ga_population:
+        description: "GA population size"
+        required: false
+        default: "10"
+      mcts_budget:
+        description: "MCTS seed budget"
+        required: false
+        default: "50"
+      dry_run:
+        description: "Dry-run (no commits)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  hybrid-quality-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies (dev + autopatch)
+        run: pip install -e '.[dev,autopatch]'
+
+      - name: Run hybrid GA quality loop
+        id: ga_run
+        run: |
+          python -m scripts.quality_loop run \
+            --mode hybrid \
+            --src src/drift \
+            --mcts-budget ${{ github.event.inputs.mcts_budget || '50' }} \
+            --ga-generations ${{ github.event.inputs.ga_generations || '20' }} \
+            --ga-population ${{ github.event.inputs.ga_population || '10' }} \
+            --min-improvement 0.01 \
+            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || '' }} \
+            --output-json ga_result.json \
+            --exit-zero
+        continue-on-error: true
+
+      - name: Upload GA result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ga_result
+          path: ga_result.json
+          retention-days: 90
+
+      - name: Commit improvements (if any)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit."
+          else
+            git add -A src/drift/
+            git commit -m "chore: GA quality loop improvement [skip ci]"
+            git push
+          fi

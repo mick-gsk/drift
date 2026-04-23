@@ -1,0 +1,73 @@
+name: "Quality Loop - MCTS (nightly)"
+
+on:
+  schedule:
+    # 01:00 UTC every night
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      mcts_budget:
+        description: "MCTS iteration budget"
+        required: false
+        default: "50"
+      dry_run:
+        description: "Dry-run (no commits)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  mcts-quality-loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies (dev + autopatch)
+        run: pip install -e '.[dev,autopatch]'
+
+      - name: Run MCTS quality loop
+        id: mcts_run
+        run: |
+          python -m scripts.quality_loop run \
+            --mode mcts \
+            --src src/drift \
+            --mcts-budget ${{ github.event.inputs.mcts_budget || '50' }} \
+            --min-improvement 0.01 \
+            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || '' }} \
+            --output-json mcts_result.json \
+            --exit-zero
+        continue-on-error: true
+
+      - name: Upload MCTS result artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcts_result
+          path: mcts_result.json
+          retention-days: 30
+
+      - name: Commit improvements (if any)
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit."
+          else
+            git add -A src/drift/
+            git commit -m "chore: MCTS quality loop improvement [skip ci]"
+            git push
+          fi
