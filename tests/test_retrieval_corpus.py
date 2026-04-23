@@ -136,7 +136,7 @@ def test_policy_chunks_exist(repo_root: Path) -> None:
 
 
 def test_adr_parses_canonical_sections(repo_root: Path) -> None:
-    adr_file = repo_root / "decisions" / "ADR-091-drift-retrieval-rag.md"
+    adr_file = repo_root / "docs" / "decisions" / "ADR-091-drift-retrieval-rag.md"
     if not adr_file.exists():
         pytest.skip("ADR-091 not yet present")
     chunks = list(parse_adr(adr_file, repo_root))

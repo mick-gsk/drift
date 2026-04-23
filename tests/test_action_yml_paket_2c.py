@@ -10,7 +10,7 @@ yaml = pytest.importorskip("yaml")
 
 REPO = Path(__file__).resolve().parent.parent
 ACTION = REPO / "action.yml"
-ADR = REPO / "decisions" / "ADR-095-auto-issue-filing.md"
+ADR = REPO / "docs" / "decisions" / "ADR-095-auto-issue-filing.md"
 TEMPLATE = REPO / ".github" / "ISSUE_TEMPLATE" / "drift-block.yml"
 
 
