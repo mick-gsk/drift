@@ -104,6 +104,7 @@ nav:
   - Home: index.md
   - What is Architectural Drift?: what-is-architectural-drift.md
   - "Try It — No Install": prove-it.md
+  - "Playground": playground/index.md
   - Start Here: start-here.md
   - Getting Started:
     - Quickstart: getting-started/quickstart.md

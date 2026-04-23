@@ -33,7 +33,7 @@ drift status         # traffic-light health check — your daily entry point
 [![License](https://img.shields.io/github/license/mick-gsk/drift)](LICENSE)
 [![Discussions](https://img.shields.io/github/discussions/mick-gsk/drift)](https://github.com/mick-gsk/drift/discussions)
 
-[Docs](https://mick-gsk.github.io/drift/) · [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Benchmarking](https://mick-gsk.github.io/drift/benchmarking/) · [Trust & Limitations](https://mick-gsk.github.io/drift/trust-evidence/)
+[Docs](https://mick-gsk.github.io/drift/) · [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Playground](https://mick-gsk.github.io/drift/playground/) · [Benchmarking](https://mick-gsk.github.io/drift/benchmarking/) · [Trust & Limitations](https://mick-gsk.github.io/drift/trust-evidence/)
 
 </div>
 
@@ -51,7 +51,7 @@ uvx drift-analyzer analyze --repo .
 > **What does `drift init --auto` do?** Detects your repo size and dependencies, picks the right profile (`vibe-coding` / `default` / `strict`), and writes `drift.yaml` — no questions asked.
 > The `vibe-coding` profile raises tolerance for missing tests and anti-pattern fixtures — common in AI-prototyped code.
 
-🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/)
+🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/) · [Interactive code playground →](https://mick-gsk.github.io/drift/playground/)
 
 > [!TIP]
 > **Best fit:** Python repos with 20+ files and active AI-assisted development. TypeScript/TSX repo? `pip install 'drift-analyzer[typescript]'` — 17/24 signals supported.

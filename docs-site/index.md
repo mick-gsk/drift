@@ -28,6 +28,7 @@ Unlike linters (Ruff, pylint) which check single files, or security scanners (Se
 | **Developer using AI tools** (Copilot, Cursor, Claude) | [Quick Start](getting-started/quickstart.md) — install to first findings in 2 minutes |
 | **Tech lead evaluating for your team** | [Evaluate Drift](start-here.md) — evidence, comparisons, and rollout guidance |
 | **Curious — just want to see it** | [Prove It](prove-it.md) — paste a GitHub URL, no install |
+| **Want to play with Python code live** | [Playground](https://mick-gsk.github.io/drift/playground/) — edit code, run drift in the browser |
 
 ```bash
 # Human dev
