@@ -1,15 +1,15 @@
 {
   "_metadata": {
-    "generated_at": "2026-04-23T10:25:13.911164+00:00",
+    "generated_at": "2026-04-23T11:14:17.220509+00:00",
     "generated_by": "benchmark-baseline-loop",
-    "sha": "9aaf1d3e327201fa0db3f4ca25910606cdf01184",
+    "sha": "11190e696ed175d6ec21e2b0b185ee56cf172ddf",
     "ref": "main"
   },
-  "version": "2.35.0",
-  "sha": "9aaf1d3e327201fa0db3f4ca25910606cdf01184",
-  "drift_score": 0.4,
-  "grade": "C",
-  "findings_count": 771,
+  "version": "2.35.1",
+  "sha": "11190e696ed175d6ec21e2b0b185ee56cf172ddf",
+  "drift_score": 0.379,
+  "grade": "B",
+  "findings_count": 772,
   "overall_recall": 0.96875,
   "precision_lenient_avg": 0.9374727668845316,
   "precision_by_signal": {
