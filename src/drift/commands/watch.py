@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import datetime as _dt
 import json
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -40,8 +41,9 @@ from drift.signal_mapping import signal_abbrev
     type=click.Path(path_type=Path),
     default=None,
     help=(
-        "Write latest nudge result as JSON to this file "
-        "(machine-readable; updated on every change)."
+        "Write nudge result as JSON to this file after each change. "
+        "Agents and IDEs can read this file without an MCP server. "
+        "Example: --output .drift/nudge.json"
     ),
 )
 def watch(repo: Path, debounce: float, config: Path | None, output: Path | None) -> None:
@@ -51,15 +53,21 @@ def watch(repo: Path, debounce: float, config: Path | None, output: Path | None)
     file changes and reports new/resolved findings in real time using
     the nudge API.
 
+    With --output, each nudge result is also written as a compact JSON
+    summary so agents and IDEs can read it without an MCP server::
+
+        drift watch --output .drift/nudge.json
+
     Requires the ``watchfiles`` package::
 
         pip install drift-analyzer[watch]
 
     Examples::
 
-        drift watch                   # watch current directory
-        drift watch --repo ../myproj  # watch a different repo
-        drift watch --debounce 1.0    # longer debounce window
+        drift watch                              # watch current directory
+        drift watch --repo ../myproj             # watch a different repo
+        drift watch --debounce 1.0               # longer debounce window
+        drift watch --output .drift/nudge.json   # write JSON for agents/IDEs
     """
     try:
         from watchfiles import watch as fs_watch  # type: ignore[import-untyped]
@@ -92,8 +100,10 @@ def watch(repo: Path, debounce: float, config: Path | None, output: Path | None)
     try:
         result = nudge(path=repo_path)
         _print_nudge_summary(result, initial=True)
-        if output is not None:
-            _write_output_file(output, result, initial=True)
+        if output:
+            summary = _build_nudge_summary(result, changed_files=[], initial=True)
+            _write_nudge_json(summary, output)
+            console.print(f"  [dim]Output written to {output}[/]", highlight=False)
     except Exception as exc:  # noqa: BLE001
         console.print(f"[red]Initial analysis failed:[/] {exc}")
         raise SystemExit(1) from exc
@@ -150,44 +160,22 @@ def watch(repo: Path, debounce: float, config: Path | None, output: Path | None)
                     changed_files=changed_files,
                 )
                 _print_nudge_summary(result)
-                if output is not None:
-                    _write_output_file(
-                        output, result, initial=False, changed_files=changed_files
+                if output:
+                    summary = _build_nudge_summary(
+                        result, changed_files=changed_files, initial=False
                     )
+                    _write_nudge_json(summary, output)
             except Exception as exc:  # noqa: BLE001
                 console.print(f"[red]Analysis error:[/] {exc}")
-                if output is not None:
-                    _write_output_file(
-                        output, {}, initial=False,
-                        changed_files=changed_files, error=str(exc),
+                if output:
+                    error_summary = _build_nudge_summary(
+                        {}, changed_files=changed_files, initial=False, error=str(exc)
                     )
+                    _write_nudge_json(error_summary, output)
 
     except KeyboardInterrupt:
         console.print("\n[dim]Stopped watching.[/]")
         raise SystemExit(0) from None
-
-
-def _write_output_file(
-    path: Path,
-    result: dict[str, Any],
-    *,
-    initial: bool,
-    changed_files: list[str] | None = None,
-    error: str | None = None,
-) -> None:
-    """Write a machine-readable nudge summary to *path* (schema_version 1)."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload: dict[str, Any] = {
-        "schema_version": "1",
-        "timestamp": _dt.datetime.now(_dt.UTC).isoformat(),
-        "initial": initial,
-        "error": error,
-        "direction": result.get("direction") if not error else None,
-        "delta": result.get("delta", 0.0) if not error else None,
-        "safe_to_commit": result.get("safe_to_commit") if not error else None,
-        "changed_files": changed_files or [],
-    }
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
 def _print_nudge_summary(result: dict, *, initial: bool = False) -> None:
@@ -252,6 +240,74 @@ def _print_nudge_summary(result: dict, *, initial: bool = False) -> None:
         console.print("  [green]✓ safe to commit[/]", highlight=False)
     elif not initial:
         console.print("  [yellow]⚠ not safe to commit[/]", highlight=False)
+
+
+def _build_nudge_summary(
+    result: dict[str, Any],
+    *,
+    changed_files: list[str],
+    initial: bool,
+    error: str | None = None,
+) -> dict[str, Any]:
+    """Build a compact, agent-readable summary dict from a nudge result."""
+    new_findings_raw = result.get("new_findings") or []
+    resolved_raw = result.get("resolved_findings") or []
+
+    new_findings = [
+        {
+            "rule_id": f.get("rule_id", ""),
+            "title": f.get("title", ""),
+            "severity": f.get("severity", ""),
+        }
+        for f in new_findings_raw
+        if isinstance(f, dict)
+    ]
+    resolved_findings = [
+        {"rule_id": f.get("rule_id", "")}
+        for f in resolved_raw
+        if isinstance(f, dict)
+    ]
+
+    return {
+        "schema_version": "1",
+        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        "changed_files": changed_files,
+        "initial": initial,
+        "direction": result.get("direction") if not error else None,
+        "delta": result.get("delta") if not error else None,
+        "safe_to_commit": result.get("safe_to_commit") if not error else None,
+        "new_findings": new_findings,
+        "resolved_findings": resolved_findings,
+        "auto_fast_path": result.get("auto_fast_path"),
+        "latency_exceeded": result.get("latency_exceeded"),
+        "error": error,
+    }
+
+
+def _write_nudge_json(summary: dict[str, Any], output_path: Path) -> None:
+    """Atomically write *summary* as JSON to *output_path*.
+
+    Creates parent directories if needed. Uses a temp file + ``Path.replace``
+    so readers never observe a partially-written file.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(summary, indent=2, default=str)
+    tmp_fd, tmp_name = tempfile.mkstemp(
+        dir=output_path.parent, prefix=".nudge_", suffix=".tmp"
+    )
+    try:
+        import os
+
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as fh:
+            fh.write(payload + "\n")
+        Path(tmp_name).replace(output_path)
+    except Exception:  # noqa: BLE001
+        # Best-effort cleanup; do not propagate — watcher must not crash.
+        try:
+            Path(tmp_name).unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
 
 
 def _estimated_signal_labels(result: dict) -> list[str]:

@@ -376,6 +376,7 @@ def _check_version_refs(_version: str) -> tuple[list[str], list[dict[str, Any]]]
     return [], []
 
 
+
 # ---------------------------------------------------------------------------
 # Check 7: Python version requirement in installation docs
 # ---------------------------------------------------------------------------
