@@ -68,7 +68,7 @@ def apply_baseline_filtering(analysis, cfg, baseline_file: Path | None) -> None:
 
     import json as _json
 
-    from drift.baseline import baseline_diff, load_baseline
+    from drift.baseline import BASELINE_STALE_DAYS, baseline_age_days, baseline_diff, load_baseline
 
     try:
         fingerprints = load_baseline(baseline_file)
@@ -81,6 +81,16 @@ def apply_baseline_filtering(analysis, cfg, baseline_file: Path | None) -> None:
             err=True,
         )
         raise SystemExit(1) from exc
+
+    age = baseline_age_days(baseline_file)
+    if age is not None and age > BASELINE_STALE_DAYS:
+        import click as _click
+
+        _click.echo(
+            f"Warning: baseline is {age:.0f} days old — consider running "
+            f"'drift baseline save' to refresh it.",
+            err=True,
+        )
     new, known = baseline_diff(analysis.findings, fingerprints)
     analysis.findings = new
     analysis.suppressed_count += len(known)

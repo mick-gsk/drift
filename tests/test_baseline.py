@@ -10,6 +10,8 @@ import pytest
 from click.testing import CliRunner
 
 from drift.baseline import (
+    BASELINE_STALE_DAYS,
+    baseline_age_days,
     baseline_diff,
     finding_fingerprint,
     finding_fingerprint_v1,
@@ -1013,3 +1015,41 @@ class TestBaselineRatchetADR093:
         assert out.exists()
         fps = load_baseline(out)
         assert len(fps) == 1
+
+
+# ---------------------------------------------------------------------------
+# baseline_age_days tests
+# ---------------------------------------------------------------------------
+
+
+class TestBaselineAgeDays:
+    def test_returns_age_for_fresh_baseline(self, tmp_path: Path) -> None:
+        now = datetime.datetime.now(datetime.UTC)
+        data = {"created_at": now.isoformat(), "fingerprints": []}
+        bl = tmp_path / "baseline.json"
+        bl.write_text(json.dumps(data), encoding="utf-8")
+        age = baseline_age_days(bl)
+        assert age is not None
+        assert 0.0 <= age < 1.0
+
+    def test_returns_large_age_for_old_baseline(self, tmp_path: Path) -> None:
+        old = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
+        data = {"created_at": old.isoformat(), "fingerprints": []}
+        bl = tmp_path / "baseline.json"
+        bl.write_text(json.dumps(data), encoding="utf-8")
+        age = baseline_age_days(bl)
+        assert age is not None
+        assert age > BASELINE_STALE_DAYS
+
+    def test_returns_none_for_missing_file(self, tmp_path: Path) -> None:
+        age = baseline_age_days(tmp_path / "nonexistent.json")
+        assert age is None
+
+    def test_returns_none_when_created_at_missing(self, tmp_path: Path) -> None:
+        bl = tmp_path / "baseline.json"
+        bl.write_text(json.dumps({"fingerprints": []}), encoding="utf-8")
+        age = baseline_age_days(bl)
+        assert age is None
+
+    def test_stale_days_constant_is_positive(self) -> None:
+        assert BASELINE_STALE_DAYS > 0

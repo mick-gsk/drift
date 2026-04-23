@@ -225,6 +225,32 @@ def load_baseline(path: Path) -> set[str]:
 
 
 # ---------------------------------------------------------------------------
+# Staleness detection
+# ---------------------------------------------------------------------------
+
+#: Number of days after which a saved baseline is considered stale.
+BASELINE_STALE_DAYS: int = 30
+
+
+def baseline_age_days(path: Path) -> float | None:
+    """Return the age of a baseline file in days, or ``None`` if unavailable.
+
+    Reads ``created_at`` from the baseline JSON.  Returns ``None`` when the
+    file does not exist, cannot be parsed, or the field is missing.
+    """
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        created_at_str = data.get("created_at")
+        if not created_at_str:
+            return None
+        created_at = datetime.fromisoformat(created_at_str)
+        age = (datetime.now(UTC) - created_at).total_seconds() / 86400.0
+        return age
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Diff logic
 # ---------------------------------------------------------------------------
 
