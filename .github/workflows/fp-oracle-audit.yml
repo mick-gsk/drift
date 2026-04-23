@@ -22,7 +22,7 @@ on:
         default: false
 
 permissions:
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -46,6 +46,19 @@ jobs:
           else
             pip install drift-analyzer
           fi
+
+      - name: Create benchmark_results directory
+        run: mkdir -p benchmark_results
+
+      - name: Restore previous oracle report
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: |
+            benchmark_results/oracle_fp_report.json
+            benchmark_results/oracle_fp_history.json
+          key: fp-oracle-${{ github.run_id }}
+          restore-keys: fp-oracle-
+        continue-on-error: true
 
       - name: Run Oracle FP Audit
         run: |
@@ -76,13 +89,11 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python scripts/ci_fp_threshold_alert.py
 
-      - name: Commit oracle report to repo
-        if: ${{ inputs.save_history == true || inputs.save_history == 'true' }}
-        run: |
-          set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add benchmark_results/oracle_fp_report.json benchmark_results/oracle_fp_history.json 2>/dev/null || true
-          git diff --cached --quiet && echo "nothing to commit" && exit 0
-          git commit -m "chore(oracle): update fp oracle report [skip ci]"
-          git push
+      - name: Save oracle report to cache
+        if: always()
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: |
+            benchmark_results/oracle_fp_report.json
+            benchmark_results/oracle_fp_history.json
+          key: fp-oracle-${{ github.run_id }}

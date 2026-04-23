@@ -31,6 +31,7 @@ Thumbs.db
 Desktop.ini
 site/
 audit_results/
+benchmark_results/
 drift_score.json
 work_artifacts/
 master-backlog/*

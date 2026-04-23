@@ -33,8 +33,6 @@ ROADMAP.md
 SECURITY.md
 SUPPORT.md
 action.yml
-audit_results
-benchmark_results
 benchmarks
 demos
 docs
@@ -42,7 +40,6 @@ docs-site
 drift.example.yaml
 drift.output.schema.json
 drift.schema.json
-drift-guided-mode-prd-v2.md
 drift.yaml
 examples
 extensions

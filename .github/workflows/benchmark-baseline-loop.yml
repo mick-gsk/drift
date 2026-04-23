@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -51,10 +51,21 @@ jobs:
       - name: Install dev dependencies
         run: pip install -e ".[dev]" --quiet
 
+      - name: Create benchmark_results directory
+        run: mkdir -p benchmark_results
+
+      - name: Restore previous KPI baseline
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: benchmark_results/perf_baseline_latest.json
+          key: kpi-baseline-${{ github.run_id }}
+          restore-keys: kpi-baseline-
+        continue-on-error: true
+
       - name: Generate KPI snapshot (drift analyze only)
         run: |
           python scripts/generate_benchmark_baseline.py --skip-drift-analyze
-        # Note: mutation_benchmark.json already committed; only drift_score refresh needs re-analyze.
+        # Note: mutation_benchmark.json is no longer committed to git; only drift_score refresh needs re-analyze.
         # We run without --skip-drift-analyze only in the full job to keep this step fast.
 
       - name: Generate KPI snapshot with drift analyze
@@ -63,15 +74,18 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
 
-      - name: Commit updated baseline
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase --autostash origin main
-          git add benchmark_results/perf_baseline_latest.json
-          git diff --cached --quiet && echo "No changes to commit." && exit 0
-          git commit -m "chore(baseline): update KPI snapshot after release [skip ci]"
-          git push origin main
+      - name: Upload updated KPI baseline
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: perf-baseline
+          path: benchmark_results/perf_baseline_latest.json
+          retention-days: 90
+
+      - name: Save KPI baseline to cache
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: benchmark_results/perf_baseline_latest.json
+          key: kpi-baseline-${{ github.run_id }}
 
   # ── Job B: Full mutation benchmark + regression gate (weekly or manual full) ─────────────────
   mutation-baseline:
@@ -95,6 +109,19 @@ jobs:
       - name: Install dev dependencies
         run: pip install -e ".[dev]" --quiet
 
+      - name: Create benchmark_results directory
+        run: mkdir -p benchmark_results
+
+      - name: Restore previous mutation baseline
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: |
+            benchmark_results/perf_baseline_latest.json
+            benchmark_results/mutation_benchmark.json
+          key: kpi-baseline-${{ github.run_id }}
+          restore-keys: kpi-baseline-
+        continue-on-error: true
+
       - name: Run mutation benchmark
         run: python scripts/mutation_benchmark.py
 
@@ -114,17 +141,24 @@ jobs:
         if: steps.compare.outcome == 'failure'
         run: echo "detected=true" >> $GITHUB_OUTPUT
 
-      - name: Commit updated baseline
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase --autostash origin main
-          git add benchmark_results/perf_baseline_latest.json benchmark_results/mutation_benchmark.json
-          git diff --cached --quiet && echo "No changes to commit." && exit 0
-          git commit -m "chore(baseline): update weekly mutation benchmark baseline [skip ci]"
-          git push origin main
+      - name: Upload updated mutation baseline
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: mutation-baseline
+          path: |
+            benchmark_results/perf_baseline_latest.json
+            benchmark_results/mutation_benchmark.json
+          retention-days: 90
 
-      - name: Fail workflow on regression (after committing baseline)
+      - name: Save mutation baseline to cache
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: |
+            benchmark_results/perf_baseline_latest.json
+            benchmark_results/mutation_benchmark.json
+          key: kpi-baseline-${{ github.run_id }}
+
+      - name: Fail workflow on regression (after uploading baseline)
         if: steps.regression.outputs.detected == 'true'
         run: |
           echo "::error::Benchmark regression detected -- see opened GitHub issue."
