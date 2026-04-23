@@ -1,0 +1,160 @@
+name: Continuous Benchmarking
+
+# Tracks drift's own performance over time using pytest-benchmark.
+#
+# Two lanes:
+#   PR lane  — runs micro-benchmarks only (fast; no subprocess drift scan).
+#              Results are posted to step summary for comparison.
+#
+#   Nightly  — runs full benchmarks including the subprocess self-scan.
+#              Saves results as JSON artifact; alerts on budget violations.
+#
+# Benchmark results are stored as artifacts and optionally compared between
+# runs via --benchmark-compare.  A sustained regression in the full-scan
+# latency will fail the nightly run.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/drift/**"
+      - "tests/benchmarks/**"
+  schedule:
+    # Nightly at 04:30 UTC (after perf-regression-loop at 04:00)
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+    inputs:
+      full_scan:
+        description: "Include full subprocess drift self-scan benchmarks"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: "benchmark-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  benchmark:
+    name: Benchmark suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - uses: ./.github/actions/python-setup
+        with:
+          python-version: "3.12"
+
+      # Restore previous benchmark baseline for comparison
+      - name: Restore benchmark baseline
+        id: bench_cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: .benchmarks/
+          key: bench-baseline-${{ runner.os }}-${{ github.base_ref || 'main' }}
+          restore-keys: |
+            bench-baseline-${{ runner.os }}-
+
+      # ── PR mode: micro-benchmarks only (no subprocess drift scan) ────────────
+      - name: Run micro-benchmarks (PR mode)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          python -m pytest tests/benchmarks/ \
+            -m "performance and not slow" \
+            --benchmark-only \
+            --benchmark-autosave \
+            --benchmark-json=benchmark_results/pr_bench.json \
+            -v --tb=short
+        continue-on-error: true  # non-blocking on PRs
+
+      # ── Nightly / manual: full benchmarks including subprocess self-scan ─────
+      - name: Run full benchmarks (nightly / manual)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          python -m pytest tests/benchmarks/ \
+            -m "performance or slow" \
+            --benchmark-only \
+            --benchmark-autosave \
+            --benchmark-json=benchmark_results/nightly_bench.json \
+            -v --tb=short
+
+      - name: Post benchmark summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'EOF'
+          import json, pathlib, sys
+
+          candidates = list(pathlib.Path("benchmark_results").glob("*bench*.json"))
+          if not candidates:
+              print("No benchmark results found.", file=sys.stderr)
+              sys.exit(0)
+
+          data = json.loads(candidates[0].read_text())
+          benchmarks = data.get("benchmarks", [])
+
+          lines = ["## Benchmark Results", "", "| Test | Mean (ms) | StdDev (ms) |", "|------|-----------|-------------|"]
+          for b in benchmarks:
+              name = b["name"]
+              mean_ms = b["stats"]["mean"] * 1000
+              stddev_ms = b["stats"]["stddev"] * 1000
+              lines.append(f"| `{name}` | {mean_ms:.1f} | {stddev_ms:.1f} |")
+
+          summary = "\n".join(lines)
+          print(summary)
+
+          step_summary = pathlib.Path(pathlib.os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"))
+          step_summary.write_text(summary + "\n", encoding="utf-8")
+          EOF
+
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: benchmark-results-${{ github.run_id }}
+          path: benchmark_results/
+          retention-days: 60
+
+      - name: Create issue on nightly budget violation
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            const title = 'Performance regression detected in nightly benchmark';
+            const body = [
+              '## Nightly Benchmark Failure',
+              '',
+              `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'A benchmark exceeded its configured budget in `benchmarks/perf_budget.json`.',
+              '',
+              'Triage checklist:',
+              '- [ ] Download the `benchmark-results` artifact from the failing run',
+              '- [ ] Compare mean timings against previous successful baseline',
+              '- [ ] Identify which signal or ingestion change caused the regression',
+              '- [ ] Update `benchmarks/perf_budget.json` if the regression is intentional',
+            ].join('\n');
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['performance-regression'],
+              state: 'open',
+            });
+
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['bug', 'performance-regression'],
+              });
+            }

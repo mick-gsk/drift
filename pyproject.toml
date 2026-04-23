@@ -121,6 +121,7 @@ dev = [
     "vulture>=2.11",
     "hypothesis>=6.100",
     "mutmut>=2.4",
+    "pytest-benchmark>=4.0",
     "python-semantic-release>=9.0",
     "jsonschema>=4.0",
     "scipy>=1.13",
@@ -159,6 +160,7 @@ markers = [
     "performance: runtime budget and performance regression tests",
     "ground_truth: precision/recall tests against synthetic ground-truth fixtures",
     "defect_corpus: recall tests against external-ground-truth defect corpus entries",
+    "fuzz: hypothesis-based fuzz tests (run via daily-fuzz.yml or locally with -m fuzz)",
 ]
 
 [tool.coverage.run]

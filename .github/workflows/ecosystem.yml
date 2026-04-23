@@ -1,0 +1,189 @@
+name: Ecosystem Regression Gate
+
+# Checks whether a PR introduces new HIGH/BLOCK drift findings in a curated
+# set of well-maintained external repos (requests, click, httpx).
+#
+# How it works:
+#   1. Checkout base ref  → install drift from base → analyze each repo → save baseline.json
+#   2. Checkout PR ref    → install drift from PR   → analyze each repo → save pr.json
+#   3. Run ecosystem_check.py to diff findings; post result as step summary.
+#
+# Regressions (new HIGH/BLOCK findings) cause the job to fail so the PR is blocked.
+# This is analogous to ruff's ecosystem check that prevents false-positive spikes.
+#
+# Only runs when src/drift/ code changes — config-only PRs are skipped.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/drift/**"
+  workflow_dispatch:
+
+concurrency:
+  group: "ecosystem-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ecosystem:
+    name: Ecosystem regression check
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0  # full history needed for base-ref checkout
+
+      - uses: ./.github/actions/python-setup
+        with:
+          python-version: "3.12"
+
+      # ── Clone ecosystem repos (pinned refs) ──────────────────────────────────
+      - name: Clone ecosystem repos
+        shell: bash
+        run: |
+          mkdir -p ecosystem_repos
+          python - <<'EOF'
+          import json, subprocess, sys
+          from pathlib import Path
+
+          repos = json.loads(Path("benchmarks/ecosystem_repos.json").read_text())["repos"]
+          for repo in repos:
+              name = repo["name"]
+              url  = repo["url"]
+              ref  = repo["ref"]
+              dest = Path("ecosystem_repos") / name
+              if not dest.exists():
+                  subprocess.run(["git", "clone", "--depth=1", f"--branch={ref}", url, str(dest)],
+                                 check=True, capture_output=True)
+                  print(f"Cloned {name}@{ref}", file=sys.stderr)
+          EOF
+
+      # ── Baseline: analyze with base branch drift ─────────────────────────────
+      - name: Install drift from base ref
+        shell: bash
+        run: |
+          git checkout ${{ github.event.pull_request.base.sha || 'HEAD~1' }} -- src/ pyproject.toml
+          pip install -e ".[dev]" --quiet
+
+      - name: Analyze repos with baseline drift
+        shell: bash
+        run: |
+          python - <<'EOF'
+          import json, subprocess, sys
+          from pathlib import Path
+
+          repos = json.loads(Path("benchmarks/ecosystem_repos.json").read_text())["repos"]
+          all_findings = []
+          total_score = 0.0
+
+          for repo in repos:
+              name = repo["name"]
+              dest = Path("ecosystem_repos") / name
+              result = subprocess.run(
+                  ["drift", "analyze", "--repo", str(dest), "--format", "json", "--exit-zero"],
+                  capture_output=True, text=True
+              )
+              try:
+                  data = json.loads(result.stdout)
+                  for f in data.get("findings", []):
+                      f["_repo"] = name
+                  all_findings.extend(data.get("findings", []))
+                  total_score += data.get("drift_score", 0.0)
+              except json.JSONDecodeError:
+                  print(f"WARN: could not parse drift output for {name}", file=sys.stderr)
+
+          output = {
+              "findings": all_findings,
+              "drift_score": round(total_score / max(1, len(repos)), 3),
+          }
+          Path("baseline_findings.json").write_text(json.dumps(output, indent=2))
+          print(f"Baseline: {len(all_findings)} findings across {len(repos)} repos")
+          EOF
+
+      # ── PR ref: restore and analyze ──────────────────────────────────────────
+      - name: Restore PR ref source
+        shell: bash
+        run: |
+          git checkout ${{ github.sha }} -- src/ pyproject.toml
+
+      - name: Install drift from PR ref
+        shell: bash
+        run: |
+          pip install -e ".[dev]" --quiet
+
+      - name: Analyze repos with PR drift
+        shell: bash
+        run: |
+          python - <<'EOF'
+          import json, subprocess, sys
+          from pathlib import Path
+
+          repos = json.loads(Path("benchmarks/ecosystem_repos.json").read_text())["repos"]
+          all_findings = []
+          total_score = 0.0
+
+          for repo in repos:
+              name = repo["name"]
+              dest = Path("ecosystem_repos") / name
+              result = subprocess.run(
+                  ["drift", "analyze", "--repo", str(dest), "--format", "json", "--exit-zero"],
+                  capture_output=True, text=True
+              )
+              try:
+                  data = json.loads(result.stdout)
+                  for f in data.get("findings", []):
+                      f["_repo"] = name
+                  all_findings.extend(data.get("findings", []))
+                  total_score += data.get("drift_score", 0.0)
+              except json.JSONDecodeError:
+                  print(f"WARN: could not parse drift output for {name}", file=sys.stderr)
+
+          output = {
+              "findings": all_findings,
+              "drift_score": round(total_score / max(1, len(repos)), 3),
+          }
+          Path("pr_findings.json").write_text(json.dumps(output, indent=2))
+          print(f"PR: {len(all_findings)} findings across {len(repos)} repos")
+          EOF
+
+      # ── Compare and report ───────────────────────────────────────────────────
+      - name: Run ecosystem_check.py
+        id: check
+        shell: bash
+        run: |
+          set +e
+          python scripts/ecosystem_check.py \
+            --baseline-file baseline_findings.json \
+            --pr-file pr_findings.json \
+            --repos-file benchmarks/ecosystem_repos.json \
+            --output ecosystem_report.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Post report to step summary
+        if: always()
+        shell: bash
+        run: |
+          cat ecosystem_report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload finding artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: ecosystem-findings-${{ github.run_id }}
+          path: |
+            baseline_findings.json
+            pr_findings.json
+            ecosystem_report.md
+          retention-days: 14
+
+      - name: Fail if regressions found
+        if: steps.check.outputs.exit_code != '0'
+        shell: bash
+        run: |
+          echo "Ecosystem regression gate FAILED — new HIGH/BLOCK findings introduced."
+          exit 1

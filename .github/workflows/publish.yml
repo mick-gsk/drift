@@ -76,6 +76,10 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 15
     environment: pypi
+    permissions:
+      contents: read
+      id-token: write      # required for sigstore/OIDC attestation
+      attestations: write  # required for actions/attest-build-provenance
     env:
       PYPI_API_TOKEN: ${{ secrets.PYPI_RELEASE }}
 
@@ -121,6 +125,12 @@ jobs:
         run: |
           & $env:PYTHON_BIN -m build
 
+      - name: Generate SBOM (CycloneDX)
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN -m pip install cyclonedx-bom --quiet
+          & $env:PYTHON_BIN -m cyclonedx_py environment --output-format JSON --outfile drift-sbom.json
+
       - name: Publish to PyPI (API token)
         shell: powershell
         run: |
@@ -142,6 +152,18 @@ jobs:
               exit 1
             }
           }
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@6149ea5740be74af77f260b9db67e633f6b0a9a1  # v2.1.3
+        with:
+          subject-path: dist/*
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: drift-sbom-${{ github.ref_name }}
+          path: drift-sbom.json
+          retention-days: 90
 
   update-major-tag:
     name: Update major-version tag (e.g. v1 → latest patch)

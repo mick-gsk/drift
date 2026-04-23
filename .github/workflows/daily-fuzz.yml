@@ -1,0 +1,130 @@
+name: Daily Hypothesis Fuzzing
+
+# Property-based fuzzing of the ingestion, signals, and scoring layers via
+# Hypothesis.  Two modes:
+#
+#   PR mode   (paths trigger) — fuzz_fast profile (100 examples, 5s deadline).
+#             Catches obvious crashes before merge.
+#
+#   Daily mode (schedule)     — fuzz_daily profile (1000 examples, 30s deadline).
+#             Deeper exploration of the state space.  Creates a GitHub issue
+#             automatically if a new crash is found.
+#
+# The Hypothesis example database is cached between runs so that previously
+# found edge-cases are always replayed (reproduce + shrink path preserved).
+
+on:
+  schedule:
+    # 03:00 UTC daily (after mutation-testing on Sundays, before perf-loop)
+    - cron: "0 3 * * *"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/drift/ingestion/**"
+      - "src/drift/signals/**"
+      - "src/drift/scoring/**"
+      - "tests/fuzz/**"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Hypothesis profile to use"
+        required: false
+        default: "fuzz_daily"
+        type: choice
+        options:
+          - fuzz_fast
+          - fuzz_daily
+
+concurrency:
+  group: "daily-fuzz-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  fuzz:
+    name: Hypothesis fuzz suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - uses: ./.github/actions/python-setup
+        with:
+          python-version: "3.12"
+
+      # Restore the hypothesis example database so previous shrunk cases are
+      # always re-run (prevents regressions from ever silently disappearing).
+      - name: Restore hypothesis database cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: .hypothesis/
+          key: hypothesis-db-${{ runner.os }}-${{ hashFiles('src/drift/**/*.py') }}
+          restore-keys: |
+            hypothesis-db-${{ runner.os }}-
+
+      - name: Run fuzz suite (PR mode — fuzz_fast)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          HYPOTHESIS_PROFILE: fuzz_fast
+        run: |
+          python -m pytest tests/fuzz/ -m fuzz -v --tb=short -q
+
+      - name: Run fuzz suite (daily / manual — fuzz_daily)
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          HYPOTHESIS_PROFILE: ${{ inputs.profile || 'fuzz_daily' }}
+        run: |
+          python -m pytest tests/fuzz/ -m fuzz -v --tb=short
+
+      # Upload the updated database so future runs benefit from new examples.
+      - name: Save hypothesis database
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: hypothesis-db-${{ github.run_id }}
+          path: .hypothesis/
+          retention-days: 30
+
+      # Only create an issue for scheduled failures (not PRs — those block CI).
+      - name: Create issue on fuzz failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            const title = 'Fuzz regression detected in daily run';
+            const body = [
+              '## Daily Fuzzing Failure',
+              '',
+              `Workflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'A Hypothesis fuzz test found a new crash.  Check the run log and the',
+              'uploaded `hypothesis-db` artifact for the shrunk failing example.',
+              '',
+              'Triage checklist:',
+              '- [ ] Reproduce locally: `HYPOTHESIS_PROFILE=fuzz_daily pytest tests/fuzz/ -m fuzz -v`',
+              '- [ ] Identify root cause in ingestion / signals / scoring',
+              '- [ ] Add regression fixture or fix the crash',
+              '- [ ] Verify fuzz suite passes again',
+            ].join('\n');
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['fuzz-regression'],
+              state: 'open',
+            });
+
+            if (issues.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['bug', 'fuzz-regression'],
+              });
+            }

@@ -1,0 +1,24 @@
+{
+  "description": "Small, stable Python repos used for ecosystem regression checks on PRs. Each repo is cloned at a pinned commit, analyzed with drift, and compared between baseline and PR refs. A new HIGH/BLOCK finding is a regression.",
+  "version": "1.0.0",
+  "repos": [
+    {
+      "url": "https://github.com/psf/requests",
+      "ref": "v2.32.3",
+      "name": "requests",
+      "description": "HTTP library — clean, stable, ~3 500 LOC"
+    },
+    {
+      "url": "https://github.com/pallets/click",
+      "ref": "8.1.7",
+      "name": "click",
+      "description": "CLI toolkit — well-structured, ~4 000 LOC"
+    },
+    {
+      "url": "https://github.com/encode/httpx",
+      "ref": "0.27.0",
+      "name": "httpx",
+      "description": "Modern async HTTP client — typed, ~6 000 LOC"
+    }
+  ]
+}
