@@ -1,9 +1,11 @@
-"""Core engine for the Drift Self-Improvement Loop (DSOL, ADR-097)."""
+"""Core engine for the Drift Self-Improvement Loop (DSOL, ADR-097/098)."""
 
 from __future__ import annotations
 
 import datetime as _dt
 import json
+import os
+import time
 from collections import Counter
 from pathlib import Path
 from typing import Any, cast
@@ -14,6 +16,7 @@ DEFAULT_REPO = Path(".")
 DEFAULT_SELF_REPORT = Path("benchmark_results/drift_self.json")
 DEFAULT_KPI_TREND = Path("benchmark_results/kpi_trend.jsonl")
 DEFAULT_LEDGER = Path(".drift/self_improvement_ledger.jsonl")
+DEFAULT_CLOSED_LOG = Path(".drift/self_improvement_closed.jsonl")
 DEFAULT_ARTIFACTS_DIR = Path("work_artifacts/self_improvement")
 
 # Priority budget: the loop proposes at most N items per cycle so the
@@ -47,6 +50,17 @@ class ImprovementProposal(BaseModel):
     recurrence: int = 1
 
 
+class ConvergenceStatus(BaseModel):
+    """Result of the convergence check over the recurrence ledger."""
+
+    model_config = ConfigDict(frozen=True)
+
+    stagnating: bool
+    overlap_ratio: float
+    repeated_ids: tuple[str, ...] = Field(default_factory=tuple)
+    window: int
+
+
 class ImprovementReport(BaseModel):
     """Artifact written per cycle."""
 
@@ -58,6 +72,8 @@ class ImprovementReport(BaseModel):
     proposals: tuple[ImprovementProposal, ...] = Field(default_factory=tuple)
     observations: tuple[str, ...] = Field(default_factory=tuple)
     ledger_path: str | None = None
+    scan_stale: bool = False
+    convergence_status: ConvergenceStatus | None = None
 
 
 class CycleLedgerEntry(BaseModel):
@@ -67,6 +83,37 @@ class CycleLedgerEntry(BaseModel):
 
     cycle_ts: str
     proposal_ids: tuple[str, ...]
+
+
+class ClosedProposalEntry(BaseModel):
+    """Append-only row written to ``.drift/self_improvement_closed.jsonl``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    proposal_id: str
+    closed_at: str
+    outcome_note: str = ""
+
+
+def close_proposal(
+    proposal_id: str,
+    outcome_note: str = "",
+    *,
+    closed_path: Path,
+) -> ClosedProposalEntry:
+    """Append a closed-proposal record to *closed_path* and return the entry."""
+    from datetime import UTC
+    from datetime import datetime as _dt
+
+    entry = ClosedProposalEntry(
+        proposal_id=proposal_id,
+        closed_at=_dt.now(UTC).isoformat(),
+        outcome_note=outcome_note,
+    )
+    closed_path.parent.mkdir(parents=True, exist_ok=True)
+    with closed_path.open("a", encoding="utf-8") as fh:
+        fh.write(entry.model_dump_json() + "\n")
+    return entry
 
 
 # ---------------------------------------------------------------------------
@@ -98,6 +145,104 @@ def _safe_load_jsonl(path: Path) -> list[dict[str, Any]]:
         if isinstance(obj, dict):
             rows.append(obj)
     return rows
+
+
+# ---------------------------------------------------------------------------
+# New helper functions (ADR-098)
+# ---------------------------------------------------------------------------
+
+
+def _check_scan_staleness(self_report_path: Path, max_age_days: int = 7) -> str | None:
+    """Return a warning string if the self-scan report is stale or the scan step failed."""
+    if os.environ.get("DRIFT_SELF_SCAN_FAILED"):
+        return (
+            "self-scan step reported failure (DRIFT_SELF_SCAN_FAILED=1) "
+            "— proposals may be based on stale data"
+        )
+    if not self_report_path.exists():
+        return None  # absence is handled separately
+    age_days = (time.time() - self_report_path.stat().st_mtime) / 86400.0
+    if age_days > max_age_days:
+        return (
+            f"self-scan report is {age_days:.1f} days old (>{max_age_days}d) "
+            "— proposals may reflect stale state"
+        )
+    return None
+
+
+def _convergence_check(
+    ledger_rows: list[dict[str, Any]], window: int = 4
+) -> ConvergenceStatus | None:
+    """Detect stagnation: ≥50% of the last cycle's proposals repeated across N cycles."""
+    if len(ledger_rows) < 2:
+        return None
+    tail = ledger_rows[-window:] if window > 0 else ledger_rows
+    if len(tail) < 2:
+        return None
+    all_id_sets: list[set[str]] = [
+        {pid for pid in (row.get("proposal_ids") or []) if isinstance(pid, str)}
+        for row in tail
+    ]
+    reference = all_id_sets[-1]
+    if not reference:
+        return ConvergenceStatus(
+            stagnating=False, overlap_ratio=0.0, window=len(tail)
+        )
+    repeated = reference.copy()
+    for prev in all_id_sets[:-1]:
+        repeated &= prev
+    overlap_ratio = len(repeated) / len(reference)
+    return ConvergenceStatus(
+        stagnating=overlap_ratio > 0.5,
+        overlap_ratio=round(overlap_ratio, 4),
+        repeated_ids=tuple(sorted(repeated)),
+        window=len(tail),
+    )
+
+
+def _fp_oracle_proposals(
+    oracle_report: dict[str, Any],
+    previous_ids: set[str],
+    max_items: int,
+) -> list[ImprovementProposal]:
+    """Emit proposals for every signal whose FP rate exceeds its oracle budget."""
+    violations = oracle_report.get("budget_violations") or []
+    if not isinstance(violations, list):
+        return []
+    proposals: list[ImprovementProposal] = []
+    for v in violations:
+        if not isinstance(v, dict):
+            continue
+        signal = str(v.get("signal") or "")
+        if not signal:
+            continue
+        measured = float(v.get("measured_fp_rate") or 0.0)
+        budget = float(v.get("budget") or 0.0)
+        over_by = float(v.get("over_by") or 0.0)
+        proposal_id = f"fp_rate_exceeded::{signal}"
+        recurrence = 2 if proposal_id in previous_ids else 1
+        proposals.append(
+            ImprovementProposal(
+                proposal_id=proposal_id,
+                kind="fp_rate_exceeded",
+                signal_type=signal,
+                score=round(over_by * 100.0, 3),
+                rationale=(
+                    f"Signal '{signal}' FP rate {measured:.1%} exceeds budget "
+                    f"{budget:.1%} (over by {over_by:.1%}). "
+                    f"{'Recurring from previous cycle.' if recurrence > 1 else ''}"
+                ).strip(),
+                suggested_action=(
+                    f"Review '{signal}' false positives. Inspect "
+                    f"benchmark_results/oracle_fp_report.json for labeled "
+                    f"samples and consider threshold or scope adjustments."
+                ),
+                recurrence=recurrence,
+            )
+        )
+        if len(proposals) >= max_items:
+            break
+    return proposals
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +411,9 @@ def _stale_audit_proposal(repo: Path) -> ImprovementProposal | None:
 # ---------------------------------------------------------------------------
 
 
+DEFAULT_ORACLE_REPORT = Path("benchmark_results/oracle_fp_report.json")
+
+
 class SelfImprovementEngine:
     """Runs one DSOL cycle and writes its artefacts."""
 
@@ -277,7 +425,9 @@ class SelfImprovementEngine:
         kpi_trend: Path | None = None,
         ledger: Path | None = None,
         artifacts_dir: Path | None = None,
+        oracle_report: Path | None = None,
         max_proposals: int = DEFAULT_MAX_PROPOSALS,
+        min_proposal_score: float = 0.0,
         trend_window: int = 5,
     ) -> None:
         self.repo = Path(repo)
@@ -285,7 +435,9 @@ class SelfImprovementEngine:
         self.kpi_trend = self.repo / (kpi_trend or DEFAULT_KPI_TREND)
         self.ledger = self.repo / (ledger or DEFAULT_LEDGER)
         self.artifacts_dir = self.repo / (artifacts_dir or DEFAULT_ARTIFACTS_DIR)
+        self.oracle_report = self.repo / (oracle_report or DEFAULT_ORACLE_REPORT)
         self.max_proposals = max_proposals
+        self.min_proposal_score = min_proposal_score
         self.trend_window = trend_window
 
     # -----------------------------------------------------------------
@@ -296,6 +448,12 @@ class SelfImprovementEngine:
             for pid in row.get("proposal_ids") or ():
                 if isinstance(pid, str):
                     ids.add(pid)
+        # Subtract closed proposals so they are no longer penalised as recurring
+        closed_path = self.repo / DEFAULT_CLOSED_LOG
+        for row in _safe_load_jsonl(closed_path):
+            pid = row.get("proposal_id")
+            if isinstance(pid, str):
+                ids.discard(pid)
         return ids
 
     def _kpi_snapshot(self, rows: list[dict[str, Any]]) -> dict[str, float]:
@@ -310,6 +468,14 @@ class SelfImprovementEngine:
 
     def run(self) -> ImprovementReport:
         observations: list[str] = []
+
+        # -- Staleness check (CP4) ------------------------------------------
+        staleness_warning = _check_scan_staleness(self.self_report)
+        scan_stale = staleness_warning is not None
+        if staleness_warning:
+            observations.append(staleness_warning)
+
+        # -- Load inputs -------------------------------------------------------
         self_raw = _safe_load_json(self.self_report)
         self_report_obj: dict[str, Any] = (
             self_raw if isinstance(self_raw, dict) else {}
@@ -327,7 +493,18 @@ class SelfImprovementEngine:
                 "detection skipped"
             )
 
+        oracle_raw = _safe_load_json(self.oracle_report)
+        oracle_report_obj: dict[str, Any] = (
+            oracle_raw if isinstance(oracle_raw, dict) else {}
+        )
+        if not oracle_report_obj:
+            observations.append(
+                f"fp-oracle report missing at {self.oracle_report} "
+                "— FP-rate proposals skipped"
+            )
+
         previous_ids = self._load_previous_ids()
+        ledger_rows = _safe_load_jsonl(self.ledger)
         proposals: list[ImprovementProposal] = []
 
         regressive = _regressive_signal_proposal(kpi_rows, self.trend_window)
@@ -347,6 +524,22 @@ class SelfImprovementEngine:
         if stale is not None:
             proposals.append(stale)
 
+        if oracle_report_obj:
+            proposals.extend(
+                _fp_oracle_proposals(
+                    oracle_report_obj,
+                    previous_ids,
+                    max_items=max(0, self.max_proposals - len(proposals)),
+                )
+            )
+
+        # -- Quality threshold (CP6) ------------------------------------------
+        if self.min_proposal_score > 0.0:
+            proposals = [p for p in proposals if p.score >= self.min_proposal_score]
+
+        # -- Convergence check (CP3) ------------------------------------------
+        convergence_status = _convergence_check(ledger_rows, window=self.trend_window)
+
         # Final deterministic sort: recurrence desc, then score desc, then id.
         proposals.sort(key=lambda p: (-p.recurrence, -p.score, p.proposal_id))
         if len(proposals) > self.max_proposals:
@@ -363,6 +556,8 @@ class SelfImprovementEngine:
             ledger_path=str(self.ledger.relative_to(self.repo))
             if self.ledger.is_relative_to(self.repo)
             else str(self.ledger),
+            scan_stale=scan_stale,
+            convergence_status=convergence_status,
         )
 
         self._write_artifacts(report)

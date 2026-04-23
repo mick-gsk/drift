@@ -19,17 +19,23 @@ Exposure points:
 from __future__ import annotations
 
 from .engine import (
+    ClosedProposalEntry,
+    ConvergenceStatus,
     CycleLedgerEntry,
     ImprovementProposal,
     ImprovementReport,
     SelfImprovementEngine,
+    close_proposal,
     run_cycle,
 )
 
 __all__ = [
+    "ClosedProposalEntry",
     "CycleLedgerEntry",
+    "ConvergenceStatus",
     "ImprovementProposal",
     "ImprovementReport",
     "SelfImprovementEngine",
+    "close_proposal",
     "run_cycle",
 ]
