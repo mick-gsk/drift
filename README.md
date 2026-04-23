@@ -270,7 +270,16 @@ Or auto-generate: `pip install drift-analyzer[mcp] && drift init --mcp`
 
 **pre-commit:** Add `drift diff --staged-only` as a hook — findings block the commit before they reach CI.
 
-📖 [Full integration guide →](https://mick-gsk.github.io/drift/integrations/)
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/mick-gsk/drift-pre-commit
+    rev: v1.0.0
+    hooks:
+      - id: drift-check
+```
+
+📖 [Full integration guide →](https://mick-gsk.github.io/drift/integrations/) · [drift-pre-commit repo →](https://github.com/mick-gsk/drift-pre-commit)
 
 ### VS Code Extension
 
