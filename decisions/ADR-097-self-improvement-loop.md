@@ -91,3 +91,4 @@ Negative:
 - Modifying signal scoring weights based on DSOL output (would couple
   observation and behavior — explicitly forbidden).
 - Cross-repo DSOL execution.
+- Write-Back mit Score-Gate und Convergence-Gate: ADR-098.

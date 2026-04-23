@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Added
+
+- **DSOL v2: Score-Gated Write-Back + Convergence-Check (ADR-098).** Neuer opt-in `writeback`-Job im Workflow `self-improvement-loop.yml` mit `Score-Gate` (nur Proposals >= `min-proposal-score` werden angewendet) und `Convergence-Gate`. Neues Workflow-Input `enable-writeback` (default `false`, nie via Cron, nur manuell). Staleness-Detection: `DRIFT_SELF_SCAN_FAILED=1` wenn Self-Scan fehlschlägt. Neue Hilfsskripte `scripts/check_dsol_convergence.py` und `scripts/validate_proposals.py`. ADR-098 dokumentiert die Entscheidung (Status: proposed).
+
 ### Fixed
 
 - **shellcheck SC1017/SC1134 auf Windows-Runner.** Normalisierung auf Binary-Modus umgestellt; `.gitattributes` mit `eol=lf` fuer alle Text-Dateien ergaenzt.
