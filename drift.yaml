@@ -17,6 +17,7 @@ exclude:
   - "extensions/**/node_modules/**"
   - "examples/**"
   - "scripts/**"
+  - "tests/test_quality_loop/**"
   - "docs-site/**"
   - "tests/fixtures/**"
   - "hooks/**"
