@@ -33,7 +33,7 @@ logger = logging.getLogger("drift.retrieval.corpus_builder")
 _DEFAULT_SOURCES: tuple[str, ...] = (
     "POLICY.md",
     "ROADMAP.md",
-    "decisions",
+    "docs/decisions",
     "audit_results",
     "src/drift/signals",
     "benchmark_results",
