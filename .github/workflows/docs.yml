@@ -52,6 +52,7 @@ jobs:
         run: |
           cd playground
           npm ci
+          npm test
           npm run build
           cp -r dist ../site/playground
 

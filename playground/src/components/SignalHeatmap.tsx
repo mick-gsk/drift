@@ -22,7 +22,9 @@ export function SignalHeatmap({ signals, selectedAbbrev, onSelect }: SignalHeatm
         {signals.map((sig) => {
           const isSelected = sig.abbrev === selectedAbbrev;
           const isPass = sig.severity === 'pass';
-          const colorKey = isPass ? 'low' : sig.severity;
+          // Use the dedicated 'pass' color key — not 'low' — so the heatmap
+          // and the DrilldownPanel use the same #3fb950 shade for passing signals.
+          const colorKey = isPass ? 'pass' : sig.severity;
 
           const borderColor = SEVERITY_COLOR[colorKey as keyof typeof SEVERITY_COLOR] ?? '#58a6ff';
           const bgColor = SEVERITY_BG[colorKey as keyof typeof SEVERITY_BG] ?? '#58a6ff22';

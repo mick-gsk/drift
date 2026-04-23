@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#0d1117"/>
+  <!-- "d" letterform styled as drift brand -->
+  <path d="M19 7h-2v7.25A4.5 4.5 0 1 0 21.5 18.5c0-.17-.01-.34-.03-.5H19V7zm-4.5 14a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill="#58a6ff"/>
+</svg>

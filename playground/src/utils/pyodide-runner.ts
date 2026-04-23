@@ -35,6 +35,15 @@ declare global {
 let _pyodide: PyodideInterface | null = null;
 let _initPromise: Promise<PyodideInterface> | null = null;
 
+/**
+ * Resets the singleton state so initPyodide() can be called again after a failure.
+ * Calling this while a successful instance is live will force a full re-initialisation.
+ */
+export function resetPyodide(): void {
+  _pyodide = null;
+  _initPromise = null;
+}
+
 function injectPyodideScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     // Avoid double-injection

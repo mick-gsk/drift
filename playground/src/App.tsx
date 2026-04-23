@@ -15,7 +15,7 @@ import type { Severity } from './types/drift';
 import { deriveSignalStatuses } from './types/drift';
 
 function App() {
-  const { status, scanning, lastResult, lastError, runAnalysis } = usePyodide();
+  const { status, scanning, lastResult, lastError, runAnalysis, retry } = usePyodide();
 
   // ── Scenario / file state ──────────────────────────────────────────────
 
@@ -64,8 +64,14 @@ function App() {
   const handleAddFile = useCallback(() => {
     const name = window.prompt('New filename (e.g. models.py):');
     if (!name || name.trim() === '') return;
-    const safe = name.trim().replace(/[^a-zA-Z0-9_.\-/]/g, '_');
-    if (!safe) return;
+    // Strip path separators, traversal components, and all non-safe chars
+    const safe = name
+      .trim()
+      .replace(/[/\\]/g, '_')          // no path separators
+      .replace(/\.\./g, '__')           // no traversal
+      .replace(/^[._]+/, '')            // no leading dots or underscores
+      .replace(/[^a-zA-Z0-9_.\-]/g, '_'); // only safe chars
+    if (!safe || safe === '.' || safe === '') return;
     setFiles((prev) => {
       if (safe in prev) return prev;
       return { ...prev, [safe]: '' };
@@ -75,17 +81,20 @@ function App() {
 
   const handleRemoveFile = useCallback(
     (name: string) => {
+      // Compute remaining files before the state update to avoid
+      // calling setActiveFile inside a setFiles updater (React StrictMode
+      // double-invokes updaters, making cross-state side effects unsafe).
+      const remaining = Object.keys(files).filter((k) => k !== name);
       setFiles((prev) => {
         const next = { ...prev };
         delete next[name];
-        const remaining = Object.keys(next);
-        if (remaining.length > 0) {
-          setActiveFile((cur) => (cur === name ? remaining[0] : cur));
-        }
         return next;
       });
+      if (remaining.length > 0) {
+        setActiveFile((cur) => (cur === name ? remaining[0] : cur));
+      }
     },
-    [],
+    [files],
   );
 
   const handleAnalyze = useCallback(() => {
@@ -243,7 +252,7 @@ function App() {
       </main>
 
       {/* ── Loading overlay (blocks UI until Pyodide is ready) ─────────── */}
-      <LoadingOverlay status={status} />
+      <LoadingOverlay status={status} onRetry={retry} />
     </div>
   );
 }

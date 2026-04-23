@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   initPyodide,
+  resetPyodide,
   runScan,
   type PyodideStatus,
   type ScanFiles,
@@ -13,6 +14,8 @@ export interface UsePyodideReturn {
   lastResult: DriftOutput | null;
   lastError: string | null;
   runAnalysis: (files: ScanFiles) => Promise<void>;
+  /** Resets and re-initialises Pyodide after an init failure. */
+  retry: () => void;
 }
 
 export function usePyodide(): UsePyodideReturn {
@@ -48,5 +51,17 @@ export function usePyodide(): UsePyodideReturn {
     [status.state],
   );
 
-  return { status, scanning, lastResult, lastError, runAnalysis };
+  const retry = useCallback(() => {
+    resetPyodide();
+    initialized.current = false;
+    setStatus({ state: 'idle' });
+    setLastResult(null);
+    setLastError(null);
+    initPyodide(setStatus).catch(() => {
+      // Error state set via onStatus callback
+    });
+    initialized.current = true;
+  }, []);
+
+  return { status, scanning, lastResult, lastError, runAnalysis, retry };
 }
