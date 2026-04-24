@@ -7,6 +7,11 @@ cycles between serialization layers.
 from __future__ import annotations
 
 import datetime
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from drift.models import Finding, Severity, SignalType
@@ -40,21 +45,145 @@ _SEVERITY_RANK = {
     Severity.INFO: 4,
 }
 
+_CONTEXT_WEIGHTS_CACHE: tuple[float, float, float] | None = None
+
+
+def _is_truthy(value: str | None) -> bool:
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _load_context_score_weights() -> tuple[float, float, float]:
+    """Load learned context weights from JSON file when available.
+
+    Expected format:
+    {"churn": 0.5, "ownership": 0.3, "recency": 0.2}
+    """
+    global _CONTEXT_WEIGHTS_CACHE
+    if _CONTEXT_WEIGHTS_CACHE is not None:
+        return _CONTEXT_WEIGHTS_CACHE
+
+    default = (0.5, 0.3, 0.2)
+    path = os.getenv("DRIFT_CONTEXT_WEIGHTS_PATH")
+    if not path:
+        _CONTEXT_WEIGHTS_CACHE = default
+        return _CONTEXT_WEIGHTS_CACHE
+
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        churn = max(0.0, float(payload.get("churn", default[0])))
+        ownership = max(0.0, float(payload.get("ownership", default[1])))
+        recency = max(0.0, float(payload.get("recency", default[2])))
+        total = churn + ownership + recency
+        if total <= 1e-9:
+            _CONTEXT_WEIGHTS_CACHE = default
+        else:
+            _CONTEXT_WEIGHTS_CACHE = (
+                churn / total,
+                ownership / total,
+                recency / total,
+            )
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        _CONTEXT_WEIGHTS_CACHE = default
+    return _CONTEXT_WEIGHTS_CACHE
+
+
+def _normalize_text(text: str) -> str:
+    return re.sub(r"\s+", " ", text.strip().lower())
+
+
+def _title_simhash64(text: str) -> int:
+    tokens = [t for t in re.split(r"[^a-z0-9]+", _normalize_text(text)) if t]
+    if not tokens:
+        return 0
+    weights = [0] * 64
+    for token in tokens:
+        digest = hashlib.sha256(token.encode("utf-8")).digest()
+        value = int.from_bytes(digest[:8], "big", signed=False)
+        for bit in range(64):
+            if value & (1 << bit):
+                weights[bit] += 1
+            else:
+                weights[bit] -= 1
+    output = 0
+    for bit, weight in enumerate(weights):
+        if weight >= 0:
+            output |= 1 << bit
+    return output
+
+
+def _hamming_distance64(a: int, b: int) -> int:
+    return (a ^ b).bit_count()
+
+
+def _is_near_duplicate(candidate: Finding, existing: Finding) -> bool:
+    if _finding_dedupe_key(candidate) == _finding_dedupe_key(existing):
+        return True
+
+    if candidate.file_path is None or existing.file_path is None:
+        return False
+    if candidate.file_path.as_posix() != existing.file_path.as_posix():
+        return False
+
+    candidate_rule = candidate.rule_id or str(candidate.signal_type)
+    existing_rule = existing.rule_id or str(existing.signal_type)
+    if candidate_rule != existing_rule:
+        return False
+
+    c_start = int(candidate.start_line or 0)
+    e_start = int(existing.start_line or 0)
+    if abs(c_start - e_start) > 3:
+        return False
+
+    return _hamming_distance64(
+        _title_simhash64(candidate.title or ""),
+        _title_simhash64(existing.title or ""),
+    ) <= 3
+
 
 def _dedupe_findings(ranked_findings: list[Finding]) -> tuple[list[Finding], dict[int, int]]:
     """Return canonical findings and duplicate counts keyed by canonical object id."""
     deduped: list[Finding] = []
     seen: dict[tuple[str, str, int, int, str], Finding] = {}
     duplicate_counts: dict[int, int] = {}
+    near_dedupe_enabled = _is_truthy(os.getenv("DRIFT_NEAR_DEDUPE", "1"))
+    lsh_buckets: dict[tuple[str, str, int], list[Finding]] = {}
 
     for finding in ranked_findings:
         key = _finding_dedupe_key(finding)
         existing = seen.get(key)
         if existing is None:
-            seen[key] = finding
-            deduped.append(finding)
-            duplicate_counts[id(finding)] = 1
+            canonical = finding
+            if near_dedupe_enabled and finding.file_path is not None:
+                file_key = finding.file_path.as_posix()
+                rule_key = finding.rule_id or str(finding.signal_type)
+                fingerprint = _title_simhash64(finding.title or "")
+                bands = (
+                    (fingerprint >> 0) & 0xFFFF,
+                    (fingerprint >> 16) & 0xFFFF,
+                    (fingerprint >> 32) & 0xFFFF,
+                    (fingerprint >> 48) & 0xFFFF,
+                )
+                for band in bands:
+                    for candidate in lsh_buckets.get((rule_key, file_key, band), []):
+                        if _is_near_duplicate(finding, candidate):
+                            canonical = candidate
+                            break
+                    if canonical is not finding:
+                        break
+                if canonical is finding:
+                    for band in bands:
+                        lsh_buckets.setdefault((rule_key, file_key, band), []).append(finding)
+
+            if canonical is finding:
+                seen[key] = finding
+                deduped.append(finding)
+                duplicate_counts[id(finding)] = 1
+                continue
+            duplicate_counts[id(canonical)] = duplicate_counts.get(id(canonical), 1) + 1
             continue
+
         duplicate_counts[id(existing)] = duplicate_counts.get(id(existing), 1) + 1
 
     return deduped, duplicate_counts
@@ -151,7 +280,12 @@ def _context_score(
     else:
         recency_score = 0.0
 
-    return 0.5 * churn_score + 0.3 * ownership_score + 0.2 * recency_score
+    w_churn, w_ownership, w_recency = _load_context_score_weights()
+    return (
+        w_churn * churn_score
+        + w_ownership * ownership_score
+        + w_recency * recency_score
+    )
 
 
 def _composite_sort_key(

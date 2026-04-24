@@ -277,3 +277,17 @@ Die operative Referenz liegt in den folgenden Dateien und soll von Agenten bevor
 - Release-Regeln: `.github/instructions/drift-release-automation.instructions.md` und `.github/instructions/drift-release-mandatory.instructions.md`
 
 Veraltbare Angaben wie feste Versionsstaende, statische Signallisten oder duplizierte Kommandotabellen gehoeren nicht in diese Datei.
+
+---
+
+## Self-Improvement
+
+After solving non-obvious issues, consider logging to `.learnings/`:
+1. Use format from `.github/skills/self-improving-agent/SKILL.md`
+2. Link related entries with See Also
+3. Promote high-value learnings to `CLAUDE.md`, `AGENTS.md`, or `.github/copilot-instructions.md`
+
+After completing a non-trivial coding task (≥10 changed lines in executable source, or high-impact logic), run the **Simplify & Harden** review:
+- Skill: `.github/skills/simplify-and-harden/SKILL.md`
+- Three passes: Simplify → Harden → Document
+- Recurring findings feed into `.learnings/LEARNINGS.md` via the learning loop

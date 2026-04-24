@@ -245,6 +245,44 @@ class TestBuildIndexFallback:
         empty = np.array([], dtype=np.float32).reshape(0, 3)
         assert svc.build_index(empty) is None
 
+    def test_build_index_prefers_hnsw_when_enabled(self, monkeypatch):
+        import drift.embeddings as emb
+
+        class _FakeHNSW:
+            def __init__(self, dim, m, metric):
+                self.d = dim
+                self._m = m
+                self._metric = metric
+                self.ntotal = 0
+
+            def add(self, matrix):
+                self.ntotal = int(matrix.shape[0])
+
+            def search(self, query, k):
+                scores = np.ones((1, k), dtype=np.float32)
+                indices = np.arange(k, dtype=np.int64).reshape(1, k)
+                return scores, indices
+
+        class _FakeFlat(_FakeHNSW):
+            def __init__(self, dim):
+                super().__init__(dim, 0, 0)
+
+        class _FakeFaiss:
+            METRIC_INNER_PRODUCT = 0
+            IndexHNSWFlat = _FakeHNSW
+            IndexFlatIP = _FakeFlat
+
+        monkeypatch.setattr(emb, "_FAISS_AVAILABLE", True)
+        monkeypatch.setattr(emb, "faiss", _FakeFaiss, raising=False)
+        monkeypatch.setenv("DRIFT_EMBEDDINGS_HNSW_ENABLED", "1")
+        monkeypatch.setenv("DRIFT_EMBEDDINGS_HNSW_MIN_VECTORS", "32")
+
+        svc = EmbeddingService()
+        vecs = np.random.rand(64, 8).astype(np.float32)
+        index = svc.build_index(vecs)
+
+        assert isinstance(index, _FakeHNSW)
+
 
 # ---------------------------------------------------------------------------
 # EmbeddingService — search_index numpy fallback

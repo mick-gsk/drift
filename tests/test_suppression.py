@@ -198,6 +198,20 @@ class TestFilterFindings:
         assert len(active) == 0
         assert len(suppressed) == 1
 
+    def test_sparse_line_index_suppresses_inside_large_range(self) -> None:
+        f = _make_finding(start_line=10)
+        f.end_line = 200
+
+        suppressions = {
+            ("src/app.py", 3): None,
+            ("src/app.py", 150): None,
+            ("src/app.py", 400): None,
+        }
+
+        active, suppressed = filter_findings([f], suppressions)
+        assert len(active) == 0
+        assert len(suppressed) == 1
+
     def test_abbrev_comment_suppresses_matching_finding(self, tmp_path: Path) -> None:
         src = tmp_path / "src" / "app.py"
         src.parent.mkdir(parents=True, exist_ok=True)

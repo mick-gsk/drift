@@ -86,6 +86,7 @@ class BaseSignal(ABC):
         Literal["file_local", "module_wide", "repo_wide", "git_dependent"]
     ] = "repo_wide"
     uses_embeddings: ClassVar[bool] = False
+    depends_on_signals: ClassVar[tuple[str, ...]] = ()
 
     _repo_path: Path | None
     _embedding_service: EmbeddingServiceProtocol | None

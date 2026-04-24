@@ -1,0 +1,28 @@
+{
+  "version": "2.41.0",
+  "date": "2026-04-24",
+  "feature": "signal dependency dag priority",
+  "description": "Feature evidence for signal dependency dag priority (v2.41.0).",
+  "generated_by": {
+    "script": "scripts/generate_feature_evidence.py",
+    "git_sha": "507825dae39ef890db426656aa098671b8131989",
+    "drift_version": "2.39.2",
+    "timestamp": "2026-04-24T10:05:02.908265+00:00"
+  },
+  "self_analysis": {
+    "error": "JSON parse error: Extra data: line 43137 column 1 (char 1658134)"
+  },
+  "tests": {
+    "total_passing": 6624,
+    "total_failing": 0,
+    "exit_code": 0
+  },
+  "precision_recall_suite": {
+    "total_tests": 207,
+    "passing": 207,
+    "failing": 0,
+    "exit_code": 0,
+    "source": "live: pytest tests/test_precision_recall.py -v --tb=short"
+  },
+  "audit_artifacts_updated": []
+}

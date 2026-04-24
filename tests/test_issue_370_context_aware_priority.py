@@ -8,6 +8,7 @@ equal-severity findings in stable, rarely-touched files.
 from __future__ import annotations
 
 import datetime
+import json
 from pathlib import Path
 
 import pytest
@@ -15,6 +16,7 @@ import pytest
 from drift.finding_priority import (
     _composite_sort_key,
     _context_score,
+    _dedupe_findings,
 )
 from drift.models import FileHistory, Finding, Severity, SignalType
 
@@ -102,6 +104,28 @@ class TestContextScore:
         f = _make_finding()
         score = _context_score(f, fh)
         assert 0.0 <= score <= 1.0
+
+    def test_context_weights_loaded_from_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        weights_file = tmp_path / "weights.json"
+        weights_file.write_text(
+            json.dumps({"churn": 0.0, "ownership": 1.0, "recency": 0.0}),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("DRIFT_CONTEXT_WEIGHTS_PATH", str(weights_file))
+
+        # Reset module-level cache for this test run.
+        import drift.finding_priority as fp
+
+        monkeypatch.setattr(fp, "_CONTEXT_WEIGHTS_CACHE", None)
+
+        low_ownership = _make_history(change_frequency_30d=2.0, unique_authors=1)
+        high_ownership = _make_history(change_frequency_30d=0.0, unique_authors=10)
+
+        score_low = _context_score(_make_finding(), low_ownership)
+        score_high = _context_score(_make_finding(), high_ownership)
+        assert score_high > score_low
 
 
 # ---------------------------------------------------------------------------
@@ -198,3 +222,36 @@ class TestCompositeSortKey:
 
         ranked = sorted(findings, key=lambda f: _composite_sort_key(f, file_histories=histories))
         assert ranked[0].file_path == Path(hot)
+
+
+class TestNearDuplicateDedupe:
+    def test_near_duplicate_titles_merge_to_single_canonical(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setenv("DRIFT_NEAR_DEDUPE", "1")
+
+        f1 = Finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.MEDIUM,
+            score=0.5,
+            title="Error handling fragmented in service layer",
+            description="desc",
+            file_path=Path("src/service.py"),
+            start_line=10,
+            end_line=10,
+        )
+        f2 = Finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.MEDIUM,
+            score=0.5,
+            title="Error-handling fragmented in service layer",
+            description="desc",
+            file_path=Path("src/service.py"),
+            start_line=11,
+            end_line=11,
+        )
+
+        deduped, counts = _dedupe_findings([f1, f2])
+        assert len(deduped) == 1
+        assert counts[id(deduped[0])] == 2

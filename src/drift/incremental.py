@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import math
 import os
 import subprocess
 import tempfile
@@ -161,6 +162,40 @@ def _finding_key(f: Finding) -> str:
     desc_hash = hashlib.sha256((f.description or "").encode()).hexdigest()[:8]
     fix_hash = hashlib.sha256((f.fix or "").encode()).hexdigest()[:8]
     return f"{f.signal_type}::{fp}::{f.start_line}::{f.title}::{desc_hash}::{fix_hash}"
+
+
+def _stats_from_findings(findings: list[Finding]) -> dict[str, tuple[int, float]]:
+    """Build per-signal (count, score_sum) stats."""
+    stats: dict[str, tuple[int, float]] = {}
+    for finding in findings:
+        signal = str(finding.signal_type)
+        count, score_sum = stats.get(signal, (0, 0.0))
+        stats[signal] = (count + 1, score_sum + float(finding.score))
+    return stats
+
+
+def _signal_scores_from_stats(
+    stats: dict[str, tuple[int, float]],
+    *,
+    dampening_k: int,
+    min_findings: int = 0,
+) -> dict[str, float]:
+    """Compute signal scores from pre-aggregated stats.
+
+    Equivalent to ``compute_signal_scores`` but runs in O(signals) once stats
+    are available, enabling cheap incremental updates.
+    """
+    from drift.models import SignalType
+
+    scores: dict[str, float] = {}
+    all_signal_ids = {str(sig) for sig in SignalType} | set(stats.keys())
+    for sig in sorted(all_signal_ids):
+        count, score_sum = stats.get(sig, (0, 0.0))
+        if count and count >= max(1, min_findings):
+            mean = score_sum / float(count)
+            dampening = min(1.0, math.log(1 + count) / math.log(1 + dampening_k))
+            scores[sig] = round(mean * dampening, 4)
+    return scores
 
 
 # ---------------------------------------------------------------------------
@@ -711,6 +746,7 @@ class IncrementalSignalRunner:
         self._baseline_findings = baseline_findings
         self._baseline_parse_map = baseline_parse_results
         self._repo_path = repo_path
+        self._baseline_signal_stats = _stats_from_findings(baseline_findings)
 
     # ------------------------------------------------------------------
 
@@ -736,6 +772,7 @@ class IncrementalSignalRunner:
             _instantiate_signal,
             registered_signals,
         )
+        from drift.signals.dependency_dag import order_signal_classes_topologically
 
         # 1. Build merged parse_results: baseline + overwritten changed files
         merged: dict[str, ParseResult] = dict(self._baseline_parse_map)
@@ -749,7 +786,8 @@ class IncrementalSignalRunner:
         # 2. Classify registered signals
         file_local_classes: list[type[BaseSignal]] = []
         other_classes: list[type[BaseSignal]] = []
-        for cls in registered_signals():
+        ordered_signals = order_signal_classes_topologically(list(registered_signals()))
+        for cls in ordered_signals:
             if cls.incremental_scope == "file_local":
                 file_local_classes.append(cls)
             else:
@@ -814,7 +852,41 @@ class IncrementalSignalRunner:
 
         # 5. Merge and score
         all_findings = carried_findings + file_local_findings
-        signal_scores = compute_signal_scores(all_findings)
+        use_delta_scoring = os.getenv("DRIFT_INCREMENTAL_DELTA_SCORING", "1").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        if use_delta_scoring:
+            stats = dict(self._baseline_signal_stats)
+
+            for finding in self._baseline_findings:
+                if finding in carried_findings:
+                    continue
+                signal = str(finding.signal_type)
+                count, score_sum = stats.get(signal, (0, 0.0))
+                new_count = max(0, count - 1)
+                new_sum = score_sum - float(finding.score)
+                if new_count <= 0:
+                    stats.pop(signal, None)
+                else:
+                    stats[signal] = (new_count, new_sum)
+
+            for finding in file_local_findings:
+                signal = str(finding.signal_type)
+                count, score_sum = stats.get(signal, (0, 0.0))
+                stats[signal] = (count + 1, score_sum + float(finding.score))
+
+            signal_scores = _signal_scores_from_stats(
+                stats,
+                dampening_k=self._config.scoring.dampening_k,
+            )
+        else:
+            signal_scores = compute_signal_scores(
+                all_findings,
+                dampening_k=self._config.scoring.dampening_k,
+            )
         score = composite_score(signal_scores, self._config.weights)
 
         # 6. Diff findings vs baseline

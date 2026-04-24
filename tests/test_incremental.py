@@ -651,6 +651,45 @@ class TestIncrementalSignalRunner:
         assert result.delta == pytest.approx(result.score - baseline.score)
         assert result.direction == _direction_for_delta(result.delta)
 
+    def test_delta_scoring_matches_full_recompute(
+        self,
+        config: DriftConfig,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        pr = ParseResult(file_path=Path("src/a.py"), language="python", line_count=10)
+        baseline = BaselineSnapshot(file_hashes={"src/a.py": "old"}, score=0.0)
+
+        baseline_finding = Finding(
+            signal_type=SignalType.PATTERN_FRAGMENTATION,
+            severity=Severity.MEDIUM,
+            score=0.4,
+            title="baseline",
+            description="desc",
+            file_path=Path("src/a.py"),
+            start_line=1,
+        )
+
+        runner = IncrementalSignalRunner(
+            baseline=baseline,
+            config=config,
+            baseline_findings=[baseline_finding],
+            baseline_parse_results={"src/a.py": pr},
+        )
+
+        monkeypatch.setenv("DRIFT_INCREMENTAL_DELTA_SCORING", "1")
+        delta_result = runner.run(
+            changed_files={"src/a.py"},
+            current_parse_results={"src/a.py": pr},
+        )
+
+        monkeypatch.setenv("DRIFT_INCREMENTAL_DELTA_SCORING", "0")
+        full_result = runner.run(
+            changed_files={"src/a.py"},
+            current_parse_results={"src/a.py": pr},
+        )
+
+        assert delta_result.score == pytest.approx(full_result.score, abs=1e-4)
+
 
 class TestBaselineManagerSingleton:
     @pytest.fixture(autouse=True)

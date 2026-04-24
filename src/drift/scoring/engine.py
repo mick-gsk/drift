@@ -42,6 +42,61 @@ _DAMPENING_K = 20
 _BREADTH_CAP = 4.0
 
 
+def _project_bounded_simplex(
+    values: dict[str, float],
+    *,
+    min_weight: float,
+    max_weight: float,
+    target_sum: float = 1.0,
+    tolerance: float = 1e-9,
+) -> dict[str, float]:
+    """Project values onto the bounded simplex.
+
+    Computes the exact Euclidean projection onto:
+    ``{w | sum(w)=target_sum, min_weight<=w_i<=max_weight}``
+    by solving for a scalar offset ``lambda`` in
+    ``w_i = clip(values_i - lambda, min_weight, max_weight)``.
+    """
+    if not values:
+        return {}
+
+    low = min(v - max_weight for v in values.values())
+    high = max(v - min_weight for v in values.values())
+
+    for _ in range(80):
+        mid = (low + high) / 2.0
+        projected_sum = math.fsum(
+            min(max_weight, max(min_weight, v - mid)) for v in values.values()
+        )
+        if abs(projected_sum - target_sum) <= tolerance:
+            break
+        if projected_sum > target_sum:
+            low = mid
+        else:
+            high = mid
+
+    lam = (low + high) / 2.0
+    projected = {
+        k: min(max_weight, max(min_weight, v - lam))
+        for k, v in values.items()
+    }
+
+    residue = target_sum - math.fsum(projected.values())
+    if abs(residue) >= 1e-12:
+        ordered = sorted(
+            projected,
+            key=lambda key: (projected[key], key),
+            reverse=(residue > 0),
+        )
+        for key in ordered:
+            candidate = projected[key] + residue
+            if min_weight <= candidate <= max_weight:
+                projected[key] = candidate
+                residue = 0.0
+                break
+    return projected
+
+
 def assign_impact_scores(
     findings: list[Finding],
     weights: SignalWeights,
@@ -336,6 +391,8 @@ def auto_calibrate_weights(
     base_weights: SignalWeights,
     *,
     dominance_cap: float = 0.40,
+    ema_alpha: float | None = None,
+    previous_shares: Mapping[str, float] | None = None,
 ) -> SignalWeights:
     """Runtime weight rebalancing based on finding distribution.
 
@@ -366,11 +423,15 @@ def auto_calibrate_weights(
     active_keys = sorted(k for k, v in weight_dict.items() if v > 0)
 
     adjustments: dict[str, float] = {}
+    alpha = None if ema_alpha is None else max(0.0, min(1.0, ema_alpha))
     for key in active_keys:
         w = weight_dict[key]
         if w <= 0:
             continue
         share = counts.get(key, 0) / total
+        if alpha is not None and previous_shares is not None:
+            prev = max(0.0, min(1.0, float(previous_shares.get(key, share))))
+            share = alpha * share + (1.0 - alpha) * prev
         if share > dominance_cap:
             # Dampen prolific signal — scale proportionally to excess
             excess = share - dominance_cap
@@ -452,47 +513,18 @@ def calibrate_weights(
     # Start from normalized raw weights and project onto the bounded simplex:
     #   sum(w)=1 and min_weight <= w_i <= max_weight
     base = {k: raw[k] / total for k in names}
-    fixed: dict[str, float] = {}
-    free = set(names)
-
-    for _ in range(n + 2):
-        remaining = 1.0 - sum(fixed.values())
-        if remaining <= 0:
-            return current_weights
-        if not free:
-            calibrated = dict(fixed)
-            break
-
-        base_free_total = sum(base[k] for k in free)
-        if base_free_total < 0.001:
-            scaled = {k: remaining / len(free) for k in free}
-        else:
-            factor = remaining / base_free_total
-            scaled = {k: base[k] * factor for k in free}
-
-        too_high = [k for k, v in scaled.items() if v > max_weight]
-        if too_high:
-            for k in too_high:
-                fixed[k] = max_weight
-                free.remove(k)
-            continue
-
-        too_low = [k for k, v in scaled.items() if v < min_weight]
-        if too_low:
-            for k in too_low:
-                fixed[k] = min_weight
-                free.remove(k)
-            continue
-
-        if not too_low and not too_high:
-            calibrated = dict(fixed)
-            calibrated.update(scaled)
-            break
-    else:
-        return current_weights
+    calibrated = _project_bounded_simplex(
+        base,
+        min_weight=min_weight,
+        max_weight=max_weight,
+        target_sum=1.0,
+    )
 
     # Final bound safety and rounding.
-    calibrated = {k: max(min_weight, min(max_weight, v)) for k, v in calibrated.items()}
+    calibrated = {
+        k: max(min_weight, min(max_weight, v))
+        for k, v in calibrated.items()
+    }
     rounded = {k: round(v, 4) for k, v in calibrated.items()}
 
     # Adjust one non-capped key for rounding drift so sum remains near 1.0.

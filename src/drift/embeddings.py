@@ -140,6 +140,9 @@ _DEFAULT_MODEL = "all-MiniLM-L6-v2"
 _MODEL_LOAD_TIMEOUT_ENV = "DRIFT_EMBEDDING_MODEL_LOAD_TIMEOUT"
 _HF_HUB_DOWNLOAD_TIMEOUT_ENV = "HF_HUB_DOWNLOAD_TIMEOUT"
 _MODEL_LOAD_TIMEOUT_SECONDS_DEFAULT = 30.0
+_HNSW_ENABLED_ENV = "DRIFT_EMBEDDINGS_HNSW_ENABLED"
+_HNSW_MIN_VECTORS_ENV = "DRIFT_EMBEDDINGS_HNSW_MIN_VECTORS"
+_HNSW_M_ENV = "DRIFT_EMBEDDINGS_HNSW_M"
 
 
 class EmbeddingService:  # drift:ignore[DCA]
@@ -323,6 +326,27 @@ class EmbeddingService:  # drift:ignore[DCA]
     # -- FAISS index ---------------------------------------------------------
 
     @staticmethod
+    def _hnsw_enabled() -> bool:
+        raw = os.getenv(_HNSW_ENABLED_ENV, "1").strip().lower()
+        return raw in {"1", "true", "yes", "on"}
+
+    @staticmethod
+    def _hnsw_min_vectors() -> int:
+        raw = os.getenv(_HNSW_MIN_VECTORS_ENV, "512")
+        try:
+            return max(32, int(raw))
+        except ValueError:
+            return 512
+
+    @staticmethod
+    def _hnsw_m() -> int:
+        raw = os.getenv(_HNSW_M_ENV, "32")
+        try:
+            return max(8, int(raw))
+        except ValueError:
+            return 32
+
+    @staticmethod
     def build_index(vectors: list[np.ndarray] | np.ndarray) -> object | None:
         """Build a FAISS inner-product index.  Falls back to brute-force numpy.
 
@@ -339,6 +363,22 @@ class EmbeddingService:  # drift:ignore[DCA]
         if matrix.size == 0:
             return None
         if _FAISS_AVAILABLE and matrix.shape[0] >= 32:
+            if (
+                EmbeddingService._hnsw_enabled()
+                and matrix.shape[0] >= EmbeddingService._hnsw_min_vectors()
+                and hasattr(faiss, "IndexHNSWFlat")
+            ):
+                try:
+                    metric_ip = getattr(faiss, "METRIC_INNER_PRODUCT", 0)
+                    hnsw = faiss.IndexHNSWFlat(
+                        matrix.shape[1],
+                        EmbeddingService._hnsw_m(),
+                        metric_ip,
+                    )
+                    hnsw.add(matrix)
+                    return hnsw  # type: ignore[no-any-return]
+                except Exception:
+                    logger.debug("HNSW unavailable; falling back to FlatIP", exc_info=True)
             index = faiss.IndexFlatIP(matrix.shape[1])
             index.add(matrix)
             return index  # type: ignore[no-any-return]

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import re
+from bisect import bisect_left
+from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
@@ -202,6 +204,16 @@ def _entry_signals(entry: InlineSuppression | set[str] | None) -> set[str] | Non
     return entry
 
 
+def _build_suppression_line_index(
+    suppressions: Mapping[tuple[str, int], InlineSuppression | set[str] | None],
+) -> dict[str, list[int]]:
+    """Build a per-file sorted line index for fast overlap queries."""
+    grouped: dict[str, list[int]] = defaultdict(list)
+    for file_path, line_no in suppressions:
+        grouped[file_path].append(line_no)
+    return {path: sorted(lines) for path, lines in grouped.items()}
+
+
 def filter_findings(
     findings: list[Finding],
     suppressions: Mapping[tuple[str, int], InlineSuppression | set[str] | None],
@@ -233,6 +245,7 @@ def filter_findings_with_report(
     active: list[Finding] = []
     suppressed: list[Finding] = []
     expired_by_key: dict[tuple[str, int], InlineSuppression] = {}
+    line_index = _build_suppression_line_index(suppressions)
 
     for f in findings:
         if f.file_path is None or f.start_line is None:
@@ -246,7 +259,17 @@ def filter_findings_with_report(
         is_suppressed = False
         broad_security_suppression = False
         suppression_line: int | None = None
-        for line_no in range(start_line, end_line + 1):
+        file_key = f.file_path.as_posix()
+        candidate_lines = line_index.get(file_key)
+        if not candidate_lines:
+            f.status = FindingStatus.ACTIVE
+            active.append(f)
+            continue
+
+        start_idx = bisect_left(candidate_lines, start_line)
+        for line_no in candidate_lines[start_idx:]:
+            if line_no > end_line:
+                break
             key = (f.file_path.as_posix(), line_no)
             entry = suppressions.get(key)
             if entry is None and key not in suppressions:
