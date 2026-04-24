@@ -1,7 +1,13 @@
 ## [Unreleased]
 
+## [2.40.1] – 2026-04-25
+
+Short version: MCP server performance improvements — L1 in-memory LRU cache, extended TTLs.
+
 ### Fixed
-- pre-push stability: align local mypy suppression in `src/drift/commands/watch.py` (`type: ignore[union-attr,attr-defined]`) and include a fresh quality-loop feature evidence artifact for gate compliance.
+- `ParseCache` and `SignalCache` now have a class-level `OrderedDict` LRU cache (L1) eliminating disk I/O and JSON deserialization on warm repeated MCP scans.
+- `_GIT_HISTORY_CACHE_TTL_SECONDS` extended from 600 s to 3600 s to cover full VS Code sessions.
+- Default `nudge_baseline_ttl_seconds` increased from 900 s to 3600 s; git-state invalidation still takes priority regardless of TTL.
 
 ## [2.40.0] – 2026-04-24
 
