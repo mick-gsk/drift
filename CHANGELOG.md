@@ -1,3 +1,13 @@
+## [2.42.5] - 2026-04-24
+
+Short version: Three CI failures resolved: Windows mtime flakiness in dismissal cache, OS-specific path separators in mutant-duplicate descriptions, and missing tree-sitter dependency for TypeScript signal tests.
+
+### Fixed
+- `fix_plan_dismissals._write_entries`: Added `os.utime()` after atomic `replace()` to ensure `st_mtime_ns` is reliably updated on Windows (NTFS timestamp granularity could cause flaky test assertions).
+- `signals/mutant_duplicates`: Use `.as_posix()` for file paths in finding `description` strings to produce consistent forward-slash output on all platforms (golden snapshot mismatch on Ubuntu CI).
+- `pyproject.toml`: Added `tree-sitter` and `tree-sitter-typescript` to the `dev` optional-dependency group so TypeScript signal ground-truth tests (`tsb_ts_tp`, etc.) run in all CI matrix jobs.
+- `tests/golden`: Regenerated `corpus_snapshot.json` and `corpus_snapshot.sarif` with forward-slash paths after the mutant-duplicates fix.
+
 ## [2.42.3] - 2026-04-24
 
 Short version: Bandit SAST false-positive suppressed; shellcheck SC2012/SC2086/SC2126/SC2129 violations resolved across nine workflow files.

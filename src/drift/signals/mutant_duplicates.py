@@ -393,7 +393,9 @@ class MutantDuplicateSignal(BaseSignal):
                     f"{len(group)} identical copies (similarity: 1.00). Effort: S."
                 )
 
-                locations_desc = ", ".join(f"{fn.file_path}:{fn.start_line}" for fn in group)
+                locations_desc = ", ".join(
+                    f"{fn.file_path.as_posix()}:{fn.start_line}" for fn in group
+                )
                 is_cross_workspace_group, workspace_scopes = _is_cross_workspace_plugin_group(group)
 
                 severity = Severity.HIGH

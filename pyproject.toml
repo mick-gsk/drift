@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "drift-analyzer"
-version = "2.42.4"
+version = "2.42.5"
 description = "Catches structural erosion from AI-generated code — the bugs that pass all your tests"
 readme = "README.md"
 license = "MIT"
@@ -128,6 +128,9 @@ dev = [
     "openai>=1.30",
     "python-multipart>=0.0.26",
     "setuptools>=78.1.1",
+    # tree-sitter required for TypeScript signal tests (tsb_ts_tp, etc.)
+    "tree-sitter>=0.22",
+    "tree-sitter-typescript>=0.22",
 ]
 all = [
     "drift-analyzer[typescript,embeddings,markdown,mcp,llm,dev]",

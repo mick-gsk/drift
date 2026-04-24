@@ -638,7 +638,7 @@ wheels = [
 
 [[package]]
 name = "drift-analyzer"
-version = "2.42.2"
+version = "2.42.5"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -697,6 +697,8 @@ dev = [
     { name = "ruff" },
     { name = "scipy" },
     { name = "setuptools" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-typescript" },
     { name = "vulture" },
 ]
 embeddings = [
@@ -754,7 +756,9 @@ requires-dist = [
     { name = "scipy", marker = "extra == 'dev'", specifier = ">=1.13" },
     { name = "sentence-transformers", marker = "extra == 'embeddings'", specifier = ">=3.0" },
     { name = "setuptools", marker = "extra == 'dev'", specifier = ">=78.1.1" },
+    { name = "tree-sitter", marker = "extra == 'dev'", specifier = ">=0.22" },
     { name = "tree-sitter", marker = "extra == 'typescript'", specifier = ">=0.22" },
+    { name = "tree-sitter-typescript", marker = "extra == 'dev'", specifier = ">=0.22" },
     { name = "tree-sitter-typescript", marker = "extra == 'typescript'", specifier = ">=0.22" },
     { name = "vulture", marker = "extra == 'dev'", specifier = ">=2.11" },
     { name = "watchfiles", marker = "extra == 'watch'", specifier = ">=1.0" },

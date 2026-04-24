@@ -98,6 +98,10 @@ def _write_entries(
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(content)
         tmp_path.replace(path)
+        # Explicitly touch mtime so watchers and test assertions that rely on
+        # st_mtime_ns see a change even when the atomic replace completes within
+        # a single NTFS timestamp granularity window (~100 ns on Windows).
+        os.utime(str(path), None)
     except Exception:
         with suppress(OSError):
             os.close(fd)

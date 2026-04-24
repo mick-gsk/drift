@@ -35,7 +35,7 @@
             }
           ],
           "message": {
-            "text": "Exact duplicates (2×): process_order\n2 identical copies (6 lines each) at: src\\myapp\\service_a.py:4, src\\myapp\\service_b.py:4. Consider consolidating.\nFIX: Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. | Merge 'process_order' and 'process_order' (across src/myapp/service_a.py and src/myapp/service_b.py)"
+            "text": "Exact duplicates (2×): process_order\n2 identical copies (6 lines each) at: src/myapp/service_a.py:4, src/myapp/service_b.py:4. Consider consolidating.\nFIX: Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. | Merge 'process_order' and 'process_order' (across src/myapp/service_a.py and src/myapp/service_b.py)"
           },
           "properties": {
             "drift:findingId": "8625aa2a828b1f22",
@@ -78,7 +78,7 @@
             }
           ],
           "message": {
-            "text": "Exact duplicates (2×): validate_input\n2 identical copies (9 lines each) at: src\\myapp\\service_a.py:12, src\\myapp\\service_b.py:12. Consider consolidating.\nFIX: Extract validate_input() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. | Merge 'validate_input' and 'validate_input' (across src/myapp/service_a.py and src/myapp/service_b.py)"
+            "text": "Exact duplicates (2×): validate_input\n2 identical copies (9 lines each) at: src/myapp/service_a.py:12, src/myapp/service_b.py:12. Consider consolidating.\nFIX: Extract validate_input() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. | Merge 'validate_input' and 'validate_input' (across src/myapp/service_a.py and src/myapp/service_b.py)"
           },
           "properties": {
             "drift:findingId": "691c18922f7f91ba",
