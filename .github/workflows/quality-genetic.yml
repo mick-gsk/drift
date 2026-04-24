@@ -73,7 +73,7 @@ jobs:
         id: evaluate
         run: |
           python -m scripts.quality_loop evaluate \
-            --src src/drift \
+            --src scripts/quality_loop/demo_corpus \
             --mode hybrid \
             --mcts-budget 10 \
             --ga-generations 5 \

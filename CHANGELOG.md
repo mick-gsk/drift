@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [2.40.2] - 2026-04-24
+
+### Fixed
+- quality loop evidence gate repaired (demo corpus, sys.executable, repo_root/src_path separation, json float sanitization)
+
 ## [2.40.1] – 2026-04-25
 
 Short version: MCP server performance improvements — L1 in-memory LRU cache, extended TTLs.

@@ -299,7 +299,7 @@ def run_seed(
 @click.command("evaluate")
 @click.option(
     "--src",
-    default="src/drift",
+    default="scripts/quality_loop/demo_corpus",
     show_default=True,
     help="Source root to analyse (relative to cwd).",
 )

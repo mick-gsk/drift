@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -81,7 +82,7 @@ class CompositeMetric:
     def _run_drift(self) -> float:
         result = subprocess.run(
             [
-                "python",
+                sys.executable,
                 "-m",
                 "drift",
                 "analyze",
@@ -115,7 +116,7 @@ class CompositeMetric:
     def _run_ruff(self) -> int:
         result = subprocess.run(
             [
-                "python",
+                sys.executable,
                 "-m",
                 "ruff",
                 "check",
@@ -139,7 +140,7 @@ class CompositeMetric:
     def _run_mypy(self) -> int:
         result = subprocess.run(
             [
-                "python",
+                sys.executable,
                 "-m",
                 "mypy",
                 str(self.src_path),

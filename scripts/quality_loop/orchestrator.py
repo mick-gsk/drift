@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+
+
+def _sanitize_floats(obj: object) -> object:
+    """Recursively replace non-finite floats with None for JSON safety."""
+    if isinstance(obj, float):
+        return None if not math.isfinite(obj) else obj
+    if isinstance(obj, dict):
+        return {k: _sanitize_floats(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_floats(v) for v in obj]
+    return obj
 
 from scripts.quality_loop.genetic.individual import Op
 from scripts.quality_loop.genetic.population import Population
@@ -49,7 +61,7 @@ class OrchestratorResult:
 
     def to_dict(self) -> dict:
         d = asdict(self)
-        return d
+        return _sanitize_floats(d)
 
 
 class HybridOrchestrator:
@@ -83,7 +95,7 @@ class HybridOrchestrator:
         self._min_improvement = min_improvement
         self._dry_run = dry_run
         self._seed = seed
-        self._metric = CompositeMetric(repo_root=src_root, src_path=src_root)
+        self._metric = CompositeMetric(repo_root=Path.cwd(), src_path=src_root)
 
     def run(self) -> OrchestratorResult:
         start = time.monotonic()
