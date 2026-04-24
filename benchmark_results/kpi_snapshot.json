@@ -1,0 +1,247 @@
+{
+  "timestamp": "2026-04-24T05:55:41.754997+00:00",
+  "version": "2.39.1",
+  "git_sha": "603977cee",
+  "quality_loop_evaluation": {
+    "note": "Thresholds codified in scripts/quality_loop/evaluate.py — run evaluate cmd for live values",
+    "gate_criteria": {
+      "min_median_improvement": 0.01,
+      "min_positive_seed_rate": 0.70,
+      "max_ruff_regressions": 0,
+      "max_mypy_regressions": 0,
+      "max_drift_delta": 0.005
+    },
+    "default_seeds": [11, 22, 33, 44, 55]
+  },
+  "precision_recall": {
+    "aggregate_f1": 1.0,
+    "total_fixtures": 206,
+    "signals": {
+      "architecture_violation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6
+      },
+      "broad_exception_monoculture": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 8
+      },
+      "bypass_accumulation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6
+      },
+      "circular_import": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2
+      },
+      "co_change_coupling": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      "cognitive_complexity": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 4
+      },
+      "cohesion_deficit": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 6
+      },
+      "dead_code_accumulation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2
+      },
+      "doc_impl_drift": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 7
+      },
+      "exception_contract_drift": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2
+      },
+      "explainability_deficit": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 8
+      },
+      "fan_out_explosion": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2
+      },
+      "guard_clause_deficit": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 4,
+        "fp": 0,
+        "fn": 0,
+        "tn": 7
+      },
+      "hardcoded_secret": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 4
+      },
+      "insecure_default": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      "missing_authorization": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2
+      },
+      "mutant_duplicate": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 8
+      },
+      "naming_contract_violation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 7,
+        "fp": 0,
+        "fn": 0,
+        "tn": 9
+      },
+      "pattern_fragmentation": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "tn": 4
+      },
+      "phantom_reference": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 7,
+        "fp": 0,
+        "fn": 0,
+        "tn": 18
+      },
+      "system_misalignment": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 2
+      },
+      "temporal_volatility": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      "test_polarity_deficit": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0,
+        "tn": 4
+      },
+      "ts_architecture": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1
+      },
+      "type_safety_bypass": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0,
+        "tn": 1
+      }
+    }
+  }
+}

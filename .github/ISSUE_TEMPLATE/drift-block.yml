@@ -14,7 +14,7 @@ body:
     id: finding-id
     attributes:
       label: Drift finding id
-      description: Embedded as `<!-- drift-finding-id: … -->` in the body so the dedup script can recognise it.
+      description: "Embedded as `<!-- drift-finding-id: … -->` in the body so the dedup script can recognise it."
       placeholder: "ARCHITECTURE_VIOLATION:src/x.py:42"
     validations:
       required: true

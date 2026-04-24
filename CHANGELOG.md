@@ -1,3 +1,15 @@
+## [2.42.0] - 2026-04-24
+
+Short version: Failing GitHub Actions repaired and CI guardrails hardened against recurring workflow, secrets, and hygiene regressions.
+
+### Fixed
+- Unblocked failing Actions by tracking required badge benchmark artifacts (`kpi_snapshot.json`, `mutation_benchmark.json`, `drift_self.json`, `kpi_trend.jsonl`) and stabilizing detect-secrets baseline updates.
+- Repaired CI hygiene failures (YAML parsing edge cases, issue-template quoting, trailing-whitespace/EOF normalization in affected workflow/artifact files).
+- Hardened Action security checks by removing direct template expansion in shell `run` blocks flagged by zizmor (`action.yml`).
+
+### Changed
+- Pre-commit guardrails hardened for CI/manual stage: reliable YAML parsing (`--unsafe`, `conda.recipe` exclusion), benchmark-size allowance for required badge artifacts, and manual-stage scoping to avoid false-positive lint debt from unrelated domains.
+
 ## [2.41.0] - 2026-04-24
 
 Short version: Signal dependency DAG scheduler, context-aware finding priority, scoring/suppression/incremental hardening.

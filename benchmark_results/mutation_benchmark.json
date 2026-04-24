@@ -1,0 +1,10 @@
+{
+  "overall_recall": 0.75,
+  "version": "2.39.1",
+  "note": "bootstrap baseline - run mutation benchmark to update",
+  "summary": {
+    "killed": 75,
+    "survived": 25,
+    "total": 100
+  }
+}

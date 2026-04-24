@@ -6,7 +6,7 @@ when_to_use: Use when debugging errors, fixing broken code, or when an AI agent 
 
 # BUG-FIX-PROTOCOL Skill
 
-> Source: https://github.com/CodeAlive-AI/ai-driven-development/blob/main/BUG-FIX-PROTOCOL.md  
+> Source: https://github.com/CodeAlive-AI/ai-driven-development/blob/main/BUG-FIX-PROTOCOL.md
 > Concept by Rodion Mostovoy
 
 ## Core Philosophy
@@ -145,8 +145,8 @@ when_to_use: Use when debugging errors, fixing broken code, or when an AI agent 
 - [ ] ...
 
 ### Принято в работу
-- Исполнитель: 
-- Дедлайн: 
+- Исполнитель:
+- Дедлайн:
 ```
 
 ---

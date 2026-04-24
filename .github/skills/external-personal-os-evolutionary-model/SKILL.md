@@ -17,7 +17,7 @@ The model has three axes of evolution:
 
 ```
 Memory      → agent remembers decisions, context, preferences
-Skills      → agent gains new capabilities over time  
+Skills      → agent gains new capabilities over time
 Protocols   → agent behavior becomes more reliable and predictable
 ```
 
@@ -139,10 +139,10 @@ Bootstrap checklist:
 
 ## The Compounding Effect
 
-Day 1:  agent knows your name, timezone, and communication style  
-Day 3:  agent knows your projects, key contacts, and decisions made  
-Day 7:  agent anticipates needs, runs proactive checks, catches mistakes  
-Day 14: agent has accumulated skills specific to your workflow  
+Day 1:  agent knows your name, timezone, and communication style
+Day 3:  agent knows your projects, key contacts, and decisions made
+Day 7:  agent anticipates needs, runs proactive checks, catches mistakes
+Day 14: agent has accumulated skills specific to your workflow
 Day 30: agent is irreplaceable — it carries institutional knowledge no new model can replicate
 
 This is why the model is called "evolutionary": the value grows non-linearly. Not because the base model gets smarter, but because the accumulated context, skills, and protocols become a moat.

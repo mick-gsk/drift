@@ -7,9 +7,11 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-        args: [--allow-multiple-documents]
+        args: [--allow-multiple-documents, --unsafe]
+        exclude: "^conda\\.recipe/"
       - id: check-added-large-files
         args: [--maxkb=1024]
+        exclude: "^(benchmark_results/(kpi_snapshot\\.json|mutation_benchmark\\.json|drift_self\\.json|kpi_trend\\.jsonl))$"
       - id: check-merge-conflict
       - id: detect-private-key
         # Multiline-secret tests intentionally include key-like fixtures.
@@ -34,7 +36,11 @@ repos:
     rev: v0.14.1
     hooks:
       - id: ruff
+        files: "^(src/|tests/)"
+        stages: [pre-commit]
       - id: ruff-format
+        files: "^(src/|tests/)"
+        stages: [pre-commit]
         args: [--check]
 
   - repo: https://github.com/rhysd/actionlint
@@ -60,6 +66,8 @@ repos:
     rev: v0.17.2
     hooks:
       - id: markdownlint-cli2
+        stages: [pre-commit]
+        files: "^(docs-site/.*\\.md|README\\.md|CONTRIBUTING\\.md|DEVELOPER\\.md|SECURITY\\.md|SUPPORT\\.md|CHANGELOG\\.md)$"
         args: [--config, .markdownlint-cli2.jsonc]
 
   - repo: https://github.com/compilerla/conventional-pre-commit

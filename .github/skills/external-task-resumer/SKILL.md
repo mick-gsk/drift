@@ -2,19 +2,19 @@
 name: task-resumer
 description: |
   解决 OpenClaw/QClaw 复杂任务因步骤过多导致 Agent 自动中止的问题。
-  
+
   核心能力：
   1. 任务复杂度分析 - 自动识别需要拆分的长流程任务
   2. 智能任务拆分 - 将大任务分解为可独立执行的子任务
   3. 子代理委派 - 使用 sessions_spawn 将子任务派给独立会话执行
   4. 进度追踪与恢复 - 维护任务状态，支持断点续作
-  
+
   使用场景：
   - 涉及"多个文件"、"批量"、"重构"、"完整实现"的复杂任务
   - 当前会话步骤数 >10 需要预防性拆分
   - 用户说"继续上次的任务"或"恢复之前的任务"
   - 多阶段任务（分析→设计→实现→测试）需要分步执行
-  
+
   触发关键词：继续、恢复、拆分、子任务、太长、步骤太多、批量、重构、多文件
 license: MIT
 ---
@@ -91,7 +91,7 @@ license: MIT
    - 执行顺序（拓扑排序后的依赖关系）
 
 3. **执行子任务（串行或并行）**
-   
+
    **串行执行**（有依赖关系）：
    ```python
    # 读取 manifest，找到下一个待执行的子任务
@@ -104,7 +104,7 @@ license: MIT
    )
    # 等待完成后更新 manifest 状态，继续下一个
    ```
-   
+
    **并行执行**（无依赖关系）：
    ```python
    # 批量派发多个无依赖的子任务
@@ -203,8 +203,8 @@ python "{SKILL_DIR}/scripts/task_analyzer.py" --task "<任务描述>" [--verbose
 ### task_splitter.py — 任务拆分
 
 ```bash
-python "{SKILL_DIR}/scripts/task_splitter.py" 
-  --task "<任务描述>" 
+python "{SKILL_DIR}/scripts/task_splitter.py"
+  --task "<任务描述>"
   --output ".qclaw/tasks/<task_id>/manifest.json"
   [--strategy auto|by_file|by_phase|by_module]
 ```

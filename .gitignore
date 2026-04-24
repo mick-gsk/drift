@@ -31,7 +31,11 @@ Thumbs.db
 Desktop.ini
 site/
 audit_results/
-benchmark_results/
+benchmark_results/*
+!benchmark_results/kpi_snapshot.json
+!benchmark_results/mutation_benchmark.json
+!benchmark_results/drift_self.json
+!benchmark_results/kpi_trend.jsonl
 drift_score.json
 work_artifacts/
 master-backlog/*

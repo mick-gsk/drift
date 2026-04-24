@@ -31,5 +31,5 @@ print(result or '')
 
 ## Superflow + голос
 
-Если транскрипт содержит "superflow" или "суперфлоу" — 
+Если транскрипт содержит "superflow" или "суперфлоу" —
 читай ~/clawd/skills/superflow/SKILL.md и запускай фазу 1.

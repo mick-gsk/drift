@@ -104,7 +104,7 @@ When learnings prove broadly applicable, promote them to workspace files:
 OpenClaw provides tools to share learnings across sessions:
 
 - **sessions_list** — View active/recent sessions
-- **sessions_history** — Read another session's transcript  
+- **sessions_history** — Read another session's transcript
 - **sessions_send** — Send a learning to another session
 - **sessions_spawn** — Spawn a sub-agent for background work
 
@@ -311,7 +311,7 @@ When a learning is broadly applicable (not a one-off fix), promote it to permane
 ### Promotion Examples
 
 **Learning** (verbose):
-> Project uses pnpm workspaces. Attempted `npm install` but failed. 
+> Project uses pnpm workspaces. Attempted `npm install` but failed.
 > Lock file is `pnpm-lock.yaml`. Must use `pnpm install`.
 
 **In CLAUDE.md** (concise):

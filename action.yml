@@ -140,7 +140,9 @@ runs:
 
     - name: Install drift-analyzer
       shell: bash
-      run: pip install --quiet "${{ inputs.drift-version }}"
+      env:
+        DRIFT_VERSION: ${{ inputs.drift-version }}
+      run: pip install --quiet "${DRIFT_VERSION}"
 
     - name: Run drift ci
       id: drift-run
@@ -304,9 +306,11 @@ runs:
       id: drift-badge
       if: always()
       shell: bash
+      env:
+        DRIFT_REPO: ${{ inputs.repo }}
       run: |
         BADGE_FILE="${RUNNER_TEMP}/drift-badge.svg"
-        drift badge --repo "${{ inputs.repo }}" --format svg --output "${BADGE_FILE}" 2>/dev/null || true
+        drift badge --repo "${DRIFT_REPO}" --format svg --output "${BADGE_FILE}" 2>/dev/null || true
         if [ -f "${BADGE_FILE}" ]; then
           echo "badge-svg=${BADGE_FILE}" >> "${GITHUB_OUTPUT}"
         fi
@@ -350,10 +354,11 @@ runs:
         DRIFT_REPO: ${{ inputs.repo }}
         DRIFT_CONFIG: ${{ inputs.config }}
         DRIFT_BRIEF_TASK: ${{ inputs.brief-task }}
+        DRIFT_PR_TITLE: ${{ github.event.pull_request.title }}
       run: |
         TASK="${DRIFT_BRIEF_TASK}"
         if [ -z "${TASK}" ]; then
-          TASK="${{ github.event.pull_request.title }}"
+          TASK="${DRIFT_PR_TITLE}"
         fi
 
         ARGS="--repo ${DRIFT_REPO} --format markdown --task"
