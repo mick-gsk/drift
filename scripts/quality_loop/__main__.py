@@ -136,5 +136,66 @@ def run(
         sys.exit(1)
 
 
+@cli.command("config-optimize")
+@click.option(
+    "--budget",
+    default=30,
+    show_default=True,
+    type=int,
+    help="Number of MCTS evaluation iterations.",
+)
+@click.option(
+    "--output-json",
+    default=None,
+    help="Write search result to this JSON file.",
+)
+@click.option(
+    "--exit-zero",
+    is_flag=True,
+    default=False,
+    help="Always exit 0, even when no improvement was found.",
+)
+@click.option(
+    "--seed",
+    default=None,
+    type=int,
+    help="Random seed for reproducibility.",
+)
+def config_optimize(
+    budget: int,
+    output_json: str | None,
+    exit_zero: bool,
+    seed: int | None,
+) -> None:
+    """MCTS-based search for an improved drift.yaml configuration."""
+    from scripts.quality_loop.config_mcts import ConfigMCTSSearch  # noqa: PLC0415
+    from scripts.quality_loop.pr_metric import PrecisionRecallMetric  # noqa: PLC0415
+
+    click.echo(f"[config-optimize] budget={budget} seed={seed}")
+    metric = PrecisionRecallMetric()
+    searcher = ConfigMCTSSearch(metric=metric, budget=budget, seed=seed)
+    result = searcher.run()
+    result_dict = result.to_dict()
+
+    if output_json:
+        out_path = Path(output_json)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(result_dict, indent=2), encoding="utf-8")
+        click.echo(f"[config-optimize] Result written to {out_path}")
+    else:
+        click.echo(json.dumps(result_dict, indent=2))
+
+    improvement = result.best_score - result.baseline_score
+    click.echo(
+        f"[config-optimize] baseline_f1={result.baseline_score:.4f} "
+        f"best_f1={result.best_score:.4f} "
+        f"improvement={improvement:+.4f} "
+        f"path={result.transform_path}"
+    )
+
+    if not exit_zero and improvement <= 0:
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()

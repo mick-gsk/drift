@@ -23,8 +23,13 @@ on:
         required: false
         default: "false"
 
+concurrency:
+  group: quality-loop-main-branch
+  cancel-in-progress: false
+
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   hybrid-quality-loop:
@@ -47,20 +52,51 @@ jobs:
       - name: Install dependencies (dev + autopatch)
         run: pip install -e '.[dev,autopatch]'
 
+      - name: Validate and clamp GA inputs
+        env:
+          GA_GENERATIONS_RAW: ${{ github.event.inputs.ga_generations || '20' }}
+          GA_POPULATION_RAW: ${{ github.event.inputs.ga_population || '10' }}
+          MCTS_BUDGET_RAW: ${{ github.event.inputs.mcts_budget || '50' }}
+          DRY_RUN_RAW: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          python - << 'PYEOF'
+          import os, sys
+          def clamp(val, lo, hi, name):
+              try:
+                  v = int(val)
+              except ValueError:
+                  print(f'::error::{name} must be an integer, got: {val!r}')
+                  sys.exit(1)
+              clamped = max(lo, min(hi, v))
+              if clamped != v:
+                  print(f'::warning::{name}={v} clamped to {clamped} (allowed {lo}-{hi})')
+              return clamped
+          gen = clamp(os.environ['GA_GENERATIONS_RAW'], 1, 200, 'ga_generations')
+          pop = clamp(os.environ['GA_POPULATION_RAW'], 2, 100, 'ga_population')
+          bud = clamp(os.environ['MCTS_BUDGET_RAW'], 1, 500, 'mcts_budget')
+          dry = os.environ['DRY_RUN_RAW']
+          with open(os.environ['GITHUB_ENV'], 'a') as fh:
+              fh.write(f'GA_GENERATIONS={gen}\n')
+              fh.write(f'GA_POPULATION={pop}\n')
+              fh.write(f'MCTS_BUDGET={bud}\n')
+              fh.write(f'DRY_RUN={dry}\n')
+          PYEOF
+
       - name: Run hybrid GA quality loop
         id: ga_run
         run: |
+          DRY_RUN_FLAG=""
+          if [ "$DRY_RUN" = "true" ]; then DRY_RUN_FLAG="--dry-run"; fi
           python -m scripts.quality_loop run \
             --mode hybrid \
             --src src/drift \
-            --mcts-budget ${{ github.event.inputs.mcts_budget || '50' }} \
-            --ga-generations ${{ github.event.inputs.ga_generations || '20' }} \
-            --ga-population ${{ github.event.inputs.ga_population || '10' }} \
+            --mcts-budget "$MCTS_BUDGET" \
+            --ga-generations "$GA_GENERATIONS" \
+            --ga-population "$GA_POPULATION" \
             --min-improvement 0.01 \
-            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || '' }} \
+            $DRY_RUN_FLAG \
             --output-json ga_result.json \
             --exit-zero
-        continue-on-error: true
 
       - name: Upload GA result artifact
         uses: actions/upload-artifact@v4
@@ -85,7 +121,8 @@ jobs:
             --drift-tolerance 0.005 \
             --output-json eval_result.json \
             --exit-zero
-          python -c "import json,os; d=json.load(open('eval_result.json')); open(os.environ['GITHUB_OUTPUT'],'a').write('gate_pass='+str(d['gate_pass']).lower()+'\n')"
+          GATE_PASS=$(python -c "import json,os; d=json.load(open('eval_result.json')) if os.path.exists('eval_result.json') else {}; print(str(d.get('gate_pass',False)).lower())" 2>/dev/null || echo "false")
+          echo "gate_pass=$GATE_PASS" >> "$GITHUB_OUTPUT"
         continue-on-error: true
 
       - name: Upload evaluation result artifact
@@ -95,19 +132,28 @@ jobs:
           path: eval_result.json
           retention-days: 90
 
-      - name: Commit improvements (if any)
+      - name: Commit improvements via PR
         if: |
           github.event.inputs.dry_run != 'true' &&
           steps.evaluate.outputs.gate_pass == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
             echo "No changes to commit."
           else
+            BRANCH="quality-loop/ga-$(date +%Y%m%d-%H%M%S)"
+            git checkout -b "$BRANCH"
             git add -A src/drift/
-            git commit -m "chore: GA quality loop improvement [skip ci]"
-            git push
+            git commit -m "chore: GA quality loop improvement"
+            git push origin "$BRANCH"
+            gh pr create \
+              --title "chore: GA quality loop improvement" \
+              --body "Automated quality loop improvement from GA weekly run. Gate passed." \
+              --base main \
+              --draft
           fi
 
       - name: Report gate block (no apply)
@@ -118,6 +164,25 @@ jobs:
           echo "::warning::Quality-loop apply skipped: evaluation gate did not pass."
           echo "See eval_result.json artifact for details."
 
-            git commit -m "chore: GA quality loop improvement [skip ci]"
-            git push
-          fi
+      - name: Write job summary
+        if: always()
+        run: |
+          python - << 'PYEOF'
+          import json, os
+          lines = ['## GA Quality Loop Summary', '']
+          try:
+              d = json.load(open('eval_result.json'))
+              gate = d.get('gate_pass', 'unknown')
+              lines.append(f'**Gate pass:** {gate}')
+              if 'median_improvement' in d:
+                  lines.append(f"**Median improvement:** {d['median_improvement']:.4f}")
+              if 'positive_rate' in d:
+                  lines.append(f"**Positive rate:** {d['positive_rate']:.2%}")
+          except Exception as e:
+              lines.append(f'Could not parse eval_result.json: {e}')
+          summary_path = os.environ.get('GITHUB_STEP_SUMMARY', '')
+          if summary_path:
+              with open(summary_path, 'a', encoding='utf-8') as fh:
+                  fh.write('\n'.join(lines) + '\n')
+          PYEOF
+

@@ -117,6 +117,7 @@ def run_fixture(
     fixture: GroundTruthFixture,
     tmp_path: Path,
     signal_filter: set[SignalType] | None = None,
+    config_override: DriftConfig | None = None,
 ) -> tuple[list[Finding], list[AnalyzerWarning]]:
     """Materialize a fixture, parse it, run signals, return findings and warnings."""
     has_old_sources = bool(getattr(fixture, "old_sources", None))
@@ -134,11 +135,20 @@ def run_fixture(
     include = ["**/*.py"]
     if _exts & {".ts", ".tsx", ".js", ".jsx"}:
         include.extend(["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"])
-    config = DriftConfig(
-        include=include,
-        exclude=["**/__pycache__/**"],
-        embeddings_enabled=False,
-    )
+    if config_override is not None:
+        config = DriftConfig(
+            include=include,
+            exclude=["**/__pycache__/**"],
+            embeddings_enabled=False,
+            weights=config_override.weights.model_copy(deep=True),
+            thresholds=config_override.thresholds.model_copy(deep=True),
+        )
+    else:
+        config = DriftConfig(
+            include=include,
+            exclude=["**/__pycache__/**"],
+            embeddings_enabled=False,
+        )
     if has_old_sources:
         config.thresholds.ecm_lookback_commits = 1
     # Enable runtime attribute validation for PHR fixtures (ADR-041)
@@ -314,6 +324,15 @@ class PrecisionRecallReport:
             key=lambda s: s.value,
         )
 
+    def summary_dict(self) -> dict[str, Any]:
+        """Return compact summary: aggregate_f1 + per-signal f1."""
+        return {
+            "aggregate_f1": round(self.aggregate_f1(), 4),
+            "per_signal_f1": {
+                s.value: round(self.f1(s), 4) for s in self.all_signals
+            },
+        }
+
     def to_dict(self) -> dict[str, Any]:
         """Machine-readable dict for JSON output."""
         signals = self.all_signals
@@ -387,6 +406,7 @@ def evaluate_fixtures(
     fixtures: list[GroundTruthFixture],
     tmp_path: Path,
     signal_filter: set[SignalType] | None = None,
+    config_override: DriftConfig | None = None,
 ) -> tuple[PrecisionRecallReport, list[AnalyzerWarning]]:
     """Run all given fixtures and return a populated report + collected warnings."""
     report = PrecisionRecallReport()
@@ -399,7 +419,12 @@ def evaluate_fixtures(
             if not relevant_signals:
                 continue
 
-        findings, warnings = run_fixture(fixture, tmp_path, signal_filter=relevant_signals)
+        findings, warnings = run_fixture(
+            fixture,
+            tmp_path,
+            signal_filter=relevant_signals,
+            config_override=config_override,
+        )
         all_warnings.extend(warnings)
 
         for exp in fixture.expected:

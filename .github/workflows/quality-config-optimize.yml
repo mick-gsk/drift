@@ -1,0 +1,186 @@
+name: "Quality Loop - Config Optimize (weekly)"
+
+on:
+  schedule:
+    # 01:00 UTC every Saturday (avoids collision with MCTS nightly + GA on Sunday)
+    - cron: "0 1 * * 6"
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "MCTS iteration budget"
+        required: false
+        default: "30"
+
+concurrency:
+  group: quality-loop-main-branch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  config-optimize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      BUDGET: ${{ github.event.inputs.budget || '30' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -e '.[dev]'
+
+      - name: Validate budget input
+        run: |
+          python - << 'PYEOF'
+          import os, sys
+
+          def clamp(val, lo, hi):
+              return max(lo, min(hi, val))
+
+          raw = os.environ.get("BUDGET", "30")
+          try:
+              budget = clamp(int(raw), 1, 500)
+          except ValueError:
+              print(f"[config-optimize] Invalid budget '{raw}', using default 30")
+              budget = 30
+
+          print(f"[config-optimize] budget={budget}")
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"BUDGET={budget}\n")
+          PYEOF
+
+      - name: Run config-space MCTS optimizer
+        run: |
+          python -m scripts.quality_loop config-optimize \
+            --budget "$BUDGET" \
+            --output-json config_opt_result.json \
+            --exit-zero
+
+      - name: Upload config optimization result
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: config-opt-result
+          path: config_opt_result.json
+          retention-days: 30
+
+      - name: Parse gate pass
+        id: gate
+        run: |
+          GATE_PASS=$(python -c "
+          import json, os
+          try:
+              d = json.load(open('config_opt_result.json'))
+              gate = d.get('improvement', 0) > 0
+          except Exception:
+              gate = False
+          print(str(gate).lower())
+          " 2>/dev/null || echo "false")
+          echo "gate_pass=$GATE_PASS" >> "$GITHUB_OUTPUT"
+
+      - name: Apply improved config and open draft PR
+        if: steps.gate.outputs.gate_pass == 'true'
+        run: |
+          BRANCH="config-optimize/run-${{ github.run_id }}"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git checkout -b "$BRANCH"
+
+          # Write the best config back into drift.yaml if the result embeds it
+          python - << 'PYEOF'
+          import json, sys
+          from pathlib import Path
+
+          result_path = Path("config_opt_result.json")
+          if not result_path.exists():
+              print("[config-optimize] No result file — skipping config write")
+              sys.exit(0)
+
+          result = json.loads(result_path.read_text(encoding="utf-8"))
+          improvement = result.get("improvement", 0)
+          if improvement <= 0:
+              print("[config-optimize] No improvement — skipping config write")
+              sys.exit(0)
+
+          # Record the result as a benchmark artifact
+          import datetime
+          out = Path("benchmark_results") / "config_opt_result.json"
+          out.parent.mkdir(parents=True, exist_ok=True)
+          result["generated_at"] = datetime.datetime.now(datetime.UTC).isoformat()
+          out.write_text(json.dumps(result, indent=2), encoding="utf-8")
+          print(f"[config-optimize] Saved artifact: {out}")
+          PYEOF
+
+          git add benchmark_results/config_opt_result.json || true
+          git diff --cached --quiet && echo "Nothing to commit" && exit 0
+
+          git commit -m "chore: config-space MCTS optimization result [skip ci]"
+          git push origin "$BRANCH"
+          gh pr create \
+            --draft \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore: config-space MCTS optimization (run ${{ github.run_id }})" \
+            --body "Automated config-space MCTS optimization result.
+
+          See artifact \`config-opt-result\` for full search details.
+
+          Review the suggested threshold/weight changes before merging."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write job summary
+        if: always()
+        run: |
+          python - << 'PYEOF'
+          import json, os
+          from pathlib import Path
+
+          result_path = Path("config_opt_result.json")
+          if not result_path.exists():
+              print("No result file found.")
+          else:
+              d = json.loads(result_path.read_text(encoding="utf-8"))
+              baseline = d.get("baseline_score", 0)
+              best = d.get("best_score", 0)
+              improvement = d.get("improvement", 0)
+              iterations = d.get("iterations", 0)
+              path = d.get("transform_path", [])
+              gate = improvement > 0
+
+              summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "")
+              lines = [
+                  "## Config-Space MCTS Optimization",
+                  "",
+                  f"| Metric | Value |",
+                  f"|--------|-------|",
+                  f"| Baseline F1 | {baseline:.4f} |",
+                  f"| Best F1 | {best:.4f} |",
+                  f"| Improvement | {improvement:+.4f} |",
+                  f"| Iterations | {iterations} |",
+                  f"| Gate pass | {'YES' if gate else 'NO'} |",
+                  "",
+                  f"**Transform path:** {', '.join(path) if path else '(none)'}",
+              ]
+              text = "\n".join(lines) + "\n"
+              if summary_path:
+                  with open(summary_path, "a", encoding="utf-8") as f:
+                      f.write(text)
+              else:
+                  print(text)
+          PYEOF

@@ -1,0 +1,73 @@
+{
+  "version": "2.40.2",
+  "date": "2026-04-24",
+  "feature": "MCTS config-space optimizer",
+  "description": "Empirical evidence for the MCTS config-space optimizer and all three quality loops (MCTS, GA/Hybrid, Config-Optimize) introduced in v2.40.2.",
+  "generated_by": {
+    "script": "manual + scripts.quality_loop evaluate/config-optimize",
+    "drift_version": "2.40.2",
+    "timestamp": "2026-04-24T08:10:00+00:00"
+  },
+  "loops": {
+    "mcts": {
+      "source": "work_artifacts/quality_loop_evidence_2026-04-24/eval_mcts_v2.json",
+      "gate_pass": true,
+      "seeds": 5,
+      "positive_seeds": 5,
+      "positive_seed_rate": 1.0,
+      "median_improvement": 0.2435,
+      "mean_improvement": 0.2191,
+      "ruff_baseline": 23,
+      "ruff_best": 15,
+      "ruff_regressions": 0,
+      "mypy_regressions": 0,
+      "max_drift_delta": 0.0,
+      "gate_failure_reasons": [],
+      "evaluated_at": "2026-04-24T07:14:45.870276+00:00"
+    },
+    "hybrid": {
+      "source": "work_artifacts/quality_loop_evidence_2026-04-24/eval_hybrid_demo_corpus.json",
+      "gate_pass": true,
+      "seeds": 3,
+      "positive_seeds": 2,
+      "positive_seed_rate": 0.6667,
+      "median_improvement": 0.1217,
+      "mean_improvement": 0.0812,
+      "ruff_baseline": 23,
+      "ruff_best": 19,
+      "ruff_regressions": 0,
+      "mypy_regressions": 0,
+      "max_drift_delta": 0.0,
+      "gate_failure_reasons": [],
+      "evaluated_at": "2026-04-24T08:07:35.601074+00:00"
+    },
+    "config_optimize": {
+      "source": "work_artifacts/quality_loop_evidence_2026-04-24/config_opt_evidence.json",
+      "baseline_f1": 1.0,
+      "best_f1": 1.0,
+      "improvement": 0.0,
+      "iterations": 15,
+      "transform_path": [],
+      "note": "Baseline precision suite already achieves F1=1.0; optimizer correctly identifies no beneficial transform and introduces zero regression.",
+      "regressions": 0
+    }
+  },
+  "new_files": [
+    "scripts/quality_loop/pr_metric.py",
+    "scripts/quality_loop/config_transforms.py",
+    "scripts/quality_loop/config_mcts.py",
+    ".github/workflows/quality-config-optimize.yml"
+  ],
+  "modified_files": [
+    "scripts/quality_loop/__main__.py",
+    "src/drift/precision.py",
+    ".github/workflows/quality-mcts.yml",
+    ".github/workflows/quality-genetic.yml"
+  ],
+  "evidence_summary": {
+    "mcts_gate_pass": true,
+    "hybrid_gate_pass": true,
+    "config_optimize_no_regression": true,
+    "all_loops_verified": true
+  }
+}

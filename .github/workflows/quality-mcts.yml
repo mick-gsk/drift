@@ -15,8 +15,13 @@ on:
         required: false
         default: "false"
 
+concurrency:
+  group: quality-loop-main-branch
+  cancel-in-progress: false
+
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   mcts-quality-loop:
@@ -41,16 +46,20 @@ jobs:
 
       - name: Run MCTS quality loop
         id: mcts_run
+        env:
+          MCTS_BUDGET: ${{ github.event.inputs.mcts_budget || '50' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
         run: |
+          DRY_RUN_FLAG=""
+          if [ "$DRY_RUN" = "true" ]; then DRY_RUN_FLAG="--dry-run"; fi
           python -m scripts.quality_loop run \
             --mode mcts \
             --src src/drift \
-            --mcts-budget ${{ github.event.inputs.mcts_budget || '50' }} \
+            --mcts-budget "$MCTS_BUDGET" \
             --min-improvement 0.01 \
-            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || '' }} \
+            $DRY_RUN_FLAG \
             --output-json mcts_result.json \
             --exit-zero
-        continue-on-error: true
 
       - name: Upload MCTS result artifact
         uses: actions/upload-artifact@v4
@@ -73,7 +82,8 @@ jobs:
             --drift-tolerance 0.005 \
             --output-json eval_result.json \
             --exit-zero
-          python -c "import json,os; d=json.load(open('eval_result.json')); open(os.environ['GITHUB_OUTPUT'],'a').write('gate_pass='+str(d['gate_pass']).lower()+'\n')"
+          GATE_PASS=$(python -c "import json,os; d=json.load(open('eval_result.json')) if os.path.exists('eval_result.json') else {}; print(str(d.get('gate_pass',False)).lower())" 2>/dev/null || echo "false")
+          echo "gate_pass=$GATE_PASS" >> "$GITHUB_OUTPUT"
         continue-on-error: true
 
       - name: Upload evaluation result artifact
@@ -83,19 +93,28 @@ jobs:
           path: eval_result.json
           retention-days: 30
 
-      - name: Commit improvements (if any)
+      - name: Commit improvements via PR
         if: |
           github.event.inputs.dry_run != 'true' &&
           steps.evaluate.outputs.gate_pass == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --quiet; then
             echo "No changes to commit."
           else
+            BRANCH="quality-loop/mcts-$(date +%Y%m%d-%H%M%S)"
+            git checkout -b "$BRANCH"
             git add -A src/drift/
-            git commit -m "chore: MCTS quality loop improvement [skip ci]"
-            git push
+            git commit -m "chore: MCTS quality loop improvement"
+            git push origin "$BRANCH"
+            gh pr create \
+              --title "chore: MCTS quality loop improvement" \
+              --body "Automated quality loop improvement from MCTS nightly run. Gate passed." \
+              --base main \
+              --draft
           fi
 
       - name: Report gate block (no apply)
@@ -105,4 +124,28 @@ jobs:
         run: |
           echo "::warning::Quality-loop apply skipped: evaluation gate did not pass."
           echo "See eval_result.json artifact for details."
+
+      - name: Write job summary
+        if: always()
+        run: |
+          python - << 'PYEOF'
+          import json, os
+          lines = ['## MCTS Quality Loop Summary', '']
+          try:
+              d = json.load(open('eval_result.json'))
+              gate = d.get('gate_pass', 'unknown')
+              lines.append(f'**Gate pass:** {gate}')
+              if 'median_improvement' in d:
+                  lines.append(f"**Median improvement:** {d['median_improvement']:.4f}")
+              if 'positive_rate' in d:
+                  lines.append(f"**Positive rate:** {d['positive_rate']:.2%}")
+          except Exception as e:
+              lines.append(f'Could not parse eval_result.json: {e}')
+          summary_path = os.environ.get('GITHUB_STEP_SUMMARY', '')
+          if summary_path:
+              with open(summary_path, 'a', encoding='utf-8') as fh:
+                  fh.write('\n'.join(lines) + '\n')
+          PYEOF
+
+
 
