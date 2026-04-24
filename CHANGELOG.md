@@ -1255,4 +1255,3 @@ Initial release with 7 detection signals: PFS, AVS, MDS, EDS, TVS, SMS, DIA.
 - CLI commands: `analyze`, `check`, `self`, `trend`, `timeline`, `patterns`, `badge`
 - Output formats: rich (terminal), JSON, SARIF (GitHub Code Scanning)
 - GitHub Actions integration via `drift-check.yml` template
-
