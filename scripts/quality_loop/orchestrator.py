@@ -73,7 +73,7 @@ class HybridOrchestrator:
         self._min_improvement = min_improvement
         self._dry_run = dry_run
         self._seed = seed
-        self._metric = CompositeMetric(repo_root=src_root)
+        self._metric = CompositeMetric(repo_root=src_root, src_path=src_root)
 
     def run(self) -> OrchestratorResult:
         start = time.monotonic()

@@ -7,6 +7,9 @@ Short version: Hybrid MCTS+GA autonomous code quality loop in `scripts/quality_l
 ### Added
 - implement hybrid MCTS+GA autonomous code quality loop (`scripts/quality_loop/`): MCTS-based patch exploration with GA crossover/mutation, drift analysis as fitness function. Tests in `tests/test_quality_loop/`. Evidence: `benchmark_results/v2.38.0_quality-loop_feature_evidence.json`.
 
+### Fixed
+- fix src_path default and rebalance metric weights in quality-loop: `CompositeMetric.__post_init__` now defaults `src_path` to `repo_root` if not provided, preventing ruff from being invoked as `ruff check None`. Weights rebalanced from drift=0.6/ruff=0.3/mypy=0.1 to drift=0.1/ruff=0.7/mypy=0.2 so AST-level style transforms can actually move the metric.
+
 ## [2.38.0] – 2026-04-23
 
 Short version: DSOL v2 — score-gated write-back mit Convergence-Check (ADR-098), CI/Workflow-Stabilisierung.

@@ -29,14 +29,23 @@ class MetricResult:
 class CompositeMetric:
     repo_root: Path
     src_path: Path | None = None
-    # Weights must sum to 1.0
-    weight_drift: float = 0.6
-    weight_ruff: float = 0.3
-    weight_mypy: float = 0.1
+    # Weights must sum to 1.0.
+    # Ruff/mypy dominate because the AST-level transforms can only affect
+    # style violations — the drift_score (architectural erosion) is invariant
+    # to these transforms and acts as a passive constraint, not a reward signal.
+    weight_drift: float = 0.1
+    weight_ruff: float = 0.7
+    weight_mypy: float = 0.2
     # Baseline ruff/mypy counts for normalisation — set on first call
     _ruff_baseline: int = field(default=0, init=False, repr=False)
     _mypy_baseline: int = field(default=0, init=False, repr=False)
     _baseline_set: bool = field(default=False, init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        # Default src_path to repo_root so ruff/mypy are never invoked with
+        # str(None) = "None" as the target path.
+        if self.src_path is None:
+            self.src_path = self.repo_root
 
     def measure(self) -> MetricResult:
         import time
