@@ -24,7 +24,7 @@ drift status         # traffic-light health check — your daily entry point
 **Using AI coding tools?** [Start here](examples/vibe-coding/README.md) · **CI & team rollout?** [Team rollout guide](https://mick-gsk.github.io/drift/getting-started/team-rollout/) · **Benchmarks & evidence?** [Study](docs/STUDY.md)
 
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
-[![Drift Score](https://img.shields.io/badge/drift%20score-0.62-yellow?style=flat)](benchmark_results/drift_self.json)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.38-green?style=flat)](benchmark_results/drift_self.json)
 [![codecov](https://codecov.io/gh/mick-gsk/drift/branch/main/graph/badge.svg)](https://codecov.io/gh/mick-gsk/drift)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![PyPI Downloads](https://static.pepy.tech/badge/drift-analyzer/month)](https://pepy.tech/project/drift-analyzer)
@@ -66,7 +66,7 @@ uvx drift-analyzer analyze --repo .
 | Mutation recall | 75 % (75/100 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 
 > [!NOTE]
-> **Drift eats its own dog food.** Every release runs `drift self` on its own source — same pipeline, same rules, no exceptions. Results: [drift_self.json](benchmark_results/drift_self.json) · Score 0.62 (Grade C) — driven by explainability and architecture findings; [target ≤ 0.30 via 30-day rollout](examples/vibe-coding/README.md).
+> **Drift eats its own dog food.** Every release runs `drift self` on its own source — same pipeline, same rules, no exceptions. Results: [drift_self.json](benchmark_results/drift_self.json) · Score 0.63 (Grade C) — driven by explainability and architecture findings; [target ≤ 0.30 via 30-day rollout](examples/vibe-coding/README.md).
 
 ---
 
@@ -446,7 +446,7 @@ drift badge --format svg -o badge.svg  # self-contained SVG
 Paste the Markdown output into your README:
 
 ```markdown
-[![Drift Score](https://img.shields.io/badge/drift%20score-12.50-brightgreen?style=flat)](https://github.com/mick-gsk/drift)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.38-green?style=flat)](https://github.com/mick-gsk/drift)
 ```
 
 **Automate in CI:** The [GitHub Action](https://github.com/marketplace/actions/drift-ai-code-coherence-monitor) exposes a `badge-svg` output — pipe it into your repo or a dashboard.
