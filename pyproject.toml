@@ -110,7 +110,7 @@ llm = [
     "litellm>=1.0",
 ]
 dev = [
-    "pytest>=8.0",
+    "pytest>=9.0.3",
     "pytest-cov>=5.0",
     "pytest-xdist>=3.6",
     "pytest-timeout>=2.3",
@@ -126,6 +126,8 @@ dev = [
     "jsonschema>=4.0",
     "scipy>=1.13",
     "openai>=1.30",
+    "python-multipart>=0.0.26",
+    "setuptools>=78.1.1",
 ]
 all = [
     "drift-analyzer[typescript,embeddings,markdown,mcp,llm,dev]",

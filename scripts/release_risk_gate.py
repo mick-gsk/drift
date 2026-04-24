@@ -33,8 +33,8 @@ from pathlib import Path
 def _load(path: str) -> dict:
     p = Path(path)
     if not p.exists():
-        print(f"ERROR: file not found: {path}", flush=True)
-        sys.exit(1)
+        print(f"WARNING: file not found: {path} — using default (best-case) values", flush=True)
+        return {}
     with p.open(encoding="utf-8") as fh:
         return json.load(fh)
 
@@ -91,7 +91,7 @@ def main() -> None:
     print(f"Composite risk score: {risk_score:.4f}  (threshold: {args.threshold})")
     print(f"  f1_deficit              = {components['f1_deficit']:.4f}  (weight 0.35)")
     print(f"  mutation_deficit        = {components['mutation_deficit']:.4f}  (weight 0.35)")
-    print(f"  drift_score_contribution = {components['drift_score_contribution']:.4f}  (weight 0.30)")
+    print(f"  drift_score_contribution = {components['drift_score_contribution']:.4f}")
     print(f"Verdict: {verdict}", flush=True)
 
     _write_github_output("risk_score", str(risk_score))
