@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from drift.cache import _PARSE_CACHE_VERSION, ParseCache
+from drift.cache import _PARSE_CACHE_VERSION, CACHE_SCHEMA_VERSION, ParseCache
 from drift.embeddings import EmbeddingCache
 from drift.models import ParseResult
 
@@ -73,20 +73,27 @@ def test_parse_cache_version_mismatch_evicts_entry(
 
     cache = ParseCache(tmp_path)
     content_hash = "aabbccddeeff0011" * 2
-    result = ParseResult(file_path=Path("a.py"), language="python")
-    cache.put(content_hash, result)
 
-    # Tamper with the stored _v to simulate a future/past schema version.
+    # Write a cache file directly (no put → no L1 entry) with a tampered _v.
     cache_file = tmp_path / "parse" / f"{content_hash}.json"
-    data = json.loads(cache_file.read_text(encoding="utf-8"))
-    data["_v"] = _PARSE_CACHE_VERSION + 999
-    cache_file.write_text(json.dumps(data), encoding="utf-8")
-
-    # Evict the L1 entry so the disk-path validation code is exercised.
-    with ParseCache._l1_lock:
-        bucket = ParseCache._l1_store.get(cache._cache_dir_key)
-        if bucket is not None:
-            bucket.pop(content_hash, None)
+    cache_file.write_text(
+        json.dumps(
+            {
+                "_schema_v": CACHE_SCHEMA_VERSION,
+                "_v": _PARSE_CACHE_VERSION + 999,
+                "_drift_v": "0.0.0-tampered",
+                "file_path": "a.py",
+                "language": "python",
+                "line_count": 0,
+                "parse_errors": [],
+                "functions": [],
+                "classes": [],
+                "imports": [],
+                "patterns": [],
+            }
+        ),
+        encoding="utf-8",
+    )
 
     assert cache.get(content_hash) is None
     assert not cache_file.exists()

@@ -1373,8 +1373,8 @@
       "$ref": "#/$defs/LanguagesConfig"
     },
     "nudge_baseline_ttl_seconds": {
-      "default": 900,
-      "description": "Time-to-live in seconds for nudge baselines. After this period a full re-scan is triggered to refresh the baseline. Lower values suit high-churn repos; higher values reduce re-scan frequency in slow CI or infrequently-changing codebases. Default: 900 (15 minutes).",
+      "default": 3600,
+      "description": "Time-to-live in seconds for nudge baselines. After this period a full re-scan is triggered to refresh the baseline. Lower values suit high-churn repos; higher values reduce re-scan frequency in slow CI or infrequently-changing codebases. Default: 3600 (1 hour). Git-state changes (new commits, branch switch) invalidate the baseline immediately regardless of TTL.",
       "title": "Nudge Baseline Ttl Seconds",
       "type": "integer"
     },
