@@ -15,6 +15,7 @@ exclude:
   - "site/**"
   - "overrides/**"
   - "extensions/**/node_modules/**"
+  - "playground/node_modules/**"
   - "examples/**"
   - "scripts/**"
   - "tests/test_quality_loop/**"
