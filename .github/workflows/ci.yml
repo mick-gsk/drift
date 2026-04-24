@@ -258,9 +258,12 @@ jobs:
 
       - name: Dependency vulnerability audit
         # Fails on any known vulnerability with a fix available.
+        # We audit a fully pinned package list without editable lines and
+        # disable resolver mode to avoid false failures from dependency re-resolution.
         shell: pwsh
         run: |
-          & $env:PYTHON_BIN -m pip_audit --strict --desc --skip-editable
+          & $env:PYTHON_BIN -m pip freeze | Where-Object { $_ -notmatch "^-e\s" } | Set-Content pip-audit-requirements.txt -Encoding utf8
+          & $env:PYTHON_BIN -m pip_audit --strict --desc --no-deps --disable-pip -r pip-audit-requirements.txt
 
       - name: Lint with ruff
         shell: pwsh

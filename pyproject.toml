@@ -287,4 +287,3 @@ exclude = [
     "**/work_artifacts/**",
     "**/hooks/**",
 ]
-

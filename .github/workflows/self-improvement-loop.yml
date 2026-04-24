@@ -83,7 +83,11 @@ jobs:
         id: locate
         run: |
           set -euo pipefail
-          CYCLE_DIR="$(ls -1d work_artifacts/self_improvement/*/ | tail -n 1)"
+          CYCLE_DIR="$(find work_artifacts/self_improvement -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)/"
+          if [ "${CYCLE_DIR}" = "/" ]; then
+            echo "No DSOL cycle directory found under work_artifacts/self_improvement" >&2
+            exit 1
+          fi
           echo "cycle_dir=${CYCLE_DIR}" >> "$GITHUB_OUTPUT"
           echo "Cycle dir: ${CYCLE_DIR}"
 

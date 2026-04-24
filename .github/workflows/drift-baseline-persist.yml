@@ -109,10 +109,12 @@ jobs:
               print('N/A')
           ")
 
-          echo "score=${SCORE}"       >> "${GITHUB_OUTPUT}"
-          echo "grade=${GRADE}"       >> "${GITHUB_OUTPUT}"
-          echo "count=${COUNT}"       >> "${GITHUB_OUTPUT}"
-          echo "severity=${SEVERITY}" >> "${GITHUB_OUTPUT}"
+              {
+                echo "score=${SCORE}"
+                echo "grade=${GRADE}"
+                echo "count=${COUNT}"
+                echo "severity=${SEVERITY}"
+              } >> "${GITHUB_OUTPUT}"
 
       # Switch to (or create) the drift-history orphan branch.
       # The orphan branch shares no history with main, keeping it lightweight.
@@ -137,9 +139,13 @@ jobs:
       # Keep at most 365 snapshots to bound repository growth.
       - name: Prune old snapshots (keep latest 365)
         run: |
-          FILE_COUNT=$(ls score-*.json 2>/dev/null | wc -l)
+          FILE_COUNT=$(find . -maxdepth 1 -type f -name 'score-*.json' | wc -l)
           if [ "${FILE_COUNT}" -gt 365 ]; then
-            ls -t score-*.json | tail -n +366 | xargs rm -f
+            find . -maxdepth 1 -type f -name 'score-*.json' -printf '%T@ %p\n' \
+              | sort -nr \
+              | tail -n +366 \
+              | cut -d' ' -f2- \
+              | xargs -r rm -f
             echo "Pruned $((FILE_COUNT - 365)) old snapshot(s)."
           else
             echo "Snapshot count ${FILE_COUNT} — no pruning needed."
