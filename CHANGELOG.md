@@ -1,4 +1,4 @@
-## [2.42.1] - 2026-04-24
+## [2.42.2] - 2026-04-24
 
 Short version: Failing GitHub Actions repaired and CI guardrails hardened against recurring workflow, secrets, and hygiene regressions.
 
@@ -9,7 +9,7 @@ Short version: Failing GitHub Actions repaired and CI guardrails hardened agains
 - Stabilized `update-readme-badge` against concurrent pushes on `main` by adding fetch/rebase/retry logic to the workflow's commit-push step.
 
 ### Changed
-- Pre-commit guardrails hardened for CI/manual stage: reliable YAML parsing (`--unsafe`, `conda.recipe` exclusion), benchmark-size allowance for required badge artifacts, and manual-stage scoping to avoid false-positive lint debt from unrelated domains.
+- CI guardrails hardened across pre-commit and workflow hygiene: reliable YAML parsing (`--unsafe`, `conda.recipe` exclusion), benchmark-size allowance for badge artifacts, shellcheck-safe snapshot/DSOL logic, and dependency auditing via pinned non-editable package lists in CI and Security Hygiene.
 
 ## [2.41.0] - 2026-04-24
 

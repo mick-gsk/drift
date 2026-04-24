@@ -78,7 +78,8 @@ jobs:
       - name: Audit Python dependencies (pip-audit)
         shell: pwsh
         run: |
-          python -m pip_audit --strict --desc --skip-editable
+          python -m pip freeze | Where-Object { $_ -notmatch "^-e\s" } | Set-Content pip-audit-requirements.txt -Encoding utf8
+          python -m pip_audit --strict --desc --no-deps --disable-pip -r pip-audit-requirements.txt
 
       - name: SAST scan (bandit)
         shell: pwsh
