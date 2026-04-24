@@ -1,0 +1,20 @@
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        enabled: false
+
+fixes:
+  - "/home/runner/work/drift/drift/::"
+  - "D:\\a\\drift\\drift\\::"
+
+comment:
+  layout: "reach,diff,flags"
+  behavior: default

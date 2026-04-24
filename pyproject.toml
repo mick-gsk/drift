@@ -169,6 +169,13 @@ markers = [
 source = ["drift"]
 branch = true
 
+[tool.coverage.paths]
+source = [
+    "src/drift",
+    "*/site-packages/drift",
+    "*/drift/src/drift",
+]
+
 [tool.coverage.report]
 show_missing = true
 # Ratchet baseline: overall ~79% on full local suite, ~74% on CI quick suite
