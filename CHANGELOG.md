@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+- CI: replace OIDC-based Codecov upload with `CODECOV_TOKEN` secret to fix 0% coverage badge after repo transfer
+
 ## [2.40.2] - 2026-04-24
 
 Short version: Quality-loop evidence gate repaired and validated with deterministic positive improvement.

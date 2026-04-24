@@ -310,7 +310,7 @@ jobs:
         if: matrix.python-version == '3.12' && always()
         uses: codecov/codecov-action@1f60566a86da84c4b4b64c17662a90de97fbb8d7  # v5.4.2
         with:
-          use_oidc: true
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           disable_search: true
           flags: py${{ matrix.python-version }}
