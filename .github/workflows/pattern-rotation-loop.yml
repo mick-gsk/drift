@@ -57,12 +57,12 @@ jobs:
         id: locate
         run: |
           if [ -f /tmp/fp-oracle-report/oracle_fp_report.json ]; then
-            echo "report=/tmp/fp-oracle-report/oracle_fp_report.json" >> $GITHUB_OUTPUT
+            echo "report=/tmp/fp-oracle-report/oracle_fp_report.json" >> "$GITHUB_OUTPUT"
           elif [ -f benchmark_results/oracle_fp_report.json ]; then
-            echo "report=benchmark_results/oracle_fp_report.json" >> $GITHUB_OUTPUT
+            echo "report=benchmark_results/oracle_fp_report.json" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::No oracle_fp_report.json found — skipping rotation."
-            echo "report=" >> $GITHUB_OUTPUT
+            echo "report=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run pattern rotation (dry-run check)
@@ -79,8 +79,8 @@ jobs:
           python scripts/pattern_rotation.py \
             --report "${{ steps.locate.outputs.report }}"
           # Count new stubs
-          COUNT=$(git status --short data/negative-patterns/patterns/ | grep "^??" | wc -l | tr -d ' ')
-          echo "new_stubs=$COUNT" >> $GITHUB_OUTPUT
+          COUNT=$(git status --short data/negative-patterns/patterns/ | grep -c "^??")
+          echo "new_stubs=$COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Validate pattern schema
         if: steps.rotate.outputs.new_stubs != '0' && steps.rotate.outputs.new_stubs != ''

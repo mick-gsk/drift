@@ -43,10 +43,12 @@ jobs:
 
       - name: Post calibration summary to workflow
         run: |
-          echo "## Calibration Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat calibration_summary.txt >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Calibration Summary"
+            echo '```'
+            cat calibration_summary.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload calibration summary
         if: always()

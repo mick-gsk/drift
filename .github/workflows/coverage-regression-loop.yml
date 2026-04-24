@@ -58,10 +58,10 @@ jobs:
         id: locate
         run: |
           if [ -f /tmp/coverage-artifact/coverage.xml ]; then
-            echo "xml=/tmp/coverage-artifact/coverage.xml" >> $GITHUB_OUTPUT
+            echo "xml=/tmp/coverage-artifact/coverage.xml" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::coverage.xml artifact not found -- skipping regression check."
-            echo "xml=" >> $GITHUB_OUTPUT
+            echo "xml=" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create benchmark_results directory

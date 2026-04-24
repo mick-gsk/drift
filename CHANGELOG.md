@@ -1,3 +1,13 @@
+## [2.42.3] - 2026-04-24
+
+Short version: Bandit SAST false-positive suppressed; shellcheck SC2012/SC2086/SC2126/SC2129 violations resolved across nine workflow files.
+
+### Fixed
+- Added `# nosec B314` suppression in `scripts/coverage_issue_body.py` for trusted CI-generated XML (bandit SAST gate).
+- Replaced `ls` with `find` in `self-improvement-loop.yml` DSOL proposal steps (SC2012); quoted `$GITHUB_OUTPUT` in four workflow files (SC2086).
+- Replaced string-accumulation patterns with bash arrays for optional CLI args in `fp-oracle-audit.yml` and `package-kpis.yml` (SC2086).
+- Replaced `grep | wc -l` with `grep -c` in two workflow files (SC2126); grouped redirect chains with `{ ...; } >> file` in three files (SC2129).
+
 ## [2.42.2] - 2026-04-24
 
 Short version: Failing GitHub Actions repaired and CI guardrails hardened against recurring workflow, secrets, and hygiene regressions.

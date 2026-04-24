@@ -37,7 +37,7 @@ jobs:
         run: |
           python -m vulture src/drift --min-confidence 65 2>&1 | tee vulture_output.txt || true
           COUNT=$(grep -c "unused " vulture_output.txt 2>/dev/null || echo 0)
-          echo "findings=$COUNT" >> $GITHUB_OUTPUT
+          echo "findings=$COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Update whitelist for new findings
         id: whitelist
@@ -45,10 +45,10 @@ jobs:
           python scripts/dead_code_pr.py vulture_output.txt
           # Check if anything changed
           if git diff --quiet pyproject.toml vulture_whitelist.py 2>/dev/null; then
-            echo "new_entries=0" >> $GITHUB_OUTPUT
+            echo "new_entries=0" >> "$GITHUB_OUTPUT"
           else
-            ADDED=$(git diff pyproject.toml | grep '^+.*"[^"]*"' | grep -v '^+++' | wc -l | tr -d ' ')
-            echo "new_entries=$ADDED" >> $GITHUB_OUTPUT
+            ADDED=$(git diff pyproject.toml | grep '^+.*"[^"]*"' | grep -cv '^+++')
+            echo "new_entries=$ADDED" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Open PR with whitelist updates

@@ -68,14 +68,14 @@ jobs:
           fi
 
           if [ -n "$EFFECTIVE_USAGE" ] && [ -f "$EFFECTIVE_USAGE" ]; then
-            DEFECTS_ARG=""
+            DEFECTS_ARG=()
             if [ -n "$DEFECTS_CSV_PATH" ] && [ -f "$DEFECTS_CSV_PATH" ]; then
-              DEFECTS_ARG="--defects-csv $DEFECTS_CSV_PATH"
+              DEFECTS_ARG=(--defects-csv "$DEFECTS_CSV_PATH")
             fi
             python scripts/package_kpis.py \
               --package "${{ github.event.inputs.package || 'drift-analyzer' }}" \
               --usage-csv "$EFFECTIVE_USAGE" \
-              $DEFECTS_ARG \
+              "${DEFECTS_ARG[@]}" \
               --downloads-csv benchmark_results/package_kpis/pypi_downloads_monthly.csv \
               --thresholds-json examples/package-kpis/kpi-thresholds.json \
               --months 24 \

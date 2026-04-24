@@ -63,10 +63,12 @@ jobs:
       - name: Write summary
         if: always()
         run: |
-          echo "## Doc-Consistency Results" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Check | Discrepancies |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|---------------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Model consistency | ${{ steps.consistency.outputs.count || '0' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Doc links | ${{ steps.links.outputs.count || '0' }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| DIA findings | ${{ steps.dia.outputs.count || '0' }} |" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Doc-Consistency Results"
+            echo ""
+            echo "| Check | Discrepancies |"
+            echo "|-------|---------------|"
+            echo "| Model consistency | ${{ steps.consistency.outputs.count || '0' }} |"
+            echo "| Doc links | ${{ steps.links.outputs.count || '0' }} |"
+            echo "| DIA findings | ${{ steps.dia.outputs.count || '0' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

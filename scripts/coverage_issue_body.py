@@ -31,7 +31,7 @@ FAIL_UNDER = 73.0
 
 def _parse_coverage_xml(path: Path) -> dict[str, float]:
     """Return {module_name: line_rate_pct} from a Cobertura XML."""
-    tree = ElementTree.parse(path)  # noqa: S314  # safe: trusted artifact from own CI
+    tree = ElementTree.parse(path)  # noqa: S314  # nosec B314  # safe: trusted artifact from own CI
     root = tree.getroot()
     modules: dict[str, float] = {}
     for cls in root.iter("class"):
@@ -114,11 +114,9 @@ def main() -> int:
             })
 
     # Overall coverage threshold check
-    overall_dropped = False
     if overall_baseline is not None:
         drop = overall_baseline - overall_current
         if drop >= args.drop_threshold:
-            overall_dropped = True
             regressions.insert(0, {
                 "module": "(overall)",
                 "previous": overall_baseline,
@@ -161,11 +159,15 @@ def main() -> int:
     ]
     for r in sorted(regressions, key=lambda x: -x["drop_pp"]):
         lines.append(
-            f"| `{r['module']}` | {r['previous']:.1f}% | {r['current']:.1f}% | -{r['drop_pp']:.1f}pp |"
+            f"| `{r['module']}` | {r['previous']:.1f}% | {r['current']:.1f}%"  # noqa: E501
+            f" | -{r['drop_pp']:.1f}pp |"
         )
 
     if fail_under_breached:
-        lines.append(f"\n> [!WARNING]  \n> Overall coverage {overall_current:.1f}% is below the CI threshold of {FAIL_UNDER:.0f}%.")
+        lines.append(  # noqa: E501
+            f"\n> [!WARNING]  \n> Overall coverage {overall_current:.1f}%"
+            f" is below the CI threshold of {FAIL_UNDER:.0f}%."
+        )
 
     lines += [
         "",

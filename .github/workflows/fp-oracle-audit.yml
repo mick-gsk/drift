@@ -62,15 +62,15 @@ jobs:
 
       - name: Run Oracle FP Audit
         run: |
-          ARGS=""
+          ARGS=()
           if [ -n "${{ inputs.repos }}" ]; then
             IFS=',' read -ra REPOS <<< "${{ inputs.repos }}"
-            ARGS="--repo ${REPOS[*]}"
+            ARGS+=(--repo "${REPOS[@]}")
           fi
           if [ "${{ inputs.save_history }}" = "true" ] || [ "${{ github.event_name }}" = "schedule" ]; then
-            ARGS="$ARGS --save-history"
+            ARGS+=(--save-history)
           fi
-          python scripts/oracle_fp_audit.py $ARGS
+          python scripts/oracle_fp_audit.py "${ARGS[@]}"
 
       - name: Upload FP Report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2

@@ -155,7 +155,7 @@ jobs:
       - name: Score-Gate (CP2)
         run: |
           set -euo pipefail
-          PROPOSALS=$(ls dsol_cycle_download/work_artifacts/self_improvement/*/proposals.json 2>/dev/null | tail -n1)
+          PROPOSALS=$(find dsol_cycle_download/work_artifacts/self_improvement -name "proposals.json" 2>/dev/null | tail -n1)
           CURRENT=$(python -c "
           import json, pathlib
           snap = pathlib.Path('benchmark_results/kpi_snapshot.json')
@@ -182,7 +182,7 @@ jobs:
       - name: Apply action artefacts (ADR-098 write-back)
         run: |
           set -euo pipefail
-          PROPOSALS=$(ls dsol_cycle_download/work_artifacts/self_improvement/*/proposals.json 2>/dev/null | tail -n1)
+          PROPOSALS=$(find dsol_cycle_download/work_artifacts/self_improvement -name "proposals.json" 2>/dev/null | tail -n1)
           drift self-improve apply \
             --proposals "${PROPOSALS}" \
             --output-dir work_artifacts/dsol_actions \

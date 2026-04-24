@@ -60,7 +60,7 @@ jobs:
             else
               pip install "${INDEX_ARGS[@]}" drift-analyzer && break
             fi
-            if [ $i -lt $MAX_RETRIES ]; then
+            if [ "$i" -lt "$MAX_RETRIES" ]; then
               WAIT=$((i * 30))
               echo "::warning::pip install failed (attempt $i/$MAX_RETRIES), retrying in ${WAIT}s..."
               sleep $WAIT

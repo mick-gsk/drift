@@ -70,12 +70,14 @@ jobs:
       - name: Annotate risk score in job summary
         if: always()
         run: |
-          echo "### Release Risk Gate" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Risk Score | ${{ steps.gate.outputs.risk_score }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Verdict | **${{ steps.gate.outputs.verdict }}** |" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Release Risk Gate"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|--------|-------|"
+            echo "| Risk Score | ${{ steps.gate.outputs.risk_score }} |"
+            echo "| Verdict | **${{ steps.gate.outputs.verdict }}** |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ── 3. JSON Schema Contract Diff ─────────────────────────────────────────
   schema-contract-diff:
