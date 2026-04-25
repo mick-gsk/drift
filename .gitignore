@@ -84,6 +84,9 @@ drift.intent.report.md
 drift.agent.prompt.md
 blast_reports/
 tmplw89iq73.json
+.gate_check_cache
+pip-audit-requirements.txt
+tmp*.json
 
 # Node.js
 node_modules/

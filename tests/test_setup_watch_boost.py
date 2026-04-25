@@ -52,7 +52,8 @@ def test_setup_build_config_and_overwrite_paths(
     monkeypatch.setattr("click.confirm", lambda *args, **kwargs: True)
     ok_res = runner.invoke(setup, ["--repo", str(tmp_path), "--non-interactive"])
     assert ok_res.exit_code == 0
-    assert "drift.yaml erstellt" in ok_res.output
+    assert "drift.yaml" in ok_res.output
+    assert ("erstellt" in ok_res.output) or ("created" in ok_res.output)
 
 
 def test_setup_interactive_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

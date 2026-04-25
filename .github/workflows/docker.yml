@@ -87,7 +87,9 @@ jobs:
       - name: Trivy container vulnerability scan
         uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5  # v0.30.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+          # metadata-action always emits latest, while ref_name may contain a
+          # leading "v" that is not part of the pushed semver tags.
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH

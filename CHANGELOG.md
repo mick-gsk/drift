@@ -6,6 +6,8 @@ Short version: All platform-dependent path separators in signal descriptions fix
 - `signals/bypass_accumulation`, `cognitive_complexity`, `dead_code_accumulation`, `fan_out_explosion`, `guard_clause_deficit`, `hardcoded_secret`, `missing_authorization` (×2), `phantom_reference`, `type_safety_bypass`: Apply `.as_posix()` to all `file_path` / `pr.file_path` f-string usages in finding `description` fields so CI on Ubuntu no longer sees Windows backslash paths.
 - `tests/test_golden_snapshot`: Added `_normalize_path_seps()` helper that recursively replaces `\\` with `/` in all string values; called from `_canonical_json()` as a permanent prevention layer so golden comparisons are platform-independent regardless of future signal additions.
 - `tests/golden`: Regenerated `corpus_snapshot.json` and `corpus_snapshot.sarif` with normalized forward-slash paths.
+- CI workflow hardening: fixed `publish.yml` CycloneDX flag (`--output-file`), switched Windows Python resolution to `setup-python` `python-path`, stabilized `security-hygiene.yml` dependency audit path for editable installs, and aligned Docker Trivy scan image reference to a guaranteed pushed tag.
+- Repo hygiene guardrails: extended `.github/repo-root-allowlist` for legitimate root governance files (`.editorconfig`, `.git-blame-ignore-revs`, `.markdownlint.yaml`) and ignored transient local artifacts (`.gate_check_cache`, `pip-audit-requirements.txt`, `tmp*.json`) in `.gitignore`.
 
 ## [2.42.6] - 2026-04-24
 

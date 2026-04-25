@@ -6,10 +6,13 @@
 .githooks
 .github
 .gitignore
+.git-blame-ignore-revs
 .devcontainer
+.editorconfig
 .pre-commit-hooks.yaml
 .pre-commit-config.yaml
 .markdownlint-cli2.jsonc
+.markdownlint.yaml
 .secrets.baseline
 .detect-secrets.cfg
 .drift-baseline.json
