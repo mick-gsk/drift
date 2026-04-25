@@ -1,4 +1,4 @@
-## [2.42.8] - 2026-04-25
+## [2.42.9] - 2026-04-25
 
 Short version: Codecov badge fixed — coverage upload now runs exclusively on the Linux runner to avoid Windows absolute paths in `coverage.xml`, and `fail_ci_if_error` is set to `true` so upload failures are no longer silently ignored.
 
