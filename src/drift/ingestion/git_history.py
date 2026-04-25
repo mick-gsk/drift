@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import logging
 import re
@@ -506,6 +507,11 @@ def _is_ancestor(repo_path: Path, older: str, newer: str) -> bool:
 
 
 def _serialize_commit(commit: CommitInfo) -> dict[str, object]:
+    hashed_coauthors = [
+        hashlib.sha256(coauthor.strip().lower().encode("utf-8")).hexdigest()
+        for coauthor in commit.coauthors
+        if isinstance(coauthor, str) and coauthor.strip()
+    ]
     return {
         "hash": commit.hash,
         "author": commit.author,
@@ -517,7 +523,7 @@ def _serialize_commit(commit: CommitInfo) -> dict[str, object]:
         "deletions": commit.deletions,
         "is_ai_attributed": commit.is_ai_attributed,
         "ai_confidence": commit.ai_confidence,
-        "coauthors": commit.coauthors,
+        "coauthors": hashed_coauthors,
     }
 
 
