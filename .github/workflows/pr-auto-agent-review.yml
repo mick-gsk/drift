@@ -1,0 +1,84 @@
+name: PR Auto Agent Review
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: "pr-auto-agent-review-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  request-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Request Copilot review on eligible PRs
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info("No pull request payload found; skipping.");
+              return;
+            }
+
+            if (pr.draft) {
+              core.info("Draft PR; skipping auto review request.");
+              return;
+            }
+
+            const externalAssoc = new Set([
+              "CONTRIBUTOR",
+              "FIRST_TIME_CONTRIBUTOR",
+              "FIRST_TIMER",
+              "NONE",
+            ]);
+            const isExternalHumanContributor =
+              pr.head?.repo?.fork === true &&
+              (pr.user?.type || "User") !== "Bot" &&
+              externalAssoc.has(pr.author_association || "NONE");
+
+            if (isExternalHumanContributor) {
+              core.info("External human contributor PR detected; skipping agent auto review.");
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = pr.number;
+            const marker = `<!-- drift-auto-agent-review:${pr.head.sha} -->`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const alreadyRequested = comments.some((comment) =>
+              (comment.body || "").includes(marker),
+            );
+            if (alreadyRequested) {
+              core.info("Review request for current head SHA already posted.");
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: [
+                marker,
+                "@copilot review",
+                "",
+                "Automatisch angestossener Agent-Review fuer diesen PR.",
+                "Externe menschliche Contributors sind von dieser Automation ausgenommen.",
+              ].join("\n"),
+            });
+
+            core.info("Posted Copilot review request comment.");
