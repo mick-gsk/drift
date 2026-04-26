@@ -1,9 +1,20 @@
-## [2.43.0] - 2026-04-26
+## [2.43.1] - 2026-04-26
 
 Short version: Codecov upload now uses OIDC tokenless authentication; resolves 0% badge after repo transfer to mick-gsk.
 
 ### Fixed
-- ci: switch Codecov upload to OIDC tokenless to resolve badge after repo transfer from sauremilch to mick-gsk
+- ci: switch Codecov upload to OIDC tokenless — resolves persistent 0% badge after repo transfer from sauremilk to mick-gsk
+- ci: remove CODECOV_TOKEN dependency for public repo, use GitHub OIDC instead
+- ci: add id-token: write permission required for OIDC uploads
+
+## [2.43.0] - 2026-04-26
+
+Short version: Codecov badge URL updated to newer format; add upload diagnostics and validation steps.
+
+### Changed
+- ci: update Codecov badge URL in README.md to newer graph format
+- ci: add coverage.xml validation and pre-upload diagnostics steps
+- ci: set fail_ci_if_error=false and add slug for repo transfer compatibility
 
 ## [2.42.16] - 2026-04-26
 
