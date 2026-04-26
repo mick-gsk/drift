@@ -9,7 +9,6 @@ Short version: Warm-run latency down by about one third in steady state: batch L
 - Release tag benchmark replay (`v2.43.2`, commit `94fd0998b`): `.venv\Scripts\python.exe scripts\benchmark_perf.py . --runs 3 --warmup 1` -> median `3.807s`; steady-state warm runs `3.73s` and `3.81s` (one early outlier run at `15.75s` while caches/index stabilized).
 - Baseline recorded before these fixes in the same session: median `5.77s` with the same benchmark command. This places steady-state improvement at about `34%` (`5.77s -> 3.81s`), with earlier post-fix runs reaching `~36%` (`5.77s -> 3.71s`).
 - Regression-proof for the cache-eviction fix on the release tag: `.venv\Scripts\python.exe -m pytest tests/test_cache_mds_ecd.py -q --tb=short` -> `47 passed in 2.56s`.
-- Full command transcript and raw values are documented in `work_artifacts/v2.43.2_release_evidence.md`.
 
 ## [2.43.1] - 2026-04-26
 
