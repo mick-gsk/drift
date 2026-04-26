@@ -1,3 +1,10 @@
+## [2.43.0] - 2026-04-26
+
+Short version: Codecov upload now uses OIDC tokenless authentication; resolves 0% badge after repo transfer to mick-gsk.
+
+### Fixed
+- ci: switch Codecov upload to OIDC tokenless to resolve badge after repo transfer from sauremilch to mick-gsk
+
 ## [2.42.16] - 2026-04-26
 
 Short version: Warm-run latency down ~20s on large repos: git-history index enabled by default (eliminates full git-log subprocess), orjson for parse-cache reads (3-5x faster deserialization), TS import-graph precomputed once per run, TPD signal skips non-test files, SignalCacheDependencySpec for selective cache invalidation.
