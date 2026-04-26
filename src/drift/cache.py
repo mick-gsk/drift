@@ -395,12 +395,11 @@ class SignalCache:  # drift:ignore[DCA]
         *file_hashes* maps ``file_path.as_posix()`` → content SHA-256
         (the same hashes produced by ``ParseCache.file_hash``).
         """
-        parts: list[str] = []
-        for pr in sorted(parse_results, key=lambda p: p.file_path.as_posix()):
-            h = file_hashes.get(pr.file_path.as_posix(), "")
-            parts.append(h)
-        combined = "|".join(parts)
-        return hashlib.sha256(combined.encode()).hexdigest()[:32]
+        selected_paths = {pr.file_path.as_posix() for pr in parse_results}
+        return SignalCache.content_hash_for_dependencies(
+            file_hashes,
+            selected_paths=selected_paths,
+        )
 
     @staticmethod
     def content_hash_for_module(
@@ -409,6 +408,27 @@ class SignalCache:  # drift:ignore[DCA]
     ) -> str:
         """Compute a stable hash for a module-scoped ParseResult slice."""
         return SignalCache.content_hash_for_results(parse_results, file_hashes)
+
+    @staticmethod
+    def content_hash_for_dependencies(
+        file_hashes: dict[str, str],
+        *,
+        selected_paths: set[str] | None,
+    ) -> str:
+        """Compute a deterministic hash for a selected dependency path set.
+
+        ``selected_paths=None`` means "all available file hashes".
+        The payload includes file paths and hashes to avoid collisions between
+        unrelated path sets that happen to share the same hash values.
+        """
+        if selected_paths is None:
+            paths = sorted(file_hashes)
+        else:
+            paths = sorted(selected_paths)
+
+        parts = [f"{path}:{file_hashes.get(path, '')}" for path in paths]
+        payload = "|".join(parts)
+        return hashlib.sha256(payload.encode()).hexdigest()[:32]
 
     @staticmethod
     def git_state_fingerprint(

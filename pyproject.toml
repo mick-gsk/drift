@@ -106,6 +106,10 @@ autopatch = [
 watch = [
     "watchfiles>=1.0",
 ]
+# Fast JSON serialization/deserialization for parse cache (optional; stdlib fallback)
+fast-json = [
+    "orjson>=3.9",
+]
 # LLM-backed intent classification via litellm (optional)
 llm = [
     "litellm>=1.0",
