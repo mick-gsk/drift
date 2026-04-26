@@ -538,6 +538,12 @@ reject_push_for_blocked_paths() {
 }
 
 while read local_ref local_sha remote_ref remote_sha; do
+	# Hard block: never push to master — default branch is main.
+	if [ "$remote_ref" = "refs/heads/master" ]; then
+		echo ">>> [pre-push] ERROR: Push to 'master' is blocked."
+		echo ">>> [pre-push] The default branch is 'main'. Use: git push origin HEAD:main"
+		exit 1
+	fi
 	if [ "${DRIFT_SKIP_HOOKS:-0}" != "1" ]; then
 		reject_push_for_blocked_paths "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"
 		collect_push_context "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"

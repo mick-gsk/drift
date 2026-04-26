@@ -19,7 +19,7 @@ import re
 from collections import defaultdict
 from itertools import combinations
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from drift.config import DriftConfig
 from drift.models import (
@@ -31,7 +31,7 @@ from drift.models import (
     SignalType,
 )
 from drift.signals._utils import is_test_file
-from drift.signals.base import BaseSignal, register_signal
+from drift.signals.base import BaseSignal, SignalCacheDependencySpec, register_signal
 
 if TYPE_CHECKING:
     from drift.signals.base import EmbeddingServiceProtocol
@@ -304,6 +304,10 @@ class MutantDuplicateSignal(BaseSignal):
     """Detect near-duplicate functions that diverge in subtle ways."""
 
     uses_embeddings = True
+    cache_dependency_spec: ClassVar[SignalCacheDependencySpec] = SignalCacheDependencySpec(
+        scope="repo_wide",
+        include_languages=("python", "typescript", "tsx", "javascript", "jsx"),
+    )
 
     @property
     def signal_type(self) -> SignalType:

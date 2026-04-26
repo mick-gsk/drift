@@ -866,6 +866,155 @@ def test_signal_phase_file_local_cache_reuses_results_across_scope_switch(
     assert signal.calls == [["a.py"], ["b.py"]]
 
 
+def test_signal_phase_file_local_respects_should_process_file(tmp_path: Path) -> None:
+    class _SelectiveSignal:
+        name = "selective-file-local"
+        signal_type = SignalType.PATTERN_FRAGMENTATION
+        incremental_scope = "file_local"
+        cache_dependency_scope = "file_local"
+
+        def __init__(self) -> None:
+            self.calls: list[list[str]] = []
+
+        def should_process_file(self, pr: ParseResult) -> bool:
+            return pr.file_path.as_posix().startswith("tests/")
+
+        def analyze(self, parse_results, *_args, **_kwargs):
+            self.calls.append([pr.file_path.as_posix() for pr in parse_results])
+            return []
+
+    cfg = DriftConfig(
+        include=["**/*.py"],
+        exclude=["**/.git/**", "**/.drift-cache/**", "**/__pycache__/**"],
+        embeddings_enabled=False,
+        signal_cache_dependency_scopes_enabled=True,
+    )
+
+    test_file = tmp_path / "tests" / "test_sample.py"
+    source_file = tmp_path / "src" / "mod.py"
+    test_file.parent.mkdir(parents=True, exist_ok=True)
+    source_file.parent.mkdir(parents=True, exist_ok=True)
+    test_file.write_text("def test_x():\n    assert True\n", encoding="utf-8")
+    source_file.write_text("def x():\n    return 1\n", encoding="utf-8")
+
+    parsed = ParsedInputs(
+        parse_results=[
+            ParseResult(file_path=Path("tests/test_sample.py"), language="python"),
+            ParseResult(file_path=Path("src/mod.py"), language="python"),
+        ],
+        commits=[],
+        file_histories={},
+        file_hashes={
+            "tests/test_sample.py": ParseCache.file_hash(test_file),
+            "src/mod.py": ParseCache.file_hash(source_file),
+        },
+    )
+
+    signal = _SelectiveSignal()
+    phase = SignalPhase(
+        embedding_factory=lambda **_kwargs: None,
+        signal_factory=lambda _ctx: [signal],
+    )
+
+    phase.run(
+        tmp_path,
+        cfg,
+        parsed,
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+
+    assert signal.calls == [["tests/test_sample.py"]]
+
+
+def test_signal_phase_repo_wide_dependency_spec_ignores_unrelated_changes(
+    tmp_path: Path,
+) -> None:
+    from drift.signals.base import SignalCacheDependencySpec
+
+    class _RepoWideScopedSignal:
+        name = "repo-wide-scoped"
+        signal_type = SignalType.PATTERN_FRAGMENTATION
+        cache_dependency_scope = "repo_wide"
+        cache_dependency_spec = SignalCacheDependencySpec(
+            scope="repo_wide",
+            include_languages=("python",),
+        )
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def analyze(self, parse_results, *_args, **_kwargs):
+            self.calls += 1
+            return [
+                Finding(
+                    signal_type=SignalType.PATTERN_FRAGMENTATION,
+                    severity=Severity.LOW,
+                    score=0.1,
+                    title=f"count:{self.calls}",
+                    description="repo-wide",
+                    file_path=parse_results[0].file_path,
+                )
+            ]
+
+    cfg = DriftConfig(
+        include=["**/*"],
+        exclude=["**/.git/**", "**/.drift-cache/**", "**/__pycache__/**"],
+        embeddings_enabled=False,
+        signal_cache_dependency_scopes_enabled=True,
+    )
+
+    py_file = tmp_path / "a.py"
+    txt_file = tmp_path / "README.md"
+    py_file.write_text("def a():\n    return 1\n", encoding="utf-8")
+    txt_file.write_text("alpha\n", encoding="utf-8")
+
+    def _parsed() -> ParsedInputs:
+        return ParsedInputs(
+            parse_results=[
+                ParseResult(file_path=Path("a.py"), language="python"),
+                ParseResult(file_path=Path("README.md"), language="markdown"),
+            ],
+            commits=[],
+            file_histories={},
+            file_hashes={
+                "a.py": ParseCache.file_hash(py_file),
+                "README.md": ParseCache.file_hash(txt_file),
+            },
+        )
+
+    signal = _RepoWideScopedSignal()
+    phase = SignalPhase(
+        embedding_factory=lambda **_kwargs: None,
+        signal_factory=lambda _ctx: [signal],
+    )
+
+    phase.run(
+        tmp_path,
+        cfg,
+        _parsed(),
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+    assert signal.calls == 1
+
+    txt_file.write_text("beta\n", encoding="utf-8")
+    phase.run(
+        tmp_path,
+        cfg,
+        _parsed(),
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+    assert signal.calls == 1
+
+    py_file.write_text("def a():\n    return 2\n", encoding="utf-8")
+    phase.run(
+        tmp_path,
+        cfg,
+        _parsed(),
+        degradation=DegradationInfo(causes=set(), components=set(), events=[]),
+    )
+    assert signal.calls == 2
+
+
 def test_analysis_pipeline_exposes_phase_timings() -> None:
     cfg = _config()
 

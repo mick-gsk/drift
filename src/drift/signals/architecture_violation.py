@@ -20,7 +20,7 @@ import fnmatch
 import logging
 import posixpath
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import networkx as nx
 
@@ -36,7 +36,7 @@ from drift.models import (
     SignalType,
 )
 from drift.signals._utils import is_test_file
-from drift.signals.base import BaseSignal, register_signal
+from drift.signals.base import BaseSignal, SignalCacheDependencySpec, register_signal
 
 if TYPE_CHECKING:
     from drift.signals.base import EmbeddingServiceProtocol
@@ -462,6 +462,10 @@ class ArchitectureViolationSignal(BaseSignal):  # drift:ignore[DCA]
     """Detect imports that violate architectural layer boundaries."""
 
     uses_embeddings = True
+    cache_dependency_spec: ClassVar[SignalCacheDependencySpec] = SignalCacheDependencySpec(
+        scope="repo_wide",
+        include_languages=("python", "typescript", "tsx", "javascript", "jsx"),
+    )
 
     @property
     def signal_type(self) -> SignalType:

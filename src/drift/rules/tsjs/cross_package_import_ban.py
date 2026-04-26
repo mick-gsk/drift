@@ -56,10 +56,15 @@ def _load_allowed_package_import_pairs(config_path: Path) -> set[tuple[str, str]
 def run_cross_package_import_ban(
     repo_path: Path,
     config_path: Path,
+    *,
+    import_graph: dict[str, set[str]] | None = None,
+    file_to_package: dict[str, str] | None = None,
 ) -> list[dict[str, str]]:
     """Emit one finding for each forbidden direct import crossing packages."""
-    file_to_package = assign_ts_sources_to_workspace_packages(repo_path)
-    import_graph = build_relative_import_graph(repo_path)
+    if file_to_package is None:
+        file_to_package = assign_ts_sources_to_workspace_packages(repo_path)
+    if import_graph is None:
+        import_graph = build_relative_import_graph(repo_path)
     allowed_pairs = _load_allowed_package_import_pairs(config_path)
 
     findings: list[dict[str, str]] = []

@@ -205,6 +205,27 @@ def test_signal_cache_content_hash_for_module_is_deterministic() -> None:
     assert h1 == h2
 
 
+def test_signal_cache_content_hash_for_dependencies_ignores_unselected_files() -> None:
+    file_hashes = {
+        "src/a.py": "a" * 32,
+        "README.md": "b" * 32,
+    }
+
+    h1 = SignalCache.content_hash_for_dependencies(
+        file_hashes,
+        selected_paths={"src/a.py"},
+    )
+    h2 = SignalCache.content_hash_for_dependencies(
+        {
+            "src/a.py": "a" * 32,
+            "README.md": "c" * 32,
+        },
+        selected_paths={"src/a.py"},
+    )
+
+    assert h1 == h2
+
+
 def test_signal_cache_git_state_fingerprint_changes_with_commit_hash() -> None:
     class _Commit:
         def __init__(self, h: str) -> None:
