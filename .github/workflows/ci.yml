@@ -320,7 +320,17 @@ jobs:
             exit 1
           fi
           LINES_COVERED=$(grep -oP 'lines-covered="\K[0-9]+' coverage.xml | head -1)
-          echo "Coverage data present: lines-covered=$LINES_COVERED"
+          LINE_RATE=$(grep -oP 'line-rate="\K[0-9.]+' coverage.xml | head -1)
+          echo "✓ Coverage data present: lines-covered=$LINES_COVERED, line-rate=$LINE_RATE"
+
+      - name: Pre-Codecov diagnostics
+        if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
+        run: |
+          echo "=== Codecov Upload Diagnostics ==="
+          echo "CODECOV_TOKEN set: $([ -n '${{ secrets.CODECOV_TOKEN }}' ] && echo 'YES' || echo 'NO')"
+          echo "File size: $(wc -c < coverage.xml) bytes"
+          echo "First 5 lines of coverage.xml:"
+          head -5 coverage.xml
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
