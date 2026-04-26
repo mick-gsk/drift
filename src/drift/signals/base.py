@@ -186,7 +186,11 @@ class BaseSignal(ABC):
             "repo_wide",
             "git_dependent",
         }:
-            return SignalCacheDependencySpec(scope=explicit_scope)
+            scope_type = cast(
+                Literal["file_local", "module_wide", "repo_wide", "git_dependent"],
+                explicit_scope,
+            )
+            return SignalCacheDependencySpec(scope=scope_type)
 
         incremental_scope = getattr(self, "incremental_scope", "cross_file")
         if incremental_scope == "file_local":
