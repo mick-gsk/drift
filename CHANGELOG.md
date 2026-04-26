@@ -1,3 +1,24 @@
+## [2.42.13] - 2026-04-26
+
+Short version: Non-ASCII arrow character (`→`) in `check_version.py` error output replaced with ASCII `->` to fix `UnicodeEncodeError` on Windows GitHub Actions runners.
+
+### Fixed
+- `scripts/check_version.py`: replaced `→` with `->` in version-mismatch error message to prevent `UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'` on Windows CP1252 runners.
+
+## [2.42.12] - 2026-04-26
+
+Short version: Publish workflow now explicitly fetches the release tag by refspec during `workflow_dispatch` so `check_release_discipline.py` can resolve the tag even with shallow checkouts.
+
+### Fixed
+- `.github/workflows/publish.yml`: added explicit `git fetch origin "refs/tags/${tag}:refs/tags/${tag}"` step after checkout in the `validate-version` job so the tag is always present locally when `workflow_dispatch` is used.
+
+## [2.42.11] - 2026-04-26
+
+Short version: Publish workflow `validate-version` job now sets `fetch-tags: true` on checkout so SemVer tag lineage checks pass during `workflow_dispatch` runs.
+
+### Fixed
+- `.github/workflows/publish.yml`: added `fetch-tags: true` to the `actions/checkout` step in `validate-version` to ensure git tags are available for `check_release_discipline.py`.
+
 ## [2.42.10] - 2026-04-26
 
 Short version: ParseCache eviction is now rate-limited to once per hour (was on every construction); topological signal sort and signal-class split results are cached as process-level singletons, reducing MCP nudge warm-path overhead by ~900x.
