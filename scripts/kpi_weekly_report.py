@@ -83,9 +83,124 @@ def _health_status(
     return "HEALTHY"
 
 
+def _product_health_status(
+    mom_delta: float | None,
+    budget_headroom_pct: float | None,
+) -> str:
+    """Return ALARM / WARNING / HEALTHY / NO_DATA for product health signals."""
+    if mom_delta is None and budget_headroom_pct is None:
+        return "NO_DATA"
+    if budget_headroom_pct is not None and budget_headroom_pct < 0.10:
+        return "ALARM"
+    if mom_delta is not None and mom_delta < -0.30:
+        return "ALARM"
+    if budget_headroom_pct is not None and budget_headroom_pct < 0.30:
+        return "WARNING"
+    if mom_delta is not None and mom_delta < -0.20:
+        return "WARNING"
+    return "HEALTHY"
+
+
 # ---------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------
+
+
+def _build_product_health_section(
+    entries: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Extract product health data from the latest trend entries.
+
+    Returns ``None`` when no product health fields are present in the trend.
+    Falls back to reading ``benchmark_results/kpi_snapshot.json`` directly
+    for the ``product_health`` block if available.
+    """
+    from pathlib import Path as _Path  # local to avoid polluting module scope
+
+    repo_root = _Path(__file__).resolve().parent.parent
+    snapshot_path = repo_root / "benchmark_results" / "kpi_snapshot.json"
+
+    # --- Source 1: latest trend entry compact fields ---
+    latest = entries[-1] if entries else {}
+    pypi_last_30d = latest.get("pypi_downloads_last_30d")
+    github_stars = latest.get("github_stars")
+    perf_wall_clock = latest.get("perf_wall_clock_seconds")
+
+    # --- Source 2: full kpi_snapshot.json product_health block ---
+    ph_snap: dict[str, Any] = {}
+    if snapshot_path.exists():
+        try:
+            import json as _json
+
+            data = _json.loads(snapshot_path.read_text(encoding="utf-8"))
+            ph_snap = data.get("product_health", {})
+        except Exception:  # noqa: BLE001
+            pass
+
+    # Prefer snapshot block values (more complete) over compact trend fields
+    adoption_snap = ph_snap.get("adoption", {})
+    perf_snap = ph_snap.get("performance", {})
+    stability_snap = ph_snap.get("stability", {})
+
+    pypi_last = adoption_snap.get("pypi_downloads_last_30d") or pypi_last_30d
+    pypi_prev = adoption_snap.get("pypi_downloads_prev_30d")
+    mom_delta = adoption_snap.get("pypi_downloads_mom_delta")
+    stars = adoption_snap.get("github_stars") or github_stars
+    forks = adoption_snap.get("github_forks")
+    open_issues = stability_snap.get("open_issues")
+    open_bugs = stability_snap.get("open_bugs")
+    wall_clock = perf_snap.get("wall_clock_median_seconds") or perf_wall_clock
+    budget_s = perf_snap.get("budget_seconds")
+    headroom = perf_snap.get("budget_headroom_pct")
+    collected_at = ph_snap.get("collected_at")
+
+    # Return None when no product health data exists at all
+    has_data = any(
+        v is not None
+        for v in [pypi_last, stars, open_issues, wall_clock]
+    )
+    if not has_data:
+        return None
+
+    # MoM trend from compact trend fields if snapshot didn't have it
+    if mom_delta is None and len(entries) >= 2:
+        prev_entry = next(
+            (e for e in reversed(entries[:-1]) if e.get("pypi_downloads_last_30d") is not None),
+            None,
+        )
+        if prev_entry and pypi_last is not None:
+            prev_val = prev_entry["pypi_downloads_last_30d"]
+            if prev_val and prev_val > 0:
+                mom_delta = round((pypi_last - prev_val) / prev_val, 4)
+
+    ph_status = _product_health_status(mom_delta, headroom)
+
+    return {
+        "status": ph_status,
+        "collected_at": collected_at,
+        "adoption": {
+            "pypi_downloads_last_30d": pypi_last,
+            "pypi_downloads_prev_30d": pypi_prev,
+            "pypi_downloads_mom_delta": mom_delta,
+            "github_stars": stars,
+            "github_forks": forks,
+        },
+        "stability": {
+            "open_issues": open_issues,
+            "open_bugs": open_bugs,
+        },
+        "performance": {
+            "wall_clock_median_seconds": wall_clock,
+            "budget_seconds": budget_s,
+            "budget_headroom_pct": headroom,
+        },
+        "thresholds": {
+            "mom_delta_warning": -0.20,
+            "mom_delta_alarm": -0.30,
+            "budget_headroom_warning": 0.30,
+            "budget_headroom_alarm": 0.10,
+        },
+    }
 
 
 def build_weekly_report(
@@ -139,7 +254,9 @@ def build_weekly_report(
 
     status = _health_status(score_slope, latest_recurrence, f1, consecutive_rises)
 
-    return {
+    product_health = _build_product_health_section(entries)
+
+    report: dict[str, Any] = {
         "week": week,
         "generated_at": datetime.now(UTC).isoformat(),
         "drift_version": version,
@@ -172,6 +289,9 @@ def build_weekly_report(
             "f1_alarm": 0.95,
         },
     }
+    if product_health is not None:
+        report["product_health"] = product_health
+    return report
 
 
 def main() -> None:

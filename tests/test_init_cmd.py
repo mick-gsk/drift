@@ -190,6 +190,7 @@ class TestInitCommand:
         payload = json.loads(result.output)
         paths = {item["path"] for item in payload["would_create"]}
         assert "claude_desktop_config.json" in paths
+        assert ".github/copilot-instructions.md" in paths
 
     def test_init_dry_run_marks_existing_files_as_skip(self, tmp_path: Path) -> None:
         runner = CliRunner()
@@ -268,8 +269,12 @@ class TestInitCommand:
         assert (tmp_path / "drift.yaml").exists()
         assert (tmp_path / ".github" / "workflows" / "drift.yml").exists()
         assert (tmp_path / ".githooks" / "drift-pre-push").exists()
+        assert (tmp_path / ".github" / "copilot-instructions.md").exists()
         assert (tmp_path / ".vscode" / "mcp.json").exists()
         assert (tmp_path / "claude_desktop_config.json").exists()
+        assert (tmp_path / ".cursorrules").exists()
+        assert (tmp_path / ".windsurfrules").exists()
+        assert (tmp_path / "CLAUDE.md").exists()
 
     def test_init_skips_existing_files(self, tmp_path: Path) -> None:
         """Running init twice should not overwrite existing files."""
@@ -350,6 +355,17 @@ class TestInitCommand:
         content = claude_md.read_text()
         assert "drift nudge" in content
         assert "safe_to_commit" in content
+        assert "https://mick-gsk.github.io/drift/" in content
+
+    def test_init_copilot_creates_copilot_instructions(self, tmp_path: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(main, ["init", "--copilot", "--repo", str(tmp_path)])
+        assert result.exit_code == 0
+        copilot_instructions = tmp_path / ".github" / "copilot-instructions.md"
+        assert copilot_instructions.exists()
+        content = copilot_instructions.read_text()
+        assert "drift nudge" in content
+        assert "safe_to_commit" in content
 
     def test_init_cursor_dry_run_lists_file_no_write(self, tmp_path: Path) -> None:
         runner = CliRunner()
@@ -378,22 +394,33 @@ class TestInitCommand:
         runner = CliRunner()
         result = runner.invoke(
             main,
-            ["init", "--cursor", "--windsurf", "--claude-code", "--json", "--repo", str(tmp_path)],
+            [
+                "init",
+                "--copilot",
+                "--cursor",
+                "--windsurf",
+                "--claude-code",
+                "--json",
+                "--repo",
+                str(tmp_path),
+            ],
         )
         assert result.exit_code == 0
         payload = json.loads(result.output)
         paths = {item["path"] for item in payload["would_create"]}
+        assert ".github/copilot-instructions.md" in paths
         assert ".cursorrules" in paths
         assert ".windsurfrules" in paths
         assert "CLAUDE.md" in paths
 
-    def test_init_full_does_not_include_editor_snippets(self, tmp_path: Path) -> None:
-        """--full should not auto-generate editor snippets (opt-in only)."""
+    def test_init_full_includes_editor_snippets(self, tmp_path: Path) -> None:
+        """--full should generate all AI editor/agent snippets."""
         runner = CliRunner()
         result = runner.invoke(main, ["init", "--full", "--json", "--repo", str(tmp_path)])
         assert result.exit_code == 0
         payload = json.loads(result.output)
         paths = {item["path"] for item in payload["would_create"]}
-        assert ".cursorrules" not in paths
-        assert ".windsurfrules" not in paths
-        assert "CLAUDE.md" not in paths
+        assert ".github/copilot-instructions.md" in paths
+        assert ".cursorrules" in paths
+        assert ".windsurfrules" in paths
+        assert "CLAUDE.md" in paths

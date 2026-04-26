@@ -167,7 +167,7 @@ _CLAUDE_MD_SNIPPET = """\
 Drift is a static architectural coherence analyzer. It detects structural drift
 patterns like duplicate logic, fragmented patterns, and layer violations.
 
-Docs: https://drift-analyzer.readthedocs.io
+Docs: https://mick-gsk.github.io/drift/
 
 ## After editing files
 
@@ -195,6 +195,41 @@ drift brief --task "description"   # get guardrails before a task
 drift analyze                      # full scan
 drift status                       # health overview
 drift nudge                        # fast check after edits
+```
+"""
+
+_COPILOT_INSTRUCTIONS_SNIPPET = """\
+# Drift — Architectural Drift Guard
+
+## After every file edit
+
+Run drift nudge to get fast directional feedback (< 200 ms):
+
+```bash
+drift nudge
+# or, for targeted feedback on a specific file:
+drift nudge --changed-files <path/to/file.py>
+```
+
+Interpret the result:
+- `safe_to_commit: true` — no new structural violations, proceed
+- `safe_to_commit: false` — new findings detected, review before committing
+- `direction: improving` — the change reduces drift
+- `direction: degrading` — the change introduces drift, consider revising
+
+## Key commands
+
+| Command | When to use |
+|---------|-------------|
+| `drift nudge` | After every file edit — fast inner-loop check |
+| `drift brief --task "..."` | Before starting a task — get guardrails |
+| `drift analyze` | Full scan for overview or CI |
+| `drift status` | Health overview |
+
+## Install
+
+```bash
+pip install drift-analyzer
 ```
 """
 
@@ -358,6 +393,7 @@ def _build_init_plan(
     hooks: bool,
     mcp: bool,
     claude: bool,
+    copilot: bool,
     cursor: bool,
     windsurf: bool,
     claude_code: bool,
@@ -395,6 +431,13 @@ def _build_init_plan(
             plan,
             claude_path,
             _render_mcp_json(claude=True, command=launcher_command, args=launcher_args),
+            repo,
+        )
+    if copilot:
+        _plan_file(
+            plan,
+            repo / ".github" / "copilot-instructions.md",
+            _COPILOT_INSTRUCTIONS_SNIPPET,
             repo,
         )
     if cursor:
@@ -603,6 +646,15 @@ def _print_init_summary(created: int, profile: str, full: bool) -> None:
     help="Output dry-run preview as JSON (implies --dry-run).",
 )
 @click.option(
+    "--copilot",
+    is_flag=True,
+    default=False,
+    help=(
+        "Generate .github/copilot-instructions.md snippet "
+        "for GitHub Copilot."
+    ),
+)
+@click.option(
     "--cursor",
     is_flag=True,
     default=False,
@@ -650,6 +702,7 @@ def init(
     hooks: bool,
     mcp: bool,
     claude: bool,
+    copilot: bool,
     cursor: bool,
     windsurf: bool,
     claude_code: bool,
@@ -673,10 +726,11 @@ def init(
             drift init --full                   # config + CI + hooks + MCP + Claude
       drift init -p vibe-coding --ci      # vibe-coding config + CI workflow
             drift init --mcp --claude           # scaffold VS Code + Claude MCP configs
+        drift init --copilot               # .github/copilot-instructions.md snippet for Copilot
       drift init --cursor                 # .cursorrules snippet for Cursor AI
       drift init --windsurf               # .windsurfrules snippet for Windsurf
       drift init --claude-code            # CLAUDE.md snippet for Claude Code
-      drift init --cursor --windsurf --claude-code  # all AI-editor snippets
+        drift init --copilot --cursor --windsurf --claude-code  # all AI-editor snippets
       drift init --full --dry-run         # preview without writing
       drift init --full --json            # JSON preview for agents
       drift init --interactive --full     # guided profile + full scaffolding
@@ -687,7 +741,7 @@ def init(
         dry_run = True
 
     if full:
-        ci = hooks = mcp = claude = True
+        ci = hooks = mcp = claude = copilot = cursor = windsurf = claude_code = True
 
     if not json_output and not dry_run:
         _ascii_only = bool(getattr(console, "_drift_ascii_only", False))
@@ -732,7 +786,7 @@ def init(
     launcher_command, launcher_args, launcher_source = _resolve_mcp_launcher()
 
     plan = _build_init_plan(
-        repo, profile, ci, hooks, mcp, claude, cursor, windsurf, claude_code,
+        repo, profile, ci, hooks, mcp, claude, copilot, cursor, windsurf, claude_code,
         launcher_command, launcher_args,
     )
 

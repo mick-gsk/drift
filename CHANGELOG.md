@@ -4,6 +4,7 @@ Short version: ParseCache eviction is now rate-limited to once per hour (was on 
 
 ### Fixed
 - rate-limit ParseCache eviction and cache signal-class split for MCP hot-path latency
+- `drift init`: added `--copilot` to scaffold `.github/copilot-instructions.md`, extended `--full` to include all AI editor/agent snippets (`--copilot`, `--cursor`, `--windsurf`, `--claude-code`), and corrected generated `CLAUDE.md` docs URL to `https://mick-gsk.github.io/drift/`.
 
 ## [2.42.9] - 2026-04-25
 
