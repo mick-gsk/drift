@@ -375,37 +375,13 @@ jobs:
           print(f'OK: drift self score {score:.3f} (threshold 0.55)')
           '@
 
-      - name: Update drift score badge in README
-        if: matrix.python-version == '3.12' && runner.os == 'Windows' && github.ref == 'refs/heads/main' && github.event_name == 'push'
-        # Reads score from drift_score.json and updates the hardcoded badge URL in README.md.
-        # Only runs on main-branch pushes so PRs don't trigger badge commits.
-        # Restricted to Windows to avoid duplicate badge-commit races in OS matrix.
-        shell: pwsh
-        run: |
-          $data = Get-Content drift_score.json | ConvertFrom-Json
-          $score = [math]::Round($data.drift_score, 2)
-          $severity = $data.severity
-          $color = switch ($severity) {
-            "low"    { "brightgreen" }
-            "medium" { "yellow" }
-            "high"   { "red" }
-            default  { "lightgrey" }
-          }
-          $badgeUrl = "https://img.shields.io/badge/drift%20score-${score}-${color}?style=flat"
-          $readmePath = "README.md"
-          $content = Get-Content $readmePath -Raw -Encoding UTF8
-          $updated = $content -replace 'https://img\.shields\.io/badge/drift%20score-[\d\.]+-(\w+)\?style=flat', $badgeUrl
-          if ($content -ne $updated) {
-            [IO.File]::WriteAllText("$PWD\$readmePath", $updated, [Text.Encoding]::UTF8)
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add README.md
-            git commit -m "chore: update drift score badge to $score [skip ci]"
-            git push
-            Write-Host "Badge updated to $score ($severity → $color)"
-          } else {
-            Write-Host "Badge already up to date ($score)"
-          }
+      - name: Upload drift score artifact
+        if: matrix.python-version == '3.12' && runner.os == 'Windows' && always() && hashFiles('drift_score.json') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: drift-score-py312-windows
+          path: drift_score.json
+          if-no-files-found: error
 
       - name: Risk audit compliance (POLICY §18)
         if: matrix.python-version == '3.12'
@@ -556,10 +532,89 @@ jobs:
         run: |
           python -m pytest tests/test_smoke_real_repos.py -v --run-slow --smoke-profile=nightly
 
+  update-readme-badges:
+    name: Update README badges
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs:
+      - version-check
+      - pre-commit
+      - test
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-py3.12
+          path: badge-artifacts/coverage
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: drift-score-py312-windows
+          path: badge-artifacts/drift-score
+
+      - name: Update README badge URLs
+        shell: pwsh
+        run: |
+          $culture = [System.Globalization.CultureInfo]::InvariantCulture
+
+          [xml]$coverageXml = Get-Content "badge-artifacts/coverage/coverage.xml" -Raw -Encoding UTF8
+          $lineRate = [double]::Parse($coverageXml.coverage.'line-rate', $culture)
+          $coveragePct = [math]::Round($lineRate * 100, 2)
+          $coverageValue = $coveragePct.ToString("0.##", $culture)
+          $coverageColor = if ($coveragePct -ge 90) {
+            "brightgreen"
+          } elseif ($coveragePct -ge 80) {
+            "green"
+          } elseif ($coveragePct -ge 70) {
+            "yellowgreen"
+          } elseif ($coveragePct -ge 60) {
+            "yellow"
+          } else {
+            "red"
+          }
+
+          $scoreData = Get-Content "badge-artifacts/drift-score/drift_score.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+          $score = [math]::Round([double]$scoreData.drift_score, 2).ToString("0.##", $culture)
+          $scoreColor = switch ($scoreData.severity) {
+            "low"    { "brightgreen" }
+            "medium" { "yellow" }
+            "high"   { "red" }
+            default   { "lightgrey" }
+          }
+
+          $coverageBadgeUrl = "https://img.shields.io/badge/coverage-${coverageValue}%25-${coverageColor}?style=flat"
+          $scoreBadgeUrl = "https://img.shields.io/badge/drift%20score-${score}-${scoreColor}?style=flat"
+
+          $readmePath = "README.md"
+          $content = Get-Content $readmePath -Raw -Encoding UTF8
+          $updated = $content
+          $updated = $updated -replace 'https://img\.shields\.io/badge/coverage-[^\s\)]+\?style=flat', $coverageBadgeUrl
+          $updated = $updated -replace 'https://img\.shields\.io/badge/drift%20score-[^\s\)]+\?style=flat', $scoreBadgeUrl
+
+          if ($content -eq $updated) {
+            Write-Host "README badges already up to date (coverage=$coverageValue%, score=$score)"
+            exit 0
+          }
+
+          [IO.File]::WriteAllText("$PWD\$readmePath", $updated, [Text.Encoding]::UTF8)
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add README.md
+          git commit -m "chore: update README badges [skip ci]"
+          git push
+          Write-Host "README badges updated (coverage=$coverageValue%, score=$score)"
+
   required-checks-passed:
     name: Required checks passed
     if: always()
     needs:
+      - update-readme-badges
       - version-check
       - test
       - pre-commit
