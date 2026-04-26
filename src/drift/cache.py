@@ -326,12 +326,14 @@ class SignalCache:  # drift:ignore[DCA]
     """
 
     _EVICTION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
+    _EVICTION_THROTTLE_SECONDS = 300  # run eviction at most once every 5 minutes
 
     # L1 in-memory LRU cache: shared across instances for the same cache dir.
     # Eliminates disk I/O and JSON deserialization on warm repeated scans.
     _L1_MAX_ENTRIES: ClassVar[int] = 200
     _l1_store: ClassVar[dict[str, OrderedDict[tuple[str, str, str], list[Finding]]]] = {}
     _l1_lock: ClassVar[threading.RLock] = threading.RLock()
+    _last_eviction: ClassVar[dict[str, float]] = {}
 
     def __init__(self, cache_dir: Path) -> None:
         self._cache_dir = cache_dir / "signals"
@@ -342,7 +344,12 @@ class SignalCache:  # drift:ignore[DCA]
         self._evict_stale()
 
     def _evict_stale(self) -> None:
-        cutoff = time.time() - self._EVICTION_MAX_AGE_SECONDS
+        now = time.time()
+        last = SignalCache._last_eviction.get(self._cache_dir_key, 0.0)
+        if now - last < self._EVICTION_THROTTLE_SECONDS:
+            return
+        SignalCache._last_eviction[self._cache_dir_key] = now
+        cutoff = now - self._EVICTION_MAX_AGE_SECONDS
         for entry in self._cache_dir.glob("*.json"):
             try:
                 if entry.stat().st_mtime < cutoff:
@@ -465,6 +472,31 @@ class SignalCache:  # drift:ignore[DCA]
     def _cache_path(self, signal_type: str, config_fp: str, content_hash: str) -> Path:
         key = f"{signal_type}_{config_fp}_{content_hash}"
         return self._cache_dir / f"{key}.json"
+
+    def get_batch(
+        self,
+        signal_type: str,
+        config_fp: str,
+        content_hashes: dict[str, str],
+    ) -> dict[str, list[Finding] | None]:
+        """Batch L1 lookup for multiple content hashes (one lock acquire).
+
+        *content_hashes* maps an arbitrary key (e.g. file posix path) to its
+        content hash.  Returns a mapping from those same keys to cached findings
+        or ``None`` on miss.  All L1 lookups happen in a single lock acquisition
+        to avoid per-file RLock overhead in the file_local signal loop.
+        """
+        result: dict[str, list[Finding] | None] = {}
+        with SignalCache._l1_lock:
+            bucket = SignalCache._l1_store.get(self._cache_dir_key)
+            for key, content_hash in content_hashes.items():
+                l1_key = (signal_type, config_fp, content_hash)
+                if bucket is not None and l1_key in bucket:
+                    bucket.move_to_end(l1_key)
+                    result[key] = list(bucket[l1_key])
+                else:
+                    result[key] = None
+        return result
 
     def get(
         self, signal_type: str, config_fp: str, content_hash: str,

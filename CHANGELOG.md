@@ -1,3 +1,10 @@
+## [2.43.2] - 2026-04-26
+
+Short version: Warm-run latency down ~36% (5.77s -> 3.71s): batch L1 cache lookup eliminates per-file lock overhead, path-context classification memoized, eviction throttled to once per 5 minutes.
+
+### Fixed
+- optimize warm-run via batch L1 cache lookup, path-context memo, eviction throttle
+
 ## [2.43.1] - 2026-04-26
 
 Short version: Codecov coverage badge now shows real values after repo transfer — switched to OIDC tokenless upload, no token misconfiguration possible.

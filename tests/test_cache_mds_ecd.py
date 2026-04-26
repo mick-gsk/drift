@@ -186,6 +186,8 @@ def test_signal_cache_evicts_old_signals(tmp_path: Path) -> None:
     eight_days_ago = time.time() - 8 * 24 * 3600
     os.utime(stale, (eight_days_ago, eight_days_ago))
 
+    # Reset the eviction throttle so the second init performs the disk scan.
+    SignalCache._last_eviction.pop(cache_dir.as_posix(), None)
     SignalCache(tmp_path)
     assert not stale.exists()
 

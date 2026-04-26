@@ -1020,6 +1020,11 @@ class SignalPhase:
             if dep_scope == "file_local":
                 file_local_findings: list[Finding] = []
                 should_process = getattr(signal, "should_process_file", None)
+
+                # Build a map of eligible parse results and their content hashes
+                # in a single pass, then batch-check the L1 cache with one lock
+                # acquire instead of one per file.
+                eligible: list[tuple[ParseResult, str, str]] = []  # (pr, posix, content_hash)
                 for pr in parsed.parse_results:
                     if callable(should_process) and not should_process(pr):
                         continue
@@ -1027,11 +1032,24 @@ class SignalPhase:
                     file_hash = parsed.file_hashes.get(p)
                     if not file_hash:
                         continue
-                    content_hash = SignalCache.content_hash_for_file(file_hash)
+                    eligible.append((pr, p, SignalCache.content_hash_for_file(file_hash)))
+
+                if not no_cache and eligible:
+                    batch_hashes = {p: ch for _, p, ch in eligible}
+                    batch_hits = sig_cache.get_batch(sig_type, scope_config_fp, batch_hashes)
+                else:
+                    batch_hits = {}
+
+                for pr, p, content_hash in eligible:
                     if not no_cache:
-                        cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
+                        cached = batch_hits.get(p)
                         if cached is not None:
                             file_local_findings.extend(cached)
+                            continue
+                        # L1 miss — check disk and run if needed
+                        disk_cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
+                        if disk_cached is not None:
+                            file_local_findings.extend(disk_cached)
                             continue
                     local_histories = self._history_subset(parsed.file_histories, {p})
                     fresh = signal.analyze([pr], local_histories, config)
