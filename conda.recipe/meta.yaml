@@ -1,5 +1,5 @@
 {% set name = "drift-analyzer" %}
-{% set version = "2.5.1" %}
+{% set version = "2.42.9" %}
 
 package:
   name: {{ name }}
@@ -11,7 +11,7 @@ package:
 #
 #   source:
 #     url: https://pypi.io/packages/source/d/{{ name }}/{{ name.replace('-', '_') }}-{{ version }}.tar.gz
-#     sha256: <sha256-of-sdist>
+#     sha256: 9816f32a2cbb642dba5e6b0dc865d857ef84f3baec37408a92b85fc18059bea2
 #
 # Then open a PR at https://github.com/conda-forge/staged-recipes
 
