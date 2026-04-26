@@ -1,3 +1,10 @@
+## [2.42.15] - 2026-04-26
+
+Short version: Add third_party_skills to .gitignore.
+
+### Changed
+- gitignore: add third_party_skills to version control exclusions
+
 ## [2.42.14] - 2026-04-26
 
 Short version: Parse cache no longer evicts all entries on every drift version bump; hash loop is now parallelized - cold-start after upgrade drops from ~130s to ~15s on large repos.

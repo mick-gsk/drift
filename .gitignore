@@ -91,3 +91,4 @@ tmp*.json
 # Node.js
 node_modules/
 playground/dist/
+third_party_skills/
