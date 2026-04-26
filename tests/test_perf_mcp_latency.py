@@ -101,19 +101,18 @@ class TestParseCacheEvictionRateLimiting:
 
         _reset_parse_cache_eviction_state()
         cache_dir = tmp_path / "bench"
-        # Cold: first call does eviction scan
-        t0 = time.perf_counter()
-        ParseCache(cache_dir)
-        cold_ms = (time.perf_counter() - t0) * 1000
 
-        # Warm: second call skips eviction
-        t1 = time.perf_counter()
-        ParseCache(cache_dir)
-        warm_ms = (time.perf_counter() - t1) * 1000
+        # Cold: first call records an eviction timestamp for this cache directory.
+        cold_cache = ParseCache(cache_dir)
+        t_first = ParseCache._last_eviction[cold_cache._cache_dir_key]
 
-        # Warm must be at least 5x faster than cold (generous bound)
-        assert warm_ms < cold_ms or warm_ms < 1.0, (
-            f"Warm path ({warm_ms:.3f} ms) should be faster than cold ({cold_ms:.3f} ms)"
+        # Warm: second call within the interval should skip eviction and leave the
+        # recorded timestamp unchanged.
+        warm_cache = ParseCache(cache_dir)
+        t_second = ParseCache._last_eviction[warm_cache._cache_dir_key]
+
+        assert t_first == t_second, (
+            "Warm path should skip eviction and preserve the recorded eviction timestamp"
         )
 
     def test_thread_safety(self, tmp_path: Path) -> None:

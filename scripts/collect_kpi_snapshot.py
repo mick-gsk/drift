@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import importlib.util
 import json
 import subprocess
 import sys
@@ -174,18 +175,30 @@ def _fetch_pypi_downloads(
         return None
 
     rows: list[dict[str, object]] = payload.get("data", [])
-    monthly: dict[str, int] = defaultdict(int)
+    daily_by_category: dict[str, dict[str, int]] = defaultdict(dict)
     for row in rows:
-        if row.get("category") not in {"without_mirrors", "overall"}:
+        category = row.get("category")
+        if category not in {"without_mirrors", "overall"}:
             continue
         date_str = str(row.get("date", ""))
+        if len(date_str) < 10 or date_str[4] != "-" or date_str[7] != "-":
+            continue
+        try:
+            daily_by_category[date_str][str(category)] = int(str(row.get("downloads", 0)))
+        except (TypeError, ValueError):
+            continue
+
+    monthly: dict[str, int] = defaultdict(int)
+    for date_str, categories in daily_by_category.items():
         month = date_str[:7]
         if len(month) != 7 or month[4] != "-":
             continue
-        try:
-            monthly[month] += int(str(row.get("downloads", 0)))
-        except (TypeError, ValueError):
+        downloads = categories.get("without_mirrors")
+        if downloads is None:
+            downloads = categories.get("overall")
+        if downloads is None:
             continue
+        monthly[month] += downloads
 
     sorted_months = sorted(monthly.keys())
     if not sorted_months:
@@ -286,9 +299,14 @@ def collect_product_health(
     Returns a dict with an ``adoption``, ``performance``, and ``stability``
     sub-section plus a ``collected_at`` timestamp.
     """
-    # Import here to avoid circular issues at module load time
-    sys.path.insert(0, str(REPO_ROOT / "scripts"))
-    from fetch_github_stats import fetch_github_stats  # type: ignore[import]
+    # Import fetch_github_stats from its known file path to avoid sys.path mutation.
+    _spec = importlib.util.spec_from_file_location(
+        "fetch_github_stats", REPO_ROOT / "scripts" / "fetch_github_stats.py"
+    )
+    _mod = importlib.util.module_from_spec(_spec)  # type: ignore[arg-type]
+    assert _spec and _spec.loader
+    _spec.loader.exec_module(_mod)  # type: ignore[union-attr]
+    fetch_github_stats = _mod.fetch_github_stats
 
     pypi = _fetch_pypi_downloads(package=pypi_package)
     gh = fetch_github_stats(github_repo, bug_label=bug_label)

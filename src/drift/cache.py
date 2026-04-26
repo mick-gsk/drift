@@ -54,8 +54,6 @@ class ParseCache:  # drift:ignore[DCA]
 
     # L1 in-memory LRU cache: shared across instances for the same cache dir.
     # Eliminates disk I/O and JSON deserialization on warm repeated scans.
-    # L1 in-memory LRU cache: shared across instances for the same cache dir.
-    # Eliminates disk I/O and JSON deserialization on warm repeated scans.
     _L1_MAX_ENTRIES: ClassVar[int] = 512
     _l1_store: ClassVar[dict[str, OrderedDict[str, ParseResult]]] = {}
     _l1_lock: ClassVar[threading.RLock] = threading.RLock()
@@ -68,8 +66,8 @@ class ParseCache:  # drift:ignore[DCA]
         self._cache_dir = cache_dir / "parse"
         if not self._cache_dir.exists():
             self._cache_dir.mkdir(parents=True, exist_ok=True)
-            with suppress(OSError):
-                os.chmod(self._cache_dir, 0o700)
+        with suppress(OSError):
+            os.chmod(self._cache_dir, 0o700)
         self._cache_dir_key = self._cache_dir.as_posix()
         with ParseCache._l1_lock:
             ParseCache._l1_store.setdefault(self._cache_dir_key, OrderedDict())

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       drift_version:
-        description: "drift-analyzer version to install (e.g. drift-analyzer==2.42.9)"
+        description: "drift-analyzer version to install (e.g. drift-analyzer==2.42.10)"
         required: false
         default: "drift-analyzer"
         type: string
