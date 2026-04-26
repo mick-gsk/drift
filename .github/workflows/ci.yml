@@ -534,7 +534,7 @@ jobs:
 
   update-readme-badges:
     name: Update README badges
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && always()
     needs:
       - version-check
       - pre-commit
@@ -556,6 +556,7 @@ jobs:
         with:
           name: drift-score-py312-windows
           path: badge-artifacts/drift-score
+        continue-on-error: true
 
       - name: Update README badge URLs
         shell: pwsh
@@ -578,26 +579,38 @@ jobs:
             "red"
           }
 
-          $scoreData = Get-Content "badge-artifacts/drift-score/drift_score.json" -Raw -Encoding UTF8 | ConvertFrom-Json
-          $score = [math]::Round([double]$scoreData.drift_score, 2).ToString("0.##", $culture)
-          $scoreColor = switch ($scoreData.severity) {
-            "low"    { "brightgreen" }
-            "medium" { "yellow" }
-            "high"   { "red" }
-            default   { "lightgrey" }
+          $scorePath = "badge-artifacts/drift-score/drift_score.json"
+          $hasScoreArtifact = Test-Path $scorePath
+          if ($hasScoreArtifact) {
+            $scoreData = Get-Content $scorePath -Raw -Encoding UTF8 | ConvertFrom-Json
+            $score = [math]::Round([double]$scoreData.drift_score, 2).ToString("0.##", $culture)
+            $scoreColor = switch ($scoreData.severity) {
+              "low"    { "brightgreen" }
+              "medium" { "yellow" }
+              "high"   { "red" }
+              default   { "lightgrey" }
+            }
           }
 
           $coverageBadgeUrl = "https://img.shields.io/badge/coverage-${coverageValue}%25-${coverageColor}?style=flat"
-          $scoreBadgeUrl = "https://img.shields.io/badge/drift%20score-${score}-${scoreColor}?style=flat"
+          if ($hasScoreArtifact) {
+            $scoreBadgeUrl = "https://img.shields.io/badge/drift%20score-${score}-${scoreColor}?style=flat"
+          }
 
           $readmePath = "README.md"
           $content = Get-Content $readmePath -Raw -Encoding UTF8
           $updated = $content
           $updated = $updated -replace 'https://img\.shields\.io/badge/coverage-[^\s\)]+\?style=flat', $coverageBadgeUrl
-          $updated = $updated -replace 'https://img\.shields\.io/badge/drift%20score-[^\s\)]+\?style=flat', $scoreBadgeUrl
+          if ($hasScoreArtifact) {
+            $updated = $updated -replace 'https://img\.shields\.io/badge/drift%20score-[^\s\)]+\?style=flat', $scoreBadgeUrl
+          }
 
           if ($content -eq $updated) {
-            Write-Host "README badges already up to date (coverage=$coverageValue%, score=$score)"
+            if ($hasScoreArtifact) {
+              Write-Host "README badges already up to date (coverage=$coverageValue%, score=$score)"
+            } else {
+              Write-Host "README coverage badge already up to date (coverage=$coverageValue%, score unchanged: no artifact)"
+            }
             exit 0
           }
 
@@ -608,7 +621,11 @@ jobs:
           git add README.md
           git commit -m "chore: update README badges [skip ci]"
           git push
-          Write-Host "README badges updated (coverage=$coverageValue%, score=$score)"
+          if ($hasScoreArtifact) {
+            Write-Host "README badges updated (coverage=$coverageValue%, score=$score)"
+          } else {
+            Write-Host "README coverage badge updated (coverage=$coverageValue%, score unchanged: no artifact)"
+          }
 
   required-checks-passed:
     name: Required checks passed
