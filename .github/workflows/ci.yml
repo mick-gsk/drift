@@ -558,10 +558,14 @@ jobs:
           path: badge-artifacts/drift-score
         continue-on-error: true
 
-      - name: Update README badge URLs
+      - name: Update README badge sources
         shell: pwsh
         run: |
           $culture = [System.Globalization.CultureInfo]::InvariantCulture
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
 
           [xml]$coverageXml = Get-Content "badge-artifacts/coverage/coverage.xml" -Raw -Encoding UTF8
           $lineRate = [double]::Parse($coverageXml.coverage.'line-rate', $culture)
@@ -592,7 +596,19 @@ jobs:
             }
           }
 
-          $coverageBadgeUrl = "https://img.shields.io/badge/coverage-${coverageValue}%25-${coverageColor}?style=flat"
+          $coverageEndpointUrl = "https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json"
+
+          $coverageBadge = @{
+            schemaVersion = 1
+            label = "coverage"
+            message = "${coverageValue}%"
+            color = $coverageColor
+          }
+          $coverageBadgePath = ".github/badges/coverage.json"
+          New-Item -ItemType Directory -Path ".github/badges" -Force | Out-Null
+          $coverageBadgeJson = ($coverageBadge | ConvertTo-Json -Depth 3)
+          [IO.File]::WriteAllText("$PWD\$coverageBadgePath", ($coverageBadgeJson + "`n"), [Text.Encoding]::UTF8)
+
           if ($hasScoreArtifact) {
             $scoreBadgeUrl = "https://img.shields.io/badge/drift%20score-${score}-${scoreColor}?style=flat"
           }
@@ -600,25 +616,23 @@ jobs:
           $readmePath = "README.md"
           $content = Get-Content $readmePath -Raw -Encoding UTF8
           $updated = $content
-          $updated = $updated -replace 'https://img\.shields\.io/badge/coverage-[^\s\)]+\?style=flat', $coverageBadgeUrl
+          $updated = $updated -replace 'https://img\.shields\.io/(badge/coverage-[^\s\)]+\?style=flat|endpoint\?url=[^\s\)]+coverage\.json)', $coverageEndpointUrl
           if ($hasScoreArtifact) {
             $updated = $updated -replace 'https://img\.shields\.io/badge/drift%20score-[^\s\)]+\?style=flat', $scoreBadgeUrl
           }
 
-          if ($content -eq $updated) {
+          [IO.File]::WriteAllText("$PWD\$readmePath", $updated, [Text.Encoding]::UTF8)
+          git add README.md .github/badges/coverage.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
             if ($hasScoreArtifact) {
-              Write-Host "README badges already up to date (coverage=$coverageValue%, score=$score)"
+              Write-Host "README/coverage badge sources already up to date (coverage=$coverageValue%, score=$score)"
             } else {
-              Write-Host "README coverage badge already up to date (coverage=$coverageValue%, score unchanged: no artifact)"
+              Write-Host "README/coverage badge sources already up to date (coverage=$coverageValue%, score unchanged: no artifact)"
             }
             exit 0
           }
 
-          [IO.File]::WriteAllText("$PWD\$readmePath", $updated, [Text.Encoding]::UTF8)
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
-          git add README.md
           git commit -m "chore: update README badges [skip ci]"
           git push
           if ($hasScoreArtifact) {

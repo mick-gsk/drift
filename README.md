@@ -25,7 +25,7 @@ drift status         # traffic-light health check — your daily entry point
 
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![Drift Score](https://img.shields.io/badge/drift%20score-0.38-green?style=flat)](benchmark_results/drift_self.json)
-[![Coverage](https://img.shields.io/badge/coverage-89.42%25-green?style=flat)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![PyPI Downloads](https://static.pepy.tech/badge/drift-analyzer/month)](https://pepy.tech/project/drift-analyzer)
 [![Python versions](https://img.shields.io/pypi/pyversions/drift-analyzer)](https://pypi.org/project/drift-analyzer/)
