@@ -30,7 +30,11 @@ htmlcov/
 Thumbs.db
 Desktop.ini
 site/
-audit_results/
+audit_results/*
+!audit_results/fmea_matrix.md
+!audit_results/risk_register.md
+!audit_results/stride_threat_model.md
+!audit_results/fault_trees.md
 benchmark_results/*
 !benchmark_results/kpi_snapshot.json
 !benchmark_results/mutation_benchmark.json
