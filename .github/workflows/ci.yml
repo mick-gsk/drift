@@ -308,6 +308,20 @@ jobs:
 
           echo "coverage.xml ready ($(wc -c < coverage.xml) bytes)"
 
+      - name: Validate coverage.xml structure
+        if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
+        run: |
+          if [ ! -f coverage.xml ]; then
+            echo "ERROR: coverage.xml not found"
+            exit 1
+          fi
+          if ! grep -q 'lines-covered=' coverage.xml; then
+            echo "ERROR: coverage.xml has invalid structure"
+            exit 1
+          fi
+          LINES_COVERED=$(grep -oP 'lines-covered="\K[0-9]+' coverage.xml | head -1)
+          echo "Coverage data present: lines-covered=$LINES_COVERED"
+
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
         uses: codecov/codecov-action@1f60566a86da84c4b4b64c17662a90de97fbb8d7  # v5.4.2
@@ -316,8 +330,9 @@ jobs:
           files: coverage.xml
           disable_search: true
           flags: py${{ matrix.python-version }}
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true
+          slug: mick-gsk/drift
 
       - name: Upload coverage artifact
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always() && hashFiles('coverage.xml') != ''

@@ -13,7 +13,6 @@ coverage:
 
 fixes:
   - "/home/runner/work/drift/drift/::"
-  - "D:\\a\\drift\\drift\\::"
 
 comment:
   layout: "reach,diff,flags"
