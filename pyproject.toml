@@ -40,7 +40,7 @@ keywords = [
     "coherence-check",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Quality Assurance",
@@ -76,6 +76,7 @@ Documentation = "https://mick-gsk.github.io/drift/"
 Changelog = "https://github.com/mick-gsk/drift/blob/main/CHANGELOG.md"
 Releases = "https://github.com/mick-gsk/drift/releases"
 CI = "https://github.com/mick-gsk/drift/actions/workflows/ci.yml"
+Funding = "https://github.com/sponsors/mick-gsk"
 
 [project.optional-dependencies]
 # Analyze TypeScript, TSX, JavaScript, JSX files via tree-sitter
