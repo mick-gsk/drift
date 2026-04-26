@@ -64,12 +64,19 @@ Short version: Three CI failures resolved: Windows mtime flakiness in dismissal 
 - `pyproject.toml`: Added `tree-sitter` and `tree-sitter-typescript` to the `dev` optional-dependency group so TypeScript signal ground-truth tests (`tsb_ts_tp`, etc.) run in all CI matrix jobs.
 - `tests/golden`: Regenerated `corpus_snapshot.json` and `corpus_snapshot.sarif` with forward-slash paths after the mutant-duplicates fix.
 
-## [2.42.3] - 2026-04-24
+## [2.42.14] - 2026-04-26
 
-Short version: Bandit SAST false-positive suppressed; shellcheck SC2012/SC2086/SC2126/SC2129 violations resolved across nine workflow files.
+Short version: Parse cache no longer evicts all entries on every drift version bump; hash loop is now parallelized — cold-start after upgrade drops from ~130s to ~15s on large repos.
 
 ### Fixed
-- Added `# nosec B314` suppression in `scripts/coverage_issue_body.py` for trusted CI-generated XML (bandit SAST gate).
+- cache: do not invalidate parse cache on version bump, parallelize hash loop
+
+## [2.42.13] - 2026-04-26
+
+Short version: Non-ASCII arrow character (`→`) in `check_version.py` error output replaced with ASCII `->` to fix `UnicodeEncodeError` on Windows GitHub Actions runners.
+
+### Fixed
+- `scripts/check_version.py`: replaced `→` with `->` in version-mismatch error message to prevent `UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'` on Windows CP1252 runners.
 - Replaced `ls` with `find` in `self-improvement-loop.yml` DSOL proposal steps (SC2012); quoted `$GITHUB_OUTPUT` in four workflow files (SC2086).
 - Replaced string-accumulation patterns with bash arrays for optional CLI args in `fp-oracle-audit.yml` and `package-kpis.yml` (SC2086).
 - Replaced `grep | wc -l` with `grep -c` in two workflow files (SC2126); grouped redirect chains with `{ ...; } >> file` in three files (SC2129).

@@ -123,9 +123,6 @@ class ParseCache:  # drift:ignore[DCA]
             if schema_version != CACHE_SCHEMA_VERSION:
                 path.unlink(missing_ok=True)
                 return None
-            if data.get("_drift_v") != _drift_version:
-                path.unlink(missing_ok=True)
-                return None
             result = _deserialize(data)
             with suppress(OSError):
                 os.utime(path, None)

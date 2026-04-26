@@ -679,24 +679,29 @@ class IngestionPhase:
         cached_results: dict[int, ParseResult] = {}
         to_parse: list[tuple[int, FileInfo, str | None]] = []
         file_hashes: dict[str, str] = {}
-        for idx, finfo in enumerate(files):
-            full_path = repo_path / finfo.path
-            content_hash: str | None = None
+
+        def _compute_hash(args: tuple[int, FileInfo]) -> tuple[int, FileInfo, str | None]:
+            _idx, _finfo = args
             try:
-                content_hash = ParseCache.file_hash(full_path)
-                file_hashes[finfo.path.as_posix()] = content_hash
-                hit = None if no_cache else cache.get(content_hash)
-                if hit is not None:
-                    # Fix stale path: cache is keyed by content hash,
-                    # so a hit may carry a file_path from a different
-                    # file with identical content (#115).
-                    if hit.file_path != finfo.path:
-                        self._fix_stale_cache_path(hit, finfo)
-                    cached_results[idx] = hit
-                    continue
+                return _idx, _finfo, ParseCache.file_hash(repo_path / _finfo.path)
             except OSError:
-                pass
-            to_parse.append((idx, finfo, content_hash))
+                return _idx, _finfo, None
+
+        with ThreadPoolExecutor(max_workers=workers) as hash_pool:
+            hash_iter = hash_pool.map(_compute_hash, enumerate(files))
+            for idx, finfo, content_hash in hash_iter:
+                if content_hash is not None:
+                    file_hashes[finfo.path.as_posix()] = content_hash
+                    hit = None if no_cache else cache.get(content_hash)
+                    if hit is not None:
+                        # Fix stale path: cache is keyed by content hash,
+                        # so a hit may carry a file_path from a different
+                        # file with identical content (#115).
+                        if hit.file_path != finfo.path:
+                            self._fix_stale_cache_path(hit, finfo)
+                        cached_results[idx] = hit
+                        continue
+                to_parse.append((idx, finfo, content_hash))
 
         if progress:
             progress("Parsing files", len(cached_results), len(files))
