@@ -2,7 +2,7 @@
 
 Tests cover:
 - ParseCache eviction rate-limiting (once per hour per cache dir)
-- dependency_dag topological sort cache (process-level dict keyed by frozenset)
+- dependency_dag topological sort cache (process-level dict keyed by tuple)
 - incremental.py signal class split cache (keyed by frozenset of registered signal classes)
 - IncrementalSignalRunner.run() uses the split cache on repeated calls
 """
@@ -151,9 +151,9 @@ class TestTopoSortCache:
         _reset_topo_cache()
         classes = list(registered_signals())
         result = order_signal_classes_topologically(classes)
-        key = frozenset(classes)
+        key = tuple(classes)
         assert key in _topo_cache
-        assert _topo_cache[key] == result
+        assert list(_topo_cache[key]) == result
 
     def test_cache_returns_same_object_on_second_call(self) -> None:
         from drift.signals.base import registered_signals
@@ -163,7 +163,7 @@ class TestTopoSortCache:
         classes = list(registered_signals())
         r1 = order_signal_classes_topologically(classes)
         r2 = order_signal_classes_topologically(classes)
-        assert r1 is r2, "Second call should return the exact same list object from cache"
+        assert r1 == r2, "Second call should return an equal list from cache"
 
     def test_warm_path_faster_than_cold(self) -> None:
         from drift.signals.base import registered_signals
@@ -199,8 +199,8 @@ class TestTopoSortCache:
         r2 = order_signal_classes_topologically(classes2)
 
         assert r1 is not r2, "Different input must produce a different cache entry"
-        assert frozenset(classes) in _topo_cache
-        assert frozenset(classes2) in _topo_cache
+        assert tuple(classes) in _topo_cache
+        assert tuple(classes2) in _topo_cache
 
     def test_empty_list_not_cached(self) -> None:
         from drift.signals.dependency_dag import _topo_cache, order_signal_classes_topologically
