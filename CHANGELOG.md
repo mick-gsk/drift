@@ -1,3 +1,21 @@
+## [2.42.16] - 2026-04-26
+
+Short version: Warm-run latency down ~20s on large repos: git-history index enabled by default (eliminates full git-log subprocess), orjson for parse-cache reads (3-5x faster deserialization), TS import-graph precomputed once per run, TPD signal skips non-test files, SignalCacheDependencySpec for selective cache invalidation.
+
+### Performance
+- config: `git_history_index_enabled` defaults to `true` — warm runs no longer re-run full `git log` (~12.8s saved); persistent incremental index under `.drift-cache/git_history/`
+- cache: use `orjson` for parse-cache deserialization when available (optional dep `fast-json` extra); stdlib fallback retained (~7.7s saved on 1900+ cached files)
+- ts_architecture: precompute TypeScript import graph once per `analyze()` call instead of 4x independently
+- test_polarity_deficit: `should_process_file()` skips non-test files early
+
+### Added
+- signals: `SignalCacheDependencySpec` frozen dataclass — signals declare which languages/paths affect their cache key for selective invalidation
+- architecture_violation, circular_import, dead_code_accumulation, mutant_duplicates: declare `cache_dependency_spec` with language-scoped repo-wide dependencies
+- pyproject.toml: `fast-json` optional extra (`orjson>=3.9`)
+
+### Fixed
+- .githooks/pre-push: block accidental push to `master` (default branch is `main`)
+
 ## [2.42.15] - 2026-04-26
 
 Short version: Add third_party_skills to .gitignore.

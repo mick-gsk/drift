@@ -41,7 +41,7 @@
 | 2.4.x   | :white_check_mark: |
 | < 2.4   | :x:                |
 
-Current release line: **v2.42.0**.
+Current release line: **v2.42.16**.
 
 ## Reporting a Vulnerability
 
