@@ -40,7 +40,7 @@ from drift.models import (
     SignalType,
 )
 from drift.signals._utils import is_test_file
-from drift.signals.base import BaseSignal, SignalCacheDependencySpec, register_signal
+from drift.signals.base import BaseSignal, register_signal
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +83,7 @@ def _collect_module_assignments(tree: ast.Module) -> set[str]:
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     names.add(target.id)
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            names.add(node.target.id)
-        elif isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and isinstance(node.target, ast.Name):
             names.add(node.target.id)
     return names
 
@@ -493,10 +491,6 @@ class PhantomReferenceSignal(BaseSignal):
     """
 
     incremental_scope: ClassVar[Literal["cross_file"]] = "cross_file"
-    cache_dependency_spec: ClassVar[SignalCacheDependencySpec] = SignalCacheDependencySpec(
-        scope="repo_wide",
-        include_languages=("python",),
-    )
 
     @property
     def signal_type(self) -> SignalType:
