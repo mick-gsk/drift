@@ -960,8 +960,10 @@ class TestGitEventInvalidation:
         yield
         BaselineManager.reset_instance()
 
-    def test_head_change_invalidates(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """HEAD commit change → baseline invalidated."""
+    def test_head_change_does_not_invalidate(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """HEAD commit change -> baseline kept; incremental detects changes via content hashes."""
         from drift.incremental import _GitState
 
         call_count = {"n": 0}
@@ -990,7 +992,9 @@ class TestGitEventInvalidation:
             [],
             {},
         )
-        assert mgr.get(tmp_path) is None
+        # HEAD changed but baseline must survive — incremental detects modified files via
+        # content-hash comparison, so a full rescan on every commit is not needed.
+        assert mgr.get(tmp_path) is not None
 
     def test_stash_change_invalidates(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
@@ -1147,21 +1151,18 @@ class TestGitEventInvalidation:
     def test_rapid_head_change_not_hidden_by_ttl_cache(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        """Regression: HEAD change within TTL window must still invalidate baseline.
+        """Regression guard: HEAD changes within the TTL window no longer force baseline rebuild.
 
-        Before the fix for issue #372, _git_state_changed called _capture_git_state
-        which could return a stale cached snapshot.  A commit that arrived within
-        the 5-second TTL was therefore invisible and the stale baseline was kept.
-
-        The fix makes _git_state_changed call _capture_git_state_uncached so the
-        invalidation path always sees the true current HEAD.
+        Since incremental analysis detects file changes via content-hash comparison,
+        a HEAD transition (even one that arrives faster than the 5-second git-state
+        TTL) must not throw away the baseline.  The baseline is kept and only the
+        files whose content changed since baseline creation are re-analysed.
         """
         from drift.incremental import _GitState
 
         # Simulates: cache (used by store) sees HEAD=commit_A ...
         cached_state = _GitState(head_commit="commit_A", stash_hash="s1", changed_file_count=0)
-        # ... but the real subprocess (uncached, used by _git_state_changed) already
-        # sees the new commit that arrived within the TTL window.
+        # ... but the real subprocess (uncached) already sees the new commit.
         fresh_state = _GitState(head_commit="commit_B", stash_hash="s1", changed_file_count=0)
 
         monkeypatch.setattr(
@@ -1180,9 +1181,9 @@ class TestGitEventInvalidation:
             [],
             {},
         )
-        # Despite the cached path still showing commit_A, the uncached check
-        # reveals commit_B → baseline must be invalidated.
-        assert mgr.get(tmp_path) is None
+        # HEAD changed but baseline must be preserved — incremental analysis handles
+        # changed files via per-file content hashes without needing a full rebuild.
+        assert mgr.get(tmp_path) is not None
 
 
 class TestNudgeUsesBaselineManager:
@@ -1205,10 +1206,10 @@ class TestNudgeUsesBaselineManager:
         mgr = BaselineManager.instance()
         assert mgr.has_baseline(tmp_path.resolve())
 
-    def test_nudge_detects_git_state_change(
+    def test_nudge_head_change_reuses_baseline(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
-        """Git-state change triggers full rescan on next nudge() call."""
+        """HEAD commit change → baseline reused; no full rescan triggered."""
         from drift.incremental import _GitState
 
         TestNudgeAPI._mock_nudge_deps(monkeypatch, tmp_path)
@@ -1224,6 +1225,7 @@ class TestNudgeUsesBaselineManager:
             )
 
         monkeypatch.setattr("drift.incremental._capture_git_state", _fake_capture)
+        monkeypatch.setattr("drift.incremental._capture_git_state_uncached", _fake_capture)
 
         def _counting_analyze(*a, **kw):
             call_count["analyze_count"] += 1
@@ -1235,13 +1237,15 @@ class TestNudgeUsesBaselineManager:
         nudge(tmp_path, changed_files=[])
         first_analyze = call_count["analyze_count"]
 
-        # Simulate external git movement before next nudge call.
+        # Simulate a new commit.
         phase["head"] = "commit_2"
 
-        # Second call → git state changed → rescan (another analyze call)
+        # Second call → HEAD changed but baseline must be reused (no extra full scan).
         result = nudge(tmp_path, changed_files=[])
-        assert call_count["analyze_count"] > first_analyze
-        assert result["baseline_refresh_reason"] == "git_head_changed"
+        assert call_count["analyze_count"] == first_analyze, (
+            "HEAD change must not trigger a full rescan; incremental handles file changes"
+        )
+        assert result.get("baseline_refresh_reason") != "git_head_changed"
 
     def test_nudge_refresh_reason_ttl_expired(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
