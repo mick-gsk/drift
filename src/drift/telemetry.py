@@ -67,8 +67,9 @@ def _mask_home_prefix(value: str) -> str:
 
     result = masked.replace("~\\", "~/")
     # On POSIX, the home-dir match does not include the leading slash,
-    # leaving "/<rest>" → "/~/rest".  Strip it so the result is "~/rest".
-    return re.sub(r"^[/\\]~", "~", result)
+    # leaving prefixes like "/~/rest" or "...: /~/rest". Strip that slash
+    # when it is only introducing the masked home marker.
+    return re.sub(r"(^|[\s:=\(\[{])[/\\]~(?=[/\\]|$)", r"\1~", result)
 
 
 def _env_truthy(name: str) -> bool:
