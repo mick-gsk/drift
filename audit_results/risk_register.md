@@ -1,5 +1,22 @@
 ﻿# Risk Register
 
+## 2026-04-26 - MCP hot-path caching singletons (v2.42.10)
+
+- Risk ID: RISK-2026-04-26-MCP-CACHE-SINGLETONS
+- Component: `src/drift/cache.py`, `src/drift/signals/dependency_dag.py`, `src/drift/incremental.py`.
+- Type: Runtime performance / cache lifecycle correctness.
+- Description: Hot-path caching was introduced to reduce repeated work during MCP nudge cycles: ParseCache stale-eviction is rate-limited, dependency DAG ordering is memoized, and incremental signal-class split is cached. Primary risk is stale cache state across long-lived processes after dynamic signal set changes.
+- Severity: LOW - changes optimize repeated computation and are covered by dedicated tests.
+- Triggers:
+  - Runtime mutation of signal registry after cache warm-up.
+  - Unexpected cache growth from many distinct class-set keys.
+  - Very long-lived processes where eviction timestamps remain stale due to wall-clock anomalies.
+- Mitigations:
+  - Cache keys are based on `frozenset` of active classes (new sets create new entries).
+  - Locking around writes ensures thread-safe singleton initialization.
+  - Dedicated regression suite `tests/test_perf_mcp_latency.py` validates cold/warm behavior and threading safety.
+- Residual risk: LOW - bounded operational impact; restart resets process-level caches.
+
 ## 2026-04-24 - Path Separator Normalization in Signal Descriptions (v2.42.7)
 
 - Risk ID: RISK-2026-04-24-PATH-SEP-NORMALIZATION

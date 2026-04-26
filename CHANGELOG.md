@@ -1,3 +1,10 @@
+## [2.42.10] - 2026-04-26
+
+Short version: ParseCache eviction is now rate-limited to once per hour (was on every construction); topological signal sort and signal-class split results are cached as process-level singletons, reducing MCP nudge warm-path overhead by ~900x.
+
+### Fixed
+- rate-limit ParseCache eviction and cache signal-class split for MCP hot-path latency
+
 ## [2.42.9] - 2026-04-25
 
 Short version: Codecov badge fixed — coverage upload now runs exclusively on the Linux runner to avoid Windows absolute paths in `coverage.xml`, and `fail_ci_if_error` is set to `true` so upload failures are no longer silently ignored.
