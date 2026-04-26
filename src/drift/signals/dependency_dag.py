@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import threading
 from collections import defaultdict, deque
 
 from drift.signals.base import BaseSignal
+
+_topo_cache: dict[frozenset[type[BaseSignal]], list[type[BaseSignal]]] = {}
+_topo_cache_lock = threading.Lock()
 
 
 def order_signal_classes_topologically(
@@ -18,6 +22,11 @@ def order_signal_classes_topologically(
     """
     if len(classes) <= 1:
         return classes
+
+    cache_key = frozenset(classes)
+    cached = _topo_cache.get(cache_key)
+    if cached is not None:
+        return cached
 
     by_signal_name: dict[str, type[BaseSignal]] = {}
     index_by_class: dict[type[BaseSignal], int] = {}
@@ -67,4 +76,6 @@ def order_signal_classes_topologically(
     if len(ordered) != len(classes):
         # Cycle or unknown edge case: preserve previous deterministic order.
         return classes
+    with _topo_cache_lock:
+        _topo_cache[cache_key] = ordered
     return ordered

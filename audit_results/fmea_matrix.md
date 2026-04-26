@@ -1,5 +1,13 @@
 ﻿# FMEA Matrix
 
+## 2026-04-26 - fix(perf): MCP hot-path caching
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `src/drift/signals/dependency_dag.py` | Repeated topological sort on each nudge call | No process-level memoization for stable signal set | Unnecessary CPU overhead in MCP warm path | `tests/test_perf_mcp_latency.py::TestTopoSortCache` | Added `_topo_cache` keyed by `frozenset(classes)` with lock protection | 2 | 4 | 2 | 16 | Mitigated |
+| `src/drift/cache.py` | Stale-entry sweep on every `ParseCache` construction | `_evict_stale()` always scans parse dir | Extra filesystem I/O and latency in hot paths | `tests/test_perf_mcp_latency.py::TestParseCacheEvictionRateLimiting` | Added per-cache-dir eviction rate limit (`_EVICTION_INTERVAL_SECONDS=3600`) with timestamp map and lock | 2 | 4 | 2 | 16 | Mitigated |
+| `src/drift/incremental.py` | Repeated signal-class split/classification in runner | Split recomputed on every incremental run | Warm path overhead despite static signal registry | `tests/test_perf_mcp_latency.py::TestSignalClassSplitCache` | Added process-level split cache keyed by registered class set with lock | 2 | 4 | 2 | 16 | Mitigated |
+
 ## 2026-04-24 - fix(ci): near-dup and semantic-dup description path normalization (v2.42.6)
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

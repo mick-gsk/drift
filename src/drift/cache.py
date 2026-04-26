@@ -54,24 +54,36 @@ class ParseCache:  # drift:ignore[DCA]
 
     # L1 in-memory LRU cache: shared across instances for the same cache dir.
     # Eliminates disk I/O and JSON deserialization on warm repeated scans.
+    # L1 in-memory LRU cache: shared across instances for the same cache dir.
+    # Eliminates disk I/O and JSON deserialization on warm repeated scans.
     _L1_MAX_ENTRIES: ClassVar[int] = 512
     _l1_store: ClassVar[dict[str, OrderedDict[str, ParseResult]]] = {}
     _l1_lock: ClassVar[threading.RLock] = threading.RLock()
+    # Rate-limit disk eviction to once per hour per cache directory.
+    _EVICTION_INTERVAL_SECONDS: ClassVar[float] = 3600.0
+    _last_eviction: ClassVar[dict[str, float]] = {}
+    _eviction_interval_lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self, cache_dir: Path) -> None:
         self._cache_dir = cache_dir / "parse"
-        self._cache_dir.mkdir(parents=True, exist_ok=True)
-        with suppress(OSError):
-            # Best-effort: Windows does not support POSIX permissions
-            os.chmod(self._cache_dir, 0o700)
+        if not self._cache_dir.exists():
+            self._cache_dir.mkdir(parents=True, exist_ok=True)
+            with suppress(OSError):
+                os.chmod(self._cache_dir, 0o700)
         self._cache_dir_key = self._cache_dir.as_posix()
         with ParseCache._l1_lock:
             ParseCache._l1_store.setdefault(self._cache_dir_key, OrderedDict())
         self._evict_stale()
 
     def _evict_stale(self) -> None:
-        """Remove cache entries older than ``_EVICTION_MAX_AGE_SECONDS``."""
-        cutoff = time.time() - self._EVICTION_MAX_AGE_SECONDS
+        """Remove stale cache entries; rate-limited to once per ``_EVICTION_INTERVAL_SECONDS``."""
+        now = time.time()
+        with ParseCache._eviction_interval_lock:
+            last = ParseCache._last_eviction.get(self._cache_dir_key, 0.0)
+            if now - last < ParseCache._EVICTION_INTERVAL_SECONDS:
+                return
+            ParseCache._last_eviction[self._cache_dir_key] = now
+        cutoff = now - self._EVICTION_MAX_AGE_SECONDS
         for entry in self._cache_dir.glob("*.json"):
             try:
                 if entry.stat().st_mtime < cutoff:

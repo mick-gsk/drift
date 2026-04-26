@@ -708,6 +708,41 @@ class BaselineManager:  # drift:ignore[DCA]
 # ---------------------------------------------------------------------------
 
 
+# Process-level cache for signal class classification split.
+# Keyed by the frozenset of registered signal classes to survive monkeypatching in tests.
+_SIGNAL_CLASS_SPLIT_CACHE: (
+    dict[frozenset[type], tuple[list[type], list[type]]]
+) = {}
+_SIGNAL_CLASS_SPLIT_LOCK = threading.Lock()
+
+
+def _get_incremental_signal_class_split(
+    registered_signals_fn: Any,
+    order_fn: Any,
+) -> tuple[list[type], list[type]]:
+    """Return (file_local_classes, other_classes), cached by signal class set."""
+    classes = list(registered_signals_fn())
+    cache_key = frozenset(classes)
+    cached = _SIGNAL_CLASS_SPLIT_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    with _SIGNAL_CLASS_SPLIT_LOCK:
+        cached = _SIGNAL_CLASS_SPLIT_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+        ordered = order_fn(classes)
+        file_local: list[type] = []
+        other: list[type] = []
+        for cls in ordered:
+            if getattr(cls, "incremental_scope", None) == "file_local":
+                file_local.append(cls)
+            else:
+                other.append(cls)
+        result = (file_local, other)
+        _SIGNAL_CLASS_SPLIT_CACHE[cache_key] = result
+        return result
+
+
 class IncrementalSignalRunner:
     """Run file-local signals on changed files; carry forward others.
 
@@ -767,7 +802,6 @@ class IncrementalSignalRunner:
         """
         from drift.scoring.engine import composite_score, compute_signal_scores
         from drift.signals.base import (
-            BaseSignal,
             SignalCapabilities,
             _instantiate_signal,
             registered_signals,
@@ -783,15 +817,10 @@ class IncrementalSignalRunner:
                 # File was removed
                 merged.pop(path, None)
 
-        # 2. Classify registered signals
-        file_local_classes: list[type[BaseSignal]] = []
-        other_classes: list[type[BaseSignal]] = []
-        ordered_signals = order_signal_classes_topologically(list(registered_signals()))
-        for cls in ordered_signals:
-            if cls.incremental_scope == "file_local":
-                file_local_classes.append(cls)
-            else:
-                other_classes.append(cls)
+        # 2. Classify registered signals (result is cached as process singleton)
+        file_local_classes, other_classes = _get_incremental_signal_class_split(
+            registered_signals, order_signal_classes_topologically
+        )
 
         # 3. Run file-local signals on changed-file parse results only
         changed_prs = [pr for path, pr in merged.items() if path in changed_files]
