@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import fnmatch
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -71,6 +72,16 @@ class SignalCapabilities:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class SignalCacheDependencySpec:
+    """Declarative cache-dependency contract for signal result invalidation."""
+
+    scope: Literal["file_local", "module_wide", "repo_wide", "git_dependent"]
+    include_languages: tuple[str, ...] = ()
+    include_path_globs: tuple[str, ...] = ()
+    exclude_path_globs: tuple[str, ...] = ()
+
+
 class BaseSignal(ABC):
     """Abstract base class for all detection signals.
 
@@ -85,6 +96,7 @@ class BaseSignal(ABC):
     cache_dependency_scope: ClassVar[
         Literal["file_local", "module_wide", "repo_wide", "git_dependent"]
     ] = "repo_wide"
+    cache_dependency_spec: ClassVar[SignalCacheDependencySpec | None] = None
     uses_embeddings: ClassVar[bool] = False
     depends_on_signals: ClassVar[tuple[str, ...]] = ()
 
@@ -152,6 +164,62 @@ class BaseSignal(ABC):
     ) -> list[Finding]:
         """Run this signal's detection logic and return findings."""
         ...
+
+    def should_process_file(self, parse_result: ParseResult) -> bool:
+        """Return whether a file-local run should include this parse result.
+
+        Signals can override this to cheaply pre-filter irrelevant files in
+        file-local cache mode.
+        """
+        return True
+
+    def resolve_cache_dependency_spec(self) -> SignalCacheDependencySpec:
+        """Return dependency spec with legacy fallback from existing scope fields."""
+        explicit_spec = getattr(self, "cache_dependency_spec", None)
+        if isinstance(explicit_spec, SignalCacheDependencySpec):
+            return explicit_spec
+
+        explicit_scope = getattr(self, "cache_dependency_scope", None)
+        if isinstance(explicit_scope, str) and explicit_scope in {
+            "file_local",
+            "module_wide",
+            "repo_wide",
+            "git_dependent",
+        }:
+            return SignalCacheDependencySpec(scope=explicit_scope)
+
+        incremental_scope = getattr(self, "incremental_scope", "cross_file")
+        if incremental_scope == "file_local":
+            return SignalCacheDependencySpec(scope="file_local")
+        if incremental_scope == "git_dependent":
+            return SignalCacheDependencySpec(scope="git_dependent")
+        return SignalCacheDependencySpec(scope="repo_wide")
+
+    def cache_dependency_paths(self, parse_results: list[ParseResult]) -> set[str] | None:
+        """Return selected repo paths for cache invalidation, or ``None`` for all files."""
+        spec = self.resolve_cache_dependency_spec()
+        if (
+            not spec.include_languages
+            and not spec.include_path_globs
+            and not spec.exclude_path_globs
+        ):
+            return None
+
+        allowed_languages = {lang.lower() for lang in spec.include_languages}
+        selected: set[str] = set()
+        for pr in parse_results:
+            path_str = pr.file_path.as_posix()
+            if allowed_languages and pr.language.lower() not in allowed_languages:
+                continue
+            if spec.include_path_globs and not any(
+                fnmatch.fnmatch(path_str, pattern) for pattern in spec.include_path_globs
+            ):
+                continue
+            if any(fnmatch.fnmatch(path_str, pattern) for pattern in spec.exclude_path_globs):
+                continue
+            selected.add(path_str)
+
+        return selected
 
 
 # ---------------------------------------------------------------------------
