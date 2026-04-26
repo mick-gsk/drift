@@ -425,9 +425,10 @@ class BaselineManager:  # drift:ignore[DCA]
         with _GIT_STATE_CACHE_LOCK:
             _GIT_STATE_CACHE[repo_key] = (time.monotonic(), current)
 
-        # (a) Branch switch or new commit
-        if current.head_commit != previous.head_commit:
-            return "git_head_changed"
+        # HEAD commit changes are intentionally not treated as an invalidation signal.
+        # The incremental analysis compares per-file content hashes, so any files
+        # modified between commits are detected and re-analysed without needing a
+        # full baseline rebuild (which can take >20 s on large repos).
 
         # (b) Stash changed
         if current.stash_hash != previous.stash_hash:
@@ -469,14 +470,18 @@ class BaselineManager:  # drift:ignore[DCA]
             previous_meta = self._nudge_key_meta.get(repo_key)
             if previous_meta is not None and previous_meta != current_meta:
                 if previous_meta[0] != current_meta[0]:
-                    reason = "git_head_changed"
+                    # HEAD changed — update stored meta but keep the baseline.
+                    # Incremental analysis detects changed files via content hashes;
+                    # throwing away the baseline here forces an unnecessary full scan.
+                    self._nudge_key_meta[repo_key] = current_meta
                 elif previous_meta[1] != current_meta[1]:
-                    reason = "config_fingerprint_changed"
+                    self._last_refresh_reason[repo_key] = "config_fingerprint_changed"
+                    self.invalidate(repo_path)
+                    return None
                 else:
-                    reason = "baseline_key_changed"
-                self._last_refresh_reason[repo_key] = reason
-                self.invalidate(repo_path)
-                return None
+                    self._last_refresh_reason[repo_key] = "baseline_key_changed"
+                    self.invalidate(repo_path)
+                    return None
 
         # TTL expiry
         if not stored[0].is_valid():
@@ -514,7 +519,9 @@ class BaselineManager:  # drift:ignore[DCA]
             ensure_ascii=True,
         )
         cfg_fingerprint = hashlib.sha256(cfg_payload.encode("utf-8")).hexdigest()[:16]
-        raw_key = f"v{_NUDGE_BASELINE_SCHEMA_VERSION}:{head_commit}:{cfg_fingerprint}"
+        # key_hash intentionally excludes head_commit so the disk baseline survives
+        # across commits — incremental analysis detects file changes via content hashes.
+        raw_key = f"v{_NUDGE_BASELINE_SCHEMA_VERSION}:{cfg_fingerprint}"
         key_hash = hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
         return head_commit, cfg_fingerprint, key_hash
 
@@ -593,8 +600,8 @@ class BaselineManager:  # drift:ignore[DCA]
                 return None
             if payload.get("schema_version") != _NUDGE_BASELINE_SCHEMA_VERSION:
                 return None
-            if payload.get("head_commit") != key_meta[0]:
-                return None
+            # head_commit is informational only — do not reject baselines from older
+            # commits; incremental analysis handles changed files via content hashes.
             if payload.get("config_fingerprint") != key_meta[1]:
                 return None
 
