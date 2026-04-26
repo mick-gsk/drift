@@ -1,5 +1,13 @@
 ﻿# FMEA Matrix
 
+## 2026-04-26 - fix(phr): internal per-file artifact cache for phantom reference
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `src/drift/signals/phantom_reference.py` artifact cache | False negative due to stale artifact being reused after source change | Cache key does not include file content hash or schema version | Missing phantom findings in changed files | `tests/test_phantom_reference.py::test_internal_artifact_cache_reparses_only_changed_file` | Cache key binds `file_path + sha256(content)` and `_PHR_ARTIFACT_SCHEMA_VERSION`; changed file forces rebuild | 4 | 2 | 2 | 16 | Mitigated |
+| `src/drift/signals/phantom_reference.py` artifact serialization | False positive/negative from malformed cached import records | Corrupt or incompatible on-disk JSON cache entry | Import-related checks classify names incorrectly | `tests/test_phantom_reference.py` full suite; cache loader schema guard | Strict schema check on load (`_schema_v`), fallback to rebuild on miss/invalid payload | 3 | 2 | 2 | 12 | Mitigated |
+| `src/drift/signals/phantom_reference.py` analysis path | Performance regression reintroduced by AST reparse in hot path | Future edits bypass artifact pipeline and call `ast.parse` in `_analyze_file` again | Repo-wide cache-miss wave returns, latency spikes | `tests/test_phantom_reference.py::test_internal_artifact_cache_avoids_second_ast_parse` | `_analyze_file` now consumes normalized artifact data only; artifact build remains single-parse step | 3 | 3 | 2 | 18 | Mitigated |
+
 ## 2026-04-26 - fix(perf): MCP hot-path caching
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

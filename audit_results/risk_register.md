@@ -1,5 +1,22 @@
 ﻿# Risk Register
 
+## 2026-04-26 - PHR internal artifact cache rollout
+
+- Risk ID: RISK-2026-04-26-PHR-ARTIFACT-CACHE
+- Component: `src/drift/signals/phantom_reference.py`.
+- Type: Signal correctness and hot-path performance stability.
+- Description: PHR moved from per-run AST reparse in `_analyze_file` to per-file cached artifacts (`used_names`, `defined_names`, `import_records`, `module_assignments`). This reduces repeated parse cost during repo-wide cache misses, but introduces cache-consistency risk if artifact invalidation drifts.
+- Severity: MEDIUM - wrong invalidation can affect detection quality; primary goal is performance stabilization.
+- Triggers:
+  - Artifact key generation changes without content hash binding.
+  - On-disk artifact payload format changes without schema bump.
+  - Refactor bypasses artifact pipeline and reintroduces parse-heavy hot path.
+- Mitigations:
+  - Artifact key uses `file_path + sha256(source)` with `_PHR_ARTIFACT_SCHEMA_VERSION`.
+  - Loader validates schema and payload shape; invalid entries rebuild from source.
+  - Regression tests cover no-reparse-on-second-run and rebuild-only-changed-file behavior.
+- Residual risk: LOW-MEDIUM - bounded by deterministic rebuild fallback and targeted regression coverage.
+
 ## 2026-04-26 - MCP hot-path caching singletons (v2.42.10)
 
 - Risk ID: RISK-2026-04-26-MCP-CACHE-SINGLETONS

@@ -1,3 +1,11 @@
+﻿## [2.42.14] - 2026-04-26
+
+Short version: Parse cache no longer evicts all entries on every drift version bump; hash loop is now parallelized - cold-start after upgrade drops from ~130s to ~15s on large repos.
+
+### Fixed
+- cache: do not invalidate parse cache on version bump, parallelize hash loop
+- phr: avoid repeated AST reparse on warm runs via internal per-file artifact cache (changed-file-only rebuild)
+
 ## [2.42.13] - 2026-04-26
 
 Short version: Non-ASCII arrow character (`→`) in `check_version.py` error output replaced with ASCII `->` to fix `UnicodeEncodeError` on Windows GitHub Actions runners.
