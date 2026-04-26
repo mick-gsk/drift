@@ -421,10 +421,7 @@ class SignalCache:  # drift:ignore[DCA]
         The payload includes file paths and hashes to avoid collisions between
         unrelated path sets that happen to share the same hash values.
         """
-        if selected_paths is None:
-            paths = sorted(file_hashes)
-        else:
-            paths = sorted(selected_paths)
+        paths = sorted(file_hashes) if selected_paths is None else sorted(selected_paths)
 
         parts = [f"{path}:{file_hashes.get(path, '')}" for path in paths]
         payload = "|".join(parts)
