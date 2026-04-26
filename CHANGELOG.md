@@ -1,3 +1,14 @@
+## [2.44.0] - 2026-04-26
+
+Short version: Automated agent routing for bug issues and PR reviews is now active, and the v2.43.2 performance note was sharpened with explicit benchmark and test evidence.
+
+### Added
+- automate agent routing for bug issues and PR reviews
+- switch PR agent review to silent mode
+
+### Changed
+- clarified v2.43.2 release notes with concrete benchmark/test evidence for the warm-run optimization
+
 ## [2.43.2] - 2026-04-26
 
 Short version: Warm-run latency down by about one third in steady state: batch L1 cache lookup removes per-file lock overhead, path-context classification is memoized, and cache eviction is throttled to once per 5 minutes.
