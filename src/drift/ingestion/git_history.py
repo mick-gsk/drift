@@ -464,7 +464,7 @@ def build_file_histories(
     return histories
 
 
-_HISTORY_INDEX_SCHEMA_VERSION = 1
+_HISTORY_INDEX_SCHEMA_VERSION = 2
 
 
 def _history_index_paths(cache_root: Path, subdir: str = "git_history") -> tuple[Path, Path, Path]:
@@ -506,6 +506,11 @@ def _is_ancestor(repo_path: Path, older: str, newer: str) -> bool:
     return result.returncode == 0
 
 
+def _sanitize_message(message: str) -> str:
+    """Strip identity trailer lines (e.g. Co-authored-by:) from a commit message."""
+    return re.sub(r"(?m)^Co-authored-by:.*\n?", "", message).rstrip()
+
+
 def _serialize_commit(commit: CommitInfo) -> dict[str, object]:
     hashed_coauthors = [
         hashlib.sha256(coauthor.strip().lower().encode("utf-8")).hexdigest()
@@ -517,7 +522,7 @@ def _serialize_commit(commit: CommitInfo) -> dict[str, object]:
         "author": commit.author,
         "email": commit.email,
         "timestamp": commit.timestamp.isoformat(),
-        "message": commit.message,
+        "message": _sanitize_message(commit.message),
         "files_changed": commit.files_changed,
         "insertions": commit.insertions,
         "deletions": commit.deletions,

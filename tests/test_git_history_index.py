@@ -7,7 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from drift.ingestion.git_history import load_or_update_git_history_index
+import hashlib
+
+from drift.ingestion.git_history import (
+    _sanitize_message,
+    _serialize_commit,
+    load_or_update_git_history_index,
+)
 from drift.models import CommitInfo
 
 
@@ -116,3 +122,88 @@ def test_index_rebuilds_when_history_is_rewritten(
 
     assert [c.hash for c in updated] == ["new"]
     assert calls == [None, None]
+
+
+# ---------------------------------------------------------------------------
+# PII sanitization: _serialize_commit / _sanitize_message
+# ---------------------------------------------------------------------------
+
+
+def _make_commit(
+    hash_value: str = "abc123",
+    message: str = "feat: something",
+    coauthors: list[str] | None = None,
+) -> CommitInfo:
+    ts = datetime.datetime(2024, 1, 1, tzinfo=datetime.timezone.utc)
+    return CommitInfo(
+        hash=hash_value,
+        author="dev",
+        email="dev@example.com",
+        timestamp=ts,
+        message=message,
+        files_changed=["a.py"],
+        coauthors=coauthors or [],
+    )
+
+
+def test_serialize_commit_hashes_coauthors() -> None:
+    commit = _make_commit(coauthors=["Alice Smith", "  bob@example.com  "])
+    payload = _serialize_commit(commit)
+    coauthors = payload["coauthors"]
+    assert isinstance(coauthors, list)
+    assert len(coauthors) == 2
+    # Values must be SHA-256 hex digests (64-char hex strings), not raw names.
+    for entry in coauthors:
+        assert isinstance(entry, str)
+        assert len(entry) == 64
+        assert all(c in "0123456789abcdef" for c in entry)
+    # Verify normalization: strip + lower before hashing.
+    expected = hashlib.sha256("bob@example.com".encode("utf-8")).hexdigest()
+    assert coauthors[1] == expected
+
+
+def test_serialize_commit_no_raw_coauthor_strings_in_payload() -> None:
+    commit = _make_commit(coauthors=["Real Name <real@example.com>"])
+    payload = _serialize_commit(commit)
+    payload_str = str(payload)
+    assert "Real Name" not in payload_str
+    assert "real@example.com" not in payload_str
+
+
+def test_serialize_commit_strips_coauthored_by_from_message() -> None:
+    msg = "feat: add widget\n\nCo-authored-by: Alice <alice@example.com>\nCo-authored-by: Bob <bob@example.com>"
+    commit = _make_commit(message=msg)
+    payload = _serialize_commit(commit)
+    serialized_message = payload["message"]
+    assert isinstance(serialized_message, str)
+    assert "Co-authored-by:" not in serialized_message
+    assert "alice@example.com" not in serialized_message
+    assert "feat: add widget" in serialized_message
+
+
+def test_sanitize_message_strips_trailer_lines() -> None:
+    msg = "fix: bug\n\nSome body.\n\nCo-authored-by: Dev <dev@example.com>\n"
+    result = _sanitize_message(msg)
+    assert "Co-authored-by:" not in result
+    assert "dev@example.com" not in result
+    assert "fix: bug" in result
+    assert "Some body." in result
+
+
+def test_sanitize_message_no_trailers_unchanged() -> None:
+    msg = "chore: cleanup"
+    assert _sanitize_message(msg) == msg
+
+
+def test_serialize_commit_empty_coauthors_unchanged() -> None:
+    commit = _make_commit(coauthors=[])
+    payload = _serialize_commit(commit)
+    assert payload["coauthors"] == []
+
+
+def test_serialize_commit_skips_blank_coauthors() -> None:
+    commit = _make_commit(coauthors=["  ", "valid name"])
+    payload = _serialize_commit(commit)
+    coauthors = payload["coauthors"]
+    assert isinstance(coauthors, list)
+    assert len(coauthors) == 1  # blank entry filtered out
