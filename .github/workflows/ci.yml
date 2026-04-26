@@ -23,6 +23,7 @@ concurrency:
 
 permissions:
   contents: read
+  id-token: write  # required for Codecov OIDC tokenless upload
 
 jobs:
   determine_changes:
@@ -285,7 +286,8 @@ jobs:
       - name: Run tests with coverage (reference Python, Linux)
         if: matrix.python-version == '3.12' && runner.os == 'Linux'
         run: |
-          $PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=73 -m "not slow"
+          $PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=term-missing --cov-report=xml:coverage.xml -m "not slow"
+          $PYTHON_BIN -m coverage report --fail-under=73
 
       - name: Run tests (no coverage)
         if: matrix.python-version != '3.12' || runner.os != 'Linux'
@@ -336,13 +338,13 @@ jobs:
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
         uses: codecov/codecov-action@1f60566a86da84c4b4b64c17662a90de97fbb8d7  # v5.4.2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           disable_search: true
           flags: py${{ matrix.python-version }}
           fail_ci_if_error: false
           verbose: true
           slug: mick-gsk/drift
+          use_oidc: true
 
       - name: Upload coverage artifact
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always() && hashFiles('coverage.xml') != ''
