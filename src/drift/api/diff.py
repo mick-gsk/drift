@@ -1105,6 +1105,45 @@ def diff(
             decision_reason_code=decision_reason_code,
             batch_targets=_batch_targets,
         ))
+
+        # Deferred-context annotation (Issue #544 — Friction 3): surface how many
+        # new findings involve files in deferred: patterns so agents can distinguish
+        # active-scope regressions from expected deferred-area variance.
+        _deferred_list = getattr(cfg, "deferred", None)
+        if _deferred_list:
+            import fnmatch as _fnmatch
+            from pathlib import Path as _Path
+
+            _deferred_pats = frozenset(area.pattern for area in _deferred_list)
+            if _deferred_pats:
+                def _in_deferred(fp: Any) -> bool:
+                    if fp is None:
+                        return False
+                    posix = _Path(str(fp)).as_posix()
+                    return any(_fnmatch.fnmatch(posix, pat) for pat in _deferred_pats)
+
+                _deferred_new = [f for f in scoped_new if _in_deferred(f.file_path)]
+                _active_new = len(scoped_new) - len(_deferred_new)
+                if _deferred_new:
+                    _n = len(_deferred_new)
+                    _total = len(scoped_new)
+                    _s = "s" if _n != 1 else ""
+                    result["deferred_context"] = {
+                        "deferred_new_count": _n,
+                        "active_new_count": _active_new,
+                        "total_new_count": _total,
+                        "deferred_files": sorted({
+                            _Path(str(f.file_path)).as_posix()
+                            for f in _deferred_new
+                            if f.file_path
+                        }),
+                        "note": (
+                            f"{_n} of {_total} new finding{_s} involve files in "
+                            "deferred: patterns. Active-scope delta: "
+                            f"{_active_new} finding{'s' if _active_new != 1 else ''}."
+                        ),
+                    }
+
         _emit_api_telemetry(
             tool_name="api.diff",
             params=params,
