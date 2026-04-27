@@ -114,6 +114,15 @@ const SCAN_SCRIPT = `
 import json
 import os
 import shutil
+import subprocess as _subprocess
+
+# Pyodide/Emscripten cannot spawn processes — patch subprocess.run so that
+# all git-related helpers in drift raise FileNotFoundError (already caught
+# everywhere) instead of OSError errno 138 (not caught in older versions).
+def _no_subprocess(*_args, **_kwargs):
+    raise FileNotFoundError("subprocess not available in browser (Pyodide)")
+
+_subprocess.run = _no_subprocess
 
 _work_dir = "/playground_code"
 
