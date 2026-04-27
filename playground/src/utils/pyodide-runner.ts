@@ -78,13 +78,19 @@ export async function initPyodide(
       await py.loadPackage(['micropip']);
       await py.runPythonAsync(`
 import micropip
+# Pre-install pure-Python deps that micropip needs to fetch from PyPI
+# (not bundled in Pyodide): gitpython + smmap
+try:
+    await micropip.install(["smmap", "gitpython"])
+except Exception as _e:
+    print(f"Warning: could not pre-install gitpython: {_e}")
 # keep_going=True: tolerate optional deps that don't have Pyodide wheels
 await micropip.install("drift-analyzer", keep_going=True)
 `);
 
       // Smoke-test the import path we'll use later
       await py.runPythonAsync(`
-from drift.api import scan as _drift_scan
+from drift.api.scan import scan as _drift_scan
 print("drift-analyzer import OK")
 `);
 
@@ -128,7 +134,7 @@ for _fname, _content in _playground_files.items():
 # Run drift analysis.
 # Git-history signals (TVS, SMS) are excluded because the browser
 # has no access to a git repository. All other signals run normally.
-from drift.api import scan as _drift_scan
+from drift.api.scan import scan as _drift_scan
 _result = _drift_scan(
     path=_work_dir,
     exclude_signals=["TVS", "SMS"],
