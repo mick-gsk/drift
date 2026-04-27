@@ -5,6 +5,7 @@
 Short version: The `--quiet` summary line now shows `max_severity` (highest finding severity) instead of `severity` (score-derived grade bucket), eliminating the misleading mismatch when `--fail-on high` exits 1 despite a MEDIUM score-grade. File discovery on post-commit nudge runs is now O(discovered files) instead of O(all repo files): `_enumerate_repo_files` uses `os.walk` with directory pruning, eliminating the 32s discover phase caused by traversing `.venv` and other excluded trees.
 
 ### Fixed
+- exclude deferred files (from `deferred:` config block) from PFS variant clustering so deferred-pod routers no longer inflate fragmentation counts or poison `drift_brief` guardrails (#542)
 - replace misleading `severity:` (score-derived bucket) with `max_severity:` (highest finding severity) in `--quiet` summary line for `drift analyze` and `drift check`
 - eliminate directory re-traversal in file discovery (os.walk pruning): replace `Path.glob` loop with `os.walk` + early `dirs[:] = pruned` so excluded trees (`.venv`, `node_modules`) are never descended into, reducing discover-phase latency from ~32s to <1s on repos with large virtual environments
 
