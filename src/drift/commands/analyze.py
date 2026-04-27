@@ -809,7 +809,11 @@ def analyze(
         )
         if output_format == "rich":
             _copilot_setup_required = _is_copilot_setup_missing(repo)
-            render_handoff_rich(_ch_block, effective_console, setup_required=_copilot_setup_required)
+            render_handoff_rich(
+                _ch_block,
+                effective_console,
+                setup_required=_copilot_setup_required,
+            )
 
     # Interactive feedback review (--review, TTY-only)
     _run_interactive_review(
