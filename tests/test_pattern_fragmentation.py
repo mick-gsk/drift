@@ -658,8 +658,12 @@ def test_deferred_files_excluded_from_variant_count():
         _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_a),
         _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "auth", fp_b),
         # Deferred files: extra variants that must NOT inflate the count
-        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "billing", fp_deferred_c),
-        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "marketplace", fp_deferred_d),
+        _make_pattern(
+            PatternCategory.API_ENDPOINT, "backend/api/routers", "billing", fp_deferred_c
+        ),
+        _make_pattern(
+            PatternCategory.API_ENDPOINT, "backend/api/routers", "marketplace", fp_deferred_d
+        ),
     ]
 
     config = _make_config_with_deferred(
@@ -686,8 +690,12 @@ def test_deferred_only_variants_suppresses_finding():
     fp_deferred = {"route": "deferred_variant"}
 
     patterns = [
-        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_canonical),
-        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_canonical),
+        _make_pattern(
+            PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_canonical
+        ),
+        _make_pattern(
+            PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_canonical
+        ),
         # Deferred file introduces the only second variant
         _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "billing", fp_deferred),
     ]
@@ -720,9 +728,15 @@ def test_deferred_glob_wildcard_matches_prefix():
     fp_deferred = {"route": "v2"}
 
     patterns = [
-        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_canonical),
-        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_canonical),
-        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "billing_v2", fp_deferred),
+        _make_pattern(
+            PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_canonical
+        ),
+        _make_pattern(
+            PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_canonical
+        ),
+        _make_pattern(
+            PatternCategory.API_ENDPOINT, "backend/api/routers", "billing_v2", fp_deferred
+        ),
     ]
 
     config = _make_config_with_deferred("backend/api/routers/billing*")
