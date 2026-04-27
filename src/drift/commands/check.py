@@ -17,6 +17,7 @@ from drift.commands._shared import (
     configure_machine_output_console,
     render_or_emit_output,
 )
+from drift.commands import fail_glyph, ok_glyph
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 
 
@@ -33,7 +34,7 @@ def _print_check_result(
     if not severity_gate_pass(analysis.findings, threshold):
         if not quiet:
             effective_console.print(
-                f"\n[bold red]✗ Drift check failed:[/bold red] "
+                f"\n[bold red]{fail_glyph(effective_console)} Drift check failed:[/bold red] "
                 f"findings at or above '{threshold}' severity.",
             )
         if not exit_zero:
@@ -42,7 +43,7 @@ def _print_check_result(
 
     if not quiet:
         effective_console.print(
-            f"\n[bold green]✓ Drift check passed[/bold green] (threshold: {threshold}).",
+            f"\n[bold green]{ok_glyph(effective_console)} Drift check passed[/bold green] (threshold: {threshold}).",
         )
         if not analysis.findings and diff_ref == "HEAD~1":
             from rich.panel import Panel
@@ -104,7 +105,7 @@ def _apply_trend_gate(
         f"{decision.window_commits} commits without remediation activity."
     )
     if output_format == "rich" and not quiet:
-        effective_console.print(f"\n[bold red]✗ {message}[/bold red]")
+        effective_console.print(f"\n[bold red]{fail_glyph(effective_console)} {message}[/bold red]")
     else:
         click.echo(f"drift check: FAILED — {message}", err=True)
     return True, decision.reason

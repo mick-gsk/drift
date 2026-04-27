@@ -15,7 +15,7 @@ from typing import Any
 
 import click
 
-from drift.commands import console
+from drift.commands import console, ok_glyph
 
 
 @click.command("status", short_help="Show repository health as a traffic-light summary.")
@@ -170,7 +170,7 @@ def status(
         sig_count = len(set(f.signal_type for f in analysis.findings)) if analysis.findings else 0
         # Show number of active signals (from analysis metadata if available)
         active_label = f" · {sig_count} signals checked" if sig_count else ""
-        console.print(f"  [green]✅ Clean[/green] — {files_info}{active_label}")
+        console.print(f"  [green]{ok_glyph(console)} Clean[/green] — {files_info}{active_label}")
     else:
         console.print(f"  Top {len(top_findings)} issues:", style="bold")
         console.print()
