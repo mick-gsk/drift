@@ -1,0 +1,5 @@
+>>> [pre-push] ERROR: Version bump gate failed.
+>>> [pre-push] pyproject.toml was modified but version (2.44.4) is not
+>>> [pre-push] greater than the last git tag (v2.44.4).
+>>> [pre-push] Bump the version in pyproject.toml or revert the file.
+error: failed to push some refs to 'https://github.com/mick-gsk/drift.git'
