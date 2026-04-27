@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [2.44.2] - 2026-04-26
+
 Short version: The `--quiet` summary line now shows `max_severity` (highest finding severity) instead of `severity` (score-derived grade bucket), eliminating the misleading mismatch when `--fail-on high` exits 1 despite a MEDIUM score-grade. File discovery on post-commit nudge runs is now O(discovered files) instead of O(all repo files): `_enumerate_repo_files` uses `os.walk` with directory pruning, eliminating the 32s discover phase caused by traversing `.venv` and other excluded trees.
 
 ### Fixed
