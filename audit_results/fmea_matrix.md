@@ -1,6 +1,13 @@
 ﻿# FMEA Matrix
 
-## 2026-04-26 - fix(phr): internal per-file artifact cache for phantom reference
+## 2026-04-27 - fix(perf): os.walk pruning eliminates 32s discover-phase on post-commit nudge
+
+| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| `src/drift/ingestion/file_discovery._enumerate_repo_files` | Full-tree traversal on every post-commit nudge run | `Path.glob("**/*.py")` visits all files (incl. `.venv`, `node_modules`) before per-file exclude check; git-HEAD change invalidates discovery cache on each commit | ~32s discover phase on repos with large virtual environments | `tests/test_file_discovery.py::TestEnumerateRepoPruning` — asserts zero `os.stat` calls inside excluded dirs | Replaced `Path.glob` loop with `os.walk` + `dirs[:] = pruned_dirs` using existing `_matches_any_prepared` helper; excluded directories pruned before descent | 3 | 5 | 2 | 30 | Mitigated |
+| `src/drift/ingestion/file_discovery._matches_include_patterns` | Pattern `src/**/*.py` silently matches nothing on Python < 3.12 | `PurePath.match()` does not support `**` cross-directory semantics before Python 3.12 | Custom `include:` patterns with `**` mid-pattern fail silently, causing 0-file discovery | `tests/test_file_discovery.py::TestDiscoverFiles::test_custom_include_pattern` | Added `_glob_full_match` regex-based fallback triggered when `**` is present and `PurePath.match()` fails | 3 | 3 | 2 | 18 | Mitigated |
+
+
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
 |---|---|---|---|---|---|---:|---:|---:|---:|---|
