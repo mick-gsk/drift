@@ -2,7 +2,7 @@
 
 ## [2.44.4] - 2026-04-27
 
-Short version: Coverage measurement is now reliable when running pytest with xdist (`-n N`): `parallel = true` in `[tool.coverage.run]` ensures each worker writes its own `.coverage.*` file so pytest-cov can combine them correctly instead of reporting only one worker's subset (~25%).
+Short version: Coverage measurement is now reliable when running pytest with xdist (`-n N`): `parallel = true` in `[tool.coverage.run]` ensures each worker writes its own `.coverage.*` file so pytest-cov can combine them correctly instead of reporting only one worker's subset (~25%). RESEARCH.md H5 updated with three verified production adversarial scenarios (Issue #543) that partially confirm the hypothesis: `drift_brief` constraints can degrade agent decision quality when the target file is in a deferred pod, an intentionally isolated BIFL module, or a hot-path file with documented no-docstring conventions.
 
 ### Fixed
 - enable `parallel = true` in `[tool.coverage.run]` so pytest-xdist workers each produce separate `.coverage.*` files that pytest-cov combines; without this, xdist runs reported ~25% instead of the real ~79%
