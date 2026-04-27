@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Added
+- VS Code Copilot Chat Workflow: `drift analyze` now writes `.vscode/drift-session.json` and shows a **Copilot Chat Handoff** panel with top findings and three slash commands (`/drift-fix-plan`, `/drift-export-report`, `/drift-auto-fix-loop`); JSON output includes a `copilot_handoff` key; requires no extension — only `chat.promptFilesLocations` in `.vscode/settings.json`
+- Terminal panel detects missing `chat.promptFilesLocations` in `.vscode/settings.json` and prints a one-line setup hint so users know exactly what to add
+
+### Docs
+- added `docs-site/guides/vscode-copilot-workflow.md` — setup guide for VS Code Copilot Chat handoff
+- added VS Code handoff section to `docs-site/integrations.md`
+- updated README "Works with" table and added VS Code Copilot Chat slash command section
+
 ## [2.44.5] - 2026-04-27
 
 Short version: Fix playground Pyodide runner: use `from drift.api.scan import scan` instead of `from drift.api import scan` to avoid loading the full API init chain in the browser, and pre-install `gitpython`/`smmap` via micropip before drift-analyzer to prevent dependency resolution failures.

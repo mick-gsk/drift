@@ -175,9 +175,9 @@ Every finding includes a human-readable `reason` and a concrete `next_action`. F
 
 ## 🔌 Works with
 
-| AI Tools (MCP) | CI/CD | Git Hooks | Install |
-|:---:|:---:|:---:|:---:|
-| Cursor · Claude Code · Copilot | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker |
+| AI Tools (MCP) | Copilot Chat | CI/CD | Git Hooks | Install |
+|:---:|:---:|:---:|:---:|:---:|
+| Cursor · Claude Code · Copilot | `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker |
 
 > **Language support:** Python (full, primary target) · TypeScript/TSX: 17/24 signals — `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
 
@@ -302,6 +302,26 @@ cd extensions/vscode-drift && npm install && npm run compile
 ```
 
 📖 [Extension README →](extensions/vscode-drift/README.md)
+
+### VS Code Copilot Chat — slash commands after `drift analyze`
+
+After `drift analyze`, drift writes `.vscode/drift-session.json` and shows a
+**Copilot Chat Handoff** panel in the terminal. Open VS Code Copilot Chat and call:
+
+| Slash command | What it does |
+|---|---|
+| `/drift-fix-plan` | Prioritized repair tasks from the latest findings |
+| `/drift-export-report` | Self-contained findings report as Markdown |
+| `/drift-auto-fix-loop` | Step through findings one-at-a-time with confirm/skip gates |
+
+**One-time setup** — add to `.vscode/settings.json`:
+```json
+{ "chat.promptFilesLocations": [".github/prompts/"] }
+```
+
+No extension install needed. The terminal panel prints a setup reminder if the key is missing.
+
+📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
 
 > **Plugin CLI commands:** Third-party packages can expose additional `drift` subcommands via the `drift.commands` entry-point group. Installed plugins are discovered automatically at startup and appear in `drift --help`.
 
