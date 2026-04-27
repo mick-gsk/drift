@@ -12,6 +12,7 @@ _PROMPT_NAMES: list[str] = [
     "drift-fix-plan",
     "drift-export-report",
     "drift-auto-fix-loop",
+    "drift-feature-guardrails",
 ]
 _SESSION_FILE = ".vscode/drift-session.json"
 

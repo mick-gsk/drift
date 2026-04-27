@@ -15,6 +15,7 @@ PROMPT_TEMPLATES: tuple[str, ...] = (
     "drift-fix-plan.prompt.md",
     "drift-export-report.prompt.md",
     "drift-auto-fix-loop.prompt.md",
+    "drift-feature-guardrails.prompt.md",
 )
 
 PROMPTS_DIR = Path(".github/prompts")
@@ -23,6 +24,47 @@ GITIGNORE_FILE = Path(".gitignore")
 SESSION_FILE_REL = ".vscode/drift-session.json"
 SETTINGS_KEY = "chat.promptFilesLocations"
 SETTINGS_VALUE = ".github/prompts/"
+
+# Agent-target files
+CURSOR_RULE_FILE = Path(".cursor/rules/drift.mdc")
+CLAUDE_FILE = Path("CLAUDE.md")
+AGENTS_FILE = Path("AGENTS.md")
+_DRIFT_KIT_MARKER = "<!-- drift-kit -->"
+
+_CURSOR_RULE_CONTENT = """\
+---
+description: Drift architectural analysis integration for Cursor
+alwaysApply: false
+---
+# Drift Analysis Integration
+
+After running `drift analyze`, read `.vscode/drift-session.json` for the current
+architectural findings.
+
+## Fix workflow
+1. Read `top_findings` from `.vscode/drift-session.json`.
+2. For each finding: show signal_type, severity, file_path, line_range, reason.
+3. Propose a concrete code edit.
+4. Ask the user: `Apply this fix? [yes / skip / stop]`
+
+## Commands
+- Run analysis: `drift analyze --repo . --exit-zero`
+- Session file: `.vscode/drift-session.json`
+"""
+
+_DRIFT_KIT_AGENT_SECTION = """
+<!-- drift-kit -->
+## Drift-kit Integration
+
+After running `drift analyze`, architectural findings are stored in
+`.vscode/drift-session.json`. Use this file to generate fix plans, apply
+targeted repairs, and assess risk before new features.
+
+- **Run analysis**: `drift analyze --repo . --exit-zero`
+- **Session file**: `.vscode/drift-session.json`
+- **Fix workflow**: read `top_findings` -> propose edits -> apply with confirm/skip gates.
+<!-- /drift-kit -->
+"""
 
 
 class InitResult(NamedTuple):
@@ -38,11 +80,14 @@ class InitResult(NamedTuple):
     skipped:
         Workspace-relative paths of files left unchanged because they
         already contain the required content.
+    agent_targets:
+        Names of non-VS Code agent targets configured (cursor, claude, codex).
     """
 
     created: list[str]
     updated: list[str]
     skipped: list[str]
+    agent_targets: tuple[str, ...] = ()
 
 
 def _read_template(name: str) -> str:
@@ -131,15 +176,58 @@ def _append_gitignore(repo: Path) -> tuple[bool, bool]:
     return False, True
 
 
-def init_kit(repo: Path, *, force: bool = False) -> InitResult:
+def _write_cursor_rules(repo: Path, *, force: bool) -> tuple[bool, bool]:
+    """Write ``.cursor/rules/drift.mdc``.
+
+    Returns ``(created, updated)`` flags.
+    """
+    target = repo / CURSOR_RULE_FILE
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists() and not force:
+        return False, False
+    existed = target.exists()
+    target.write_text(_CURSOR_RULE_CONTENT, encoding="utf-8")
+    return not existed, existed
+
+
+def _append_agent_section(repo: Path, target_file: Path) -> tuple[bool, bool]:
+    """Append a drift-kit section to *target_file* (e.g. CLAUDE.md or AGENTS.md).
+
+    Returns ``(created, updated)`` flags. If the file did not exist it is
+    created. If ``<!-- drift-kit -->`` is already present, nothing changes.
+    """
+    target = repo / target_file
+    if not target.exists():
+        target.write_text(_DRIFT_KIT_AGENT_SECTION.lstrip(), encoding="utf-8")
+        return True, False
+    content = target.read_text(encoding="utf-8")
+    if _DRIFT_KIT_MARKER in content:
+        return False, False
+    suffix = "" if content.endswith("\n") else "\n"
+    target.write_text(content + suffix + _DRIFT_KIT_AGENT_SECTION, encoding="utf-8")
+    return False, True
+
+
+def init_kit(
+    repo: Path,
+    *,
+    force: bool = False,
+    agents: tuple[str, ...] = (),
+) -> InitResult:
     """Bootstrap drift-kit in *repo*.
 
-    Writes the three slash-command prompt files into ``.github/prompts/``,
+    Writes the four slash-command prompt files into ``.github/prompts/``,
     ensures ``.vscode/settings.json`` exposes them via ``chat.promptFilesLocations``
     and adds ``.vscode/drift-session.json`` to ``.gitignore``.
 
+    Pass ``agents`` to additionally configure non-VS Code agent targets:
+    ``"cursor"`` writes ``.cursor/rules/drift.mdc``;
+    ``"claude"`` appends a section to ``CLAUDE.md``;
+    ``"codex"`` appends a section to ``AGENTS.md``;
+    ``"all"`` does all of the above.
+
     The operation is idempotent: existing user content is preserved unless
-    ``force`` is ``True`` (which only re-writes the prompt files).
+    ``force`` is ``True`` (which only re-writes the prompt and cursor-rule files).
     """
     created, skipped = _write_prompts(repo, force=force)
     updated: list[str] = []
@@ -162,4 +250,45 @@ def init_kit(repo: Path, *, force: bool = False) -> InitResult:
     else:
         skipped.append(gitignore_rel)
 
-    return InitResult(created=created, updated=updated, skipped=skipped)
+    active: set[str] = set(agents)
+    agent_targets: list[str] = []
+
+    if "cursor" in active or "all" in active:
+        c_created, c_updated = _write_cursor_rules(repo, force=force)
+        cursor_rel = str(CURSOR_RULE_FILE).replace("\\", "/")
+        if c_created:
+            created.append(cursor_rel)
+        elif c_updated:
+            updated.append(cursor_rel)
+        else:
+            skipped.append(cursor_rel)
+        agent_targets.append("cursor")
+
+    if "claude" in active or "all" in active:
+        c_created, c_updated = _append_agent_section(repo, CLAUDE_FILE)
+        claude_rel = str(CLAUDE_FILE).replace("\\", "/")
+        if c_created:
+            created.append(claude_rel)
+        elif c_updated:
+            updated.append(claude_rel)
+        else:
+            skipped.append(claude_rel)
+        agent_targets.append("claude")
+
+    if "codex" in active or "all" in active:
+        c_created, c_updated = _append_agent_section(repo, AGENTS_FILE)
+        codex_rel = str(AGENTS_FILE).replace("\\", "/")
+        if c_created:
+            created.append(codex_rel)
+        elif c_updated:
+            updated.append(codex_rel)
+        else:
+            skipped.append(codex_rel)
+        agent_targets.append("codex")
+
+    return InitResult(
+        created=created,
+        updated=updated,
+        skipped=skipped,
+        agent_targets=tuple(agent_targets),
+    )

@@ -19,7 +19,9 @@ Run `/drift-fix-plan` first to generate the task list before starting this loop.
 ## Context
 
 Read `.vscode/drift-session.json`.
-If the file does not exist: stop and prompt the user to run `drift analyze` first.
+If the file does not exist: tell the user to run `drift analyze --repo . --exit-zero` in the terminal
+and then re-invoke this prompt. If a drift MCP server is available (`drift_scan` tool), call it
+to run the analysis automatically, then re-read `.vscode/drift-session.json` before continuing.
 If `analyzed_at` is older than 24 hours: warn with the session age and recommend re-analysis. Do not block.
 
 ## Workflow

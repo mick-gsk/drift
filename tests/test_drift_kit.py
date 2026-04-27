@@ -181,7 +181,7 @@ class TestHandoffBlock:
         session = build_session_data(analysis)
         block = build_handoff_block(session)
 
-        assert len(block.prompts) == 3
+        assert len(block.prompts) == 4
 
     def test_handoff_to_dict_schema(self) -> None:
         from drift.drift_kit import (

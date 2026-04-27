@@ -1,0 +1,28 @@
+{
+  "version": "2.47.1",
+  "date": "2026-04-27",
+  "feature": "drift kit multi agent",
+  "description": "Feature evidence for drift kit multi agent (v2.47.1).",
+  "generated_by": {
+    "script": "scripts/generate_feature_evidence.py",
+    "git_sha": "5c1c9789fc0f9d6f8423c1cd88208e787e92863b",
+    "drift_version": "2.42.10",
+    "timestamp": "2026-04-27T21:16:25.837450+00:00"
+  },
+  "self_analysis": {
+    "error": "JSON parse error: Extra data: line 38308 column 1 (char 1460815)"
+  },
+  "tests": {
+    "total_passing": 6719,
+    "total_failing": 0,
+    "exit_code": 0
+  },
+  "precision_recall_suite": {
+    "total_tests": 207,
+    "passing": 207,
+    "failing": 0,
+    "exit_code": 0,
+    "source": "live: pytest tests/test_precision_recall.py -v --tb=short"
+  },
+  "audit_artifacts_updated": []
+}

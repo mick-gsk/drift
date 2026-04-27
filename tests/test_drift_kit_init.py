@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,9 @@ from click.testing import CliRunner
 
 from drift.cli import main
 from drift.drift_kit._init import (
+    AGENTS_FILE,
+    CLAUDE_FILE,
+    CURSOR_RULE_FILE,
     PROMPT_TEMPLATES,
     SETTINGS_KEY,
     SETTINGS_VALUE,
@@ -119,3 +123,108 @@ def test_cli_kit_init(tmp_path: Path, flag: list[str]) -> None:
     assert (tmp_path / ".github/prompts/drift-fix-plan.prompt.md").exists()
     assert (tmp_path / ".vscode/settings.json").exists()
     assert "drift analyze" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Phase C: drift-feature-guardrails template
+# ---------------------------------------------------------------------------
+
+def test_feature_guardrails_template_exists(tmp_path: Path) -> None:
+    init_kit(tmp_path)
+    f = tmp_path / ".github/prompts/drift-feature-guardrails.prompt.md"
+    assert f.exists()
+    assert f.read_text(encoding="utf-8").startswith("---\n")
+
+
+# ---------------------------------------------------------------------------
+# Phase B: --agent flag (cursor, claude, codex, all)
+# ---------------------------------------------------------------------------
+
+def test_init_kit_cursor_agent(tmp_path: Path) -> None:
+    result = init_kit(tmp_path, agents=("cursor",))
+    assert (tmp_path / CURSOR_RULE_FILE).exists()
+    assert "cursor" in result.agent_targets
+
+
+def test_init_kit_claude_agent(tmp_path: Path) -> None:
+    result = init_kit(tmp_path, agents=("claude",))
+    assert (tmp_path / CLAUDE_FILE).exists()
+    content = (tmp_path / CLAUDE_FILE).read_text(encoding="utf-8")
+    assert "<!-- drift-kit -->" in content
+    assert "claude" in result.agent_targets
+
+
+def test_init_kit_codex_agent(tmp_path: Path) -> None:
+    result = init_kit(tmp_path, agents=("codex",))
+    assert (tmp_path / AGENTS_FILE).exists()
+    content = (tmp_path / AGENTS_FILE).read_text(encoding="utf-8")
+    assert "<!-- drift-kit -->" in content
+    assert "codex" in result.agent_targets
+
+
+def test_init_kit_all_agents(tmp_path: Path) -> None:
+    result = init_kit(tmp_path, agents=("all",))
+    assert (tmp_path / CURSOR_RULE_FILE).exists()
+    assert (tmp_path / CLAUDE_FILE).exists()
+    assert (tmp_path / AGENTS_FILE).exists()
+    assert set(result.agent_targets) == {"cursor", "claude", "codex"}
+
+
+def test_init_kit_agent_section_idempotent_claude(tmp_path: Path) -> None:
+    init_kit(tmp_path, agents=("claude",))
+    init_kit(tmp_path, agents=("claude",))
+    content = (tmp_path / CLAUDE_FILE).read_text(encoding="utf-8")
+    assert content.count("<!-- drift-kit -->") == 1
+
+
+def test_init_kit_agent_section_appends_to_existing_claude_md(tmp_path: Path) -> None:
+    (tmp_path / CLAUDE_FILE).write_text("# Existing Content\n\nUser notes.\n", encoding="utf-8")
+    init_kit(tmp_path, agents=("claude",))
+    content = (tmp_path / CLAUDE_FILE).read_text(encoding="utf-8")
+    assert "# Existing Content" in content
+    assert "<!-- drift-kit -->" in content
+
+
+def test_init_kit_no_agents_returns_empty_agent_targets(tmp_path: Path) -> None:
+    result = init_kit(tmp_path)
+    assert result.agent_targets == ()
+
+
+def test_cli_kit_init_with_cursor(tmp_path: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(main, ["kit", "init", "--repo", str(tmp_path), "--agent", "cursor"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / CURSOR_RULE_FILE).exists()
+
+
+def test_cli_kit_init_with_all_agents(tmp_path: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(main, ["kit", "init", "--repo", str(tmp_path), "--agent", "all"])
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / CURSOR_RULE_FILE).exists()
+    assert (tmp_path / CLAUDE_FILE).exists()
+    assert (tmp_path / AGENTS_FILE).exists()
+
+
+# ---------------------------------------------------------------------------
+# Phase A: --and-analyze flag
+# ---------------------------------------------------------------------------
+
+def test_cli_kit_init_and_analyze(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[bytes]:
+        calls.append(cmd)
+
+        class R:
+            returncode = 0
+
+        return R()  # type: ignore[return-value]
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    runner = CliRunner()
+    result = runner.invoke(main, ["kit", "init", "--repo", str(tmp_path), "--and-analyze"])
+    assert result.exit_code == 0, result.output
+    assert any("drift" in str(c) for c in calls)
+
