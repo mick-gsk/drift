@@ -10,6 +10,7 @@ from typing import Literal, cast
 import click
 from rich.console import Console
 
+from drift.commands import fail_glyph, ok_glyph
 from drift.commands._shared import (
     apply_baseline_filtering,
     apply_signal_filtering,
@@ -17,7 +18,6 @@ from drift.commands._shared import (
     configure_machine_output_console,
     render_or_emit_output,
 )
-from drift.commands import fail_glyph, ok_glyph
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 
 
@@ -43,7 +43,8 @@ def _print_check_result(
 
     if not quiet:
         effective_console.print(
-            f"\n[bold green]{ok_glyph(effective_console)} Drift check passed[/bold green] (threshold: {threshold}).",
+            f"\n[bold green]{ok_glyph(effective_console)} Drift check passed"
+            f"[/bold green] (threshold: {threshold}).",
         )
         if not analysis.findings and diff_ref == "HEAD~1":
             from rich.panel import Panel

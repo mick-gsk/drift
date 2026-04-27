@@ -243,7 +243,8 @@ def _print_nudge_summary(result: dict, *, initial: bool = False) -> None:
     if estimated_signals:
         plural = "s" if len(estimated_signals) != 1 else ""
         console.print(
-            f"  [yellow]{warn_glyph(console)} {len(estimated_signals)} cross-file signal{plural} estimated[/]: "
+            f"  [yellow]{warn_glyph(console)} {len(estimated_signals)}"
+            f" cross-file signal{plural} estimated[/]: "
             f"{', '.join(estimated_signals)}",
             highlight=False,
         )

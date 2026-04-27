@@ -268,7 +268,9 @@ def schema(output_path: str | None) -> None:
     if output_path:
         target = Path(output_path)
         target.write_text(f"{rendered}\n", encoding="utf-8")
-        console.print(f"[green]{ok_glyph(console)}[/green] Wrote config schema to [bold]{target}[/bold]")
+        console.print(
+            f"[green]{ok_glyph(console)}[/green] Wrote config schema to [bold]{target}[/bold]"
+        )
         return
 
     click.echo(rendered)

@@ -129,7 +129,10 @@ def verify(
         if output_format == "json":
             _emit_machine_output(json.dumps(result, indent=2, default=str), output_file)
         else:
-            console.print(f"[bold red]{fail_glyph(console)} Verify error:[/bold red] {result.get('message', '')}")
+            console.print(
+                f"[bold red]{fail_glyph(console)} Verify error:[/bold red]"
+                f" {result.get('message', '')}"
+            )
         if not exit_zero:
             sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
         return

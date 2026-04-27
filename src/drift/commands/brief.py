@@ -205,7 +205,6 @@ def brief(
 
 def _render_rich(result: dict, *, quiet: bool = False) -> None:
     """Render the brief result as a rich terminal table."""
-    from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
 
@@ -282,7 +281,10 @@ def _render_rich(result: dict, *, quiet: bool = False) -> None:
             border_style="green",
         ))
     elif not quiet:
-        console.print(f"[green]{ok_glyph(console)} Scope is structurally healthy — no guardrails needed.[/green]")
+        console.print(
+            f"[green]{ok_glyph(console)} Scope is structurally healthy"
+            " \u2014 no guardrails needed.[/green]"
+        )
 
     if not quiet:
         console.print(

@@ -100,7 +100,9 @@ def begin(
     if output_format == "json":
         _emit_machine_output(json.dumps(result, indent=2, default=str), output_file)
     else:
-        console.print(f"[bold green]{ok_glyph(console)}[/bold green] PatchIntent registered for {task_id}")
+        console.print(
+            f"[bold green]{ok_glyph(console)}[/bold green] PatchIntent registered for {task_id}"
+        )
         console.print(f"  Declared files: {', '.join(files)}")
         console.print(f"  Next step: drift patch check --task-id {task_id}")
 

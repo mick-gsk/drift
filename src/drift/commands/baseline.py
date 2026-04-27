@@ -187,8 +187,8 @@ def diff(
         fingerprints = load_baseline(bl_path)
     except (OSError, ValueError, _json.JSONDecodeError) as exc:
         console.print(
-            f"[bold red]{fail_glyph(console)} Baseline file is corrupt[/bold red] — delete it and re-save: "
-            f"[bold]drift baseline save[/bold]  ({exc})"
+            f"[bold red]{fail_glyph(console)} Baseline file is corrupt[/bold red]"
+            f" — delete it and re-save: [bold]drift baseline save[/bold]  ({exc})"
         )
         raise SystemExit(1) from exc
 
@@ -232,7 +232,9 @@ def diff(
 
             render_findings(new, max_items=len(new), console=console, repo_root=repo)
         else:
-            console.print(f"\n[bold green]{ok_glyph(console)} No new findings since baseline.[/bold green]")
+            console.print(
+                f"\n[bold green]{ok_glyph(console)} No new findings since baseline.[/bold green]"
+            )
 
     # Ratchet gate (ADR-093): enforce a non-mutating upper bound on new findings.
     # Must run for both rich and json output modes so the JSON consumer also
