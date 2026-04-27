@@ -1,4 +1,4 @@
-## [2.44.0] - 2026-04-26
+## [2.44.1] - 2026-04-26
 
 Short version: Automated agent routing for bug issues and PR reviews is now active, the v2.43.2 performance note was sharpened with explicit benchmark evidence, and explicit `drift check --diff <sha>` runs now write to a separate history slot to prevent false trend deltas.
 
