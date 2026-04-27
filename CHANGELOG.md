@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [2.44.5] - 2026-04-27
+
+Short version: Fix playground Pyodide runner: use `from drift.api.scan import scan` instead of `from drift.api import scan` to avoid loading the full API init chain in the browser, and pre-install `gitpython`/`smmap` via micropip before drift-analyzer to prevent dependency resolution failures.
+
+### Fixed
+- use `from drift.api.scan import scan` in playground Pyodide smoke-test and scan script instead of `from drift.api import scan` to bypass the heavy `drift/api/__init__.py` import chain
+- pre-install `smmap` and `gitpython` via micropip before `drift-analyzer` install to ensure the pure-Python git dependency resolves correctly in Pyodide
+
 ## [2.44.4] - 2026-04-27
 
 Short version: Coverage measurement is now reliable when running pytest with xdist (`-n N`): `parallel = true` in `[tool.coverage.run]` ensures each worker writes its own `.coverage.*` file so pytest-cov can combine them correctly instead of reporting only one worker's subset (~25%). RESEARCH.md H5 updated with three verified production adversarial scenarios (Issue #543) that partially confirm the hypothesis: `drift_brief` constraints can degrade agent decision quality when the target file is in a deferred pod, an intentionally isolated BIFL module, or a hot-path file with documented no-docstring conventions.
