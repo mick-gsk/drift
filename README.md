@@ -179,6 +179,8 @@ Every finding includes a human-readable `reason` and a concrete `next_action`. F
 |:---:|:---:|:---:|:---:|:---:|
 | Cursor · Claude Code · Copilot | `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker |
 
+> **Copilot Chat one-liner:** `drift kit init` — scaffolds prompt files + VS Code settings in one command. Run once per repo, then use `/drift-fix-plan` in Copilot Chat.
+
 > **Language support:** Python (full, primary target) · TypeScript/TSX: 17/24 signals — `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
 
 > **Bootstrap everything:** `drift init --mcp --ci --hooks` scaffolds config for all integrations in one command.
@@ -314,12 +316,12 @@ After `drift analyze`, drift writes `.vscode/drift-session.json` and shows a
 | `/drift-export-report` | Self-contained findings report as Markdown |
 | `/drift-auto-fix-loop` | Step through findings one-at-a-time with confirm/skip gates |
 
-**One-time setup** — add to `.vscode/settings.json`:
-```json
-{ "chat.promptFilesLocations": [".github/prompts/"] }
+**One-time setup — one command:**
+```bash
+drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
 ```
 
-No extension install needed. The terminal panel prints a setup reminder if the key is missing.
+No extension install needed. `drift kit init` creates `.github/prompts/` with all three prompt files and merges `chat.promptFilesLocations` into `.vscode/settings.json` without touching your existing keys. Idempotent — safe to re-run.
 
 📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
 

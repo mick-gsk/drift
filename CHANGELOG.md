@@ -10,6 +10,33 @@
 - added VS Code handoff section to `docs-site/integrations.md`
 - updated README "Works with" table and added VS Code Copilot Chat slash command section
 
+## [2.47.0] - 2026-04-27
+
+Short version: Add `drift kit init` — one-command Copilot Chat bootstrap that scaffolds prompt files and VS Code settings; document in README and vibe-coding guide.
+
+### Added
+- `drift kit init` command: scaffolds `.github/prompts/` (3 slash-command prompt files), merges `chat.promptFilesLocations` into `.vscode/settings.json`, appends `.vscode/drift-session.json` to `.gitignore`. Idempotent; `--force` flag to overwrite prompts.
+- Templates bundled as package data via `importlib.resources` — no external download needed.
+
+### Docs
+- README "Works with" table: `drift kit init` callout; Copilot Chat setup section replaced manual `settings.json` snippet with single command.
+- `examples/vibe-coding` 30-day rollout table: added step 3b for `drift kit init`.
+
+## [2.46.1] - 2026-04-27
+
+Short version: Catch OSError in subprocess git calls for Pyodide/Emscripten compatibility.
+
+### Fixed
+- Catch `OSError` in subprocess git calls so drift works inside Pyodide/Emscripten (browser WASM).
+
+## [2.46.0] - 2026-04-27
+
+Short version: Playground Pyodide runner uses direct scan import and pre-installs gitpython.
+
+### Fixed
+- Use `from drift.api.scan import scan` in playground Pyodide smoke-test to bypass heavy `drift/api/__init__.py` import chain.
+- Pre-install `smmap` and `gitpython` via micropip before `drift-analyzer` to resolve dependencies correctly in Pyodide.
+
 ## [2.45.1] - 2026-04-27
 
 Short version: catch OSError in subprocess git calls for Pyodide/Emscripten compatibility

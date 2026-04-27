@@ -103,7 +103,8 @@ Related docs: [Getting Started](https://mick-gsk.github.io/drift/getting-started
 | 1 | Install + initial analysis | `drift analyze -f json -o baseline.json` | Baseline score documented |
 | 2 | Apply vibe-coding config | Copy `drift.yaml` to project root | `drift validate` → green |
 | 3 | IDE integration (VS Code MCP) | Run `drift init --mcp` or copy `mcp.json` to `.vscode/mcp.json` | `drift_scan` works in IDE |
-| 3b | Claude Desktop integration | Run `drift init --claude` or merge `claude_desktop_config.json` into `%APPDATA%\Claude\claude_desktop_config.json` or `~/Library/Application Support/Claude/claude_desktop_config.json` | drift tools appear in Claude Desktop |
+| 3b | Copilot Chat slash commands | `drift kit init` — scaffolds prompt files + VS Code settings | `/drift-fix-plan` works in Chat |
+| 3c | Claude Desktop integration | Run `drift init --claude` or merge `claude_desktop_config.json` into `%APPDATA%\Claude\claude_desktop_config.json` or `~/Library/Application Support/Claude/claude_desktop_config.json` | drift tools appear in Claude Desktop |
 | 4 | Pre-push hook | Copy `pre-push` to `.git/hooks/` | Push with HIGH finding → blocked |
 | 5–7 | Fix top-5 MDS/PFS findings | `drift fix-plan --max-tasks 5` | Score decreases |
 
