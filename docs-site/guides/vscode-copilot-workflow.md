@@ -95,10 +95,10 @@ panel is **not** shown:
 
 ```bash
 drift analyze --format json --output findings.json   # no session file written
-drift analyze --format json                          # session file + copilot_handoff key in stdout
+drift analyze --format json                          # session file + drift_kit key in stdout
 ```
 
-When running without `--output`, JSON output includes a `copilot_handoff` key at
+When running without `--output`, JSON output includes a `drift_kit` key at
 the top level so downstream automation can consume the handoff block directly.
 
 ## MCP vs. Copilot Chat handoff

@@ -264,6 +264,36 @@ class TestProfileBuilder:
         w_without = result_without_unattributed.calibrated_weights.as_dict()[sig]
         assert w_with > w_without
 
+    def test_sc003_signal_without_data_not_in_weight_diff(self) -> None:
+        """SC-003: a signal with 0 observations must not appear in weight_diff."""
+        from drift.calibration.profile_builder import build_profile
+        from drift.config import SignalWeights
+
+        sig_with_data = "pattern_fragmentation"
+        sig_without_data = "architecture_violation"
+
+        # 19 FP events for one signal only
+        events = [_fe(signal=sig_with_data, file=f"fp{i}.py", verdict="fp") for i in range(19)]
+        defaults = SignalWeights()
+        result = build_profile(events, defaults, min_samples=20)
+
+        diff = result.weight_diff(defaults)
+        assert sig_without_data not in diff
+
+    def test_sc004_build_profile_is_idempotent(self) -> None:
+        """SC-004: running build_profile twice on identical events yields identical weights."""
+        from drift.calibration.profile_builder import build_profile
+        from drift.config import SignalWeights
+
+        sig = "pattern_fragmentation"
+        events = [_fe(signal=sig, file=f"f{i}.py", verdict="fp") for i in range(25)]
+        defaults = SignalWeights()
+
+        result1 = build_profile(events, defaults, min_samples=20)
+        result2 = build_profile(events, defaults, min_samples=20)
+
+        assert result1.calibrated_weights.as_dict() == result2.calibrated_weights.as_dict()
+
 
 # ---------------------------------------------------------------------------
 # Scan history tests

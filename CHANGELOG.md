@@ -1,7 +1,7 @@
 ## [Unreleased]
 
 ### Added
-- VS Code Copilot Chat Workflow: `drift analyze` now writes `.vscode/drift-session.json` and shows a **Copilot Chat Handoff** panel with top findings and three slash commands (`/drift-fix-plan`, `/drift-export-report`, `/drift-auto-fix-loop`); JSON output includes a `copilot_handoff` key; requires no extension — only `chat.promptFilesLocations` in `.vscode/settings.json`
+- VS Code Copilot Chat Workflow (drift-kit): `drift analyze` now writes `.vscode/drift-session.json` and shows a **drift-kit** panel with top findings and three slash commands (`/drift-fix-plan`, `/drift-export-report`, `/drift-auto-fix-loop`); JSON output includes a `drift_kit` key; requires no extension — only `chat.promptFilesLocations` in `.vscode/settings.json`
 - Terminal panel detects missing `chat.promptFilesLocations` in `.vscode/settings.json` and prints a one-line setup hint so users know exactly what to add
 
 ### Docs

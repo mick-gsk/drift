@@ -132,7 +132,7 @@ def _render_analysis_details(
     no_first_run: bool,
     repo: Path,
     show_suppressed: bool,
-    copilot_handoff: dict | None = None,
+    drift_kit: dict | None = None,
 ) -> None:
     """Render full (non-quiet) analysis output: findings, suppression count, recommendations."""
     from drift.commands._shared import render_or_emit_output
@@ -165,7 +165,7 @@ def _render_analysis_details(
         first_run=is_first_run,
         auto_detected_profile=auto_detected_profile,
         auto_detected_file_count=auto_detected_file_count,
-        copilot_handoff=copilot_handoff,
+        drift_kit=drift_kit,
     )
     if show_suppressed and analysis.suppressed_count:  # type: ignore[union-attr, attr-defined]
         effective_console.print(
@@ -784,7 +784,7 @@ def analyze(
             f"score: {analysis.drift_score:.3f}  grade: {grade}  max_severity: {sev}  findings: {n}"
         )
     else:
-        from drift.copilot_handoff import (
+        from drift.drift_kit import (
             build_handoff_block,
             build_session_data,
             handoff_to_dict,
@@ -805,7 +805,7 @@ def analyze(
             analysis, output_format, compact_json, drift_score_scope, output_file,
             effective_console, max_findings, no_code, response_detail, cfg, group_by,
             sort_by, explain, no_first_run, repo, show_suppressed,
-            copilot_handoff=_ch_handoff,
+            drift_kit=_ch_handoff,
         )
         if output_format == "rich":
             _copilot_setup_required = _is_copilot_setup_missing(repo)
