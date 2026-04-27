@@ -14,29 +14,27 @@ No additional plugins or marketplace extensions are needed.
 
 ## Setup (one-time per repository)
 
-### 1. Register the prompt directory
-
-Add the following to your `.vscode/settings.json`:
-
-```json
-{
-  "chat.promptFilesLocations": [".github/prompts/"]
-}
+```bash
+drift kit init
 ```
 
-This makes the drift prompt files discoverable in VS Code Copilot Chat as slash
-commands.
+That's it. The command writes the three slash-command prompt files into
+`.github/prompts/`, merges `chat.promptFilesLocations` into
+`.vscode/settings.json` (existing settings are preserved), and adds
+`.vscode/drift-session.json` to `.gitignore`. It is idempotent — running it
+again is a no-op. Use `--force` to overwrite the prompt files after upgrading
+drift.
 
-### 2. Run drift analyze
+### Run drift analyze
 
 ```bash
 drift analyze --repo .
 ```
 
-At the end of the output you will see a **Copilot Chat Handoff** panel:
+At the end of the output you will see a **drift-kit** panel:
 
 ```
-┌─────────────────────── Copilot Chat Handoff ──────────────────────────┐
+┌─────────────────────────────── drift-kit ─────────────────────────────┐
 │  Severity  Signal                    File                  Reason      │
 │  high      pattern_fragmentation     src/core/engine.py    …           │
 │  medium    module_dependency_score   src/utils/helpers.py  …           │

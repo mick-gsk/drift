@@ -1,6 +1,7 @@
 ## [Unreleased]
 
 ### Added
+- `drift kit init` — one-command bootstrap for VS Code Copilot Chat integration: writes the three slash-command prompt files (`/drift-fix-plan`, `/drift-export-report`, `/drift-auto-fix-loop`) into `.github/prompts/`, merges `chat.promptFilesLocations` into `.vscode/settings.json` without clobbering existing user settings, and adds `.vscode/drift-session.json` to `.gitignore`. Idempotent; `--force` re-writes prompt files. Beats spec-kit's two-tool flow (`uv tool install specify-cli` + `specify init`) — `pip install drift-analyzer && drift kit init` is enough.
 - VS Code Copilot Chat Workflow (drift-kit): `drift analyze` now writes `.vscode/drift-session.json` and shows a **drift-kit** panel with top findings and three slash commands (`/drift-fix-plan`, `/drift-export-report`, `/drift-auto-fix-loop`); JSON output includes a `drift_kit` key; requires no extension — only `chat.promptFilesLocations` in `.vscode/settings.json`
 - Terminal panel detects missing `chat.promptFilesLocations` in `.vscode/settings.json` and prints a one-line setup hint so users know exactly what to add
 

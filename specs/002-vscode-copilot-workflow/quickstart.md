@@ -2,7 +2,7 @@
 
 **Feature**: `002-vscode-copilot-workflow`  
 **Audience**: Developer setting up drift in a new project  
-**Time to complete**: 3 minutes
+**Time to complete**: 30 seconds
 
 ---
 
@@ -14,17 +14,19 @@
 
 ---
 
-## Step 1: Initialize `.vscode/settings.json`
+## Step 1: One-command bootstrap
 
-Add the following to your `.vscode/settings.json` (create it if it doesn't exist):
-
-```json
-{
-  "chat.promptFilesLocations": [".github/prompts/"]
-}
+```bash
+drift kit init
 ```
 
-This tells VS Code Copilot Chat to discover prompt files from `.github/prompts/`, which drift adds automatically.
+This idempotent command:
+
+- writes the three slash-command prompts into `.github/prompts/`
+- merges `chat.promptFilesLocations` into `.vscode/settings.json` (preserves any existing keys)
+- adds `.vscode/drift-session.json` to `.gitignore`
+
+Re-running it is safe — existing files are skipped. Use `--force` to overwrite the prompt files after a drift upgrade.
 
 ---
 
@@ -34,22 +36,7 @@ This tells VS Code Copilot Chat to discover prompt files from `.github/prompts/`
 drift analyze --repo .
 ```
 
-After analysis completes, you will see:
-
-```
-┌─────────────────────── Copilot Chat Handoff ───────────────────────┐
-│  Score: 0.42 (B — Acceptable)  •  12 findings (3 high)             │
-│                                                                      │
-│  Top findings:                                                       │
-│  ● [high] pattern_fragmentation — src/myapp/utils.py:42-67          │
-│  ...                                                                 │
-│                                                                      │
-│  Next steps in Copilot Chat:                                         │
-│    /drift-fix-plan    /drift-export-report    /drift-auto-fix-loop   │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-The analysis context is saved to `.vscode/drift-session.json` (gitignored).
+After analysis completes, the **drift-kit** panel lists the top findings and the three slash commands. The session context is saved to `.vscode/drift-session.json` (gitignored).
 
 ---
 
