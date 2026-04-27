@@ -123,7 +123,16 @@ def _apply_trend_gate(
     default=None,
     help="Restrict analysis to a subdirectory.",
 )
-@click.option("--diff", "diff_ref", default=None, help="Git ref to diff against (default: HEAD~1). Explicit refs use a separate history slot to avoid contaminating regular check trends.")
+@click.option(
+    "--diff",
+    "diff_ref",
+    default=None,
+    help=(
+        "Git ref to diff against (default: HEAD~1). "
+        "Explicit refs use a separate history slot to avoid "
+        "contaminating regular check trends."
+    ),
+)
 @click.option(
     "--fail-on",
     type=click.Choice(["critical", "high", "medium", "low", "none"]),
