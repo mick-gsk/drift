@@ -123,7 +123,7 @@ def _apply_trend_gate(
     default=None,
     help="Restrict analysis to a subdirectory.",
 )
-@click.option("--diff", "diff_ref", default="HEAD~1", help="Git ref to diff against.")
+@click.option("--diff", "diff_ref", default=None, help="Git ref to diff against (default: HEAD~1). Explicit refs use a separate history slot to avoid contaminating regular check trends.")
 @click.option(
     "--fail-on",
     type=click.Choice(["critical", "high", "medium", "low", "none"]),
@@ -260,7 +260,7 @@ def _apply_trend_gate(
 def check(
     repo: Path,
     target_path: str | None,
-    diff_ref: str,
+    diff_ref: str | None,
     fail_on: str | None,
     output_format: str,
     exit_zero: bool,
@@ -325,6 +325,11 @@ def check(
     threshold = fail_on or cfg.severity_gate()
 
     effective_since = since_days if since_days is not None else 90
+    # Explicit --diff <ref> uses a separate history slot ("diff_ref") so that
+    # one-off audit runs against old SHAs cannot corrupt the trend baseline of
+    # regular drift-check runs (which always use "diff" scope).
+    effective_diff_ref = diff_ref or "HEAD~1"
+    scope = "diff_ref" if diff_ref is not None else "diff"
     status_console = Console(stderr=True) if output_format != "rich" else effective_console
     status_context = (
         nullcontext() if quiet else status_console.status("[bold blue]Checking diff...")
@@ -333,7 +338,8 @@ def check(
         analysis = analyze_diff(
             repo,
             cfg,
-            diff_ref=diff_ref,
+            diff_ref=effective_diff_ref,
+            scope=scope,
             workers=workers,
             since_days=effective_since,
             target_path=target_path,
@@ -372,7 +378,7 @@ def check(
         trend_blocked, _trend_reason = _apply_trend_gate(
             repo=repo,
             cfg=cfg,
-            scope="diff",
+            scope=scope,
             effective_console=effective_console,
             quiet=quiet,
             output_format=output_format,
@@ -386,5 +392,5 @@ def check(
         quiet=quiet,
         effective_console=effective_console,
         exit_zero=exit_zero,
-        diff_ref=diff_ref,
+        diff_ref=effective_diff_ref,
     )

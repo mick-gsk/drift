@@ -125,8 +125,18 @@ def build_trend_context(current_score: float, snapshots: list[dict]) -> TrendCon
 
 
 def snapshot_scope(snapshot: dict) -> str:
-    """Resolve snapshot scope, keeping legacy entries backward-compatible."""
+    """Resolve snapshot scope, keeping legacy entries backward-compatible.
+
+    Scopes:
+    - ``"repo"``     — full-repository scan (``drift analyze``)
+    - ``"diff"``     — implicit diff check (``drift check`` without ``--diff``)
+    - ``"diff_ref"`` — explicit diff check (``drift check --diff <ref>``)
+
+    Legacy entries without a ``scope`` field are treated as ``"repo"``.
+    """
     scope = snapshot.get("scope")
+    if scope == "diff_ref":
+        return "diff_ref"
     if scope == "diff":
         return "diff"
     return "repo"

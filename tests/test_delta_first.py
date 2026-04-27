@@ -211,6 +211,84 @@ class TestAnalyzeDiffHistory:
         diff_entries = [s for s in updated_history if s.get("scope") == "diff"]
         assert len(diff_entries) >= 2
 
+    def test_explicit_diff_ref_scope_does_not_contaminate_check_scope(
+        self, tmp_path: Path
+    ):
+        """Explicit --diff <sha> writes scope='diff_ref'; regular drift check
+        (scope='diff') must not see those entries when computing its trend delta.
+
+        Regression test for the silent data-corruption bug: drift check --diff <sha>
+        previously wrote scope='diff' entries that inflated or deflated the baseline
+        seen by subsequent drift check (no --diff) runs.
+        """
+        repo = tmp_path / "repo"
+        repo.mkdir(parents=True, exist_ok=True)
+
+        target = repo / "pkg" / "mod.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("def fn(x):\n    return x\n", encoding="utf-8")
+
+        self._run_git(repo, "init")
+        self._run_git(repo, "add", ".")
+        self._run_git(repo, "commit", "-m", "initial")
+
+        target.write_text(
+            "def fn(x):\n    return x + 1\n", encoding="utf-8"
+        )
+        self._run_git(repo, "add", ".")
+        self._run_git(repo, "commit", "-m", "change-1")
+
+        cfg = DriftConfig(
+            include=["**/*.py"],
+            exclude=["**/.git/**", "**/.drift-cache/**"],
+            embeddings_enabled=False,
+        )
+
+        # Two regular 'drift check' runs write scope="diff" entries.
+        analyze_diff(repo, config=cfg, diff_ref="HEAD~1", scope="diff", workers=1)
+        analyze_diff(repo, config=cfg, diff_ref="HEAD~1", scope="diff", workers=1)
+
+        history_file = repo / cfg.cache_dir / "history.json"
+        history = json.loads(history_file.read_text(encoding="utf-8"))
+        diff_entries = [s for s in history if s.get("scope") == "diff"]
+        assert len(diff_entries) == 2
+        regular_score = diff_entries[-1]["drift_score"]
+
+        # Inject an explicit '--diff <sha>' entry (scope="diff_ref") with an
+        # extreme score — this simulates a one-off audit run that should be
+        # invisible to regular check trend computation.
+        history.append(
+            {
+                "timestamp": "2020-01-01T00:00:00+00:00",
+                "drift_score": 0.99,
+                "signal_scores": {},
+                "total_files": 500,
+                "total_findings": 30,
+                "commit_hash": "deadbeef",
+                "finding_fingerprints": [],
+                "scope": "diff_ref",
+            }
+        )
+        history_file.write_text(json.dumps(history), encoding="utf-8")
+
+        # Regular drift check must compute trend against scope="diff" pool only.
+        third = analyze_diff(repo, config=cfg, diff_ref="HEAD~1", scope="diff", workers=1)
+
+        assert third.trend is not None
+        # previous_score must come from the regular pool (not the 0.99 audit entry).
+        assert third.trend.previous_score is not None
+        assert abs(third.trend.previous_score - regular_score) < 0.5, (
+            f"Trend contaminated by diff_ref entry: "
+            f"previous_score={third.trend.previous_score!r}, "
+            f"expected ~{regular_score!r} from regular scope pool"
+        )
+
+        # The diff_ref entry must still be present and unmodified.
+        final = json.loads(history_file.read_text(encoding="utf-8"))
+        diff_ref_entries = [s for s in final if s.get("scope") == "diff_ref"]
+        assert len(diff_ref_entries) == 1
+        assert diff_ref_entries[0]["drift_score"] == 0.99
+
 
 class TestAnalyzeRepoHistoryScope:
     def test_analyze_repo_uses_legacy_and_repo_snapshots_for_repo_scope(self, tmp_path: Path):
