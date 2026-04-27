@@ -762,11 +762,11 @@ def analyze(
     save_last_scan(analysis, repo, getattr(cfg, "cache_dir", ".drift-cache"))
 
     if quiet:
-        sev = analysis.severity.value.upper()
+        sev = analysis.max_severity.value.upper()
         n = len(analysis.findings)
         grade = analysis.grade[0]
         click.echo(
-            f"score: {analysis.drift_score:.3f}  grade: {grade}  severity: {sev}  findings: {n}"
+            f"score: {analysis.drift_score:.3f}  grade: {grade}  max_severity: {sev}  findings: {n}"
         )
     else:
         _render_analysis_details(

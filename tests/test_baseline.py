@@ -554,7 +554,7 @@ class TestBaselineFlagOnAnalyze:
         )
         assert result.exit_code == 0
         assert "score: 0.00" in result.output
-        assert "severity: INFO" in result.output
+        assert "max_severity: INFO" in result.output
         assert "findings: 0" in result.output
 
     def test_check_baseline_recomputes_summary(
@@ -600,7 +600,7 @@ class TestBaselineFlagOnAnalyze:
         )
         assert result.exit_code == 0
         assert "score: 0.00" in result.output
-        assert "severity: INFO" in result.output
+        assert "max_severity: INFO" in result.output
         assert "findings: 0" in result.output
 
     def test_check_baseline_updates_suppressed_count(

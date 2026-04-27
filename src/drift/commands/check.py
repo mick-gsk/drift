@@ -358,9 +358,9 @@ def check(
     apply_baseline_filtering(analysis, cfg, baseline_file)
 
     if quiet:
-        sev = analysis.severity.value.upper()
+        sev = analysis.max_severity.value.upper()
         n = len(analysis.findings)
-        click.echo(f"score: {analysis.drift_score:.3f}  severity: {sev}  findings: {n}")
+        click.echo(f"score: {analysis.drift_score:.3f}  max_severity: {sev}  findings: {n}")
     else:
         render_or_emit_output(
             analysis=analysis,
