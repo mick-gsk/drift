@@ -1,3 +1,10 @@
+## [Unreleased]
+
+Short version: The `--quiet` summary line now shows `max_severity` (highest finding severity) instead of `severity` (score-derived grade bucket), eliminating the misleading mismatch when `--fail-on high` exits 1 despite a MEDIUM score-grade.
+
+### Fixed
+- replace misleading `severity:` (score-derived bucket) with `max_severity:` (highest finding severity) in `--quiet` summary line for `drift analyze` and `drift check`
+
 ## [2.44.1] - 2026-04-26
 
 Short version: Automated agent routing for bug issues and PR reviews is now active, the v2.43.2 performance note was sharpened with explicit benchmark evidence, and explicit `drift check --diff <sha>` runs now write to a separate history slot to prevent false trend deltas.
