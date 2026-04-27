@@ -230,6 +230,7 @@ def _current_git_head(repo_path: Path) -> str | None:
         FileNotFoundError,
         subprocess.CalledProcessError,
         subprocess.TimeoutExpired,
+        OSError,
     ):
         head = None
     else:

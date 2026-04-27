@@ -9,6 +9,13 @@
 - added VS Code handoff section to `docs-site/integrations.md`
 - updated README "Works with" table and added VS Code Copilot Chat slash command section
 
+## [2.45.1] - 2026-04-27
+
+Short version: catch OSError in subprocess git calls for Pyodide/Emscripten compatibility
+
+### Fixed
+- catch OSError in subprocess git calls for Pyodide/Emscripten compatibility
+
 ## [2.44.5] - 2026-04-27
 
 Short version: Fix playground Pyodide runner: use `from drift.api.scan import scan` instead of `from drift.api import scan` to avoid loading the full API init chain in the browser, and pre-install `gitpython`/`smmap` via micropip before drift-analyzer to prevent dependency resolution failures.
