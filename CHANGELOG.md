@@ -6,6 +6,7 @@ Short version: Coverage measurement is now reliable when running pytest with xdi
 
 ### Fixed
 - enable `parallel = true` in `[tool.coverage.run]` so pytest-xdist workers each produce separate `.coverage.*` files that pytest-cov combines; without this, xdist runs reported ~25% instead of the real ~79%
+- annotate deferred files in `drift_brief` guardrails (`deferred_files_involved`, `deferred_warning`), pre-warm nudge baseline in `session_start` autopilot (`nudge_ready` flag), and expose `deferred_context` block in `drift_diff` delta counts (#544)
 
 ## [2.44.3] - 2026-04-27
 
