@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+## [2.44.4] - 2026-04-27
+
+Short version: Coverage measurement is now reliable when running pytest with xdist (`-n N`): `parallel = true` in `[tool.coverage.run]` ensures each worker writes its own `.coverage.*` file so pytest-cov can combine them correctly instead of reporting only one worker's subset (~25%).
+
+### Fixed
+- enable `parallel = true` in `[tool.coverage.run]` so pytest-xdist workers each produce separate `.coverage.*` files that pytest-cov combines; without this, xdist runs reported ~25% instead of the real ~79%
+
+## [2.44.3] - 2026-04-27
+
+Short version: Release housekeeping after DRIFT-3002 (Windows CP1252 ASCII-fallback) and PFS deferred-file filter fix.
+
 ## [2.44.2] - 2026-04-26
 
 Short version: The `--quiet` summary line now shows `max_severity` (highest finding severity) instead of `severity` (score-derived grade bucket), eliminating the misleading mismatch when `--fail-on high` exits 1 despite a MEDIUM score-grade. File discovery on post-commit nudge runs is now O(discovered files) instead of O(all repo files): `_enumerate_repo_files` uses `os.walk` with directory pruning, eliminating the 32s discover phase caused by traversing `.venv` and other excluded trees.
