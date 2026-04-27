@@ -116,13 +116,24 @@ import os
 import shutil
 import subprocess as _subprocess
 
-# Pyodide/Emscripten cannot spawn processes — patch subprocess.run so that
-# all git-related helpers in drift raise FileNotFoundError (already caught
-# everywhere) instead of OSError errno 138 (not caught in older versions).
+# Pyodide/Emscripten cannot spawn processes (OSError errno 138).
+# Patch every subprocess entry-point so that all git helpers in drift
+# raise FileNotFoundError — which they already catch — instead of the
+# raw OSError that older drift versions did not handle.
 def _no_subprocess(*_args, **_kwargs):
     raise FileNotFoundError("subprocess not available in browser (Pyodide)")
 
+def _no_popen_init(self, *_args, **_kwargs):
+    raise FileNotFoundError("subprocess not available in browser (Pyodide)")
+
 _subprocess.run = _no_subprocess
+_subprocess.call = _no_subprocess
+_subprocess.check_call = _no_subprocess
+_subprocess.check_output = _no_subprocess
+try:
+    _subprocess.Popen.__init__ = _no_popen_init
+except (AttributeError, TypeError):
+    pass
 
 _work_dir = "/playground_code"
 
