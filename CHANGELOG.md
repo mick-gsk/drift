@@ -1,13 +1,6 @@
-## [2.44.1] - 2026-04-26
-
-Short version: Silent data-corruption bug fixed — explicit `drift check --diff <sha>` audit runs now write to a separate `scope="diff_ref"` history slot and can no longer contaminate the rolling trend baseline of regular `drift check` CI runs.
-
-### Fixed
-- isolate explicit `--diff <ref>` history entries (`scope="diff_ref"`) from regular check history (`scope="diff"`) to prevent false trend deltas
-
 ## [2.44.0] - 2026-04-26
 
-Short version: Automated agent routing for bug issues and PR reviews is now active, and the v2.43.2 performance note was sharpened with explicit benchmark and test evidence.
+Short version: Automated agent routing for bug issues and PR reviews is now active, the v2.43.2 performance note was sharpened with explicit benchmark evidence, and explicit `drift check --diff <sha>` runs now write to a separate history slot to prevent false trend deltas.
 
 ### Added
 - automate agent routing for bug issues and PR reviews
@@ -15,6 +8,9 @@ Short version: Automated agent routing for bug issues and PR reviews is now acti
 
 ### Changed
 - clarified v2.43.2 release notes with concrete benchmark/test evidence for the warm-run optimization
+
+### Fixed
+- isolate explicit `--diff <ref>` history entries (`scope="diff_ref"`) from regular check history (`scope="diff"`) to prevent false trend deltas on clean trees
 
 ## [2.43.2] - 2026-04-26
 
