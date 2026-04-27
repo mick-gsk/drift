@@ -1854,6 +1854,7 @@
         "canonical_variant": "{\"strategies\": [\"return_none\", \"return_value\"]}",
         "category": "return_pattern",
         "combined_plugin_framework_cap": false,
+        "deferred_excluded_count": 0,
         "deliberate_pattern_risk": "May reflect architecture transition or deliberate variation. Review whether variants serve distinct purposes.",
         "finding_context": "production",
         "framework_context_dampened": false,

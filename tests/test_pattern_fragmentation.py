@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from drift.config import DeferredArea, DriftConfig
 from drift.models import (
     Finding,
     ParseResult,
@@ -632,3 +633,116 @@ def test_return_pattern_three_variants():
     assert len(findings) == 1
     assert findings[0].metadata["num_variants"] == 3
     assert findings[0].score >= 0.5
+
+
+# ---------------------------------------------------------------------------
+# Deferred-file filtering (issue #542)
+# ---------------------------------------------------------------------------
+
+def _make_config_with_deferred(*patterns: str) -> DriftConfig:
+    return DriftConfig(deferred=[DeferredArea(pattern=p) for p in patterns])
+
+
+def test_deferred_files_excluded_from_variant_count():
+    # Active router: 2 variants → PFS finding
+    # Deferred routers: 3 additional variants from deferred files
+    # Only active variants should count.
+    fp_a = {"route": "variant_a"}
+    fp_b = {"route": "variant_b"}
+    fp_deferred_c = {"route": "variant_c"}
+    fp_deferred_d = {"route": "variant_d"}
+
+    patterns = [
+        # Active files: 2 variants → fragmentation
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_a),
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_a),
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "auth", fp_b),
+        # Deferred files: extra variants that must NOT inflate the count
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "billing", fp_deferred_c),
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "marketplace", fp_deferred_d),
+    ]
+
+    config = _make_config_with_deferred(
+        "backend/api/routers/billing.py",
+        "backend/api/routers/marketplace.py",
+    )
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, config)
+    assert len(findings) == 1, "PFS finding from active variants should remain"
+    f = findings[0]
+    # Only 2 active variants counted (fp_a + fp_b), not 4
+    assert f.metadata["num_variants"] == 2
+    assert f.metadata["deferred_excluded_count"] == 2
+    # Deferred files must not appear in related_files
+    related_posix = {p.as_posix() for p in f.related_files}
+    assert "backend/api/routers/billing.py" not in related_posix
+    assert "backend/api/routers/marketplace.py" not in related_posix
+
+
+def test_deferred_only_variants_suppresses_finding():
+    # All non-canonical variants come from deferred files → after filtering,
+    # only one variant remains (canonical) → no fragmentation finding.
+    fp_canonical = {"route": "canonical"}
+    fp_deferred = {"route": "deferred_variant"}
+
+    patterns = [
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_canonical),
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_canonical),
+        # Deferred file introduces the only second variant
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "billing", fp_deferred),
+    ]
+
+    config = _make_config_with_deferred("backend/api/routers/billing.py")
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, config)
+    assert findings == [], (
+        "No finding when all non-canonical variants are from deferred files"
+    )
+
+
+def test_deferred_excluded_count_zero_when_no_deferred_config():
+    # Without deferred config, deferred_excluded_count must be 0 in metadata.
+    fp_a = {"x": 1}
+    fp_b = {"x": 2}
+    patterns = [
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_a),
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "auth", fp_b),
+    ]
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, None)
+    assert len(findings) == 1
+    assert findings[0].metadata["deferred_excluded_count"] == 0
+
+
+def test_deferred_glob_wildcard_matches_prefix():
+    # Pattern like "backend/api/routers/billing*" should match billing.py,
+    # billing_v2.py, etc.
+    fp_canonical = {"route": "v1"}
+    fp_deferred = {"route": "v2"}
+
+    patterns = [
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "admin", fp_canonical),
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "analytics", fp_canonical),
+        _make_pattern(PatternCategory.API_ENDPOINT, "backend/api/routers", "billing_v2", fp_deferred),
+    ]
+
+    config = _make_config_with_deferred("backend/api/routers/billing*")
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, config)
+    assert findings == [], "Glob wildcard deferred pattern should match billing_v2.py"
+
+
+def test_deferred_does_not_affect_unrelated_modules():
+    # Deferred pattern for routers/billing* must not suppress findings
+    # in an entirely different module (services/).
+    fp_a = {"x": 1}
+    fp_b = {"x": 2}
+
+    patterns = [
+        _make_pattern(PatternCategory.ERROR_HANDLING, "services", "svc_a", fp_a),
+        _make_pattern(PatternCategory.ERROR_HANDLING, "services", "svc_b", fp_b),
+    ]
+
+    config = _make_config_with_deferred("backend/api/routers/billing*")
+
+    findings = PatternFragmentationSignal().analyze(_wrap(patterns), {}, config)
+    assert len(findings) == 1, "Deferred pattern for routers must not suppress services/ finding"
