@@ -15,9 +15,7 @@ drift init --auto    # lock in the auto-detected config (no prompts, CI-friendly
 drift status         # traffic-light health check — your daily entry point
 ```
 
-> **Two views, same data:** `drift status` shows a repo-level score (0–1 → 🟢/🟡/🔴). `drift analyze` shows per-finding severity (INFO/LOW/MEDIUM/HIGH). Use status for daily health, analyze for finding-level triage.
->
-> **Shortcut:** bare `drift` (no subcommand) runs `drift status` automatically.
+> `drift status` → repo-level score (0–1 · 🟢/🟡/🔴) · `drift analyze` → per-finding detail (INFO/LOW/MEDIUM/HIGH). Bare `drift` runs `drift status`.
 
 <img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
 
@@ -46,10 +44,7 @@ uvx drift-analyzer analyze --repo .
 ```
 
 > One command. No pre-install. Results in ~30 seconds.
-> No config? `drift analyze` auto-applies the best profile on first run. To save it: `drift init --auto` (no prompts).
->
-> **What does `drift init --auto` do?** Detects your repo size and dependencies, picks the right profile (`vibe-coding` / `default` / `strict`), and writes `drift.yaml` — no questions asked.
-> The `vibe-coding` profile raises tolerance for missing tests and anti-pattern fixtures — common in AI-prototyped code.
+> No config needed — `drift analyze` auto-detects the right profile. `drift init --auto` saves it to `drift.yaml` without prompts (`vibe-coding` / `default` / `strict`).
 
 🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/) · [Interactive code playground →](https://mick-gsk.github.io/drift/playground/)
 
@@ -59,14 +54,8 @@ uvx drift-analyzer analyze --repo .
 
 **Recommended install:** `pipx install drift-analyzer` (isolated CLI) · Python 3.11+ · also via [pip, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/)
 
-| Metric | Value | Evidence |
-|---|---|---|
-| Wild-repo precision | **77 % strict / 95 % lenient** (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
-| Ground-truth regression | 0 FP, 0 FN (84 TP, 206 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
-| Mutation recall | 75 % (75/100 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
-
 > [!NOTE]
-> **Drift eats its own dog food.** Every release runs `drift self` on its own source — same pipeline, same rules, no exceptions. Results: [drift_self.json](benchmark_results/drift_self.json) · Score 0.63 (Grade C) — driven by explainability and architecture findings; [target ≤ 0.30 via 30-day rollout](examples/vibe-coding/README.md).
+> **Drift eats its own dog food.** Every release runs `drift self` on its own source — same rules, no exceptions. Score 0.63 (Grade C) → [drift_self.json](benchmark_results/drift_self.json) · [30-day rollout target](examples/vibe-coding/README.md). Precision/Recall details in [Trust & Limitations](#-trust-and-limitations).
 
 ---
 
@@ -101,13 +90,6 @@ cross-file structural drift that accumulates silently — in any codebase, at an
 > 🚦 **After** — `drift check` runs 20+ cross-file signals and exits 1 on violations — CI, SARIF, and pre-commit ready
 > 🧠 **Over time** — Adaptive calibration reweights signals via feedback, git outcome correlation, and GitHub label correlation
 > 📚 **Negative context library** — `drift_nudge` delivers structured anti-patterns (canonical alternatives + CWE tags) directly into your agent's context — no manual guardrail writing needed
-
-<details>
-<summary>Origin note — why the vibe-coding framing exists</summary>
-
-Drift was originally designed to detect cross-file structural erosion in any codebase (v0.1, March 2026). The vibe-coding framing — and the dedicated `vibe-coding` profile — were added in v1.1.11 when it became clear that AI-assisted codebases exhibit these erosion patterns disproportionately. The underlying signals are the same; the profile adjusts weights and thresholds for AI-heavy development styles.
-
-</details>
 
 ---
 
@@ -179,11 +161,9 @@ Every finding includes a human-readable `reason` and a concrete `next_action`. F
 |:---:|:---:|:---:|:---:|:---:|
 | Cursor · Claude Code · Copilot | `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker |
 
-> **Copilot Chat one-liner:** `drift kit init` — scaffolds prompt files + VS Code settings in one command. Run once per repo, then use `/drift-fix-plan` in Copilot Chat.
-
-> **Language support:** Python (full, primary target) · TypeScript/TSX: 17/24 signals — `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
-
-> **Bootstrap everything:** `drift init --mcp --ci --hooks` scaffolds config for all integrations in one command.
+> **Bootstrap:** `drift init --mcp --ci --hooks` scaffolds all integrations at once. For Copilot Chat: `drift kit init` (once per repo → use `/drift-fix-plan`).
+>
+> **Language support:** Python (full) · TypeScript/TSX: 17/24 signals via `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
 
 ### GitHub Actions
 
