@@ -1,19 +1,11 @@
 {
   "schema_version": "1.0",
   "repo_path": "C:/Users/mickg/PWBS/drift",
-  "analyzed_at": "2026-04-27T17:38:15Z",
-  "drift_score": 0.505,
-  "grade": "C",
-  "grade_label": "Moderate Drift",
+  "analyzed_at": "2026-04-27T21:25:20Z",
+  "drift_score": 0.381,
+  "grade": "B",
+  "grade_label": "Good",
   "top_findings": [
-    {
-      "signal_type": "pattern_fragmentation",
-      "severity": "high",
-      "file_path": "playground/dist/assets",
-      "line_range": null,
-      "reason": "12 error_handling variants in playground/dist/assets/ (25/66 use canonical pattern).\n  - playground/dist/assets/index-XpTPg8_6.js:17 (t)\n  - playground/dist/assets/index-XpTPg8_6.js:17 (t)\n  - playground/dist/assets/index-XpTPg8_6.js:17 (t)",
-      "finding_id": "bd22924eeb8412ee"
-    },
     {
       "signal_type": "pattern_fragmentation",
       "severity": "high",
@@ -25,29 +17,37 @@
     {
       "signal_type": "pattern_fragmentation",
       "severity": "high",
-      "file_path": "third_party_skills/teammate-skill/tools",
+      "file_path": "src/drift/blast_radius",
       "line_range": null,
-      "reason": "7 error_handling variants in third_party_skills/teammate-skill/tools/ (4/17 use canonical pattern).\n  - third_party_skills/teammate-skill/tools/email_parser.py:35 (extract_text)\n  - third_party_skills/teammate-skill/tools/slack_collector.py:167 (collect)\n  - third_party_skills/teammate-skill/tools/email_parser.py:28 (extract_text)",
-      "finding_id": "e043fbfa0a6346d3"
+      "reason": "4 error_handling variants in src/drift/blast_radius/ (5/13 use canonical pattern).\n  - src/drift/blast_radius/_adr_frontmatter.py:137 (parse_adr_file)\n  - src/drift/blast_radius/_skill_analyzer.py:49 (_parse_skill)\n  - src/drift/blast_radius/engine.py:39 (_drift_version)",
+      "finding_id": "fbebbfffb13d854b"
     },
     {
       "signal_type": "pattern_fragmentation",
       "severity": "high",
-      "file_path": "third_party_skills/skill-conductor/skills/skill-conductor/scripts",
+      "file_path": "src/drift/commands",
       "line_range": null,
-      "reason": "9 error_handling variants in third_party_skills/skill-conductor/skills/skill-conductor/scripts/ (4/14 use canonical pattern).\n  - third_party_skills/skill-conductor/skills/skill-conductor/scripts/aggregate_benchmark.py:141 (load_run_results)\n  - third_party_skills/skill-conductor/skills/skill-conductor/scripts/aggregate_benchmark.py:119 (load_run_results)\n  - third_party_skills/skill-conductor/skills/skill-conductor/scripts/aggregate_benchmark.py:95 (load_run_results)",
-      "finding_id": "84cd4b25617f51ce"
+      "reason": "4 return_pattern variants in src/drift/commands/ (12/19 use canonical pattern).\n  - src/drift/commands/config_cmd.py:75 (_infer_profile_name)\n  - src/drift/commands/feedback.py:228 (_parse_iso_ts)\n  - src/drift/commands/precision_cmd.py:43 (_resolve_signal_type)",
+      "finding_id": "63d610efb316c72f"
     },
     {
       "signal_type": "pattern_fragmentation",
       "severity": "high",
-      "file_path": "third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer",
+      "file_path": "src/drift/blast_radius",
       "line_range": null,
-      "reason": "7 error_handling variants in third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/ (7/16 use canonical pattern).\n  - third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/generate_review.py:200 (embed_file)\n  - third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/generate_review.py:188 (embed_file)\n  - third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/generate_review.py:177 (embed_file)",
-      "finding_id": "e00d4d463bbbd149"
+      "reason": "4 return_pattern variants in src/drift/blast_radius/ (6/11 use canonical pattern).\n  - src/drift/blast_radius/_adr_frontmatter.py:70 (_parse_inline_list)\n  - src/drift/blast_radius/_adr_frontmatter.py:180 (validate_adr_frontmatter)\n  - src/drift/blast_radius/_change_detector.py:130 (resolve_repo_path)",
+      "finding_id": "297e78fb82ca0fcc"
+    },
+    {
+      "signal_type": "architecture_violation",
+      "severity": "high",
+      "file_path": "src/drift/api_helpers.py",
+      "line_range": null,
+      "reason": "Stable module src/drift/api_helpers.py (I=0.30, Ca=31) depends on unstable/volatile module src/drift/task_graph.py (I=0.94, churn/week=0.23).",
+      "finding_id": "b4ce10207c5ebea7"
     }
   ],
-  "findings_total": 1019,
+  "findings_total": 478,
   "critical_count": 0,
-  "high_count": 222
+  "high_count": 143
 }

@@ -1,3 +1,16 @@
+## [2.48.0] - 2026-04-28
+
+Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
+
+### Added
+- `drift kit init --and-analyze`: runs `drift analyze --repo . --exit-zero` immediately after scaffolding.
+- `drift kit init --agent [cursor|claude|codex|all]`: writes `.cursor/rules/drift.mdc`, appends to `CLAUDE.md`, or appends to `AGENTS.md`; idempotent via `<!-- drift-kit -->` marker.
+- `/drift-feature-guardrails` slash command: new prompt template for pre-coding risk assessment mapping features to drift signals.
+- Improved missing-session guidance in all drift-kit templates: exact `drift analyze` command + MCP `drift_scan` fallback.
+
+### Fixed
+- `record_feedback()` now accepts `max_feedback_events` for FIFO capping (FR-011b); `subprocess.run()` in kit_cmd sets `stdin=DEVNULL` for MCP stdio safety.
+
 ## [2.47.1] - 2026-04-27
 
 Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
