@@ -4,9 +4,13 @@
 
 # Drift
 
-**Drift measures what your linter cannot: cross-file structural coherence — the layer where pattern fragmentation, boundary violations, and duplicate divergence accumulate across commits.**
+**Stop your AI agent from duplicating your codebase.**
+
+Drift measures what your linter cannot: cross-file structural coherence — the layer where pattern fragmentation, boundary violations, and duplicate divergence accumulate across commits.
 
 77–95 % real-world precision · ~30 s for a 2 900-file codebase · 24 signals · deterministic, no LLM
+
+<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
 
 ```bash
 pip install drift-analyzer
@@ -16,10 +20,6 @@ drift status         # traffic-light health check — your daily entry point
 ```
 
 > `drift status` → repo-level score (0–1 · 🟢/🟡/🔴) · `drift analyze` → per-finding detail (INFO/LOW/MEDIUM/HIGH). Bare `drift` runs `drift status`.
-
-<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
-
-**Using AI coding tools?** [Start here](examples/vibe-coding/README.md) · **CI & team rollout?** [Team rollout guide](https://mick-gsk.github.io/drift/getting-started/team-rollout/) · **Benchmarks & evidence?** [Study](docs/STUDY.md)
 
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![Drift Score](https://img.shields.io/badge/drift%20score-0.45-yellow?style=flat)](benchmark_results/drift_self.json)
@@ -31,7 +31,9 @@ drift status         # traffic-light health check — your daily entry point
 [![License](https://img.shields.io/github/license/mick-gsk/drift)](LICENSE)
 [![Discussions](https://img.shields.io/github/discussions/mick-gsk/drift)](https://github.com/mick-gsk/drift/discussions)
 
-[Docs](https://mick-gsk.github.io/drift/) · [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Playground](https://mick-gsk.github.io/drift/playground/) · [Benchmarking](https://mick-gsk.github.io/drift/benchmarking/) · [Trust & Limitations](https://mick-gsk.github.io/drift/trust-evidence/)
+[Docs](https://mick-gsk.github.io/drift/) · [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Playground](https://mick-gsk.github.io/drift/playground/) · [Benchmarking](https://mick-gsk.github.io/drift/benchmarking/) · [Trust & Limitations](https://mick-gsk.github.io/drift/trust-evidence/) · [Community](https://github.com/mick-gsk/drift/discussions)
+
+**Using AI coding tools?** [Start here](examples/vibe-coding/README.md) · **CI & team rollout?** [Team rollout guide](https://mick-gsk.github.io/drift/getting-started/team-rollout/) · **Benchmarks & evidence?** [Study](docs/STUDY.md)
 
 </div>
 
@@ -48,14 +50,10 @@ uvx drift-analyzer analyze --repo .
 
 🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/) · [Interactive code playground →](https://mick-gsk.github.io/drift/playground/)
 
-> [!TIP]
-> **Best fit:** Python repos with 20+ files and active AI-assisted development. TypeScript/TSX repo? `pip install 'drift-analyzer[typescript]'` — 17/24 signals supported.
-> Tiny repos produce noisy scores. Drift does not replace your linter, type checker, or security scanner.
-
-**Recommended install:** `pipx install drift-analyzer` (isolated CLI) · Python 3.11+ · also via [pip, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/)
+**Recommended install:** `pipx install drift-analyzer` (isolated CLI) · Python 3.11+ · also via [pip, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/) · best fit for Python repos with 20+ files; TypeScript/TSX: `pip install 'drift-analyzer[typescript]'`
 
 > [!NOTE]
-> **Drift eats its own dog food.** Every release runs `drift self` on its own source — same rules, no exceptions. Score 0.63 (Grade C) → [drift_self.json](benchmark_results/drift_self.json) · [30-day rollout target](examples/vibe-coding/README.md). Precision/Recall details in [Trust & Limitations](#-trust-and-limitations).
+> **Drift eats its own dog food.** Every release runs `drift self` on its own source — score 0.63 → [drift_self.json](benchmark_results/drift_self.json). Precision/Recall details in [Trust & Limitations](#-trust-and-limitations).
 
 ---
 
@@ -115,12 +113,6 @@ One page, three milestones — enough to go from first run to measurable improve
 
 > **Which profile?** AI-heavy codebase → `drift init -p vibe-coding`. Unsure → `drift init` (default). You can switch later.
 
-📖 [Full 30-day playbook with scripts →](examples/vibe-coding/README.md)
-
----
-
-## ⚙️ How it works
-
 **Before a session — generate guardrails:**
 
 ```bash
@@ -161,9 +153,7 @@ Every finding includes a human-readable `reason` and a concrete `next_action`. F
 |:---:|:---:|:---:|:---:|:---:|
 | Cursor · Claude Code · Copilot | `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker |
 
-> **Bootstrap:** `drift init --mcp --ci --hooks` scaffolds all integrations at once. For Copilot Chat: `drift kit init` (once per repo → use `/drift-fix-plan`).
->
-> **Language support:** Python (full) · TypeScript/TSX: 17/24 signals via `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
+`Bootstrap:` `drift init --mcp --ci --hooks` scaffolds all integrations at once. Copilot Chat: `drift kit init` (once per repo → `/drift-fix-plan`). Language support: Python (full) · TypeScript/TSX 17/24 via `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
 
 ### GitHub Actions
 
@@ -305,8 +295,6 @@ No extension install needed. `drift kit init` creates `.github/prompts/` with al
 
 📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
 
-> **Plugin CLI commands:** Third-party packages can expose additional `drift` subcommands via the `drift.commands` entry-point group. Installed plugins are discovered automatically at startup and appear in `drift --help`.
-
 ---
 
 ## 🎛️ Configuration profiles
@@ -323,9 +311,7 @@ Pick a profile that matches your project — or start with `default` and calibra
 | **monorepo** | Multi-package repos | `drift init -p monorepo` |
 | **quick** | First exploration, demos | `drift init -p quick` |
 
-> **Team workflow:** Commit `drift.yaml` to your repo → CI enforces the same thresholds → team inherits calibrated weights.
->
-> **Inspect effective config:** `drift config show --repo .` renders the active configuration and shows discoverability hints for disabled features — e.g., `attribution.enabled: true` to enable git-blame provenance.
+Team tip: Commit `drift.yaml` → CI enforces the same thresholds. Inspect with `drift config show --repo .`.
 
 📖 [Profile gallery with full details →](https://mick-gsk.github.io/drift/guides/configuration-profiles/) · [Configuration reference →](https://mick-gsk.github.io/drift/getting-started/configuration/)
 
@@ -357,9 +343,7 @@ thresholds:
 drift trend              # shows score evolution over recent commits
 ```
 
-**Example outcome:** *"Score dropped from 12.5 → 8.3 in 4 weeks — 3 PFS and 1 AVS finding resolved, CI gate tightened from 12.0 to 9.0."*
-
-> **Tip:** The GitHub Action exposes `drift-score` as a step output — pipe it to a dashboard or Slack webhook for team visibility.
+**Example outcome:** *"Score dropped from 12.5 → 8.3 in 4 weeks — 3 PFS and 1 AVS finding resolved, CI gate tightened from 12.0 to 9.0."* The GitHub Action exposes `drift-score` as a step output — pipe it to a dashboard or Slack webhook.
 
 ---
 
