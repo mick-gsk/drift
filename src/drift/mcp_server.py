@@ -1918,7 +1918,7 @@ async def drift_retrieve(
     carries a stable ``fact_id`` and ``sha256`` anchor for verbatim citation;
     see ``drift_cite`` to expand a fact_id to its full text.
     """
-    from drift.mcp_router_retrieval import run_retrieve
+    from drift.retrieval.mcp import run_retrieve
 
     return await run_retrieve(
         path=path,
@@ -1954,7 +1954,7 @@ async def drift_cite(
     ``decisions/fact_id_migrations.jsonl``. Use the returned text verbatim
     when grounding claims about drift in agent responses.
     """
-    from drift.mcp_router_retrieval import run_cite
+    from drift.retrieval.mcp import run_cite
 
     return await run_cite(path=path, fact_id=fact_id)
 

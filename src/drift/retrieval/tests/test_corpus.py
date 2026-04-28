@@ -33,7 +33,8 @@ from drift.retrieval.fact_ids import (
 
 @pytest.fixture(scope="module")
 def repo_root() -> Path:
-    return Path(__file__).resolve().parent.parent
+    # ADR-099: tests live in src/drift/retrieval/tests/, repo root is 4 levels up.
+    return Path(__file__).resolve().parents[4]
 
 
 # --- Fact-ID generators ----------------------------------------------------
