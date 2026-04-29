@@ -227,4 +227,3 @@ def test_cli_kit_init_and_analyze(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     result = runner.invoke(main, ["kit", "init", "--repo", str(tmp_path), "--and-analyze"])
     assert result.exit_code == 0, result.output
     assert any("drift" in str(c) for c in calls)
-

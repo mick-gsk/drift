@@ -7,6 +7,7 @@ repos:
       - id: trailing-whitespace
         exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.)"
       - id: end-of-file-fixer
+        exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.|\\.vscode/drift-session\\.json$|playground/.*\\.tsbuildinfo$)"
       - id: check-yaml
         args: [--allow-multiple-documents, --unsafe]
         exclude: "^conda\\.recipe/"
