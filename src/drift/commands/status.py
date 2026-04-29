@@ -18,7 +18,7 @@ import click
 from drift.commands import console, ok_glyph
 
 
-@click.command("status", short_help="Show repository health as a traffic-light summary.")
+@click.command("status", short_help="Show drift level as a traffic-light summary.")
 @click.option(
     "--repo",
     "-r",
@@ -51,7 +51,10 @@ def status(
     output_json: bool,
     top: int,
 ) -> None:
-    """Show repository health as a traffic-light (green/yellow/red).
+    """Show erosion level as a traffic-light (green/yellow/red).
+
+    Reports erosion patterns, responsibility mixing, and risky change structures —
+    not architectural quality.
 
     Uses plain-language explanations and copy-paste-ready AI prompts for each finding.
 

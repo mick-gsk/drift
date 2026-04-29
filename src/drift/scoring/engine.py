@@ -261,8 +261,8 @@ def composite_score(
 
 # Grade bands: 0 = clean, 1 = maximum drift (inverted: A = best)
 _GRADE_BANDS: tuple[tuple[float, str, str], ...] = (
-    (0.20, "A", "Excellent"),
-    (0.40, "B", "Good"),
+    (0.20, "A", "Minimal Drift"),
+    (0.40, "B", "Low Drift"),
     (0.60, "C", "Moderate Drift"),
     (0.80, "D", "Significant Drift"),
     (1.01, "F", "Critical Drift"),
@@ -276,7 +276,7 @@ def score_to_grade(
 ) -> tuple[str, str]:
     """Map a 0.0–1.0 drift score to a letter grade with description.
 
-    Returns a ``(grade, label)`` tuple, e.g. ``("B", "Good")``.
+    Returns a ``(grade, label)`` tuple, e.g. ``("B", "Low Drift")``.
     Lower scores are better — ``A`` means almost no drift.
 
     The ``grade_bands`` parameter accepts a list of objects with

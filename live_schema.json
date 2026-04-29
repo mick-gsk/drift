@@ -343,7 +343,7 @@
     },
     "GradeBandConfig": {
       "additionalProperties": false,
-      "description": "A single grade band entry for the composite drift score.\n\nGrade bands map score ranges to letter grades and human-readable labels.\nThresholds are evaluated in order; the first entry whose ``threshold``\nexceeds the score is selected.\n\nExample::\n\n    - threshold: 0.20\n      grade: A\n      label: \"Excellent\"",
+      "description": "A single grade band entry for the composite drift score.\n\nGrade bands map score ranges to letter grades and human-readable labels.\nThresholds are evaluated in order; the first entry whose ``threshold``\nexceeds the score is selected.\n\nExample::\n\n    - threshold: 0.20\n      grade: A\n      label: \"Minimal Drift\"",
       "properties": {
         "threshold": {
           "description": "Upper boundary (exclusive) for this grade.",
@@ -357,7 +357,7 @@
           "type": "string"
         },
         "label": {
-          "description": "Human-readable label, e.g. 'Excellent'.",
+          "description": "Human-readable label, e.g. 'Minimal Drift'.",
           "title": "Label",
           "type": "string"
         }

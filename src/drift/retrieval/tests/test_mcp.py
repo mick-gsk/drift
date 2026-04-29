@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
+from typing import Any, Coroutine, cast
 
 import pytest
 
@@ -23,8 +24,8 @@ def _isolate_engine_cache() -> None:
     clear_engine_cache()
 
 
-def _call(coro: asyncio.Future[str]) -> dict:  # type: ignore[type-arg]
-    return json.loads(asyncio.run(coro))
+def _call(coro: Coroutine[Any, Any, str]) -> dict[str, Any]:
+    return cast(dict[str, Any], json.loads(asyncio.run(coro)))
 
 
 def test_retrieve_happy_path(repo_root: Path) -> None:
