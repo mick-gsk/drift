@@ -1,27 +1,15 @@
 ## [2.48.1] - 2026-04-29
 
-Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
+Short version: PFS/MDS/EDS finding messages enriched with boundary vocabulary and change-cost language; drift-kit multi-agent support; pre-push hook hardening.
 
 ### Added
-- enrich PFS/MDS/EDS finding messages with boundary vocabulary and change-cost language
-
-### Fixed (pre-push hook hardening)
-- `DRIFT_SKIP_HOOKS=1` no longer falls through to the SHA-cache CI bypass; restructured to `exit 0` immediately after logging the skip to `.git/.drift-skip-log`.
-- Added `DRIFT_SKIP_STUDY_FRESHNESS=1` escape hatch for Study.md freshness gate; documented in header.
-- Added `DRIFT_SKIP_VERSION_SYNC=1` and SHA-cache-reset hint to escape-hatch header block.
-- Version extraction in version-bump gate now strips CRLF via `tr -d '\r'` to prevent silent failures on Windows.
-- ruff (step 2), mypy (step 3), and pytest (step 4) now skip automatically when push contains no `src/` or `tests/` changes.
-- Auto-repair commit (`chore: sync version refs`) is no longer silent; SHA cache is refreshed immediately after.
-- Improved actionable error messages for changelog, docstring, version-bump, and Python-not-found gates.
-
-### Added
-- `drift kit init --and-analyze`: runs `drift analyze --repo . --exit-zero` immediately after scaffolding.
-- `drift kit init --agent [cursor|claude|codex|all]`: writes `.cursor/rules/drift.mdc`, appends to `CLAUDE.md`, or appends to `AGENTS.md`; idempotent via `<!-- drift-kit -->` marker.
-- `/drift-feature-guardrails` slash command: new prompt template for pre-coding risk assessment mapping features to drift signals.
-- Improved missing-session guidance in all drift-kit templates: exact `drift analyze` command + MCP `drift_scan` fallback.
+- PFS/MDS/EDS finding messages enriched with boundary vocabulary (responsibility/concern) and change-cost language (change propagation/effort); 8 smoke-check tests in `tests/test_finding_message_quality.py`.
+- `drift kit init --and-analyze`: runs `drift analyze` immediately after scaffolding; `--agent [cursor|claude|codex|all]` writes agent-specific config files.
+- `/drift-feature-guardrails` slash command for pre-coding risk assessment; improved missing-session guidance in kit templates.
 
 ### Fixed
-- `record_feedback()` now accepts `max_feedback_events` for FIFO capping (FR-011b); `subprocess.run()` in kit_cmd sets `stdin=DEVNULL` for MCP stdio safety.
+- Pre-push hook: `DRIFT_SKIP_HOOKS=1` exits immediately; added `DRIFT_SKIP_STUDY_FRESHNESS=1` and `DRIFT_SKIP_VERSION_SYNC=1` escape hatches; ruff/mypy/pytest skip when no `src/`or `tests/` changes.
+- `record_feedback()` supports `max_feedback_events` FIFO cap; `subprocess.run()` in kit_cmd sets `stdin=DEVNULL`.
 
 ## [2.47.1] - 2026-04-27
 
