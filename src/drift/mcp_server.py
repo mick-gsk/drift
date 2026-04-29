@@ -32,11 +32,11 @@ Tool surface (v3 — sessions):
     drift_capture_intent  — Extract and persist a structured intent from user input
     drift_verify_intent   — Verify a build artifact against a captured intent
     drift_feedback_for_agent — Prioritised action list from verify state
-    drift_task_claim      — (deprecated) Claim a task from the fix-plan queue
-    drift_task_renew      — (deprecated) Extend an active task lease
-    drift_task_release    — (deprecated) Release a claimed task
-    drift_task_complete   — (deprecated) Mark a claimed task as completed
-    drift_task_status     — (deprecated) Show full task queue status
+    drift_task_claim      — (deprecated, unregistered) Claim a task from the fix-plan queue
+    drift_task_renew      — (deprecated, unregistered) Extend an active task lease
+    drift_task_release    — (deprecated, unregistered) Release a claimed task
+    drift_task_complete   — (deprecated, unregistered) Mark a claimed task as completed
+    drift_task_status     — (deprecated, unregistered) Show full task queue status
 
 Decision: ADR-022
 Refactored: Issue #378 — business logic extracted to router modules
@@ -1045,10 +1045,11 @@ async def drift_session_end(
 # ---------------------------------------------------------------------------
 # MCP Tools — Task-queue leasing (multi-agent coordination)
 # DEPRECATED: These tools will be removed in v3.0.
+# Removed from @mcp.tool() registration to reduce default MCP surface (Issue #545).
+# The underlying functions remain callable for backward compatibility.
 # ---------------------------------------------------------------------------
 
 
-@mcp.tool()  # drift:ignore[DCA]
 async def drift_task_claim(
     session_id: Annotated[
         str, Field(description="The active session ID from drift_session_start.")
@@ -1081,7 +1082,6 @@ async def drift_task_claim(
     )
 
 
-@mcp.tool()  # drift:ignore[DCA]
 async def drift_task_renew(
     session_id: Annotated[
         str, Field(description="The active session ID from drift_session_start.")
@@ -1108,7 +1108,6 @@ async def drift_task_renew(
     )
 
 
-@mcp.tool()  # drift:ignore[DCA]
 async def drift_task_release(
     session_id: Annotated[
         str, Field(description="The active session ID from drift_session_start.")
@@ -1135,7 +1134,6 @@ async def drift_task_release(
     )
 
 
-@mcp.tool()  # drift:ignore[DCA]
 async def drift_task_complete(
     session_id: Annotated[
         str, Field(description="The active session ID from drift_session_start.")
@@ -1167,7 +1165,6 @@ async def drift_task_complete(
     )
 
 
-@mcp.tool()  # drift:ignore[DCA]
 async def drift_task_status(
     session_id: Annotated[
         str, Field(description="The active session ID from drift_session_start.")
@@ -1974,11 +1971,9 @@ _EXPORTED_MCP_TOOLS = (
     drift_session_status,
     drift_session_update,
     drift_session_end,
-    drift_task_claim,
-    drift_task_renew,
-    drift_task_release,
-    drift_task_complete,
-    drift_task_status,
+    # drift_task_claim, drift_task_renew, drift_task_release, drift_task_complete,
+    # drift_task_status removed from MCP surface (Issue #545). Functions remain
+    # callable for backward compatibility; will be deleted in v3.0.
     drift_session_trace,
     drift_map,
     drift_guard_contract,
