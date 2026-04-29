@@ -2,6 +2,9 @@
 
 Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
 
+### Added
+- enrich PFS/MDS/EDS finding messages with boundary vocabulary and change-cost language
+
 ### Fixed (pre-push hook hardening)
 - `DRIFT_SKIP_HOOKS=1` no longer falls through to the SHA-cache CI bypass; restructured to `exit 0` immediately after logging the skip to `.git/.drift-skip-log`.
 - Added `DRIFT_SKIP_STUDY_FRESHNESS=1` escape hatch for Study.md freshness gate; documented in header.
