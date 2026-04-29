@@ -729,14 +729,14 @@ class GradeBandConfig(BaseModel):
 
         - threshold: 0.20
           grade: A
-          label: "Excellent"
+          label: "Minimal Drift"
     """
 
     model_config = ConfigDict(extra="forbid")
 
     threshold: float = Field(gt=0.0, description="Upper boundary (exclusive) for this grade.")
     grade: str = Field(description="Letter grade, e.g. 'A', 'B', …, 'F'.")
-    label: str = Field(description="Human-readable label, e.g. 'Excellent'.")
+    label: str = Field(description="Human-readable label, e.g. 'Minimal Drift'.")
 
 
 class ScoringConfig(BaseModel):
@@ -775,8 +775,8 @@ class ScoringConfig(BaseModel):
     )
     grade_bands: list[GradeBandConfig] = Field(
         default_factory=lambda: [
-            GradeBandConfig(threshold=0.20, grade="A", label="Excellent"),
-            GradeBandConfig(threshold=0.40, grade="B", label="Good"),
+            GradeBandConfig(threshold=0.20, grade="A", label="Minimal Drift"),
+            GradeBandConfig(threshold=0.40, grade="B", label="Low Drift"),
             GradeBandConfig(threshold=0.60, grade="C", label="Moderate Drift"),
             GradeBandConfig(threshold=0.80, grade="D", label="Significant Drift"),
             GradeBandConfig(threshold=1.01, grade="F", label="Critical Drift"),

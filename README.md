@@ -571,6 +571,13 @@ Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchm
 many commits and that static analysis, linters, and type checkers cannot see because they
 only look at individual files in isolation.
 
+> **Specifically, drift detects:**
+> - **Erosion** — pattern fragmentation, mutant duplicates, diverging implementations accumulating across commits
+> - **Responsibility mixing** — imports crossing declared layer boundaries
+> - **Risky change structures** — churn hotspots, temporal coupling, high-churn complexity
+>
+> **Drift does not determine whether your architecture is good.** It measures whether it is changing in structurally risky ways.
+
 **Drift is NOT a replacement for:**
 
 | Tool | What it does | Why drift doesn't replace it |
