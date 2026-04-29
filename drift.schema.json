@@ -1214,19 +1214,6 @@
       "default": null,
       "description": "Optional agent objective declaration. Helps drift provide targeted feedback aligned with the agent's task."
     },
-    "artifact_dir": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Redirect all Drift artifact writes outside the analyzed repository. None = in-repo default (current behavior). 'auto' = OS platform default (~/.cache/drift or %LOCALAPPDATA%\\drift). Any other string = explicit absolute or CWD-relative path.",
-      "title": "Artifact Dir"
-    },
     "attribution": {
       "$ref": "#/$defs/AttributionConfig"
     },
