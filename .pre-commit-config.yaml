@@ -5,6 +5,7 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.)"
       - id: end-of-file-fixer
       - id: check-yaml
         args: [--allow-multiple-documents, --unsafe]
@@ -21,7 +22,7 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        exclude: "(^|/)(tests/test_hardcoded_secret\\.py|tests/test_insecure_default\\.py|tests/golden/corpus_snapshot\\.json|tests/golden/corpus_snapshot\\.sarif|tests/fixtures/ground_truth\\.py|src/drift/negative_context\\.py|benchmarks/oracle_repos\\.json|\\.github/instructions/drift-release-automation\\.instructions\\.md|\\.drift-baseline\\.json)$"
+        exclude: "(^|/)(tests/test_hardcoded_secret\\.py|tests/test_insecure_default\\.py|tests/golden/corpus_snapshot\\.json|tests/golden/corpus_snapshot\\.sarif|tests/fixtures/ground_truth\\.py|src/drift/negative_context\\.py|benchmarks/oracle_repos\\.json|\\.github/instructions/drift-release-automation\\.instructions\\.md|\\.drift-baseline\\.json|\\.specify/integrations/(speckit|copilot)\\.manifest\\.json)$"
         args:
           - --baseline
           - .secrets.baseline
