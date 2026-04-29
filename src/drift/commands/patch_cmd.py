@@ -11,7 +11,7 @@ from pathlib import Path
 
 import click
 
-from drift.commands import console
+from drift.commands import console, ok_glyph, warn_glyph
 from drift.commands._io import _emit_machine_output
 
 
@@ -100,7 +100,9 @@ def begin(
     if output_format == "json":
         _emit_machine_output(json.dumps(result, indent=2, default=str), output_file)
     else:
-        console.print(f"[bold green]✓[/bold green] PatchIntent registered for {task_id}")
+        console.print(
+            f"[bold green]{ok_glyph(console)}[/bold green] PatchIntent registered for {task_id}"
+        )
         console.print(f"  Declared files: {', '.join(files)}")
         console.print(f"  Next step: drift patch check --task-id {task_id}")
 
@@ -186,7 +188,7 @@ def check(
         _emit_machine_output(json.dumps(result, indent=2, default=str), output_file)
     else:
         color = "green" if status == "clean" else "yellow"
-        symbol = "✓" if status == "clean" else "⚠"
+        symbol = ok_glyph(console) if status == "clean" else warn_glyph(console)
         console.print(f"[bold {color}]{symbol}[/bold {color}] Patch {status} for {task_id}")
         if result.get("scope_violations"):
             console.print(f"  Scope violations: {', '.join(result['scope_violations'])}")

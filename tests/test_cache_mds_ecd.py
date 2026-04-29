@@ -186,6 +186,8 @@ def test_signal_cache_evicts_old_signals(tmp_path: Path) -> None:
     eight_days_ago = time.time() - 8 * 24 * 3600
     os.utime(stale, (eight_days_ago, eight_days_ago))
 
+    # Reset the eviction throttle so the second init performs the disk scan.
+    SignalCache._last_eviction.pop(cache_dir.as_posix(), None)
     SignalCache(tmp_path)
     assert not stale.exists()
 
@@ -202,6 +204,27 @@ def test_signal_cache_content_hash_for_module_is_deterministic() -> None:
 
     h1 = SignalCache.content_hash_for_module(parse_results, file_hashes)
     h2 = SignalCache.content_hash_for_module(list(reversed(parse_results)), file_hashes)
+    assert h1 == h2
+
+
+def test_signal_cache_content_hash_for_dependencies_ignores_unselected_files() -> None:
+    file_hashes = {
+        "src/a.py": "a" * 32,
+        "README.md": "b" * 32,
+    }
+
+    h1 = SignalCache.content_hash_for_dependencies(
+        file_hashes,
+        selected_paths={"src/a.py"},
+    )
+    h2 = SignalCache.content_hash_for_dependencies(
+        {
+            "src/a.py": "a" * 32,
+            "README.md": "c" * 32,
+        },
+        selected_paths={"src/a.py"},
+    )
+
     assert h1 == h2
 
 

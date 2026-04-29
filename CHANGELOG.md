@@ -1,3 +1,189 @@
+## [2.48.1] - 2026-04-29
+
+Short version: PFS/MDS/EDS finding messages enriched with boundary vocabulary and change-cost language; drift-kit multi-agent support; pre-push hook hardening.
+
+### Added
+- PFS/MDS/EDS finding messages enriched with boundary vocabulary (responsibility/concern) and change-cost language (change propagation/effort); 8 smoke-check tests in `tests/test_finding_message_quality.py`.
+- `drift kit init --and-analyze`: runs `drift analyze` immediately after scaffolding; `--agent [cursor|claude|codex|all]` writes agent-specific config files.
+- `/drift-feature-guardrails` slash command for pre-coding risk assessment; improved missing-session guidance in kit templates.
+
+### Fixed
+- Pre-push hook: `DRIFT_SKIP_HOOKS=1` exits immediately; added `DRIFT_SKIP_STUDY_FRESHNESS=1` and `DRIFT_SKIP_VERSION_SYNC=1` escape hatches; ruff/mypy/pytest skip when no `src/`or `tests/` changes.
+- `record_feedback()` supports `max_feedback_events` FIFO cap; `subprocess.run()` in kit_cmd sets `stdin=DEVNULL`.
+
+## [2.47.1] - 2026-04-27
+
+Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
+
+### Added
+- `drift kit init --and-analyze`: runs `drift analyze --repo . --exit-zero` immediately after scaffolding.
+- `drift kit init --agent [cursor|claude|codex|all]`: writes `.cursor/rules/drift.mdc`, appends to `CLAUDE.md`, or appends to `AGENTS.md`; idempotent via `<!-- drift-kit -->` marker.
+- `/drift-feature-guardrails` slash command: new prompt template for pre-coding risk assessment mapping features to drift signals.
+- Improved missing-session guidance in all drift-kit templates: exact `drift analyze` command + MCP `drift_scan` fallback.
+
+### Fixed
+- `record_feedback()` now accepts `max_feedback_events` for FIFO capping (FR-011b); `subprocess.run()` in kit_cmd sets `stdin=DEVNULL` for MCP stdio safety.
+
+## [2.47.0] - 2026-04-27
+
+Short version: Add `drift kit init` — one-command Copilot Chat bootstrap that scaffolds prompt files and VS Code settings; document in README and vibe-coding guide.
+
+### Added
+- `drift kit init` command: scaffolds `.github/prompts/` (3 slash-command prompt files), merges `chat.promptFilesLocations` into `.vscode/settings.json`, appends `.vscode/drift-session.json` to `.gitignore`. Idempotent; `--force` flag to overwrite prompts.
+- Templates bundled as package data via `importlib.resources` — no external download needed.
+
+### Docs
+- README "Works with" table: `drift kit init` callout; Copilot Chat setup section replaced manual `settings.json` snippet with single command.
+- `examples/vibe-coding` 30-day rollout table: added step 3b for `drift kit init`.
+
+## [2.46.1] - 2026-04-27
+
+Short version: Catch OSError in subprocess git calls for Pyodide/Emscripten compatibility.
+
+### Fixed
+- Catch `OSError` in subprocess git calls so drift works inside Pyodide/Emscripten (browser WASM).
+
+## [2.46.0] - 2026-04-27
+
+Short version: Playground Pyodide runner uses direct scan import and pre-installs gitpython.
+
+### Fixed
+- Use `from drift.api.scan import scan` in playground Pyodide smoke-test to bypass heavy `drift/api/__init__.py` import chain.
+- Pre-install `smmap` and `gitpython` via micropip before `drift-analyzer` to resolve dependencies correctly in Pyodide.
+
+## [2.45.1] - 2026-04-27
+
+Short version: catch OSError in subprocess git calls for Pyodide/Emscripten compatibility
+
+### Fixed
+- catch OSError in subprocess git calls for Pyodide/Emscripten compatibility
+
+## [2.44.5] - 2026-04-27
+
+Short version: Fix playground Pyodide runner: use `from drift.api.scan import scan` instead of `from drift.api import scan` to avoid loading the full API init chain in the browser, and pre-install `gitpython`/`smmap` via micropip before drift-analyzer to prevent dependency resolution failures.
+
+### Fixed
+- use `from drift.api.scan import scan` in playground Pyodide smoke-test and scan script instead of `from drift.api import scan` to bypass the heavy `drift/api/__init__.py` import chain
+- pre-install `smmap` and `gitpython` via micropip before `drift-analyzer` install to ensure the pure-Python git dependency resolves correctly in Pyodide
+
+## [2.44.4] - 2026-04-27
+
+Short version: Coverage measurement is now reliable when running pytest with xdist (`-n N`): `parallel = true` in `[tool.coverage.run]` ensures each worker writes its own `.coverage.*` file so pytest-cov can combine them correctly instead of reporting only one worker's subset (~25%). RESEARCH.md H5 updated with three verified production adversarial scenarios (Issue #543) that partially confirm the hypothesis: `drift_brief` constraints can degrade agent decision quality when the target file is in a deferred pod, an intentionally isolated BIFL module, or a hot-path file with documented no-docstring conventions.
+
+### Fixed
+- enable `parallel = true` in `[tool.coverage.run]` so pytest-xdist workers each produce separate `.coverage.*` files that pytest-cov combines; without this, xdist runs reported ~25% instead of the real ~79%
+- annotate deferred files in `drift_brief` guardrails (`deferred_files_involved`, `deferred_warning`), pre-warm nudge baseline in `session_start` autopilot (`nudge_ready` flag), and expose `deferred_context` block in `drift_diff` delta counts (#544)
+
+## [2.44.3] - 2026-04-27
+
+Short version: Release housekeeping after DRIFT-3002 (Windows CP1252 ASCII-fallback) and PFS deferred-file filter fix.
+
+## [2.44.2] - 2026-04-26
+
+Short version: The `--quiet` summary line now shows `max_severity` (highest finding severity) instead of `severity` (score-derived grade bucket), eliminating the misleading mismatch when `--fail-on high` exits 1 despite a MEDIUM score-grade. File discovery on post-commit nudge runs is now O(discovered files) instead of O(all repo files): `_enumerate_repo_files` uses `os.walk` with directory pruning, eliminating the 32s discover phase caused by traversing `.venv` and other excluded trees.
+
+### Fixed
+- exclude deferred files (from `deferred:` config block) from PFS variant clustering so deferred-pod routers no longer inflate fragmentation counts or poison `drift_brief` guardrails (#542)
+- replace misleading `severity:` (score-derived bucket) with `max_severity:` (highest finding severity) in `--quiet` summary line for `drift analyze` and `drift check`
+- eliminate directory re-traversal in file discovery (os.walk pruning): replace `Path.glob` loop with `os.walk` + early `dirs[:] = pruned` so excluded trees (`.venv`, `node_modules`) are never descended into, reducing discover-phase latency from ~32s to <1s on repos with large virtual environments
+
+## [2.44.1] - 2026-04-26
+
+Short version: Automated agent routing for bug issues and PR reviews is now active, the v2.43.2 performance note was sharpened with explicit benchmark evidence, and explicit `drift check --diff <sha>` runs now write to a separate history slot to prevent false trend deltas.
+
+### Added
+- automate agent routing for bug issues and PR reviews
+- switch PR agent review to silent mode
+
+### Changed
+- clarified v2.43.2 release notes with concrete benchmark/test evidence for the warm-run optimization
+
+### Fixed
+- isolate explicit `--diff <ref>` history entries (`scope="diff_ref"`) from regular check history (`scope="diff"`) to prevent false trend deltas on clean trees
+
+## [2.43.2] - 2026-04-26
+
+Short version: Warm-run latency down by about one third in steady state: batch L1 cache lookup removes per-file lock overhead, path-context classification is memoized, and cache eviction is throttled to once per 5 minutes.
+
+### Fixed
+- optimize warm-run via batch L1 cache lookup, path-context memo, eviction throttle
+
+### Evidence
+- Release tag benchmark replay (`v2.43.2`, commit `94fd0998b`): `.venv\Scripts\python.exe scripts\benchmark_perf.py . --runs 3 --warmup 1` -> median `3.807s`; steady-state warm runs `3.73s` and `3.81s` (one early outlier run at `15.75s` while caches/index stabilized).
+- Baseline recorded before these fixes in the same session: median `5.77s` with the same benchmark command. This places steady-state improvement at about `34%` (`5.77s -> 3.81s`), with earlier post-fix runs reaching `~36%` (`5.77s -> 3.71s`).
+- Regression-proof for the cache-eviction fix on the release tag: `.venv\Scripts\python.exe -m pytest tests/test_cache_mds_ecd.py -q --tb=short` -> `47 passed in 2.56s`.
+
+## [2.43.1] - 2026-04-26
+
+Short version: Codecov coverage badge now shows real values after repo transfer — switched to OIDC tokenless upload, no token misconfiguration possible.
+
+### Fixed
+- Coverage badge in README no longer shows 0% after repo transfer; upload now uses GitHub OIDC instead of a token that was scoped to the old repo
+- Removed hard dependency on `CODECOV_TOKEN` secret for public-repo coverage reporting
+
+## [2.43.0] - 2026-04-26
+
+Short version: Codecov badge URL updated to newer graph format; upload diagnostics and validation added for observability.
+
+### Changed
+- Badge URL in README updated to the newer Codecov graph endpoint format
+- Coverage upload step now emits verbose diagnostics and validates the XML structure before upload
+- Upload no longer blocks the CI pipeline if Codecov is temporarily unavailable (`fail_ci_if_error=false`)
+
+## [2.42.16] - 2026-04-26
+
+Short version: Warm-run latency down ~20s on large repos: git-history index enabled by default (eliminates full git-log subprocess), orjson for parse-cache reads (3-5x faster deserialization), TS import-graph precomputed once per run, TPD signal skips non-test files, SignalCacheDependencySpec for selective cache invalidation.
+
+### Performance
+- config: `git_history_index_enabled` defaults to `true` — warm runs no longer re-run full `git log` (~12.8s saved); persistent incremental index under `.drift-cache/git_history/`
+- cache: use `orjson` for parse-cache deserialization when available (optional dep `fast-json` extra); stdlib fallback retained (~7.7s saved on 1900+ cached files)
+- ts_architecture: precompute TypeScript import graph once per `analyze()` call instead of 4x independently
+- test_polarity_deficit: `should_process_file()` skips non-test files early
+
+### Added
+- signals: `SignalCacheDependencySpec` frozen dataclass — signals declare which languages/paths affect their cache key for selective invalidation
+- architecture_violation, circular_import, dead_code_accumulation, mutant_duplicates: declare `cache_dependency_spec` with language-scoped repo-wide dependencies
+- pyproject.toml: `fast-json` optional extra (`orjson>=3.9`)
+
+### Fixed
+- .githooks/pre-push: block accidental push to `master` (default branch is `main`)
+
+## [2.42.15] - 2026-04-26
+
+Short version: Add third_party_skills to .gitignore.
+
+### Changed
+- gitignore: add third_party_skills to version control exclusions
+
+## [2.42.14] - 2026-04-26
+
+Short version: Parse cache no longer evicts all entries on every drift version bump; hash loop is now parallelized - cold-start after upgrade drops from ~130s to ~15s on large repos.
+
+### Fixed
+- cache: do not invalidate parse cache on version bump, parallelize hash loop
+- phr: avoid repeated AST reparse on warm runs via internal per-file artifact cache (changed-file-only rebuild)
+
+## [2.42.13] - 2026-04-26
+
+Short version: Non-ASCII arrow character (`→`) in `check_version.py` error output replaced with ASCII `->` to fix `UnicodeEncodeError` on Windows GitHub Actions runners.
+
+### Fixed
+- `scripts/check_version.py`: replaced `→` with `->` in version-mismatch error message to prevent `UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'` on Windows CP1252 runners.
+
+## [2.42.12] - 2026-04-26
+
+Short version: Publish workflow now explicitly fetches the release tag by refspec during `workflow_dispatch` so `check_release_discipline.py` can resolve the tag even with shallow checkouts.
+
+### Fixed
+- `.github/workflows/publish.yml`: added explicit `git fetch origin "refs/tags/${tag}:refs/tags/${tag}"` step after checkout in the `validate-version` job so the tag is always present locally when `workflow_dispatch` is used.
+
+## [2.42.11] - 2026-04-26
+
+Short version: Publish workflow `validate-version` job now sets `fetch-tags: true` on checkout so SemVer tag lineage checks pass during `workflow_dispatch` runs.
+
+### Fixed
+- `.github/workflows/publish.yml`: added `fetch-tags: true` to the `actions/checkout` step in `validate-version` to ensure git tags are available for `check_release_discipline.py`.
+
 ## [2.42.10] - 2026-04-26
 
 Short version: ParseCache eviction is now rate-limited to once per hour (was on every construction); topological signal sort and signal-class split results are cached as process-level singletons, reducing MCP nudge warm-path overhead by ~900x.
@@ -43,12 +229,19 @@ Short version: Three CI failures resolved: Windows mtime flakiness in dismissal 
 - `pyproject.toml`: Added `tree-sitter` and `tree-sitter-typescript` to the `dev` optional-dependency group so TypeScript signal ground-truth tests (`tsb_ts_tp`, etc.) run in all CI matrix jobs.
 - `tests/golden`: Regenerated `corpus_snapshot.json` and `corpus_snapshot.sarif` with forward-slash paths after the mutant-duplicates fix.
 
-## [2.42.3] - 2026-04-24
+## [2.42.14] - 2026-04-26
 
-Short version: Bandit SAST false-positive suppressed; shellcheck SC2012/SC2086/SC2126/SC2129 violations resolved across nine workflow files.
+Short version: Parse cache no longer evicts all entries on every drift version bump; hash loop is now parallelized — cold-start after upgrade drops from ~130s to ~15s on large repos.
 
 ### Fixed
-- Added `# nosec B314` suppression in `scripts/coverage_issue_body.py` for trusted CI-generated XML (bandit SAST gate).
+- cache: do not invalidate parse cache on version bump, parallelize hash loop
+
+## [2.42.13] - 2026-04-26
+
+Short version: Non-ASCII arrow character (`→`) in `check_version.py` error output replaced with ASCII `->` to fix `UnicodeEncodeError` on Windows GitHub Actions runners.
+
+### Fixed
+- `scripts/check_version.py`: replaced `→` with `->` in version-mismatch error message to prevent `UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'` on Windows CP1252 runners.
 - Replaced `ls` with `find` in `self-improvement-loop.yml` DSOL proposal steps (SC2012); quoted `$GITHUB_OUTPUT` in four workflow files (SC2086).
 - Replaced string-accumulation patterns with bash arrays for optional CLI args in `fp-oracle-audit.yml` and `package-kpis.yml` (SC2086).
 - Replaced `grep | wc -l` with `grep -c` in two workflow files (SC2126); grouped redirect chains with `{ ...; } >> file` in three files (SC2129).

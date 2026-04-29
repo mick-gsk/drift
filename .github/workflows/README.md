@@ -32,6 +32,8 @@ The table below documents purpose and when to look at each workflow.
 | mutation-testing.yml | Mutation benchmark for signal recall | scheduled / manual |
 | perf-regression-loop.yml | Performance regression checks on critical paths | scheduled / manual |
 | proactive-qa.yml | Proactive QA checks triggered on code changes | push, pull_request |
+| issue-auto-agent-assign.yml | Auto-assign selected bug issues (excluding good first issue) to Copilot agent flow | issue events (opened/reopened/labeled/unlabeled) |
+| pr-auto-agent-review.yml | Silent auto-review request for Copilot on non-external-contributor PRs | pull_request_target events |
 | issue-claim.yml | Reserve an issue for a contributor | issue comment |
 | issue-claim-timeout.yml | Release unclaimed issues after timeout | scheduled |
 

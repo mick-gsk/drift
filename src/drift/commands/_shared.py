@@ -117,6 +117,7 @@ def render_or_emit_output(
     first_run: bool = False,
     auto_detected_profile: str | None = None,
     auto_detected_file_count: int = 0,
+    drift_kit: dict | None = None,
 ) -> None:
     """Route analysis output to the appropriate format renderer."""
     if output_format == "json":
@@ -129,6 +130,7 @@ def render_or_emit_output(
             drift_score_scope=drift_score_scope,
             language=language,
             group_by=group_by,
+            drift_kit=drift_kit,
         )
         _emit_machine_output(json_text, output_file)
         return

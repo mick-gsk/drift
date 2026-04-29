@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import ClassVar
 
 from drift.config import DriftConfig
 from drift.models import (
@@ -22,7 +23,7 @@ from drift.models import (
     SignalType,
     severity_for_score,
 )
-from drift.signals.base import BaseSignal, register_signal
+from drift.signals.base import BaseSignal, SignalCacheDependencySpec, register_signal
 
 logger = logging.getLogger("drift.ts_arch")
 
@@ -42,6 +43,11 @@ def _repo_path_from_pr(parse_results: list[ParseResult]) -> Path | None:
 @register_signal
 class TypeScriptArchitectureSignal(BaseSignal):
     """Run TS/JS architecture rules and emit findings into the main pipeline."""
+
+    cache_dependency_spec: ClassVar[SignalCacheDependencySpec] = SignalCacheDependencySpec(
+        scope="repo_wide",
+        include_languages=("typescript", "tsx", "javascript", "jsx"),
+    )
 
     @property
     def signal_type(self) -> SignalType:
@@ -65,19 +71,51 @@ class TypeScriptArchitectureSignal(BaseSignal):
             logger.debug("No repo_path available — skipping TS architecture rules.")
             return []
 
+        precomputed_import_graph: dict[str, set[str]] | None = None
+        try:
+            from drift.analyzers.typescript.import_graph import build_relative_import_graph
+
+            precomputed_import_graph = build_relative_import_graph(repo_path)
+        except Exception:
+            logger.debug("Failed to precompute TS import graph; rule runners will self-compute.")
+
+        precomputed_file_to_package: dict[str, str] | None = None
+        try:
+            from drift.analyzers.typescript.workspace_boundaries import (
+                assign_ts_sources_to_workspace_packages,
+            )
+
+            precomputed_file_to_package = assign_ts_sources_to_workspace_packages(repo_path)
+        except Exception:
+            logger.debug(
+                "Failed to precompute TS workspace package mapping;"
+                " cross-package rule will self-compute."
+            )
+
         findings: list[Finding] = []
 
         # --- 1. Circular module detection ---
-        findings.extend(self._run_circular(repo_path))
+        findings.extend(self._run_circular(repo_path, import_graph=precomputed_import_graph))
 
         # --- 2. Cross-package import ban ---
-        findings.extend(self._run_cross_package(repo_path, config))
+        findings.extend(
+            self._run_cross_package(
+                repo_path,
+                config,
+                import_graph=precomputed_import_graph,
+                file_to_package=precomputed_file_to_package,
+            )
+        )
 
         # --- 3. Layer leak detection ---
-        findings.extend(self._run_layer_leak(repo_path, config))
+        findings.extend(
+            self._run_layer_leak(repo_path, config, import_graph=precomputed_import_graph)
+        )
 
         # --- 4. UI-to-infra import ban ---
-        findings.extend(self._run_ui_to_infra(repo_path, config))
+        findings.extend(
+            self._run_ui_to_infra(repo_path, config, import_graph=precomputed_import_graph)
+        )
 
         # Extension point: consume REACT_HOOK patterns from ParseResult.patterns
         # (HOOK_PLACEMENT_VIOLATION, MISSING_DEPENDENCY_ARRAY, STALE_CLOSURE)
@@ -88,7 +126,12 @@ class TypeScriptArchitectureSignal(BaseSignal):
     # Rule runners
     # ------------------------------------------------------------------
 
-    def _run_circular(self, repo_path: Path) -> list[Finding]:
+    def _run_circular(
+        self,
+        repo_path: Path,
+        *,
+        import_graph: dict[str, set[str]] | None = None,
+    ) -> list[Finding]:
         try:
             from drift.rules.tsjs.circular_module_detection import (
                 run_circular_module_detection,
@@ -97,7 +140,7 @@ class TypeScriptArchitectureSignal(BaseSignal):
             return []
 
         findings: list[Finding] = []
-        for raw in run_circular_module_detection(repo_path):
+        for raw in run_circular_module_detection(repo_path, import_graph=import_graph):
             cycle_nodes: list[str] = raw.get("cycle_nodes", [])  # type: ignore[assignment]
             cycle_len: int = raw.get("cycle_length", len(cycle_nodes))  # type: ignore[assignment]
             score = min(1.0, 0.3 + 0.1 * cycle_len)
@@ -123,7 +166,14 @@ class TypeScriptArchitectureSignal(BaseSignal):
             )
         return findings
 
-    def _run_cross_package(self, repo_path: Path, config: DriftConfig) -> list[Finding]:
+    def _run_cross_package(
+        self,
+        repo_path: Path,
+        config: DriftConfig,
+        *,
+        import_graph: dict[str, set[str]] | None = None,
+        file_to_package: dict[str, str] | None = None,
+    ) -> list[Finding]:
         try:
             from drift.rules.tsjs.cross_package_import_ban import (
                 run_cross_package_import_ban,
@@ -139,7 +189,12 @@ class TypeScriptArchitectureSignal(BaseSignal):
             return []
 
         findings: list[Finding] = []
-        for raw in run_cross_package_import_ban(repo_path, config_path):
+        for raw in run_cross_package_import_ban(
+            repo_path,
+            config_path,
+            import_graph=import_graph,
+            file_to_package=file_to_package,
+        ):
             source_file = raw.get("source_file", "")
             target_file = raw.get("target_file", "")
             source_pkg = raw.get("source_package", "?")
@@ -167,7 +222,13 @@ class TypeScriptArchitectureSignal(BaseSignal):
             )
         return findings
 
-    def _run_layer_leak(self, repo_path: Path, config: DriftConfig) -> list[Finding]:
+    def _run_layer_leak(
+        self,
+        repo_path: Path,
+        config: DriftConfig,
+        *,
+        import_graph: dict[str, set[str]] | None = None,
+    ) -> list[Finding]:
         try:
             from drift.rules.tsjs.layer_leak_detection import run_layer_leak_detection
         except ImportError:
@@ -180,7 +241,7 @@ class TypeScriptArchitectureSignal(BaseSignal):
             return []
 
         findings: list[Finding] = []
-        for raw in run_layer_leak_detection(repo_path, config_path):
+        for raw in run_layer_leak_detection(repo_path, config_path, import_graph=import_graph):
             source_file = raw.get("source_file", "")
             target_file = raw.get("target_file", "")
             source_layer = raw.get("source_layer", "?")
@@ -205,7 +266,13 @@ class TypeScriptArchitectureSignal(BaseSignal):
             )
         return findings
 
-    def _run_ui_to_infra(self, repo_path: Path, config: DriftConfig) -> list[Finding]:
+    def _run_ui_to_infra(
+        self,
+        repo_path: Path,
+        config: DriftConfig,
+        *,
+        import_graph: dict[str, set[str]] | None = None,
+    ) -> list[Finding]:
         try:
             from drift.rules.tsjs.ui_to_infra_import_ban import (
                 run_ui_to_infra_import_ban,
@@ -220,7 +287,7 @@ class TypeScriptArchitectureSignal(BaseSignal):
             return []
 
         findings: list[Finding] = []
-        for raw in run_ui_to_infra_import_ban(repo_path, config_path):
+        for raw in run_ui_to_infra_import_ban(repo_path, config_path, import_graph=import_graph):
             source_file = raw.get("source_file", "")
             target_file = raw.get("target_file", "")
             source_layer = raw.get("source_layer", "?")

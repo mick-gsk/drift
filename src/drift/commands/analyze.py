@@ -132,6 +132,7 @@ def _render_analysis_details(
     no_first_run: bool,
     repo: Path,
     show_suppressed: bool,
+    drift_kit: dict | None = None,
 ) -> None:
     """Render full (non-quiet) analysis output: findings, suppression count, recommendations."""
     from drift.commands._shared import render_or_emit_output
@@ -164,6 +165,7 @@ def _render_analysis_details(
         first_run=is_first_run,
         auto_detected_profile=auto_detected_profile,
         auto_detected_file_count=auto_detected_file_count,
+        drift_kit=drift_kit,
     )
     if show_suppressed and analysis.suppressed_count:  # type: ignore[union-attr, attr-defined]
         effective_console.print(
@@ -280,6 +282,19 @@ def _refine_recommendations_with_are(
         )
         refined_recs.append(refine(rec, primary_finding, reward))  # type: ignore[arg-type]
     return refined_recs  # type: ignore[return-value]
+
+
+def _is_copilot_setup_missing(repo: Path) -> bool:
+    """Return True when ``.vscode/settings.json`` lacks ``chat.promptFilesLocations``."""
+    settings_path = repo / ".vscode" / "settings.json"
+    if not settings_path.exists():
+        return True
+    try:
+        import json
+        data = json.loads(settings_path.read_text(encoding="utf-8"))
+        return "chat.promptFilesLocations" not in data
+    except Exception:
+        return True
 
 
 def _run_interactive_review(
@@ -762,18 +777,43 @@ def analyze(
     save_last_scan(analysis, repo, getattr(cfg, "cache_dir", ".drift-cache"))
 
     if quiet:
-        sev = analysis.severity.value.upper()
+        sev = analysis.max_severity.value.upper()
         n = len(analysis.findings)
         grade = analysis.grade[0]
         click.echo(
-            f"score: {analysis.drift_score:.3f}  grade: {grade}  severity: {sev}  findings: {n}"
+            f"score: {analysis.drift_score:.3f}  grade: {grade}  max_severity: {sev}  findings: {n}"
         )
     else:
+        from drift.drift_kit import (
+            build_handoff_block,
+            build_session_data,
+            handoff_to_dict,
+            render_handoff_rich,
+            write_session_file,
+        )
+
+        _ch_session = build_session_data(analysis)  # type: ignore[arg-type]
+        if not output_file:
+            write_session_file(repo, _ch_session)
+        _ch_block = build_handoff_block(_ch_session)
+        _ch_handoff: dict | None = (
+            handoff_to_dict(_ch_block)
+            if output_format == "json" and not output_file
+            else None
+        )
         _render_analysis_details(
             analysis, output_format, compact_json, drift_score_scope, output_file,
             effective_console, max_findings, no_code, response_detail, cfg, group_by,
             sort_by, explain, no_first_run, repo, show_suppressed,
+            drift_kit=_ch_handoff,
         )
+        if output_format == "rich":
+            _copilot_setup_required = _is_copilot_setup_missing(repo)
+            render_handoff_rich(
+                _ch_block,
+                effective_console,
+                setup_required=_copilot_setup_required,
+            )
 
     # Interactive feedback review (--review, TTY-only)
     _run_interactive_review(

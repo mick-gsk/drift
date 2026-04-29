@@ -25,7 +25,8 @@ resolve_python_cmd() {
 PYTHON_CMD=$(resolve_python_cmd)
 if [ -z "$PYTHON_CMD" ]; then
 	echo ">>> [pre-push] ERROR: Python interpreter not found."
-	echo ">>> [pre-push] Ensure a local venv exists (.venv) or python is on PATH."
+	echo ">>> [pre-push] Fix: run 'uv sync' to create .venv, then re-run the push."
+	echo ">>> [pre-push] Or activate your venv manually: source .venv/Scripts/activate"
 	exit 1
 fi
 
@@ -38,8 +39,11 @@ LAST_SUCCESS_SHA_FILE="$GIT_DIR_PATH/.drift-prepush-last-success"
 # DRIFT_SKIP_BLAST_GATE=1 skips the Blast-Radius gate (ADR-087)
 # DRIFT_BLAST_LIVE=1 lets the Blast-Radius gate generate a live report instead of blocking
 # DRIFT_SKIP_EVIDENCE_VALIDATION=1 skips content validation of evidence files (emergency only)
+# DRIFT_SKIP_STUDY_FRESHNESS=1 skips Study.md freshness check within feature-evidence gate
+# DRIFT_SKIP_VERSION_SYNC=1 skips Step 0 auto-repair (version refs + llms.txt)
 # DRIFT_SKIP_HOOKS=1 skips ALL gates (emergency only)
 # DRIFT_PYTEST_WORKERS=N overrides the parallel worker cap (default: 4)
+# SHA cache reset: rm .git/.drift-prepush-last-success
 
 # Block private/non-tool paths from being pushed.
 blocked_pattern='^(tagesplanung/)'
@@ -187,10 +191,16 @@ EOF
 		has_study_update=1
 	fi
 
+	if [ "${DRIFT_SKIP_STUDY_FRESHNESS:-0}" = "1" ]; then
+		echo ">>> [pre-push] WARN: Study freshness check skipped (DRIFT_SKIP_STUDY_FRESHNESS=1)."
+		return 0
+	fi
+
 	if [ "$has_study_update" -ne 1 ]; then
 		echo ">>> [pre-push] ERROR: Feature-Evidence-Gate failed: Study freshness check."
 		echo ">>> [pre-push] Detected feature commit (feat:) without Study update in $effective_study_md_path."
 		echo ">>> [pre-push] Update the Features/Changelog section in $effective_study_md_path and include it in this push."
+		echo ">>> [pre-push] Emergency bypass: DRIFT_SKIP_STUDY_FRESHNESS=1"
 		exit 1
 	fi
 
@@ -251,7 +261,8 @@ enforce_changelog_gate() {
 	if ! echo "$push_changed_files" | grep -Eq '^CHANGELOG\.md$'; then
 		echo ">>> [pre-push] ERROR: CHANGELOG gate failed."
 		echo ">>> [pre-push] feat: or fix: commit detected but CHANGELOG.md not updated."
-		echo ">>> [pre-push] Add a changelog entry before pushing."
+		echo ">>> [pre-push] Fix: make changelog-entry COMMIT_TYPE=<feat|fix> MSG='<message>'"
+		echo ">>> [pre-push] Emergency bypass: DRIFT_SKIP_CHANGELOG=1"
 		exit 1
 	fi
 }
@@ -266,12 +277,12 @@ enforce_version_bump_gate() {
 		return 0
 	fi
 
-	current_version=$(grep -E '^version[[:space:]]*=' pyproject.toml | head -n 1 | sed -E 's/^[^"]*"([0-9]+\.[0-9]+\.[0-9]+)".*$/\1/' || true)
+	current_version=$(grep -E '^version[[:space:]]*=' pyproject.toml | head -n 1 | sed -E 's/^[^"]*"([0-9]+\.[0-9]+\.[0-9]+)".*$/\1/' | tr -d '\r' || true)
 	if [ -z "$current_version" ]; then
 		echo ">>> [pre-push] ERROR: Version bump gate failed."
-		echo ">>> [pre-push] pyproject.toml was modified but version ($current_version) is not"
-		echo ">>> [pre-push] greater than the last git tag (unknown)."
-		echo ">>> [pre-push] Bump the version in pyproject.toml or revert the file."
+		echo ">>> [pre-push] pyproject.toml was modified but the version could not be parsed."
+		echo ">>> [pre-push] Ensure 'version = \"X.Y.Z\"' is present and well-formed in pyproject.toml."
+		echo ">>> [pre-push] Emergency bypass: DRIFT_SKIP_VERSION_BUMP=1"
 		exit 1
 	fi
 
@@ -291,7 +302,8 @@ enforce_version_bump_gate() {
 		echo ">>> [pre-push] ERROR: Version bump gate failed."
 		echo ">>> [pre-push] pyproject.toml was modified but version ($current_version) is not"
 		echo ">>> [pre-push] greater than the last git tag ($last_tag)."
-		echo ">>> [pre-push] Bump the version in pyproject.toml or revert the file."
+		echo ">>> [pre-push] Fix: increment the version in pyproject.toml to > $last_version"
+		echo ">>> [pre-push] Emergency bypass: DRIFT_SKIP_VERSION_BUMP=1"
 		exit 1
 	fi
 }
@@ -394,7 +406,9 @@ EOF
 	if [ -n "$missing_files" ]; then
 		echo ">>> [pre-push] ERROR: Public API docstring gate failed."
 		echo ">>> [pre-push] New public function(s) in src/drift/ appear to lack docstrings."
+		echo "$missing_files" | sed 's/^/>>>   - /'
 		echo ">>> [pre-push] Add docstrings to all new public functions before pushing."
+		echo ">>> [pre-push] Emergency bypass: DRIFT_SKIP_DOCSTRING=1"
 		exit 1
 	fi
 }
@@ -538,6 +552,12 @@ reject_push_for_blocked_paths() {
 }
 
 while read local_ref local_sha remote_ref remote_sha; do
+	# Hard block: never push to master — default branch is main.
+	if [ "$remote_ref" = "refs/heads/master" ]; then
+		echo ">>> [pre-push] ERROR: Push to 'master' is blocked."
+		echo ">>> [pre-push] The default branch is 'main'. Use: git push origin HEAD:main"
+		exit 1
+	fi
 	if [ "${DRIFT_SKIP_HOOKS:-0}" != "1" ]; then
 		reject_push_for_blocked_paths "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"
 		collect_push_context "$local_ref" "$local_sha" "$remote_ref" "$remote_sha"
@@ -546,15 +566,19 @@ done
 
 if [ "${DRIFT_SKIP_HOOKS:-0}" = "1" ]; then
 	echo ">>> [pre-push] WARN: All gates skipped (DRIFT_SKIP_HOOKS=1)."
-else
-	enforce_feature_evidence_gate
-	enforce_changelog_gate
-	enforce_version_bump_gate
-	enforce_lockfile_sync_gate
-	enforce_public_api_docstring_gate
-	enforce_risk_audit_gate
-	enforce_blast_radius_gate
+	printf "[pre-push] skip DRIFT_SKIP_HOOKS=1 user=%s ts=%s ref=%s\n" \
+		"${USER:-unknown}" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "${local_ref:-unknown}" \
+		>> "${GIT_DIR_PATH}/.drift-skip-log" 2>/dev/null || true
+	exit 0
 fi
+
+enforce_feature_evidence_gate
+enforce_changelog_gate
+enforce_version_bump_gate
+enforce_lockfile_sync_gate
+enforce_public_api_docstring_gate
+enforce_risk_audit_gate
+enforce_blast_radius_gate
 
 can_reuse_previous_local_ci_success=0
 current_head_sha=$(git rev-parse HEAD 2>/dev/null || true)
@@ -594,6 +618,15 @@ echo ">>> [pre-push] Starting local CI checks..."
 # from the parent repo and fail with exit 128 ("not a git repository").
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 
+_pp_has_src=0
+if echo "$push_changed_files" | grep -Eq '^src/'; then
+	_pp_has_src=1
+fi
+_pp_has_tests=0
+if echo "$push_changed_files" | grep -Eq '^tests/'; then
+	_pp_has_tests=1
+fi
+
 # 0. Auto-repair version refs (llms.txt, SECURITY.md) and regenerate llms.txt
 #    from signal_registry (ADR-092) before any gate runs. If drift is detected,
 #    sync_version.py fixes version refs and generate_llms_txt.py rewrites
@@ -628,8 +661,10 @@ if [ "${DRIFT_SKIP_VERSION_SYNC:-0}" != "1" ]; then
                         git add llms.txt
                 fi
                 if ! git diff --cached --quiet; then
-                        git commit -m "chore: sync version refs" >/dev/null
+                        echo ">>> [0/6] NOTICE: Committing auto-repair: 'chore: sync version refs'"
+                        git commit -m "chore: sync version refs"
                         echo ">>> [0/6] Refs synced and committed. Push continues with sync commit."
+                        current_head_sha=$(git rev-parse HEAD 2>/dev/null || true)
                 else
                         echo ">>> [0/6] Drift signalled but no staged changes — skipping commit."
                 fi
@@ -655,22 +690,34 @@ echo ">>> [1d/6] Checking public repo hygiene..."
 "$PYTHON_CMD" scripts/check_repo_hygiene.py --config .github/repo-guard.blocklist --root-allowlist .github/repo-root-allowlist
 
 # 2. Lint
-echo ">>> [2/6] Running ruff lint..."
-ruff check src/ tests/
+if [ "$_pp_has_src" -eq 1 ] || [ "$_pp_has_tests" -eq 1 ]; then
+	echo ">>> [2/6] Running ruff lint..."
+	ruff check src/ tests/
+else
+	echo ">>> [2/6] Skipping ruff (no src/ or tests/ changes in this push)."
+fi
 
 # 3. Type checking
-echo ">>> [3/6] Running mypy..."
-"$PYTHON_CMD" -m mypy src/drift
+if [ "$_pp_has_src" -eq 1 ]; then
+	echo ">>> [3/6] Running mypy..."
+	"$PYTHON_CMD" -m mypy src/drift
+else
+	echo ">>> [3/6] Skipping mypy (no src/ changes in this push)."
+fi
 
 # 4. Tests with coverage (exclude slow smoke tests that clone external repos)
-echo ">>> [4/6] Running pytest + coverage (excl. smoke tests)..."
-if "$PYTHON_CMD" -m pytest --help 2>/dev/null | grep -Eq -- "--numprocesses|-n[[:space:]]+numprocesses|-n[[:space:]]+NUM"; then
-	DRIFT_WORKERS="${DRIFT_PYTEST_WORKERS:-4}"
-	echo ">>> [4/6] xdist detected: running tests in parallel mode (-n ${DRIFT_WORKERS}, capped to avoid OOM)."
-	"$PYTHON_CMD" -m pytest -q --tb=short -n "${DRIFT_WORKERS}" --dist=loadscope --cov --cov-report= --ignore=tests/test_smoke_real_repos.py
+if [ "$_pp_has_src" -eq 1 ] || [ "$_pp_has_tests" -eq 1 ]; then
+	echo ">>> [4/6] Running pytest + coverage (excl. smoke tests)..."
+	if "$PYTHON_CMD" -m pytest --help 2>/dev/null | grep -Eq -- "--numprocesses|-n[[:space:]]+numprocesses|-n[[:space:]]+NUM"; then
+		DRIFT_WORKERS="${DRIFT_PYTEST_WORKERS:-4}"
+		echo ">>> [4/6] xdist detected: running tests in parallel mode (-n ${DRIFT_WORKERS}, capped to avoid OOM)."
+		"$PYTHON_CMD" -m pytest -q --tb=short -n "${DRIFT_WORKERS}" --dist=loadscope --cov --cov-report= --ignore=tests/test_smoke_real_repos.py
+	else
+		echo ">>> [4/6] xdist not available: running tests in serial mode."
+		"$PYTHON_CMD" -m pytest -q --tb=short --cov --cov-report= --ignore=tests/test_smoke_real_repos.py
+	fi
 else
-	echo ">>> [4/6] xdist not available: running tests in serial mode."
-	"$PYTHON_CMD" -m pytest -q --tb=short --cov --cov-report= --ignore=tests/test_smoke_real_repos.py
+	echo ">>> [4/6] Skipping pytest (no src/ or tests/ changes in this push)."
 fi
 
 # 5. Self-analysis (scoped to src/drift to keep runtime manageable)

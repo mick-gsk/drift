@@ -100,8 +100,8 @@ def check_tag_against_pyproject(tag: str, pyproject_version: str) -> None:
     if tag_version != pyproject_version:
         _fail(
             f"Version mismatch:\n"
-            f"         git tag    → {tag}  (implies {tag_version})\n"
-            f"         pyproject  → {pyproject_version}\n"
+            f"         git tag    -> {tag}  (implies {tag_version})\n"
+            f"         pyproject  -> {pyproject_version}\n"
             "       Update pyproject.toml to match the tag before releasing:\n"
             f'         version = "{tag_version}"'
         )

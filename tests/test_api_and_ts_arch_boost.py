@@ -50,7 +50,7 @@ def test_ts_architecture_signal_paths(monkeypatch: pytest.MonkeyPatch, tmp_path:
     # Success paths for all rule runners via monkeypatched modules
     monkeypatch.setattr(
         "drift.rules.tsjs.circular_module_detection.run_circular_module_detection",
-        lambda _repo: [{"cycle_nodes": ["src/a.ts", "src/b.ts"], "cycle_length": 2}],
+        lambda _repo, **_kwargs: [{"cycle_nodes": ["src/a.ts", "src/b.ts"], "cycle_length": 2}],
     )
 
     cfg_dir = tmp_path / ".drift"
@@ -61,7 +61,7 @@ def test_ts_architecture_signal_paths(monkeypatch: pytest.MonkeyPatch, tmp_path:
 
     monkeypatch.setattr(
         "drift.rules.tsjs.cross_package_import_ban.run_cross_package_import_ban",
-        lambda _repo, _cfg: [
+        lambda _repo, _cfg, **_kwargs: [
             {
                 "source_file": "src/x.ts",
                 "target_file": "src/y.ts",
@@ -72,7 +72,7 @@ def test_ts_architecture_signal_paths(monkeypatch: pytest.MonkeyPatch, tmp_path:
     )
     monkeypatch.setattr(
         "drift.rules.tsjs.layer_leak_detection.run_layer_leak_detection",
-        lambda _repo, _cfg: [
+        lambda _repo, _cfg, **_kwargs: [
             {
                 "source_file": "src/ui.ts",
                 "target_file": "src/dom.ts",
@@ -83,7 +83,7 @@ def test_ts_architecture_signal_paths(monkeypatch: pytest.MonkeyPatch, tmp_path:
     )
     monkeypatch.setattr(
         "drift.rules.tsjs.ui_to_infra_import_ban.run_ui_to_infra_import_ban",
-        lambda _repo, _cfg: [
+        lambda _repo, _cfg, **_kwargs: [
             {
                 "source_file": "src/ui.ts",
                 "target_file": "src/infra.ts",
@@ -120,6 +120,89 @@ def test_ts_architecture_rule_runner_importerror_paths(
     assert signal._run_cross_package(tmp_path, SimpleNamespace()) == []
     assert signal._run_layer_leak(tmp_path, SimpleNamespace()) == []
     assert signal._run_ui_to_infra(tmp_path, SimpleNamespace()) == []
+
+
+def test_ts_architecture_reuses_precomputed_graph_and_package_map(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import drift.signals.ts_architecture as mod
+
+    signal = mod.TypeScriptArchitectureSignal(repo_path=tmp_path)
+
+    cfg_dir = tmp_path / ".drift"
+    cfg_dir.mkdir(parents=True)
+    (cfg_dir / "cross_package_import_ban.json").write_text("{}", encoding="utf-8")
+    (cfg_dir / "layer_leak_detection.json").write_text("{}", encoding="utf-8")
+    (cfg_dir / "ui_to_infra_import_ban.json").write_text("{}", encoding="utf-8")
+
+    sentinel_graph: dict[str, set[str]] = {"src/a.ts": {"src/b.ts"}}
+    sentinel_packages = {"src/a.ts": "root", "src/b.ts": "root"}
+
+    monkeypatch.setattr(
+        "drift.analyzers.typescript.import_graph.build_relative_import_graph",
+        lambda _repo: sentinel_graph,
+    )
+    monkeypatch.setattr(
+        "drift.analyzers.typescript.workspace_boundaries.assign_ts_sources_to_workspace_packages",
+        lambda _repo: sentinel_packages,
+    )
+
+    observed: list[tuple[str, bool, bool]] = []
+
+    def _circular(_repo, *, import_graph=None):
+        observed.append(("circular", import_graph is sentinel_graph, True))
+        return []
+
+    def _cross(_repo, _cfg, *, import_graph=None, file_to_package=None):
+        observed.append(
+            (
+                "cross",
+                import_graph is sentinel_graph,
+                file_to_package is sentinel_packages,
+            )
+        )
+        return []
+
+    def _layer(_repo, _cfg, *, import_graph=None):
+        observed.append(("layer", import_graph is sentinel_graph, True))
+        return []
+
+    def _ui(_repo, _cfg, *, import_graph=None):
+        observed.append(("ui", import_graph is sentinel_graph, True))
+        return []
+
+    monkeypatch.setattr(
+        "drift.rules.tsjs.circular_module_detection.run_circular_module_detection",
+        _circular,
+    )
+    monkeypatch.setattr(
+        "drift.rules.tsjs.cross_package_import_ban.run_cross_package_import_ban",
+        _cross,
+    )
+    monkeypatch.setattr(
+        "drift.rules.tsjs.layer_leak_detection.run_layer_leak_detection",
+        _layer,
+    )
+    monkeypatch.setattr(
+        "drift.rules.tsjs.ui_to_infra_import_ban.run_ui_to_infra_import_ban",
+        _ui,
+    )
+
+    out = signal.analyze(
+        [ParseResult(file_path=Path("src/app.ts"), language="typescript")],
+        {},
+        SimpleNamespace(),
+    )
+
+    assert out == []
+    assert [name for name, _graph_ok, _extra_ok in observed] == [
+        "circular",
+        "cross",
+        "layer",
+        "ui",
+    ]
+    assert all(graph_ok for _name, graph_ok, _extra_ok in observed)
+    assert all(extra_ok for _name, _graph_ok, extra_ok in observed)
 
 
 def test_api_explain_paths(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

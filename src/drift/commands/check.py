@@ -10,6 +10,7 @@ from typing import Literal, cast
 import click
 from rich.console import Console
 
+from drift.commands import fail_glyph, ok_glyph
 from drift.commands._shared import (
     apply_baseline_filtering,
     apply_signal_filtering,
@@ -33,7 +34,7 @@ def _print_check_result(
     if not severity_gate_pass(analysis.findings, threshold):
         if not quiet:
             effective_console.print(
-                f"\n[bold red]✗ Drift check failed:[/bold red] "
+                f"\n[bold red]{fail_glyph(effective_console)} Drift check failed:[/bold red] "
                 f"findings at or above '{threshold}' severity.",
             )
         if not exit_zero:
@@ -42,7 +43,8 @@ def _print_check_result(
 
     if not quiet:
         effective_console.print(
-            f"\n[bold green]✓ Drift check passed[/bold green] (threshold: {threshold}).",
+            f"\n[bold green]{ok_glyph(effective_console)} Drift check passed"
+            f"[/bold green] (threshold: {threshold}).",
         )
         if not analysis.findings and diff_ref == "HEAD~1":
             from rich.panel import Panel
@@ -104,7 +106,7 @@ def _apply_trend_gate(
         f"{decision.window_commits} commits without remediation activity."
     )
     if output_format == "rich" and not quiet:
-        effective_console.print(f"\n[bold red]✗ {message}[/bold red]")
+        effective_console.print(f"\n[bold red]{fail_glyph(effective_console)} {message}[/bold red]")
     else:
         click.echo(f"drift check: FAILED — {message}", err=True)
     return True, decision.reason
@@ -123,7 +125,16 @@ def _apply_trend_gate(
     default=None,
     help="Restrict analysis to a subdirectory.",
 )
-@click.option("--diff", "diff_ref", default="HEAD~1", help="Git ref to diff against.")
+@click.option(
+    "--diff",
+    "diff_ref",
+    default=None,
+    help=(
+        "Git ref to diff against (default: HEAD~1). "
+        "Explicit refs use a separate history slot to avoid "
+        "contaminating regular check trends."
+    ),
+)
 @click.option(
     "--fail-on",
     type=click.Choice(["critical", "high", "medium", "low", "none"]),
@@ -260,7 +271,7 @@ def _apply_trend_gate(
 def check(
     repo: Path,
     target_path: str | None,
-    diff_ref: str,
+    diff_ref: str | None,
     fail_on: str | None,
     output_format: str,
     exit_zero: bool,
@@ -325,6 +336,11 @@ def check(
     threshold = fail_on or cfg.severity_gate()
 
     effective_since = since_days if since_days is not None else 90
+    # Explicit --diff <ref> uses a separate history slot ("diff_ref") so that
+    # one-off audit runs against old SHAs cannot corrupt the trend baseline of
+    # regular drift-check runs (which always use "diff" scope).
+    effective_diff_ref = diff_ref or "HEAD~1"
+    scope = "diff_ref" if diff_ref is not None else "diff"
     status_console = Console(stderr=True) if output_format != "rich" else effective_console
     status_context = (
         nullcontext() if quiet else status_console.status("[bold blue]Checking diff...")
@@ -333,7 +349,8 @@ def check(
         analysis = analyze_diff(
             repo,
             cfg,
-            diff_ref=diff_ref,
+            diff_ref=effective_diff_ref,
+            scope=scope,
             workers=workers,
             since_days=effective_since,
             target_path=target_path,
@@ -343,9 +360,9 @@ def check(
     apply_baseline_filtering(analysis, cfg, baseline_file)
 
     if quiet:
-        sev = analysis.severity.value.upper()
+        sev = analysis.max_severity.value.upper()
         n = len(analysis.findings)
-        click.echo(f"score: {analysis.drift_score:.3f}  severity: {sev}  findings: {n}")
+        click.echo(f"score: {analysis.drift_score:.3f}  max_severity: {sev}  findings: {n}")
     else:
         render_or_emit_output(
             analysis=analysis,
@@ -372,7 +389,7 @@ def check(
         trend_blocked, _trend_reason = _apply_trend_gate(
             repo=repo,
             cfg=cfg,
-            scope="diff",
+            scope=scope,
             effective_console=effective_console,
             quiet=quiet,
             output_format=output_format,
@@ -386,5 +403,5 @@ def check(
         quiet=quiet,
         effective_console=effective_console,
         exit_zero=exit_zero,
-        diff_ref=diff_ref,
+        diff_ref=effective_diff_ref,
     )

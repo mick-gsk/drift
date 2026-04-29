@@ -180,7 +180,7 @@ class DriftConfig(BaseModel):
         ),
     )
     git_history_index_enabled: bool = Field(
-        default=False,
+        default=True,
         description=(
             "Enable persistent incremental git-history index under cache_dir "
             "to avoid full git-log parsing on repeated scans."

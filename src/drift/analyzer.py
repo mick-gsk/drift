@@ -293,6 +293,7 @@ def analyze_diff(
     on_progress: ProgressCallback | None = None,
     since_days: int = 90,
     target_path: str | None = None,
+    scope: str = "diff",
 ) -> RepoAnalysis:
     """Analyze only files changed since a given git ref."""
     logger = logging.getLogger("drift")
@@ -421,7 +422,7 @@ def analyze_diff(
         repo_path,
         config,
         analysis,
-        scope="diff",
+        scope=scope,
     )
 
     return analysis

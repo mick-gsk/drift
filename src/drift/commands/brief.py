@@ -11,6 +11,7 @@ import click
 
 from drift.api import brief as api_brief
 from drift.api import to_json
+from drift.commands import make_console, ok_glyph
 from drift.commands._io import _is_non_tty_stdout, _write_output_file
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 
@@ -204,11 +205,10 @@ def brief(
 
 def _render_rich(result: dict, *, quiet: bool = False) -> None:
     """Render the brief result as a rich terminal table."""
-    from rich.console import Console
     from rich.panel import Panel
     from rich.table import Table
 
-    console = Console()
+    console = make_console()
     risk = result.get("risk", {})
     scope = result.get("scope", {})
     landscape = result.get("landscape", {})
@@ -281,7 +281,10 @@ def _render_rich(result: dict, *, quiet: bool = False) -> None:
             border_style="green",
         ))
     elif not quiet:
-        console.print("[green]✓ Scope is structurally healthy — no guardrails needed.[/green]")
+        console.print(
+            f"[green]{ok_glyph(console)} Scope is structurally healthy"
+            " \u2014 no guardrails needed.[/green]"
+        )
 
     if not quiet:
         console.print(

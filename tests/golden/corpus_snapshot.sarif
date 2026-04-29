@@ -35,7 +35,7 @@
             }
           ],
           "message": {
-            "text": "Exact duplicates (2×): process_order\n2 identical copies (6 lines each) at: src/myapp/service_a.py:4, src/myapp/service_b.py:4. Consider consolidating.\nFIX: Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. | Merge 'process_order' and 'process_order' (across src/myapp/service_a.py and src/myapp/service_b.py)"
+            "text": "Exact duplicates (2×): process_order\n2 identical copies (6 lines each) at: src/myapp/service_a.py:4, src/myapp/service_b.py:4. Duplication across modules indicates a missing shared responsibility boundary — every future change must be applied to all copies.\nFIX: Extract process_order() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. A shared boundary eliminates change p"
           },
           "properties": {
             "drift:findingId": "8625aa2a828b1f22",
@@ -78,7 +78,7 @@
             }
           ],
           "message": {
-            "text": "Exact duplicates (2×): validate_input\n2 identical copies (9 lines each) at: src/myapp/service_a.py:12, src/myapp/service_b.py:12. Consider consolidating.\nFIX: Extract validate_input() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. | Merge 'validate_input' and 'validate_input' (across src/myapp/service_a.py and src/myapp/service_b.py)"
+            "text": "Exact duplicates (2×): validate_input\n2 identical copies (9 lines each) at: src/myapp/service_a.py:12, src/myapp/service_b.py:12. Duplication across modules indicates a missing shared responsibility boundary — every future change must be applied to all copies.\nFIX: Extract validate_input() into src/myapp/shared.py. 2 identical copies (similarity: 1.00). Effort: S. A shared boundary eliminates chan"
           },
           "properties": {
             "drift:findingId": "691c18922f7f91ba",
@@ -121,7 +121,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_postgres ↔ connect_redis\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:17 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_postgres' and 'connect_redis' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_redis\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:17 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change prop"
           },
           "properties": {
             "drift:findingId": "820a8e65ab998031",
@@ -164,7 +164,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_postgres ↔ connect_mongodb\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:26 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_postgres' and 'connect_mongodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_mongodb\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:26 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change pr"
           },
           "properties": {
             "drift:findingId": "0f7bb9eaeb47f108",
@@ -207,7 +207,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_postgres ↔ connect_elasticsearch\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:35 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_postgres' and 'connect_elasticsearch' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_elasticsearch\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:35 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces cha"
           },
           "properties": {
             "drift:findingId": "b5df8789056ee09b",
@@ -250,7 +250,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_postgres ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_postgres' and 'connect_rabbitmq' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:44 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change p"
           },
           "properties": {
             "drift:findingId": "754b1203e21eb193",
@@ -293,7 +293,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_postgres ↔ connect_kafka\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_postgres' and 'connect_kafka' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_kafka\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:53 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change prop"
           },
           "properties": {
             "drift:findingId": "a99e47e5eb84394a",
@@ -336,7 +336,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_postgres ↔ connect_memcached\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_postgres' and 'connect_memcached' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_memcached\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:62 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change "
           },
           "properties": {
             "drift:findingId": "22c8bfa88ac48787",
@@ -379,7 +379,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_postgres ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_postgres' and 'connect_dynamodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_postgres ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:8 and src/myapp/connectors/db.py:71 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_postgres() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change p"
           },
           "properties": {
             "drift:findingId": "130a0abbf31d405c",
@@ -422,7 +422,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_redis ↔ connect_mongodb\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:26 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_redis' and 'connect_mongodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_mongodb\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:26 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propaga"
           },
           "properties": {
             "drift:findingId": "c998397326927045",
@@ -465,7 +465,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_redis ↔ connect_elasticsearch\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:35 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_redis' and 'connect_elasticsearch' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_elasticsearch\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:35 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change p"
           },
           "properties": {
             "drift:findingId": "7dc512630a5e60e7",
@@ -508,7 +508,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_redis ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_redis' and 'connect_rabbitmq' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:44 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propag"
           },
           "properties": {
             "drift:findingId": "05520e88c3da94ef",
@@ -551,7 +551,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_redis ↔ connect_kafka\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_redis' and 'connect_kafka' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_kafka\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:53 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propagati"
           },
           "properties": {
             "drift:findingId": "231c4e17e1985acc",
@@ -594,7 +594,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_redis ↔ connect_memcached\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_redis' and 'connect_memcached' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_memcached\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:62 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propa"
           },
           "properties": {
             "drift:findingId": "61849af6ab5892bf",
@@ -637,7 +637,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_redis ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_redis' and 'connect_dynamodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_redis ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:17 and src/myapp/connectors/db.py:71 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_redis() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propag"
           },
           "properties": {
             "drift:findingId": "1e6d6f1956a62f3d",
@@ -680,7 +680,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_elasticsearch\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:35 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_mongodb' and 'connect_elasticsearch' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_elasticsearch\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:35 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces chan"
           },
           "properties": {
             "drift:findingId": "f0261397ca7f0595",
@@ -723,7 +723,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_mongodb' and 'connect_rabbitmq' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:44 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change pr"
           },
           "properties": {
             "drift:findingId": "6b59800b50140778",
@@ -766,7 +766,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_kafka\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_mongodb' and 'connect_kafka' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_kafka\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:53 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propa"
           },
           "properties": {
             "drift:findingId": "ac982fa72c6f45c3",
@@ -809,7 +809,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_memcached\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_mongodb' and 'connect_memcached' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_memcached\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:62 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change p"
           },
           "properties": {
             "drift:findingId": "fa3739d7bc42864a",
@@ -852,7 +852,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_mongodb' and 'connect_dynamodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_mongodb ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:26 and src/myapp/connectors/db.py:71 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_mongodb() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change pr"
           },
           "properties": {
             "drift:findingId": "50294c057e205990",
@@ -895,7 +895,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:44 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_elasticsearch' and 'connect_rabbitmq' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_rabbitmq\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:44 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduc"
           },
           "properties": {
             "drift:findingId": "da642e7e3c2446b2",
@@ -938,7 +938,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_kafka\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_elasticsearch' and 'connect_kafka' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_kafka\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:53 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces "
           },
           "properties": {
             "drift:findingId": "a351178c36f77ad6",
@@ -981,7 +981,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_memcached\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_elasticsearch' and 'connect_memcached' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_memcached\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:62 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary redu"
           },
           "properties": {
             "drift:findingId": "10f1560d30eeb13f",
@@ -1024,7 +1024,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_elasticsearch' and 'connect_dynamodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_elasticsearch ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:35 and src/myapp/connectors/db.py:71 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_elasticsearch() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduc"
           },
           "properties": {
             "drift:findingId": "342c448c849339b5",
@@ -1067,7 +1067,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_kafka\nsrc/myapp/connectors/db.py:44 and src/myapp/connectors/db.py:53 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_rabbitmq' and 'connect_kafka' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_kafka\nsrc/myapp/connectors/db.py:44 and src/myapp/connectors/db.py:53 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change pro"
           },
           "properties": {
             "drift:findingId": "9741fa4f6361b6b2",
@@ -1110,7 +1110,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_memcached\nsrc/myapp/connectors/db.py:44 and src/myapp/connectors/db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_rabbitmq' and 'connect_memcached' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_memcached\nsrc/myapp/connectors/db.py:44 and src/myapp/connectors/db.py:62 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change"
           },
           "properties": {
             "drift:findingId": "2154372c20851562",
@@ -1153,7 +1153,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:44 and src/myapp/connectors/db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_rabbitmq' and 'connect_dynamodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_rabbitmq ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:44 and src/myapp/connectors/db.py:71 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_rabbitmq() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change "
           },
           "properties": {
             "drift:findingId": "10d0547eaf4047c5",
@@ -1196,7 +1196,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_kafka ↔ connect_memcached\nsrc/myapp/connectors/db.py:53 and src/myapp/connectors/db.py:62 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_kafka' and 'connect_memcached' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_kafka ↔ connect_memcached\nsrc/myapp/connectors/db.py:53 and src/myapp/connectors/db.py:62 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propa"
           },
           "properties": {
             "drift:findingId": "983c0d96b639974b",
@@ -1239,7 +1239,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_kafka ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:53 and src/myapp/connectors/db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_kafka' and 'connect_dynamodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_kafka ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:53 and src/myapp/connectors/db.py:71 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_kafka() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces change propag"
           },
           "properties": {
             "drift:findingId": "da1202423c66d4cd",
@@ -1282,7 +1282,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (90%): connect_memcached ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:62 and src/myapp/connectors/db.py:71 are 90% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract connect_memcached() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. | Merge 'connect_memcached' and 'connect_dynamodb' (in src/myapp/connectors/db.py)"
+            "text": "Near-duplicate (90%): connect_memcached ↔ connect_dynamodb\nsrc/myapp/connectors/db.py:62 and src/myapp/connectors/db.py:71 are 90% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract connect_memcached() into src/myapp/connectors/shared.py. Similarity: 90%. Effort: S. A shared boundary reduces chang"
           },
           "properties": {
             "drift:findingId": "8e2191e9b5c2ad0b",
@@ -1325,7 +1325,7 @@
             }
           ],
           "message": {
-            "text": "Near-duplicate (85%): fetch_user_data ↔ get_customer_info\nsrc/myapp/handler_v1.py:4 and src/myapp/handler_v2.py:4 are 85% similar. Small differences may indicate copy-paste divergence.\nFIX: Extract fetch_user_data() into src/myapp/shared.py. Similarity: 85%. Effort: S. | Merge 'fetch_user_data' and 'get_customer_info' (across src/myapp/handler_v1.py and src/myapp/handler_v2.py)"
+            "text": "Near-duplicate (85%): fetch_user_data ↔ get_customer_info\nsrc/myapp/handler_v1.py:4 and src/myapp/handler_v2.py:4 are 85% similar — coupled copies indicate a shared responsibility without a clear boundary. Changes to one copy may need to propagate to the other.\nFIX: Extract fetch_user_data() into src/myapp/shared.py. Similarity: 85%. Effort: S. A shared boundary reduces change propagation risk. | "
           },
           "properties": {
             "drift:findingId": "929ce0ff61904bb8",
@@ -1368,7 +1368,7 @@
             }
           ],
           "message": {
-            "text": "return_pattern: 2 variants in src/myapp/models/\n2 return_pattern variants in src/myapp/models/ (1/2 use canonical pattern).\n  - src/myapp/models/core.py:25 (Product.find_by_sku)\nFIX: Consolidate to the dominant pattern (1x, exemplar: src/myapp/models/core.py:11). Deviations: src/myapp/models/core.py:25 (Product.find_by_sku). | Consolidate 2 pattern variants in src/myapp/models"
+            "text": "return_pattern: 2 variants in src/myapp/models/\n2 return_pattern variants in src/myapp/models/ (1/2 use canonical pattern). Inconsistent patterns signal a shared concern without a dominant convention — each variant requires separate maintenance effort.\n  - src/myapp/models/core.py:25 (Product.find_by_sku)\nFIX: Consolidate to the dominant pattern (1x, exemplar: src/myapp/models/core.py:11). Deviati"
           },
           "properties": {
             "drift:findingId": "530ccc0485d7bb2c"
@@ -1411,7 +1411,7 @@
             }
           ],
           "message": {
-            "text": "Unexplained complexity: transform_dataset\nComplexity: 29, LOC: 60. No docstring. No corresponding test found. No return type annotation.\nFIX: Function transform_dataset (complexity 29): add Docstring, Tests, Return-Type. | Document 'transform_dataset'"
+            "text": "Unexplained complexity: transform_dataset\nComplexity: 29, LOC: 60. Unexplained complexity increases the cost of change isolation. No docstring. No corresponding test found. No return type annotation.\nFIX: Function transform_dataset (complexity 29): add Docstring, Tests, Return-Type. Documentation reduces the effort required to safely change or extend this function. | Document 'transform_dataset'"
           },
           "properties": {
             "drift:findingId": "74134aa1d7a0f123",
@@ -1442,7 +1442,7 @@
             }
           ],
           "message": {
-            "text": "Unexplained complexity: calculate_pricing\nComplexity: 19, LOC: 49. No docstring. No corresponding test found. No return type annotation.\nFIX: Function calculate_pricing (complexity 19): add Docstring, Tests, Return-Type. | Document 'calculate_pricing'"
+            "text": "Unexplained complexity: calculate_pricing\nComplexity: 19, LOC: 49. Unexplained complexity increases the cost of change isolation. No docstring. No corresponding test found. No return type annotation.\nFIX: Function calculate_pricing (complexity 19): add Docstring, Tests, Return-Type. Documentation reduces the effort required to safely change or extend this function. | Document 'calculate_pricing'"
           },
           "properties": {
             "drift:findingId": "1828ace05c2329eb",
@@ -1473,7 +1473,7 @@
             }
           ],
           "message": {
-            "text": "Unexplained complexity: process_registration\nComplexity: 10, LOC: 25. No docstring. No corresponding test found. No return type annotation.\nFIX: Function process_registration (complexity 10): add Docstring, Tests, Return-Type. | Document 'process_registration'"
+            "text": "Unexplained complexity: process_registration\nComplexity: 10, LOC: 25. Unexplained complexity increases the cost of change isolation. No docstring. No corresponding test found. No return type annotation.\nFIX: Function process_registration (complexity 10): add Docstring, Tests, Return-Type. Documentation reduces the effort required to safely change or extend this function. | Document 'process_regist"
           },
           "properties": {
             "drift:findingId": "c2839d96008ea3dd",

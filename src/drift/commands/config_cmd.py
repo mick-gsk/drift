@@ -9,7 +9,7 @@ from typing import Any
 import click
 from pydantic import ValidationError
 
-from drift.commands import console
+from drift.commands import console, fail_glyph, ok_glyph, warn_glyph
 from drift.config import DriftConfig, build_config_json_schema
 from drift.errors import DriftError
 from drift.profiles import PROFILES
@@ -151,7 +151,7 @@ def validate(repo: str, config_path: str | None) -> None:
 
     if cfg_path is None or not cfg_path.exists():
         console.print("[yellow]No drift config file found — defaults will be used.[/yellow]")
-        console.print("[green]✓[/green] Default configuration is valid.")
+        console.print(f"[green]{ok_glyph(console)}[/green] Default configuration is valid.")
         return
 
     console.print(f"Validating [bold]{cfg_path}[/bold] …")
@@ -159,7 +159,7 @@ def validate(repo: str, config_path: str | None) -> None:
     try:
         cfg = DriftConfig.load(repo_path, cfg_path)
     except DriftError as exc:
-        console.print(f"[red]✗ Configuration invalid:[/red]\n{exc.detail}")
+        console.print(f"[red]{fail_glyph(console)} Configuration invalid:[/red]\n{exc.detail}")
         raise SystemExit(1) from None
     except (ValueError, ValidationError) as exc:
         # Convert Pydantic validation errors into actionable field-level messages
@@ -171,11 +171,11 @@ def validate(repo: str, config_path: str | None) -> None:
                 messages.append(f"  Field '{loc}': {msg}")
             detail = "\n".join(messages)
             console.print(
-                f"[red]✗ Configuration invalid[/red] (DRIFT-1001):\n{detail}\n"
+                f"[red]{fail_glyph(console)} Configuration invalid[/red] (DRIFT-1001):\n{detail}\n"
                 "[dim]Run [bold]drift config validate[/bold] to re-check after editing.[/dim]"
             )
         else:
-            console.print(f"[red]✗ Configuration invalid:[/red]\n{exc}")
+            console.print(f"[red]{fail_glyph(console)} Configuration invalid:[/red]\n{exc}")
         raise SystemExit(1) from None
 
     # Business-rule checks
@@ -210,11 +210,11 @@ def validate(repo: str, config_path: str | None) -> None:
                 )
 
     if warnings:
-        console.print(f"[yellow]⚠ {len(warnings)} warning(s):[/yellow]")
+        console.print(f"[yellow]{warn_glyph(console)} {len(warnings)} warning(s):[/yellow]")
         for w in warnings:
             console.print(f"  • {w}")
     else:
-        console.print("[green]✓[/green] Configuration is valid — no warnings.")
+        console.print(f"[green]{ok_glyph(console)}[/green] Configuration is valid — no warnings.")
 
 
 @config.command()
@@ -268,7 +268,9 @@ def schema(output_path: str | None) -> None:
     if output_path:
         target = Path(output_path)
         target.write_text(f"{rendered}\n", encoding="utf-8")
-        console.print(f"[green]✓[/green] Wrote config schema to [bold]{target}[/bold]")
+        console.print(
+            f"[green]{ok_glyph(console)}[/green] Wrote config schema to [bold]{target}[/bold]"
+        )
         return
 
     click.echo(rendered)

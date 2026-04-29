@@ -13,8 +13,17 @@ coverage:
 
 fixes:
   - "/home/runner/work/drift/drift/::"
-  - "D:\\a\\drift\\drift\\::"
 
 comment:
   layout: "reach,diff,flags"
   behavior: default
+  require_changes: false
+  require_base: false
+  require_head: false
+
+ignore:
+  - "tests"
+  - "docs"
+  - "examples"
+  # ADR-099: Slice-Tests sind Test-Code, kein Production-Code.
+  - "src/drift/*/tests/**"

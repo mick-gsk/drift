@@ -35,10 +35,16 @@ def _load_file_to_layer_mapping(config_path: Path) -> dict[str, str]:
     return file_to_layer
 
 
-def run_ui_to_infra_import_ban(repo_path: Path, config_path: Path) -> list[dict[str, str]]:
+def run_ui_to_infra_import_ban(
+    repo_path: Path,
+    config_path: Path,
+    *,
+    import_graph: dict[str, set[str]] | None = None,
+) -> list[dict[str, str]]:
     """Emit one finding for each direct import from layer ui to layer infra."""
     file_to_layer = _load_file_to_layer_mapping(config_path)
-    import_graph = build_relative_import_graph(repo_path)
+    if import_graph is None:
+        import_graph = build_relative_import_graph(repo_path)
 
     findings: list[dict[str, str]] = []
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "drift-analyzer"
-version = "2.42.10"
+version = "2.48.1"
 description = "Catches structural erosion from AI-generated code — the bugs that pass all your tests"
 readme = "README.md"
 license = "MIT"
@@ -106,6 +106,10 @@ autopatch = [
 watch = [
     "watchfiles>=1.0",
 ]
+# Fast JSON serialization/deserialization for parse cache (optional; stdlib fallback)
+fast-json = [
+    "orjson>=3.9",
+]
 # LLM-backed intent classification via litellm (optional)
 llm = [
     "litellm>=1.0",
@@ -157,7 +161,9 @@ exclude = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# ADR-099: Vertical-Slice-Architektur — Tests werden im Slice-Verzeichnis
+# (src/drift/<slice>/tests/) co-lokalisiert. Beide Pfade werden discovered.
+testpaths = ["tests", "src/drift"]
 pythonpath = ["src"]
 addopts = "--maxfail=1 --timeout=180 --timeout-method=thread"
 markers = [
@@ -172,6 +178,7 @@ markers = [
 [tool.coverage.run]
 source = ["drift"]
 branch = true
+parallel = true
 
 [tool.coverage.paths]
 source = [

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from drift.commands import console
+from drift.commands import console, ok_glyph
 
 
 @click.command("copilot-context")
@@ -134,7 +134,7 @@ def copilot_context(
         json_target.parent.mkdir(parents=True, exist_ok=True)
         json_target.write_text(rendered + "\n", encoding="utf-8")
         console.print(
-            f"[green]✓[/] Written to [bold]{json_target}[/]",
+            f"[green]{ok_glyph(console)}[/] Written to [bold]{json_target}[/]",
             highlight=False,
         )
         return
@@ -159,7 +159,7 @@ def copilot_context(
                 changed = True
             if changed:
                 console.print(
-                    f"[green]✓[/] Written to [bold]{t_path}[/]",
+                    f"[green]{ok_glyph(console)}[/] Written to [bold]{t_path}[/]",
                     highlight=False,
                 )
             else:
@@ -187,7 +187,7 @@ def copilot_context(
 
     if changed:
         console.print(
-            f"[green]✓[/] Written to [bold]{file_target}[/]",
+            f"[green]{ok_glyph(console)}[/] Written to [bold]{file_target}[/]",
             highlight=False,
         )
     else:

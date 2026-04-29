@@ -237,7 +237,7 @@ def _git_repo_prefix(repo_path: Path) -> str:
             return rel + "/"
         except ValueError:
             return ""
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return ""
 
 
@@ -283,7 +283,7 @@ def _run_git_log_cmd(
             timeout=60,
             stdin=subprocess.DEVNULL,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return None
 
     if result.returncode != 0:
@@ -483,7 +483,7 @@ def _git_head_sha(repo_path: Path) -> str | None:
             stdin=subprocess.DEVNULL,
             check=True,
         )
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return None
     head = result.stdout.strip()
     return head or None
@@ -500,7 +500,7 @@ def _is_ancestor(repo_path: Path, older: str, newer: str) -> bool:
             timeout=5,
             stdin=subprocess.DEVNULL,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return False
     return result.returncode == 0
 

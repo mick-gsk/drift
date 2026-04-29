@@ -15,7 +15,7 @@ from pathlib import Path
 import click
 from rich.console import Console
 
-from drift.commands import console
+from drift.commands import console, fail_glyph, ok_glyph
 from drift.commands._io import _emit_machine_output
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 
@@ -129,7 +129,10 @@ def verify(
         if output_format == "json":
             _emit_machine_output(json.dumps(result, indent=2, default=str), output_file)
         else:
-            console.print(f"[bold red]✗ Verify error:[/bold red] {result.get('message', '')}")
+            console.print(
+                f"[bold red]{fail_glyph(console)} Verify error:[/bold red]"
+                f" {result.get('message', '')}"
+            )
         if not exit_zero:
             sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
         return
@@ -160,7 +163,7 @@ def _render_rich_verdict(result: dict, con: Console) -> None:
     if passed:
         con.print(
             Panel(
-                f"[bold green]✓ PASS[/bold green]  —  "
+                f"[bold green]{ok_glyph(con)} PASS[/bold green]  —  "
                 f"No structural coherence degradation detected.\n\n"
                 f"  Score delta: {delta:+.4f}  ({direction})\n"
                 f"  New findings: {introduced}  |  Resolved: {resolved}",
@@ -184,7 +187,7 @@ def _render_rich_verdict(result: dict, con: Console) -> None:
 
         con.print(
             Panel(
-                f"[bold red]✗ FAIL[/bold red]  —  "
+                f"[bold red]{fail_glyph(con)} FAIL[/bold red]  —  "
                 f"{len(blocking)} blocking reason(s) detected.\n\n"
                 f"  Score delta: {delta:+.4f}  ({direction})\n"
                 f"  New findings: {introduced}  |  Resolved: {resolved}",
