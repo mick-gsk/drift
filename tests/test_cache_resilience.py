@@ -99,16 +99,11 @@ def test_parse_cache_version_mismatch_evicts_entry(
     assert not cache_file.exists()
 
 
-def test_parse_cache_drift_version_ignored_on_get(
+def test_parse_cache_drift_version_mismatch_evicts_entry(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """get() returns a hit even when _drift_v doesn't match current version.
-
-    Parse cache entries are keyed by content hash and validated by CACHE_SCHEMA_VERSION
-    only. The drift version tag is stored for diagnostics but does not gate cache
-    validity, so old entries survive minor version upgrades.
-    """
+    """get() must evict and return None when _drift_v doesn't match."""
     import json
 
     cache = ParseCache(tmp_path)
@@ -127,9 +122,8 @@ def test_parse_cache_drift_version_ignored_on_get(
         if bucket is not None:
             bucket.pop(content_hash, None)
 
-    hit = cache.get(content_hash)
-    assert hit is not None
-    assert cache_file.exists()
+    assert cache.get(content_hash) is None
+    assert not cache_file.exists()
 
 
 def test_parse_cache_roundtrip_with_version_tags(tmp_path: Path) -> None:

@@ -243,7 +243,6 @@ def analysis_to_json(
     drift_score_scope: str | None = None,
     language: str | None = None,
     group_by: str | None = None,
-    drift_kit: dict | None = None,
 ) -> str:
     """Serialize a RepoAnalysis to JSON string."""
     # Rank findings by impact (descending) for consumer convenience
@@ -377,9 +376,6 @@ def analysis_to_json(
                 )
                 for f in suppressed_ranked
             ]
-
-    if drift_kit is not None:
-        data["drift_kit"] = drift_kit
 
     return json.dumps(data, indent=indent, default=str, sort_keys=True)
 

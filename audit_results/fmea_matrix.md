@@ -1,20 +1,5 @@
 ﻿# FMEA Matrix
 
-## 2026-04-27 - fix(perf): os.walk pruning eliminates 32s discover-phase on post-commit nudge
-
-| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
-|---|---|---|---|---|---|---:|---:|---:|---:|---|
-| `src/drift/ingestion/file_discovery._enumerate_repo_files` | Full-tree traversal on every post-commit nudge run | `Path.glob("**/*.py")` visits all files (incl. `.venv`, `node_modules`) before per-file exclude check; git-HEAD change invalidates discovery cache on each commit | ~32s discover phase on repos with large virtual environments | `tests/test_file_discovery.py::TestEnumerateRepoPruning` — asserts zero `os.stat` calls inside excluded dirs | Replaced `Path.glob` loop with `os.walk` + `dirs[:] = pruned_dirs` using existing `_matches_any_prepared` helper; excluded directories pruned before descent | 3 | 5 | 2 | 30 | Mitigated |
-| `src/drift/ingestion/file_discovery._matches_include_patterns` | Pattern `src/**/*.py` silently matches nothing on Python < 3.12 | `PurePath.match()` does not support `**` cross-directory semantics before Python 3.12 | Custom `include:` patterns with `**` mid-pattern fail silently, causing 0-file discovery | `tests/test_file_discovery.py::TestDiscoverFiles::test_custom_include_pattern` | Added `_glob_full_match` regex-based fallback triggered when `**` is present and `PurePath.match()` fails | 3 | 3 | 2 | 18 | Mitigated |
-
-
-
-| Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |
-|---|---|---|---|---|---|---:|---:|---:|---:|---|
-| `src/drift/signals/phantom_reference.py` artifact cache | False negative due to stale artifact being reused after source change | Cache key does not include file content hash or schema version | Missing phantom findings in changed files | `tests/test_phantom_reference.py::test_internal_artifact_cache_reparses_only_changed_file` | Cache key binds `file_path + sha256(content)` and `_PHR_ARTIFACT_SCHEMA_VERSION`; changed file forces rebuild | 4 | 2 | 2 | 16 | Mitigated |
-| `src/drift/signals/phantom_reference.py` artifact serialization | False positive/negative from malformed cached import records | Corrupt or incompatible on-disk JSON cache entry | Import-related checks classify names incorrectly | `tests/test_phantom_reference.py` full suite; cache loader schema guard | Strict schema check on load (`_schema_v`), fallback to rebuild on miss/invalid payload | 3 | 2 | 2 | 12 | Mitigated |
-| `src/drift/signals/phantom_reference.py` analysis path | Performance regression reintroduced by AST reparse in hot path | Future edits bypass artifact pipeline and call `ast.parse` in `_analyze_file` again | Repo-wide cache-miss wave returns, latency spikes | `tests/test_phantom_reference.py::test_internal_artifact_cache_avoids_second_ast_parse` | `_analyze_file` now consumes normalized artifact data only; artifact build remains single-parse step | 3 | 3 | 2 | 18 | Mitigated |
-
 ## 2026-04-26 - fix(perf): MCP hot-path caching
 
 | Component | Failure Mode | Cause | Effect | Detection | Mitigation | S | O | D | RPN | Status |

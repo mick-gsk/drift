@@ -1322,7 +1322,7 @@
       "$ref": "#/$defs/GateConfig"
     },
     "git_history_index_enabled": {
-      "default": true,
+      "default": false,
       "description": "Enable persistent incremental git-history index under cache_dir to avoid full git-log parsing on repeated scans.",
       "title": "Git History Index Enabled",
       "type": "boolean"

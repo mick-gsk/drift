@@ -371,8 +371,7 @@ class ExplainabilityDeficitSignal(BaseSignal):
                 ts_ui_high_cap_applied = True
 
             desc_parts = [
-                f"Complexity: {func.complexity}, LOC: {func.loc}. "
-                f"Unexplained complexity increases the cost of change isolation.",
+                f"Complexity: {func.complexity}, LOC: {func.loc}.",
             ]
             if not func.has_docstring and not self_documenting_signature:
                 desc_parts.append("No docstring.")
@@ -395,9 +394,7 @@ class ExplainabilityDeficitSignal(BaseSignal):
             fix = (
                 (
                     f"Function {func.name} (complexity {func.complexity}): "
-                    f"add {', '.join(missing)}. "
-                    f"Documentation reduces the effort required to safely"
-                    f" change or extend this function."
+                    f"add {', '.join(missing)}."
                 )
                 if missing
                 else None

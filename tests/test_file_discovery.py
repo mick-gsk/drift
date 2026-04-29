@@ -11,8 +11,6 @@ files that should be analysed are skipped without warning.
 """
 
 import json
-import os
-from pathlib import Path
 
 import pytest
 
@@ -467,83 +465,4 @@ class TestMtimeFingerprint:
 
         assert count_before == count_after, (
             f"candidate_count grew from {count_before} to {count_after} after adding a symlink"
-        )
-
-
-# ── os.walk directory pruning performance tests ───────────────────────────
-
-
-class TestEnumerateRepoPruning:
-    """Verify that excluded directories are pruned at walk-time (not per-file).
-
-    The key invariant: os.stat / is_file must never be called for files inside
-    an excluded directory.  If glob is used instead of os.walk+pruning, every
-    file inside e.g. .venv is stat'd even though it will be discarded — this is
-    the source of the 32s discovery latency on large repos.
-    """
-
-    def test_excluded_dir_files_not_stat_called(self, tmp_path, monkeypatch):
-        """os.stat must not be called for files inside an excluded directory."""
-        (tmp_path / "app.py").write_text("x = 1", encoding="utf-8")
-        excluded = tmp_path / ".venv" / "lib" / "site-packages" / "pkg"
-        excluded.mkdir(parents=True)
-        for i in range(100):
-            (excluded / f"m{i}.py").write_text("pass", encoding="utf-8")
-
-        stat_paths: list[str] = []
-        real_stat = os.stat
-
-        def _recording_stat(path, **kwargs):  # type: ignore[override]
-            if isinstance(path, (str, os.PathLike)):
-                stat_paths.append(str(path))
-            return real_stat(path, **kwargs)
-
-        monkeypatch.setattr(os, "stat", _recording_stat)
-        monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
-            lambda _repo: None,  # force cache-miss
-        )
-
-        files = discover_files(tmp_path, cache_dir=".no-cache-test")
-        found = {f.path.as_posix() for f in files}
-        assert found == {"app.py"}
-
-        # No stat call should point into .venv
-        venv_stats = [p for p in stat_paths if ".venv" in p]
-        assert venv_stats == [], (
-            f"os.stat was called {len(venv_stats)} time(s) for files inside .venv — "
-            "directory pruning is not working"
-        )
-
-    def test_excluded_dir_large_tree_not_traversed(self, tmp_path, monkeypatch):
-        """A large excluded directory must not be traversed at all (os.walk prunes it)."""
-        (tmp_path / "app.py").write_text("x = 1", encoding="utf-8")
-        # Simulate a large .venv — create one subdir with many files
-        site = tmp_path / ".venv" / "Lib" / "site-packages"
-        site.mkdir(parents=True)
-        for i in range(200):
-            (site / f"pkg{i}.py").write_text("pass", encoding="utf-8")
-
-        visited_dirs: list[str] = []
-        real_walk = os.walk
-
-        def _recording_walk(top, **kwargs):
-            for root, dirs, files in real_walk(top, **kwargs):
-                rel = Path(root).relative_to(tmp_path).as_posix()
-                visited_dirs.append(rel)
-                yield root, dirs, files
-
-        monkeypatch.setattr("drift.ingestion.file_discovery.os.walk", _recording_walk)
-        monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
-            lambda _repo: None,
-        )
-
-        files = discover_files(tmp_path, cache_dir=".no-cache-test2")
-        assert {f.path.as_posix() for f in files} == {"app.py"}
-
-        # .venv subtree must never appear in visited dirs
-        venv_visits = [d for d in visited_dirs if ".venv" in d]
-        assert venv_visits == [], (
-            f"os.walk visited {len(venv_visits)} dir(s) inside .venv: {venv_visits[:5]}"
         )

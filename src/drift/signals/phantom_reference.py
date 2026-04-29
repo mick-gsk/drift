@@ -19,17 +19,15 @@ from __future__ import annotations
 import ast
 import builtins
 import contextlib
-import hashlib
 import importlib
 import importlib.util
-import json
 import logging
 import sys
 import threading
 import types
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, ClassVar, Literal
+from typing import ClassVar, Literal
 
 from drift.config import DriftConfig
 from drift.models import (
@@ -72,56 +70,6 @@ _STDLIB_MODULES: frozenset[str] = frozenset(sys.stdlib_module_names)
 
 # Minimum function count to flag a file (avoids noise on tiny scripts)
 _MIN_CALLS_FOR_FINDING = 1
-_PHR_ARTIFACT_SCHEMA_VERSION = 1
-
-
-def _collect_module_assignments(tree: ast.Module) -> set[str]:
-    """Collect module-level assignment targets that become importable exports."""
-    names: set[str] = set()
-    for node in tree.body:
-        if isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    names.add(target.id)
-        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and isinstance(node.target, ast.Name):
-            names.add(node.target.id)
-    return names
-
-
-def _collect_import_records(tree: ast.Module) -> list[dict[str, Any]]:
-    """Collect normalized import metadata once so checks can avoid AST re-walks."""
-    tc_ids = _collect_type_checking_import_ids(tree)
-    records: list[dict[str, Any]] = []
-
-    for node in ast.walk(tree):
-        if not isinstance(node, (ast.Import, ast.ImportFrom)):
-            continue
-
-        if isinstance(node, ast.Import):
-            records.append(
-                {
-                    "kind": "import",
-                    "module": "",
-                    "names": [alias.name for alias in node.names],
-                    "lineno": node.lineno,
-                    "in_type_checking": id(node) in tc_ids,
-                    "in_import_error_guard": _is_in_try_except_import_error(node, tree),
-                }
-            )
-            continue
-
-        records.append(
-            {
-                "kind": "from",
-                "module": node.module or "",
-                "names": [alias.name for alias in node.names],
-                "lineno": node.lineno,
-                "in_type_checking": id(node) in tc_ids,
-                "in_import_error_guard": _is_in_try_except_import_error(node, tree),
-            }
-        )
-
-    return records
 
 
 # ---------------------------------------------------------------------------
@@ -423,7 +371,7 @@ def _build_project_symbols(
 
 def _build_module_exports(
     parse_results: list[ParseResult],
-    file_artifacts: dict[str, dict[str, Any]] | None = None,
+    repo_path: Path | None = None,
 ) -> dict[str, set[str]]:
     """Map dotted module names to the set of names they export.
 
@@ -448,12 +396,8 @@ def _build_module_exports(
                 if name != "*":
                     exports[mod_name].add(name)
         # Module-level assignments (constants like __version__, console, etc.)
-        if file_artifacts is not None:
-            art = file_artifacts.get(pr.file_path.as_posix())
-            if art is not None:
-                for name in art.get("module_assignments", []):
-                    if isinstance(name, str):
-                        exports[mod_name].add(name)
+        if repo_path is not None:
+            _enrich_exports_from_source(exports[mod_name], pr.file_path, repo_path)
     return dict(exports)
 
 
@@ -474,6 +418,35 @@ def _path_to_module(file_path: Path) -> str:
     if parts[-1] == "__init__":
         parts = parts[:-1]
     return ".".join(parts)
+
+
+def _enrich_exports_from_source(
+    names: set[str],
+    file_path: Path,
+    repo_path: Path,
+) -> None:
+    """Add module-level assignment targets from source code to *names*.
+
+    This captures constants, singletons, and other module-level names
+    that are not function/class definitions but are still importable
+    (e.g. ``console = Console()``, ``__version__ = "1.0"``).
+    """
+    full_path = repo_path / file_path
+    try:
+        source = full_path.read_text(encoding="utf-8", errors="replace")
+        tree = ast.parse(source)
+    except (OSError, SyntaxError):
+        return
+
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    names.add(target.id)
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and isinstance(
+            node.target, ast.Name,
+        ):
+            names.add(node.target.id)
 
 
 # ---------------------------------------------------------------------------
@@ -500,16 +473,6 @@ class PhantomReferenceSignal(BaseSignal):
     def name(self) -> str:
         return "Phantom Reference"
 
-    def __init__(
-        self,
-        *,
-        repo_path: Path | None = None,
-        embedding_service: Any | None = None,
-        commits: list[Any] | None = None,
-    ) -> None:
-        super().__init__(repo_path=repo_path, embedding_service=embedding_service, commits=commits)
-        self._artifact_mem_cache: dict[str, dict[str, Any]] = {}
-
     def analyze(
         self,
         parse_results: list[ParseResult],
@@ -517,19 +480,8 @@ class PhantomReferenceSignal(BaseSignal):
         config: DriftConfig,
     ) -> list[Finding]:
         """Run phantom-reference detection across all Python files."""
-        _ = file_histories
-        python_results = [
-            pr
-            for pr in parse_results
-            if pr.language == "python" and not is_test_file(pr.file_path)
-        ]
-        if not python_results:
-            return []
-
-        artifacts = self._load_artifacts(python_results)
-
         project_symbols = _build_project_symbols(parse_results)
-        module_exports = _build_module_exports(parse_results, artifacts)
+        module_exports = _build_module_exports(parse_results, self.repo_path)
 
         # Build set of root-level project module names for third-party check
         project_modules: set[str] = set()
@@ -538,63 +490,64 @@ class PhantomReferenceSignal(BaseSignal):
             project_modules.add(root)
 
         findings: list[Finding] = []
-        for pr in python_results:
-            artifact = artifacts.get(pr.file_path.as_posix())
-            if artifact is None:
+
+        for pr in parse_results:
+            if pr.language != "python":
                 continue
-            findings.extend(
-                self._analyze_file(
-                    pr,
-                    artifact,
-                    project_symbols,
-                    module_exports,
-                    project_modules,
-                    config,
-                )
+            if is_test_file(pr.file_path):
+                continue
+
+            file_findings = self._analyze_file(
+                pr, project_symbols, module_exports, project_modules, config,
             )
+            findings.extend(file_findings)
 
         return findings
-
-    def should_process_file(self, parse_result: ParseResult) -> bool:
-        """Run PHR only on non-test Python files in file-local cache mode."""
-        return parse_result.language == "python" and not is_test_file(parse_result.file_path)
 
     def _analyze_file(
         self,
         pr: ParseResult,
-        artifact: dict[str, Any],
         project_symbols: set[str],
         module_exports: dict[str, set[str]],
         project_modules: set[str],
         config: DriftConfig,
     ) -> list[Finding]:
         """Analyse a single file for phantom references."""
-        if artifact.get("has_star_import"):
-            return []
-        if artifact.get("has_getattr_module"):
+        # Re-parse the source to get the full AST
+        # (ParseResult only has structured data, not the raw AST)
+        source = self._read_source(pr.file_path)
+        if source is None:
             return []
 
-        used_names: dict[str, list[int]] = {
-            str(name): [int(line) for line in lines]
-            for name, lines in artifact.get("used_names", {}).items()
-            if isinstance(name, str) and isinstance(lines, list)
-        }
-        defined_names: set[str] = {
-            str(name)
-            for name in artifact.get("defined_names", [])
-            if isinstance(name, str)
-        }
+        try:
+            tree = ast.parse(source)
+        except SyntaxError:
+            return []
+
+        # Collect used names
+        name_collector = _NameCollector()
+        name_collector.visit(tree)
+
+        # Bail out for files with star imports or module-level __getattr__
+        if name_collector._has_star_import:
+            return []
+        if name_collector._has_getattr_module:
+            return []
+
+        # Collect locally defined names
+        scope_collector = _ScopeCollector()
+        scope_collector.visit(tree)
 
         # Build the complete available-names set for this file
         available: set[str] = set()
-        available.update(defined_names)
+        available.update(scope_collector.defined_names)
         available.update(_BUILTINS)
         available.update(_FRAMEWORK_GLOBALS)
         available.update(project_symbols)
 
         # Find phantom references (unresolvable names)
         phantoms: list[tuple[str, int]] = []  # (name, first_line)
-        for name, lines in used_names.items():
+        for name, lines in name_collector.used_names.items():
             if name in available:
                 continue
             # Skip dunder names (protocol methods, magic)
@@ -608,19 +561,17 @@ class PhantomReferenceSignal(BaseSignal):
                 continue
             phantoms.append((name, min(lines)))
 
-        import_records = artifact.get("import_records", [])
-
         # Find phantom imports: from <project_module> import <name>
         # where <name> does not exist in that module's known exports
         phantom_imports = self._check_import_from_phantoms(
-            import_records,
-            module_exports,
+            tree, module_exports,
         )
         phantoms.extend(phantom_imports)
 
+        # Find third-party imports that are not installed (ADR-040)
+        tc_ids = _collect_type_checking_import_ids(tree)
         third_party_phantoms = self._check_third_party_imports(
-            import_records,
-            project_modules,
+            tree, project_modules, tc_ids,
         )
         # Deduplicate: skip names already flagged from other checks
         already_flagged = {p[0] for p in phantoms}
@@ -632,8 +583,7 @@ class PhantomReferenceSignal(BaseSignal):
         # Runtime attribute validation (ADR-041, opt-in)
         if config.thresholds.phr_runtime_validation:
             runtime_phantoms = self._check_import_attributes_runtime(
-                import_records,
-                project_modules,
+                tree, project_modules, tc_ids,
             )
             for name, line in runtime_phantoms:
                 if name not in already_flagged:
@@ -702,120 +652,9 @@ class PhantomReferenceSignal(BaseSignal):
         except OSError:
             return None
 
-    def _artifact_cache_dir(self) -> Path | None:
-        """Return on-disk cache directory for PHR file artifacts."""
-        if self.repo_path is None:
-            return None
-        cache_dir = self.repo_path / ".drift-cache" / "phr_artifacts"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        return cache_dir
-
-    def _artifact_cache_key(self, file_path: Path) -> str | None:
-        """Build artifact cache key from the file content hash."""
-        source = self._read_source(file_path)
-        if source is None:
-            return None
-        digest = hashlib.sha256(source.encode("utf-8", errors="replace")).hexdigest()[:32]
-        return f"{file_path.as_posix()}::{digest}"
-
-    def _artifact_cache_path(self, key: str) -> Path | None:
-        """Map an artifact key to its on-disk JSON file path."""
-        cache_dir = self._artifact_cache_dir()
-        if cache_dir is None:
-            return None
-        safe_key = hashlib.sha256(key.encode("utf-8")).hexdigest()[:32]
-        return cache_dir / f"{safe_key}.json"
-
-    def _load_artifacts(self, parse_results: list[ParseResult]) -> dict[str, dict[str, Any]]:
-        """Load per-file artifacts from memory/disk cache or build them on miss."""
-        artifacts: dict[str, dict[str, Any]] = {}
-        for pr in parse_results:
-            file_key = pr.file_path.as_posix()
-            cache_key = self._artifact_cache_key(pr.file_path)
-            if cache_key is None:
-                continue
-
-            mem_key = f"{_PHR_ARTIFACT_SCHEMA_VERSION}:{cache_key}"
-            cached = self._artifact_mem_cache.get(mem_key)
-            if cached is not None:
-                artifacts[file_key] = cached
-                continue
-
-            artifact = self._load_artifact_from_disk(mem_key)
-            if artifact is None:
-                artifact = self._build_file_artifact(pr.file_path)
-                if artifact is None:
-                    continue
-                self._save_artifact_to_disk(mem_key, artifact)
-
-            self._artifact_mem_cache[mem_key] = artifact
-            artifacts[file_key] = artifact
-        return artifacts
-
-    def _load_artifact_from_disk(self, cache_key: str) -> dict[str, Any] | None:
-        """Load a single file artifact from disk cache."""
-        cache_path = self._artifact_cache_path(cache_key)
-        if cache_path is None or not cache_path.exists():
-            return None
-        try:
-            payload = json.loads(cache_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            return None
-        if payload.get("_schema_v") != _PHR_ARTIFACT_SCHEMA_VERSION:
-            return None
-        artifact = payload.get("artifact")
-        if not isinstance(artifact, dict):
-            return None
-        return artifact
-
-    def _save_artifact_to_disk(self, cache_key: str, artifact: dict[str, Any]) -> None:
-        """Persist a single file artifact to disk cache (best effort)."""
-        cache_path = self._artifact_cache_path(cache_key)
-        if cache_path is None:
-            return
-        payload = {
-            "_schema_v": _PHR_ARTIFACT_SCHEMA_VERSION,
-            "artifact": artifact,
-        }
-        try:
-            cache_path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
-        except OSError:
-            return
-
-    def _build_file_artifact(self, file_path: Path) -> dict[str, Any] | None:
-        """Build normalized PHR data from a source file in one AST parse."""
-        source = self._read_source(file_path)
-        if source is None:
-            return None
-
-        try:
-            tree = ast.parse(source)
-        except SyntaxError:
-            return None
-
-        name_collector = _NameCollector()
-        name_collector.visit(tree)
-
-        scope_collector = _ScopeCollector()
-        scope_collector.visit(tree)
-
-        used_names = {
-            name: sorted(set(lines))
-            for name, lines in name_collector.used_names.items()
-        }
-
-        return {
-            "used_names": used_names,
-            "defined_names": sorted(scope_collector.defined_names),
-            "has_star_import": name_collector._has_star_import,
-            "has_getattr_module": name_collector._has_getattr_module,
-            "import_records": _collect_import_records(tree),
-            "module_assignments": sorted(_collect_module_assignments(tree)),
-        }
-
     @staticmethod
     def _check_import_from_phantoms(
-        import_records: list[dict[str, Any]],
+        tree: ast.Module,
         module_exports: dict[str, set[str]],
     ) -> list[tuple[str, int]]:
         """Detect ``from <project_module> import <name>`` where name is absent.
@@ -824,18 +663,17 @@ class PhantomReferenceSignal(BaseSignal):
         Third-party and stdlib modules are NOT checked.
         """
         phantoms: list[tuple[str, int]] = []
-        for record in import_records:
-            if record.get("kind") != "from":
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom):
                 continue
-            mod_name = str(record.get("module") or "")
+            mod_name = node.module or ""
             if mod_name not in module_exports:
                 continue
             known = module_exports[mod_name]
-            lineno = int(record.get("lineno", 1))
-            for imported_name in record.get("names", []):
-                if imported_name == "*":
+            for alias in node.names:
+                if alias.name == "*":
                     continue
-                real_name = str(imported_name)
+                real_name = alias.name
                 if real_name not in known:
                     # Check parent packages (e.g. drift.signals might
                     # re-export from sub-modules)
@@ -847,13 +685,14 @@ class PhantomReferenceSignal(BaseSignal):
                             and real_name in module_exports[parent_mod]
                         ):
                             continue
-                    phantoms.append((real_name, lineno))
+                    phantoms.append((real_name, node.lineno))
         return phantoms
 
     @staticmethod
     def _check_third_party_imports(
-        import_records: list[dict[str, Any]],
+        tree: ast.Module,
         project_modules: set[str],
+        type_checking_ids: set[int] | None = None,
     ) -> list[tuple[str, int]]:
         """Detect imports of third-party packages not installed in the environment.
 
@@ -864,46 +703,55 @@ class PhantomReferenceSignal(BaseSignal):
         Decision: ADR-040
         """
         phantoms: list[tuple[str, int]] = []
-        for record in import_records:
-            if record.get("in_type_checking"):
-                continue
-            if record.get("in_import_error_guard"):
-                continue
+        tc_ids = type_checking_ids or set()
 
-            kind = str(record.get("kind") or "")
-            lineno = int(record.get("lineno", 1))
-
-            modules_to_check: list[str] = []
-            if kind == "import":
-                modules_to_check = [
-                    str(name).split(".")[0]
-                    for name in record.get("names", [])
-                    if isinstance(name, str)
-                ]
-            elif kind == "from":
-                mod = str(record.get("module") or "")
-                if mod:
-                    modules_to_check = [mod.split(".")[0]]
-
-            for root_module in modules_to_check:
-                if root_module in _STDLIB_MODULES:
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                # Skip imports in TYPE_CHECKING blocks
+                if id(node) in tc_ids:
                     continue
-                if root_module in project_modules:
-                    continue
+                # Determine the root module name to check
+                if isinstance(node, ast.Import):
+                    modules_to_check = [
+                        (alias.name.split(".")[0], node.lineno)
+                        for alias in node.names
+                    ]
+                else:
+                    # from X import Y — check X
+                    mod = node.module or ""
+                    if not mod:
+                        continue
+                    modules_to_check = [(mod.split(".")[0], node.lineno)]
 
-                try:
-                    spec = importlib.util.find_spec(root_module)
-                except (ModuleNotFoundError, ValueError):
-                    spec = None
-                if spec is None:
-                    phantoms.append((root_module, lineno))
+                for root_module, lineno in modules_to_check:
+                    # Skip stdlib modules
+                    if root_module in _STDLIB_MODULES:
+                        continue
+
+                    # Skip project-internal modules (already checked elsewhere)
+                    if root_module in project_modules:
+                        continue
+
+                    # Skip conditional imports: try/except ImportError
+                    if _is_in_try_except_import_error(node, tree):
+                        continue
+
+                    # Check if the package is installed
+                    try:
+                        spec = importlib.util.find_spec(root_module)
+                    except (ModuleNotFoundError, ValueError):
+                        spec = None
+
+                    if spec is None:
+                        phantoms.append((root_module, lineno))
 
         return phantoms
 
     @staticmethod
     def _check_import_attributes_runtime(
-        import_records: list[dict[str, Any]],
+        tree: ast.Module,
         project_modules: set[str],
+        type_checking_ids: set[int] | None = None,
         *,
         timeout: float = 5.0,
     ) -> list[tuple[str, int]]:
@@ -917,20 +765,22 @@ class PhantomReferenceSignal(BaseSignal):
         Decision: ADR-041
         """
         phantoms: list[tuple[str, int]] = []
-        for record in import_records:
-            if record.get("kind") != "from":
-                continue
-            if record.get("in_type_checking"):
-                continue
-            if record.get("in_import_error_guard"):
-                continue
+        tc_ids = type_checking_ids or set()
 
-            mod_name = str(record.get("module") or "")
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            if id(node) in tc_ids:
+                continue
+            mod_name = node.module or ""
             if not mod_name:
                 continue
             root_module = mod_name.split(".")[0]
             # Skip project-internal modules (handled by base PHR logic)
             if root_module in project_modules:
+                continue
+            # Skip conditional imports
+            if _is_in_try_except_import_error(node, tree):
                 continue
             # Only check modules that are actually installed
             try:
@@ -945,13 +795,11 @@ class PhantomReferenceSignal(BaseSignal):
             if mod is None:
                 continue  # Timeout or error → skip, don't flag
 
-            lineno = int(record.get("lineno", 1))
-            for imported_name in record.get("names", []):
-                if imported_name == "*":
+            for alias in node.names:
+                if alias.name == "*":
                     continue
-                imported_name = str(imported_name)
-                if not hasattr(mod, imported_name):
-                    phantoms.append((imported_name, lineno))
+                if not hasattr(mod, alias.name):
+                    phantoms.append((alias.name, node.lineno))
 
         return phantoms
 

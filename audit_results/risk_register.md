@@ -1,37 +1,5 @@
 ﻿# Risk Register
 
-## v2.42.10 - PFS/MDS/EDS finding message enrichment (findings-change-effort-coupling)
-
-- Risk ID: RISK-2026-v2.42.10-FINDING-MESSAGE-ENRICHMENT
-- Component: `src/drift/signals/pattern_fragmentation.py`, `src/drift/signals/mutant_duplicates.py`, `src/drift/signals/explainability_deficit.py`.
-- Type: Output contract / finding string format.
-- Description: Description and fix strings for PFS, MDS (exact+near duplicate), and EDS findings were enriched with boundary vocabulary (Family A: boundary/concern/responsibility) and change-cost language (Family B: change propagation/effort/coupled). This is a purely additive change to string content — no detection logic, scoring weights, or output structure was modified. Golden snapshots updated accordingly.
-- Severity: LOW - no logic change; finding text becomes more informative but structurally equivalent.
-- Triggers:
-  - Downstream consumers that exact-match finding description/fix strings (hard-coded golden comparisons outside of the official snapshot mechanism).
-- Mitigations:
-  - 8 smoke-check tests in `tests/test_finding_message_quality.py` gate keyword presence.
-  - Official golden snapshots in `tests/golden/` updated to new strings.
-  - Full regression suite (6732 tests) passed without failures.
-- Residual risk: LOW - change is purely descriptive; any downstream string-match consumers should use canonical golden snapshots.
-
-
-
-- Risk ID: RISK-2026-04-26-PHR-ARTIFACT-CACHE
-- Component: `src/drift/signals/phantom_reference.py`.
-- Type: Signal correctness and hot-path performance stability.
-- Description: PHR moved from per-run AST reparse in `_analyze_file` to per-file cached artifacts (`used_names`, `defined_names`, `import_records`, `module_assignments`). This reduces repeated parse cost during repo-wide cache misses, but introduces cache-consistency risk if artifact invalidation drifts.
-- Severity: MEDIUM - wrong invalidation can affect detection quality; primary goal is performance stabilization.
-- Triggers:
-  - Artifact key generation changes without content hash binding.
-  - On-disk artifact payload format changes without schema bump.
-  - Refactor bypasses artifact pipeline and reintroduces parse-heavy hot path.
-- Mitigations:
-  - Artifact key uses `file_path + sha256(source)` with `_PHR_ARTIFACT_SCHEMA_VERSION`.
-  - Loader validates schema and payload shape; invalid entries rebuild from source.
-  - Regression tests cover no-reparse-on-second-run and rebuild-only-changed-file behavior.
-- Residual risk: LOW-MEDIUM - bounded by deterministic rebuild fallback and targeted regression coverage.
-
 ## 2026-04-26 - MCP hot-path caching singletons (v2.42.10)
 
 - Risk ID: RISK-2026-04-26-MCP-CACHE-SINGLETONS

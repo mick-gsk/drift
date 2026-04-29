@@ -11,7 +11,7 @@ from typing import Any
 
 import click
 
-from drift.commands import console, ok_glyph, warn_glyph
+from drift.commands import console
 from drift.signal_mapping import signal_abbrev
 
 
@@ -243,8 +243,7 @@ def _print_nudge_summary(result: dict, *, initial: bool = False) -> None:
     if estimated_signals:
         plural = "s" if len(estimated_signals) != 1 else ""
         console.print(
-            f"  [yellow]{warn_glyph(console)} {len(estimated_signals)}"
-            f" cross-file signal{plural} estimated[/]: "
+            f"  [yellow]⚠ {len(estimated_signals)} cross-file signal{plural} estimated[/]: "
             f"{', '.join(estimated_signals)}",
             highlight=False,
         )
@@ -255,9 +254,9 @@ def _print_nudge_summary(result: dict, *, initial: bool = False) -> None:
         )
 
     if safe:
-        console.print(f"  [green]{ok_glyph(console)} safe to commit[/]", highlight=False)
+        console.print("  [green]✓ safe to commit[/]", highlight=False)
     elif not initial:
-        console.print(f"  [yellow]{warn_glyph(console)} not safe to commit[/]", highlight=False)
+        console.print("  [yellow]⚠ not safe to commit[/]", highlight=False)
 
 
 def _build_nudge_summary(

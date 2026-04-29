@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path, PurePosixPath
-from typing import ClassVar
 
 from drift.config import DriftConfig
 from drift.models import (
@@ -27,7 +26,7 @@ from drift.models import (
     SignalType,
 )
 from drift.signals._utils import is_test_file
-from drift.signals.base import BaseSignal, SignalCacheDependencySpec, register_signal
+from drift.signals.base import BaseSignal, register_signal
 
 
 def _build_import_graph(
@@ -131,11 +130,6 @@ def _find_cycles(graph: dict[str, set[str]]) -> list[list[str]]:
 @register_signal
 class CircularImportSignal(BaseSignal):
     """Detect circular import chains in Python packages."""
-
-    cache_dependency_spec: ClassVar[SignalCacheDependencySpec] = SignalCacheDependencySpec(
-        scope="repo_wide",
-        include_languages=("python",),
-    )
 
     @property
     def signal_type(self) -> SignalType:

@@ -7,7 +7,6 @@ inconsistent approaches — often from different AI generation sessions.
 
 from __future__ import annotations
 
-import fnmatch
 import json
 import re
 from collections import defaultdict
@@ -203,21 +202,6 @@ def _plugin_scope(module_path: Path) -> tuple[str, str] | None:
     return None
 
 
-def _build_deferred_patterns(config: DriftConfig | None) -> frozenset[str]:
-    """Return the set of deferred glob patterns from config."""
-    if config is None or not config.deferred:
-        return frozenset()
-    return frozenset(area.pattern for area in config.deferred)
-
-
-def _file_is_deferred(file_path: Path, deferred_patterns: frozenset[str]) -> bool:
-    """Return True if file_path matches any deferred glob pattern."""
-    if not deferred_patterns:
-        return False
-    posix = file_path.as_posix()
-    return any(fnmatch.fnmatch(posix, pat) for pat in deferred_patterns)
-
-
 def _extract_canonical_snippet(file_path: str, start_line: int, max_lines: int = 8) -> str:
     """Read source lines around start_line for canonical pattern display (ADR-049)."""
     try:
@@ -257,8 +241,6 @@ class PatternFragmentationSignal(BaseSignal):
             for pattern in pr.patterns:
                 all_patterns[pattern.category].append(pattern)
 
-        deferred_patterns = _build_deferred_patterns(config)
-
         findings: list[Finding] = []
         endpoint_modules = {
             p.file_path.parent
@@ -278,19 +260,6 @@ class PatternFragmentationSignal(BaseSignal):
                 plugin_roots[plugin_root].add(plugin_name)
 
             for module_path, module_patterns in module_groups.items():
-                # Exclude deferred files from variant clustering (issue #542):
-                # files matching a deferred: pattern in drift.yaml should not
-                # inflate the variant count or appear in related_files.
-                if deferred_patterns:
-                    active_module_patterns = [
-                        p for p in module_patterns
-                        if not _file_is_deferred(p.file_path, deferred_patterns)
-                    ]
-                    deferred_excluded_count = len(module_patterns) - len(active_module_patterns)
-                    module_patterns = active_module_patterns
-                else:
-                    deferred_excluded_count = 0
-
                 if len(module_patterns) < 2:
                     continue
 
@@ -375,9 +344,7 @@ class PatternFragmentationSignal(BaseSignal):
                 # Build description
                 desc_parts = [
                     f"{num_variants} {category.value} variants in {module_path.as_posix()}/ "
-                    f"({canonical_count}/{total} use canonical pattern). "
-                    f"Inconsistent patterns signal a shared concern without a dominant"
-                    f" convention \u2014 each variant requires separate maintenance effort.",
+                    f"({canonical_count}/{total} use canonical pattern).",
                 ]
                 if framework_hints:
                     desc_parts.append(
@@ -446,9 +413,7 @@ class PatternFragmentationSignal(BaseSignal):
                 fix = (
                     f"Consolidate to the dominant pattern ({canonical_count}x, "
                     f"exemplar: {_instance_ref(canonical_exemplar)}). "
-                    f"Deviations: {', '.join(deviation_refs)}. "
-                    f"Unresolved fragmentation spreads change effort \u2014"
-                    f" each variant must be updated separately."
+                    f"Deviations: {', '.join(deviation_refs)}."
                 )
 
                 findings.append(
@@ -483,7 +448,6 @@ class PatternFragmentationSignal(BaseSignal):
                                 plugin_boundary_variation_expected
                             ),
                             "combined_plugin_framework_cap": combined_plugin_framework_cap,
-                            "deferred_excluded_count": deferred_excluded_count,
                             "propagation_excluded_count": propagation_excluded,
                             "deliberate_pattern_risk": (
                                 "May reflect architecture transition or deliberate variation. "

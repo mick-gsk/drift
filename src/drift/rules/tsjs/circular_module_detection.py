@@ -62,14 +62,9 @@ def _find_cycles(import_graph: dict[str, set[str]]) -> list[list[str]]:
     return [list(cycle) for cycle in sorted(seen_cycles)]
 
 
-def run_circular_module_detection(
-    repo_path: Path,
-    *,
-    import_graph: dict[str, set[str]] | None = None,
-) -> list[dict[str, object]]:
+def run_circular_module_detection(repo_path: Path) -> list[dict[str, object]]:
     """Emit one finding for each detected file-level cycle of length >= 2."""
-    if import_graph is None:
-        import_graph = build_relative_import_graph(repo_path)
+    import_graph = build_relative_import_graph(repo_path)
 
     findings: list[dict[str, object]] = []
     for cycle_nodes in _find_cycles(import_graph):

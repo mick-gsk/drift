@@ -12,7 +12,6 @@ Architectural invariant (Phase-5 boundary contract):
 from __future__ import annotations
 
 import datetime
-import fnmatch
 import hashlib
 import logging
 import os
@@ -24,7 +23,7 @@ from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from drift.cache import ParseCache, SignalCache
 from drift.context_tags import apply_context_tags, scan_context_tags
@@ -60,7 +59,6 @@ from drift.scoring.engine import (
 from drift.signals.base import (
     AnalysisContext,
     BaseSignal,
-    SignalCacheDependencySpec,
     SignalCapabilities,
     create_signals,
 )
@@ -681,29 +679,24 @@ class IngestionPhase:
         cached_results: dict[int, ParseResult] = {}
         to_parse: list[tuple[int, FileInfo, str | None]] = []
         file_hashes: dict[str, str] = {}
-
-        def _compute_hash(args: tuple[int, FileInfo]) -> tuple[int, FileInfo, str | None]:
-            _idx, _finfo = args
+        for idx, finfo in enumerate(files):
+            full_path = repo_path / finfo.path
+            content_hash: str | None = None
             try:
-                return _idx, _finfo, ParseCache.file_hash(repo_path / _finfo.path)
+                content_hash = ParseCache.file_hash(full_path)
+                file_hashes[finfo.path.as_posix()] = content_hash
+                hit = None if no_cache else cache.get(content_hash)
+                if hit is not None:
+                    # Fix stale path: cache is keyed by content hash,
+                    # so a hit may carry a file_path from a different
+                    # file with identical content (#115).
+                    if hit.file_path != finfo.path:
+                        self._fix_stale_cache_path(hit, finfo)
+                    cached_results[idx] = hit
+                    continue
             except OSError:
-                return _idx, _finfo, None
-
-        with ThreadPoolExecutor(max_workers=workers) as hash_pool:
-            hash_iter = hash_pool.map(_compute_hash, enumerate(files))
-            for idx, finfo, content_hash in hash_iter:
-                if content_hash is not None:
-                    file_hashes[finfo.path.as_posix()] = content_hash
-                    hit = None if no_cache else cache.get(content_hash)
-                    if hit is not None:
-                        # Fix stale path: cache is keyed by content hash,
-                        # so a hit may carry a file_path from a different
-                        # file with identical content (#115).
-                        if hit.file_path != finfo.path:
-                            self._fix_stale_cache_path(hit, finfo)
-                        cached_results[idx] = hit
-                        continue
-                to_parse.append((idx, finfo, content_hash))
+                pass
+            to_parse.append((idx, finfo, content_hash))
 
         if progress:
             progress("Parsing files", len(cached_results), len(files))
@@ -838,17 +831,7 @@ class SignalPhase:
         self._future_timeout_seconds = max(0.001, float(future_timeout_seconds))
 
     @staticmethod
-    def _cache_dependency_spec(signal: BaseSignal) -> SignalCacheDependencySpec:
-        resolver = getattr(signal, "resolve_cache_dependency_spec", None)
-        if callable(resolver):
-            spec = resolver()
-            if isinstance(spec, SignalCacheDependencySpec):
-                return spec
-
-        explicit_spec = getattr(signal, "cache_dependency_spec", None)
-        if isinstance(explicit_spec, SignalCacheDependencySpec):
-            return explicit_spec
-
+    def _cache_dependency_scope(signal: BaseSignal) -> str:
         explicit_scope = getattr(signal, "cache_dependency_scope", None)
         if isinstance(explicit_scope, str) and explicit_scope in {
             "file_local",
@@ -856,18 +839,14 @@ class SignalPhase:
             "repo_wide",
             "git_dependent",
         }:
-            casted_scope = cast(
-                Literal["file_local", "module_wide", "repo_wide", "git_dependent"],
-                explicit_scope,
-            )
-            return SignalCacheDependencySpec(scope=casted_scope)
+            return explicit_scope
 
         incremental_scope = getattr(signal, "incremental_scope", "cross_file")
         if incremental_scope == "file_local":
-            return SignalCacheDependencySpec(scope="file_local")
+            return "file_local"
         if incremental_scope == "git_dependent":
-            return SignalCacheDependencySpec(scope="git_dependent")
-        return SignalCacheDependencySpec(scope="repo_wide")
+            return "git_dependent"
+        return "repo_wide"
 
     @staticmethod
     def _module_bucket(path_str: str) -> str:
@@ -882,33 +861,6 @@ class SignalPhase:
         file_paths: set[str],
     ) -> dict[str, FileHistory]:
         return {k: v for k, v in file_histories.items() if k in file_paths}
-
-    @staticmethod
-    def _selected_dependency_paths(
-        parse_results: list[ParseResult],
-        dep_spec: SignalCacheDependencySpec,
-    ) -> set[str] | None:
-        if (
-            not dep_spec.include_languages
-            and not dep_spec.include_path_globs
-            and not dep_spec.exclude_path_globs
-        ):
-            return None
-
-        allowed_languages = {lang.lower() for lang in dep_spec.include_languages}
-        selected: set[str] = set()
-        for pr in parse_results:
-            path_str = pr.file_path.as_posix()
-            if allowed_languages and pr.language.lower() not in allowed_languages:
-                continue
-            if dep_spec.include_path_globs and not any(
-                fnmatch.fnmatch(path_str, pattern) for pattern in dep_spec.include_path_globs
-            ):
-                continue
-            if any(fnmatch.fnmatch(path_str, pattern) for pattern in dep_spec.exclude_path_globs):
-                continue
-            selected.add(path_str)
-        return selected
 
     def run(
         self,
@@ -1013,43 +965,21 @@ class SignalPhase:
                     sig_cache.put(sig_type, legacy_config_fp, legacy_content_hash, findings)
                 return findings
 
-            dep_spec = self._cache_dependency_spec(signal)
-            dep_scope = dep_spec.scope
+            dep_scope = self._cache_dependency_scope(signal)
             scope_config_fp = SignalCache.config_fingerprint(config)
 
             if dep_scope == "file_local":
                 file_local_findings: list[Finding] = []
-                should_process = getattr(signal, "should_process_file", None)
-
-                # Build a map of eligible parse results and their content hashes
-                # in a single pass, then batch-check the L1 cache with one lock
-                # acquire instead of one per file.
-                eligible: list[tuple[ParseResult, str, str]] = []  # (pr, posix, content_hash)
                 for pr in parsed.parse_results:
-                    if callable(should_process) and not should_process(pr):
-                        continue
                     p = pr.file_path.as_posix()
                     file_hash = parsed.file_hashes.get(p)
                     if not file_hash:
                         continue
-                    eligible.append((pr, p, SignalCache.content_hash_for_file(file_hash)))
-
-                if not no_cache and eligible:
-                    batch_hashes = {p: ch for _, p, ch in eligible}
-                    batch_hits = sig_cache.get_batch(sig_type, scope_config_fp, batch_hashes)
-                else:
-                    batch_hits = {}
-
-                for pr, p, content_hash in eligible:
+                    content_hash = SignalCache.content_hash_for_file(file_hash)
                     if not no_cache:
-                        cached = batch_hits.get(p)
+                        cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
                         if cached is not None:
                             file_local_findings.extend(cached)
-                            continue
-                        # L1 miss — check disk and run if needed
-                        disk_cached = sig_cache.get(sig_type, scope_config_fp, content_hash)
-                        if disk_cached is not None:
-                            file_local_findings.extend(disk_cached)
                             continue
                     local_histories = self._history_subset(parsed.file_histories, {p})
                     fresh = signal.analyze([pr], local_histories, config)
@@ -1089,26 +1019,14 @@ class SignalPhase:
                     module_findings.extend(fresh)
                 return module_findings
 
-            dep_paths_selector = getattr(signal, "cache_dependency_paths", None)
-            selected_paths: set[str] | None = None
-            if callable(dep_paths_selector):
-                maybe_paths = dep_paths_selector(parsed.parse_results)
-                if maybe_paths is not None:
-                    selected_paths = set(maybe_paths)
-            if selected_paths is None:
-                selected_paths = self._selected_dependency_paths(parsed.parse_results, dep_spec)
-
-            repo_hash = SignalCache.content_hash_for_dependencies(
+            repo_hash = SignalCache.content_hash_for_results(
+                parsed.parse_results,
                 parsed.file_hashes,
-                selected_paths=selected_paths,
             )
             if dep_scope == "git_dependent":
-                history_subset = parsed.file_histories
-                if selected_paths is not None:
-                    history_subset = self._history_subset(parsed.file_histories, selected_paths)
                 git_fp = SignalCache.git_state_fingerprint(
                     cast(list[object], parsed.commits),
-                    cast(dict[str, object], history_subset),
+                    cast(dict[str, object], parsed.file_histories),
                 )
                 content_hash = hashlib.sha256(f"{repo_hash}|{git_fp}".encode()).hexdigest()[:32]
             else:

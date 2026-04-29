@@ -30,18 +30,12 @@ htmlcov/
 Thumbs.db
 Desktop.ini
 site/
-audit_results/*
-!audit_results/fmea_matrix.md
-!audit_results/risk_register.md
-!audit_results/stride_threat_model.md
-!audit_results/fault_trees.md
+audit_results/
 benchmark_results/*
 !benchmark_results/kpi_snapshot.json
 !benchmark_results/mutation_benchmark.json
 !benchmark_results/drift_self.json
 !benchmark_results/kpi_trend.jsonl
-!benchmark_results/*_feature_evidence.json
-!benchmark_results/quality_scorecard.json
 drift_score.json
 work_artifacts/
 master-backlog/*
@@ -94,27 +88,6 @@ tmplw89iq73.json
 pip-audit-requirements.txt
 tmp*.json
 
-# Root-level temp/log artifacts
-*.log
-log.txt
-output.txt
-full_log.txt
-full_release_log.txt
-job_id.txt
-job_log.txt
-job_direct.log
-jobs.json
-run_status.json
-run_view.txt
-status.json
-test_output.txt
-push_attempt.txt
-push_output.txt
-push_output_final.txt
-push_result.txt
-prof_warm.pstats
-
 # Node.js
 node_modules/
 playground/dist/
-third_party_skills/

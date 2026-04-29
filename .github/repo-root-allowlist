@@ -75,5 +75,3 @@ drift.strict.yaml
 .learnings
 live_schema.json
 third_party_skills
-.specify
-specs

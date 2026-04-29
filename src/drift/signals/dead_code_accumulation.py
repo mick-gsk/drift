@@ -19,7 +19,6 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import ClassVar
 
 from drift.config import DriftConfig
 from drift.ingestion.test_detection import classify_file_context
@@ -36,7 +35,7 @@ from drift.signals._utils import (
     is_likely_library_repo,
     is_test_file,
 )
-from drift.signals.base import BaseSignal, SignalCacheDependencySpec, register_signal
+from drift.signals.base import BaseSignal, register_signal
 
 # Files that typically re-export or serve as entry points.
 _SKIP_FILES: frozenset[str] = frozenset({
@@ -409,11 +408,6 @@ def _is_public(name: str) -> bool:
 @register_signal
 class DeadCodeAccumulationSignal(BaseSignal):
     """Detect exported symbols that are never imported elsewhere."""
-
-    cache_dependency_spec: ClassVar[SignalCacheDependencySpec] = SignalCacheDependencySpec(
-        scope="repo_wide",
-        include_languages=("python", "typescript", "javascript"),
-    )
 
     @property
     def signal_type(self) -> SignalType:

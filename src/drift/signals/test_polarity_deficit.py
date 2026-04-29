@@ -401,12 +401,6 @@ class TestPolarityDeficitSignal(BaseSignal):
     def name(self) -> str:
         return "Test Polarity Deficit"
 
-    def should_process_file(self, parse_result: ParseResult) -> bool:
-        return (
-            parse_result.language in _SUPPORTED_LANGUAGES
-            and is_test_file(parse_result.file_path)
-        )
-
     def analyze(
         self,
         parse_results: list[ParseResult],

@@ -193,19 +193,6 @@ Or use `drift init --mcp` to auto-generate. Cursor reads `.vscode/mcp.json` too,
 
 For setup details, tool catalog, and workflow examples, see the **[Cursor MCP Setup Guide](guides/cursor-mcp-setup.md)**.
 
-### VS Code Copilot Chat handoff
-
-After running `drift analyze`, drift writes `.vscode/drift-session.json` and shows a
-**Copilot Chat Handoff** panel in the terminal with three slash commands:
-
-- `/drift-fix-plan` — prioritized repair tasks
-- `/drift-export-report` — shareable markdown report
-- `/drift-auto-fix-loop` — guided one-finding-at-a-time fix loop
-
-This requires no MCP server — only `"chat.promptFilesLocations": [".github/prompts/"]` in `.vscode/settings.json`.
-
-See **[VS Code Copilot Chat Workflow](guides/vscode-copilot-workflow.md)** for the full setup guide.
-
 ## Example workflow assets in the repository
 
 - `action.yml` for the GitHub Action implementation

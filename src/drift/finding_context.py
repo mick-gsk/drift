@@ -60,21 +60,6 @@ def _ordered_rules(config: DriftConfig) -> list:
     )
 
 
-# Module-level caches keyed by id(config.finding_context) — stable within a run.
-_ordered_rules_cache: dict[int, list] = {}
-_path_context_cache: dict[tuple[int, str], str] = {}
-
-
-def _ordered_rules_for(config: DriftConfig) -> list:
-    """Return sorted rules, reusing a module-level cache per config identity."""
-    key = id(config.finding_context)
-    cached = _ordered_rules_cache.get(key)
-    if cached is None:
-        cached = _ordered_rules(config)
-        _ordered_rules_cache[key] = cached
-    return cached
-
-
 def _matches_rule(path_str: str, pattern: str) -> bool:
     norm_pattern = pattern.replace("\\", "/")
     if fnmatch.fnmatch(path_str, norm_pattern):
@@ -99,27 +84,15 @@ def classify_path_context(path: Path | None, config: DriftConfig) -> str:
     if path is None:
         return config.finding_context.default_context
 
-    posix = path.as_posix()
-    cache_key = (id(config.finding_context), posix)
-    cached = _path_context_cache.get(cache_key)
-    if cached is not None:
-        return cached
-
     baseline_context = classify_file_context(path)
     if baseline_context == "test":
-        _path_context_cache[cache_key] = baseline_context
         return baseline_context
 
-    for rule in _ordered_rules_for(config):
+    posix = path.as_posix()
+    for rule in _ordered_rules(config):
         if _matches_rule(posix, rule.pattern):
-                result = _normalise_context(
-                    rule.context, fallback=config.finding_context.default_context
-                )
-                _path_context_cache[cache_key] = result
-                return result
-    result = config.finding_context.default_context
-    _path_context_cache[cache_key] = result
-    return result
+            return _normalise_context(rule.context, fallback=config.finding_context.default_context)
+    return config.finding_context.default_context
 
 
 def _ensure_metadata_dict(finding: Finding) -> dict[str, object]:

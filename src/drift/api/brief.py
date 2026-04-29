@@ -134,53 +134,6 @@ def _brief_next_step_contract(risk_level: str) -> dict[str, Any]:
     )
 
 
-def _annotate_guardrails_deferred(
-    guardrail_dicts: list[dict[str, Any]],
-    cfg: Any,
-) -> list[dict[str, Any]]:
-    """Annotate guardrail dicts with deferred-file context from config.
-
-    When ``cfg.deferred`` patterns are configured, each guardrail whose
-    ``affected_files`` include deferred paths gets two extra fields:
-
-    * ``deferred_files_involved`` — list of the deferred file paths
-    * ``deferred_warning`` — human-readable note for agents
-
-    Returns the same list (potentially with updated dicts) so callers
-    can chain the result directly into the response payload.
-    """
-    deferred_list = getattr(cfg, "deferred", None)
-    if not deferred_list:
-        return guardrail_dicts
-
-    import fnmatch as _fnmatch
-    from pathlib import Path as _Path
-
-    deferred_pats = frozenset(area.pattern for area in deferred_list)
-    if not deferred_pats:
-        return guardrail_dicts
-
-    def _is_deferred(fp: str) -> bool:
-        posix = _Path(fp).as_posix()
-        return any(_fnmatch.fnmatch(posix, pat) for pat in deferred_pats)
-
-    result: list[dict[str, Any]] = []
-    for gd in guardrail_dicts:
-        files = gd.get("affected_files") or []
-        deferred = [f for f in files if _is_deferred(f)]
-        if deferred:
-            gd = dict(gd)
-            gd["deferred_files_involved"] = deferred
-            n, total = len(deferred), len(files)
-            s = "s are" if n != 1 else " is"
-            gd["deferred_warning"] = (
-                f"{n} of {total} variant source{s} in deferred: patterns — "
-                "constraint applies to active files only"
-            )
-        result.append(gd)
-    return result
-
-
 def _build_brief_result(
     *,
     task: str,
@@ -220,7 +173,6 @@ def _build_brief_result(
         scoped_findings,
         max_guardrails=max_guardrails,
     )
-    guardrail_dicts = _annotate_guardrails_deferred([g.to_dict() for g in guardrails], cfg)
 
     # --- New guardrail sources ---
 
@@ -313,7 +265,7 @@ def _build_brief_result(
             "finding_count": len(scoped_findings),
             "ai_attributed_ratio": round(analysis.ai_attributed_ratio, 3),
         },
-        guardrails=guardrail_dicts,
+        guardrails=[g.to_dict() for g in guardrails],
         guardrails_prompt_block=prompt_block,
         layer_contract=layer_contract,
         relevant_tests=relevant_tests,

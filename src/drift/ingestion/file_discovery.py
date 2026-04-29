@@ -7,7 +7,6 @@ import hashlib
 import json
 import logging
 import os
-import re
 import subprocess
 import tempfile
 import time
@@ -19,40 +18,6 @@ from typing import Any
 from drift.models import FileInfo
 
 
-def _glob_full_match(path_str: str, pattern: str) -> bool:
-    """Match path_str against a glob pattern where ** crosses directory separators.
-
-    Needed for Python < 3.12 where PurePath.match() does not support **.
-    """
-    i, n = 0, len(pattern)
-    parts: list[str] = ['^']
-    while i < n:
-        if pattern[i : i + 2] == '**':
-            # /**/  →  zero or more path components (e.g. src/**/*.py matches src/mod.py)
-            if (
-                i > 0
-                and pattern[i - 1] == '/'
-                and i + 2 < n
-                and pattern[i + 2] == '/'
-            ):
-                parts.append('(?:[^/]+/)*')
-                i += 3  # consume **/ as one token
-            else:
-                parts.append('.*')
-                i += 2
-        elif pattern[i] == '*':
-            parts.append('[^/]*')
-            i += 1
-        elif pattern[i] == '?':
-            parts.append('[^/]')
-            i += 1
-        else:
-            parts.append(re.escape(pattern[i]))
-            i += 1
-    parts.append('$')
-    return bool(re.match(''.join(parts), path_str))
-
-
 def _matches_include_patterns(path_str: str, include_patterns: list[str]) -> bool:
     posix_path = PurePosixPath(path_str)
     for pattern in include_patterns:
@@ -60,9 +25,6 @@ def _matches_include_patterns(path_str: str, include_patterns: list[str]) -> boo
         if posix_path.match(norm):
             return True
         if norm.startswith("**/") and posix_path.match(norm[3:]):
-            return True
-        # Fallback for patterns containing ** (PurePath.match() lacks ** on Python < 3.12)
-        if "**" in norm and _glob_full_match(path_str, norm):
             return True
     return False
 
@@ -230,7 +192,6 @@ def _current_git_head(repo_path: Path) -> str | None:
         FileNotFoundError,
         subprocess.CalledProcessError,
         subprocess.TimeoutExpired,
-        OSError,
     ):
         head = None
     else:
@@ -392,10 +353,6 @@ def _enumerate_repo_files(
 ) -> tuple[list[FileInfo], dict[str, int]]:
     """Enumerate source files matching include/exclude patterns.
 
-    Uses os.walk with early directory pruning so excluded trees (e.g. .venv,
-    node_modules) are never descended into.  This avoids the O(N) per-file
-    stat overhead that glob-based enumeration incurs on large repos.
-
     Returns (files, skipped_langs).  If max_files is reached, returns early
     without populating skipped_out (same behaviour as the original inline loop).
     """
@@ -404,30 +361,23 @@ def _enumerate_repo_files(
     seen: set[str] = set()
     skipped_langs: dict[str, int] = {}
 
-    for root, dirs, filenames in os.walk(repo_path):
-        root_path = Path(root)
+    for pattern in include_patterns:
         try:
-            rel_root = root_path.relative_to(repo_path).as_posix()
-        except ValueError:
-            dirs.clear()
+            matches = repo_path.glob(pattern)
+        except (OSError, ValueError) as exc:
+            logger.warning("glob(%s) failed: %s", pattern, exc)
             continue
+        for match in matches:
+            try:
+                if not match.is_file():
+                    continue
+                if match.is_symlink():
+                    continue
+            except OSError:
+                continue
 
-        # Prune excluded directories *before* os.walk descends into them so
-        # we never stat files inside e.g. .venv or node_modules.
-        dirs[:] = [
-            d
-            for d in dirs
-            if not _matches_any_prepared(
-                d if rel_root == "." else f"{rel_root}/{d}",
-                prepared_exclude,
-            )
-        ]
-
-        for filename in filenames:
-            file_path = root_path / filename
-            rel = (
-                filename if rel_root == "." else f"{rel_root}/{filename}"
-            )
+            rel_path = match.relative_to(repo_path)
+            rel = rel_path.as_posix()
 
             if rel in seen:
                 continue
@@ -436,16 +386,7 @@ def _enumerate_repo_files(
             if _matches_any_prepared(rel, prepared_exclude):
                 continue
 
-            if not _matches_include_patterns(rel, include_patterns):
-                continue
-
-            try:
-                if file_path.is_symlink():
-                    continue
-            except OSError:
-                continue
-
-            lang = detect_language(file_path)
+            lang = detect_language(match)
             if lang is None:
                 continue
             if lang not in supported:
@@ -453,7 +394,7 @@ def _enumerate_repo_files(
                 continue
 
             try:
-                stat = file_path.stat()
+                stat = match.stat()
             except OSError:
                 logger.debug("stat() failed, skipping: %s", rel)
                 continue
@@ -464,7 +405,7 @@ def _enumerate_repo_files(
             line_count = stat.st_size // 40
             files.append(
                 FileInfo(
-                    path=file_path.relative_to(repo_path),
+                    path=rel_path,
                     language=lang,
                     size_bytes=stat.st_size,
                     line_count=line_count,

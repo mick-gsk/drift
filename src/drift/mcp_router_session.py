@@ -372,7 +372,7 @@ async def run_session_start(
         )
 
         def _autopilot_from_shared_analysis() -> tuple[
-            dict[str, Any], dict[str, Any], dict[str, Any], bool
+            dict[str, Any], dict[str, Any], dict[str, Any]
         ]:
             repo_path = Path(resolved)
             cfg = _load_config_cached(repo_path)
@@ -392,38 +392,13 @@ async def run_session_start(
                 if select_csv:
                     active_signals = set(resolve_signal_names(select_csv))
 
-            file_hashes: dict[str, str] = {}
             analysis = analyze_repo(
                 repo_path,
                 config=cfg,
                 since_days=90,
                 target_path=target_path,
                 active_signals=active_signals,
-                file_hashes_out=file_hashes,
             )
-
-            # Pre-warm the nudge baseline so the first drift_nudge call
-            # is fast (no cold-start latency). Issue #544 — Friction 2.
-            nudge_primed = False
-            try:
-                from drift.incremental import BaselineManager, BaselineSnapshot
-
-                ttl = getattr(cfg, "nudge_baseline_ttl_seconds", 900)
-                nudge_baseline = BaselineSnapshot(
-                    file_hashes=file_hashes,
-                    score=analysis.drift_score,
-                    ttl_seconds=ttl,
-                )
-                BaselineManager.instance().store(
-                    repo_path,
-                    nudge_baseline,
-                    list(analysis.findings),
-                    {},
-                    config=cfg,
-                )
-                nudge_primed = True
-            except Exception:  # pragma: no cover — pre-warm must never break session_start
-                pass
 
             brief_result = brief_from_analysis(
                 path=resolved,
@@ -472,10 +447,9 @@ async def run_session_start(
                 shape_for_profile(brief_result, response_profile),
                 shape_for_profile(scan_result, response_profile),
                 shape_for_profile(fix_plan_result, response_profile),
-                nudge_primed,
             )
 
-        brief_result, scan_result, fp_result, _nudge_primed = await loop.run_in_executor(
+        brief_result, scan_result, fp_result = await loop.run_in_executor(
             None,
             _autopilot_from_shared_analysis,
         )
@@ -494,7 +468,6 @@ async def run_session_start(
                 scan_result=scan_result,
                 fix_plan_result=fp_result,
             )
-        result["nudge_ready"] = _nudge_primed
         result["agent_instruction"] = (
             "Autopilot ready. Next: drift_fix_plan(session_id)."
         )

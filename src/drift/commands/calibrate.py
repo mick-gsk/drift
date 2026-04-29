@@ -44,15 +44,6 @@ def run(repo: Path, dry_run: bool, config: Path | None, fmt: str) -> None:
 
     cfg = DriftConfig.load(repo, config)
 
-    if not dry_run:
-        _actual_config = config or DriftConfig._find_config_file(repo)
-        if _actual_config is None:
-            _actual_config = repo / "drift.yaml"
-        if _actual_config.exists() and not os.access(str(_actual_config), os.W_OK):
-            raise click.ClickException(
-                f"Config file is not writable: {_actual_config}"
-            )
-
     # Collect explicit feedback
     feedback_path, _local_feedback_path, _shared_feedback_path = resolve_feedback_paths(repo, cfg)
     events = load_feedback(feedback_path)

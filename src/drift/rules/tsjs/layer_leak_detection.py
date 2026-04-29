@@ -43,12 +43,7 @@ def _load_rule_config(config_path: Path) -> tuple[list[str], dict[str, str]]:
     return layer_order, file_to_layer
 
 
-def run_layer_leak_detection(
-    repo_path: Path,
-    config_path: Path,
-    *,
-    import_graph: dict[str, set[str]] | None = None,
-) -> list[dict[str, str]]:
+def run_layer_leak_detection(repo_path: Path, config_path: Path) -> list[dict[str, str]]:
     """Emit one finding for each import that violates configured layer order.
 
     Layer order is interpreted from low index to high index. Imports are allowed
@@ -63,8 +58,7 @@ def run_layer_leak_detection(
         if layer not in layer_to_index:
             layer_to_index[layer] = index
 
-    if import_graph is None:
-        import_graph = build_relative_import_graph(repo_path)
+    import_graph = build_relative_import_graph(repo_path)
 
     findings: list[dict[str, str]] = []
 

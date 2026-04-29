@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING
 
 import click
 
-from drift.commands import fail_glyph, warn_glyph
 from drift.models import SignalType
 
 # Common 3-letter abbreviations used in docs and CLI
@@ -134,7 +133,7 @@ def precision(
         if warnings:
             click.echo("")
             for w in warnings:
-                click.echo(f"  {warn_glyph()} [{w.signal_type}] {w.message}")
+                click.echo(f"  ⚠ [{w.signal_type}] {w.message}")
 
     # Threshold gate
     if threshold > 0.0:
@@ -148,7 +147,7 @@ def precision(
                 click.echo("")
                 for sig, f1 in failed:
                     click.echo(
-                        f"  {fail_glyph()} {sig.value}: F1={f1:.2f} < threshold={threshold:.2f}"
+                        f"  ✗ {sig.value}: F1={f1:.2f} < threshold={threshold:.2f}"
                     )
             sys.exit(1)
 

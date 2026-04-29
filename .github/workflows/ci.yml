@@ -23,7 +23,6 @@ concurrency:
 
 permissions:
   contents: read
-  id-token: write  # required for Codecov OIDC tokenless upload
 
 jobs:
   determine_changes:
@@ -286,8 +285,7 @@ jobs:
       - name: Run tests with coverage (reference Python, Linux)
         if: matrix.python-version == '3.12' && runner.os == 'Linux'
         run: |
-          $PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=term-missing --cov-report=xml:coverage.xml -m "not slow"
-          $PYTHON_BIN -m coverage report --fail-under=73
+          $PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=73 -m "not slow"
 
       - name: Run tests (no coverage)
         if: matrix.python-version != '3.12' || runner.os != 'Linux'
@@ -310,41 +308,16 @@ jobs:
 
           echo "coverage.xml ready ($(wc -c < coverage.xml) bytes)"
 
-      - name: Validate coverage.xml structure
-        if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
-        run: |
-          if [ ! -f coverage.xml ]; then
-            echo "ERROR: coverage.xml not found"
-            exit 1
-          fi
-          if ! grep -q 'lines-covered=' coverage.xml; then
-            echo "ERROR: coverage.xml has invalid structure"
-            exit 1
-          fi
-          LINES_COVERED=$(grep -oP 'lines-covered="\K[0-9]+' coverage.xml | head -1)
-          LINE_RATE=$(grep -oP 'line-rate="\K[0-9.]+' coverage.xml | head -1)
-          echo "✓ Coverage data present: lines-covered=$LINES_COVERED, line-rate=$LINE_RATE"
-
-      - name: Pre-Codecov diagnostics
-        if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
-        run: |
-          echo "=== Codecov Upload Diagnostics ==="
-          echo "CODECOV_TOKEN set: $([ -n '${{ secrets.CODECOV_TOKEN }}' ] && echo 'YES' || echo 'NO')"
-          echo "File size: $(wc -c < coverage.xml) bytes"
-          echo "First 5 lines of coverage.xml:"
-          head -5 coverage.xml
-
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
         uses: codecov/codecov-action@1f60566a86da84c4b4b64c17662a90de97fbb8d7  # v5.4.2
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           disable_search: true
           flags: py${{ matrix.python-version }}
-          fail_ci_if_error: false
+          fail_ci_if_error: true
           verbose: true
-          slug: mick-gsk/drift
-          use_oidc: true
 
       - name: Upload coverage artifact
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always() && hashFiles('coverage.xml') != ''
@@ -375,13 +348,37 @@ jobs:
           print(f'OK: drift self score {score:.3f} (threshold 0.55)')
           '@
 
-      - name: Upload drift score artifact
-        if: matrix.python-version == '3.12' && runner.os == 'Windows' && always() && hashFiles('drift_score.json') != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
-        with:
-          name: drift-score-py312-windows
-          path: drift_score.json
-          if-no-files-found: error
+      - name: Update drift score badge in README
+        if: matrix.python-version == '3.12' && runner.os == 'Windows' && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        # Reads score from drift_score.json and updates the hardcoded badge URL in README.md.
+        # Only runs on main-branch pushes so PRs don't trigger badge commits.
+        # Restricted to Windows to avoid duplicate badge-commit races in OS matrix.
+        shell: pwsh
+        run: |
+          $data = Get-Content drift_score.json | ConvertFrom-Json
+          $score = [math]::Round($data.drift_score, 2)
+          $severity = $data.severity
+          $color = switch ($severity) {
+            "low"    { "brightgreen" }
+            "medium" { "yellow" }
+            "high"   { "red" }
+            default  { "lightgrey" }
+          }
+          $badgeUrl = "https://img.shields.io/badge/drift%20score-${score}-${color}?style=flat"
+          $readmePath = "README.md"
+          $content = Get-Content $readmePath -Raw -Encoding UTF8
+          $updated = $content -replace 'https://img\.shields\.io/badge/drift%20score-[\d\.]+-(\w+)\?style=flat', $badgeUrl
+          if ($content -ne $updated) {
+            [IO.File]::WriteAllText("$PWD\$readmePath", $updated, [Text.Encoding]::UTF8)
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore: update drift score badge to $score [skip ci]"
+            git push
+            Write-Host "Badge updated to $score ($severity → $color)"
+          } else {
+            Write-Host "Badge already up to date ($score)"
+          }
 
       - name: Risk audit compliance (POLICY §18)
         if: matrix.python-version == '3.12'
@@ -532,120 +529,10 @@ jobs:
         run: |
           python -m pytest tests/test_smoke_real_repos.py -v --run-slow --smoke-profile=nightly
 
-  update-readme-badges:
-    name: Update README badges
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && always()
-    needs:
-      - version-check
-      - pre-commit
-      - test
-    runs-on: windows-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-        with:
-          fetch-depth: 0
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: coverage-py3.12
-          path: badge-artifacts/coverage
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: drift-score-py312-windows
-          path: badge-artifacts/drift-score
-        continue-on-error: true
-
-      - name: Update README badge sources
-        shell: pwsh
-        run: |
-          $culture = [System.Globalization.CultureInfo]::InvariantCulture
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
-
-          [xml]$coverageXml = Get-Content "badge-artifacts/coverage/coverage.xml" -Raw -Encoding UTF8
-          $lineRate = [double]::Parse($coverageXml.coverage.'line-rate', $culture)
-          $coveragePct = [math]::Round($lineRate * 100, 2)
-          $coverageValue = $coveragePct.ToString("0.##", $culture)
-          $coverageColor = if ($coveragePct -ge 90) {
-            "brightgreen"
-          } elseif ($coveragePct -ge 80) {
-            "green"
-          } elseif ($coveragePct -ge 70) {
-            "yellowgreen"
-          } elseif ($coveragePct -ge 60) {
-            "yellow"
-          } else {
-            "red"
-          }
-
-          $scorePath = "badge-artifacts/drift-score/drift_score.json"
-          $hasScoreArtifact = Test-Path $scorePath
-          if ($hasScoreArtifact) {
-            $scoreData = Get-Content $scorePath -Raw -Encoding UTF8 | ConvertFrom-Json
-            $score = [math]::Round([double]$scoreData.drift_score, 2).ToString("0.##", $culture)
-            $scoreColor = switch ($scoreData.severity) {
-              "low"    { "brightgreen" }
-              "medium" { "yellow" }
-              "high"   { "red" }
-              default   { "lightgrey" }
-            }
-          }
-
-          $coverageEndpointUrl = "https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json"
-
-          $coverageBadge = @{
-            schemaVersion = 1
-            label = "coverage"
-            message = "${coverageValue}%"
-            color = $coverageColor
-          }
-          $coverageBadgePath = ".github/badges/coverage.json"
-          New-Item -ItemType Directory -Path ".github/badges" -Force | Out-Null
-          $coverageBadgeJson = ($coverageBadge | ConvertTo-Json -Depth 3)
-          [IO.File]::WriteAllText("$PWD\$coverageBadgePath", ($coverageBadgeJson + "`n"), [Text.Encoding]::UTF8)
-
-          if ($hasScoreArtifact) {
-            $scoreBadgeUrl = "https://img.shields.io/badge/drift%20score-${score}-${scoreColor}?style=flat"
-          }
-
-          $readmePath = "README.md"
-          $content = Get-Content $readmePath -Raw -Encoding UTF8
-          $updated = $content
-          $updated = $updated -replace 'https://img\.shields\.io/(badge/coverage-[^\s\)]+\?style=flat|endpoint\?url=[^\s\)]+coverage\.json)', $coverageEndpointUrl
-          if ($hasScoreArtifact) {
-            $updated = $updated -replace 'https://img\.shields\.io/badge/drift%20score-[^\s\)]+\?style=flat', $scoreBadgeUrl
-          }
-
-          [IO.File]::WriteAllText("$PWD\$readmePath", $updated, [Text.Encoding]::UTF8)
-          git add README.md .github/badges/coverage.json
-          git diff --cached --quiet
-          if ($LASTEXITCODE -eq 0) {
-            if ($hasScoreArtifact) {
-              Write-Host "README/coverage badge sources already up to date (coverage=$coverageValue%, score=$score)"
-            } else {
-              Write-Host "README/coverage badge sources already up to date (coverage=$coverageValue%, score unchanged: no artifact)"
-            }
-            exit 0
-          }
-
-          git commit -m "chore: update README badges [skip ci]"
-          git push
-          if ($hasScoreArtifact) {
-            Write-Host "README badges updated (coverage=$coverageValue%, score=$score)"
-          } else {
-            Write-Host "README coverage badge updated (coverage=$coverageValue%, score unchanged: no artifact)"
-          }
-
   required-checks-passed:
     name: Required checks passed
     if: always()
     needs:
-      - update-readme-badges
       - version-check
       - test
       - pre-commit

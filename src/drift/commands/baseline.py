@@ -8,7 +8,7 @@ from typing import Literal, cast
 import click
 
 from drift.api_helpers import build_drift_score_scope
-from drift.commands import console, fail_glyph, ok_glyph
+from drift.commands import console
 
 DEFAULT_BASELINE_PATH = Path(".drift-baseline.json")
 
@@ -78,7 +78,7 @@ def save(
     dest = output or (repo / DEFAULT_BASELINE_PATH)
     save_baseline(analysis, dest)
     console.print(
-        f"[bold green]{ok_glyph(console)} Baseline saved:[/bold green] {dest} "
+        f"[bold green]✓ Baseline saved:[/bold green] {dest} "
         f"({len(analysis.findings)} findings, score {analysis.drift_score:.2f})"
     )
     console.print(
@@ -166,7 +166,7 @@ def diff(
     bl_path = baseline_file or (repo / DEFAULT_BASELINE_PATH)
     if not bl_path.exists():
         console.print(
-            f"[bold red]{fail_glyph(console)} Baseline not found:[/bold red] {bl_path}\n"
+            f"[bold red]✗ Baseline not found:[/bold red] {bl_path}\n"
             f"  Run this command first, then re-run baseline diff:\n"
             f"  [bold]drift baseline save --output {bl_path}[/bold]",
             soft_wrap=True,
@@ -187,8 +187,8 @@ def diff(
         fingerprints = load_baseline(bl_path)
     except (OSError, ValueError, _json.JSONDecodeError) as exc:
         console.print(
-            f"[bold red]{fail_glyph(console)} Baseline file is corrupt[/bold red]"
-            f" — delete it and re-save: [bold]drift baseline save[/bold]  ({exc})"
+            f"[bold red]✗ Baseline file is corrupt[/bold red] — delete it and re-save: "
+            f"[bold]drift baseline save[/bold]  ({exc})"
         )
         raise SystemExit(1) from exc
 
@@ -232,9 +232,7 @@ def diff(
 
             render_findings(new, max_items=len(new), console=console, repo_root=repo)
         else:
-            console.print(
-                f"\n[bold green]{ok_glyph(console)} No new findings since baseline.[/bold green]"
-            )
+            console.print("\n[bold green]✓ No new findings since baseline.[/bold green]")
 
     # Ratchet gate (ADR-093): enforce a non-mutating upper bound on new findings.
     # Must run for both rich and json output modes so the JSON consumer also
@@ -331,7 +329,7 @@ def update(
     dest = output or (repo / DEFAULT_BASELINE_PATH)
     save_baseline(analysis, dest)
     console.print(
-        f"[bold green]{ok_glyph(console)} Baseline updated:[/bold green] {dest} "
+        f"[bold green]✓ Baseline updated:[/bold green] {dest} "
         f"({len(analysis.findings)} findings, score {analysis.drift_score:.2f})"
     )
 
@@ -439,7 +437,7 @@ def status(
 
     delta = len(new)
     if delta == 0:
-        marker = f"[bold green]{ok_glyph(console)} clean[/bold green]"
+        marker = "[bold green]✓ clean[/bold green]"
     elif delta <= 5:
         marker = f"[bold yellow]{delta} new[/bold yellow]"
     else:

@@ -255,20 +255,6 @@ class RepoAnalysis:
         return severity_for_score(self.drift_score)
 
     @property
-    def max_severity(self) -> Severity:
-        """Highest severity across all active findings (not the score-derived bucket)."""
-        _rank: dict[Severity, int] = {
-            Severity.CRITICAL: 0,
-            Severity.HIGH: 1,
-            Severity.MEDIUM: 2,
-            Severity.LOW: 3,
-            Severity.INFO: 4,
-        }
-        if not self.findings:
-            return Severity.INFO
-        return min(self.findings, key=lambda f: _rank.get(f.severity, 99)).severity
-
-    @property
     def grade(self) -> tuple[str, str]:
         """Letter grade derived from drift score, e.g. ``("B", "Good")``."""
         from drift.scoring.engine import score_to_grade

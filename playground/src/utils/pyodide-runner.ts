@@ -78,19 +78,13 @@ export async function initPyodide(
       await py.loadPackage(['micropip']);
       await py.runPythonAsync(`
 import micropip
-# Pre-install pure-Python deps that micropip needs to fetch from PyPI
-# (not bundled in Pyodide): gitpython + smmap
-try:
-    await micropip.install(["smmap", "gitpython"])
-except Exception as _e:
-    print(f"Warning: could not pre-install gitpython: {_e}")
 # keep_going=True: tolerate optional deps that don't have Pyodide wheels
 await micropip.install("drift-analyzer", keep_going=True)
 `);
 
       // Smoke-test the import path we'll use later
       await py.runPythonAsync(`
-from drift.api.scan import scan as _drift_scan
+from drift.api import scan as _drift_scan
 print("drift-analyzer import OK")
 `);
 
@@ -114,26 +108,6 @@ const SCAN_SCRIPT = `
 import json
 import os
 import shutil
-import subprocess as _subprocess
-
-# Pyodide/Emscripten cannot spawn processes (OSError errno 138).
-# Patch every subprocess entry-point so that all git helpers in drift
-# raise FileNotFoundError — which they already catch — instead of the
-# raw OSError that older drift versions did not handle.
-def _no_subprocess(*_args, **_kwargs):
-    raise FileNotFoundError("subprocess not available in browser (Pyodide)")
-
-def _no_popen_init(self, *_args, **_kwargs):
-    raise FileNotFoundError("subprocess not available in browser (Pyodide)")
-
-_subprocess.run = _no_subprocess
-_subprocess.call = _no_subprocess
-_subprocess.check_call = _no_subprocess
-_subprocess.check_output = _no_subprocess
-try:
-    _subprocess.Popen.__init__ = _no_popen_init
-except (AttributeError, TypeError):
-    pass
 
 _work_dir = "/playground_code"
 
@@ -154,7 +128,7 @@ for _fname, _content in _playground_files.items():
 # Run drift analysis.
 # Git-history signals (TVS, SMS) are excluded because the browser
 # has no access to a git repository. All other signals run normally.
-from drift.api.scan import scan as _drift_scan
+from drift.api import scan as _drift_scan
 _result = _drift_scan(
     path=_work_dir,
     exclude_signals=["TVS", "SMS"],

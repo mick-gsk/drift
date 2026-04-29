@@ -67,25 +67,15 @@ def finding_id_for(
 def record_feedback(
     feedback_path: Path,
     event: FeedbackEvent,
-    *,
-    max_feedback_events: int = 0,
 ) -> None:
     """Append a feedback event to the JSONL file.
 
     Creates the parent directory and file if they don't exist.
-    If *max_feedback_events* > 0, the file is capped to the newest N events
-    (FIFO: oldest entries are discarded).  0 means unlimited (default).
     """
     feedback_path.parent.mkdir(parents=True, exist_ok=True)
     line = json.dumps(asdict(event), ensure_ascii=False, sort_keys=True)
     with feedback_path.open("a", encoding="utf-8") as f:
         f.write(line + "\n")
-    if max_feedback_events > 0:
-        lines = feedback_path.read_text(encoding="utf-8").splitlines(keepends=True)
-        if len(lines) > max_feedback_events:
-            feedback_path.write_text(
-                "".join(lines[-max_feedback_events:]), encoding="utf-8"
-            )
 
 
 def load_feedback(feedback_path: Path) -> list[FeedbackEvent]:
