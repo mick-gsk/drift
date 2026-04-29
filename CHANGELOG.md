@@ -1,4 +1,4 @@
-## [2.48.0] - 2026-04-28
+## [2.48.1] - 2026-04-29
 
 Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
 
