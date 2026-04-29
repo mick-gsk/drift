@@ -112,9 +112,31 @@ The repository now includes a minimal Microsoft Agent Framework example that com
 
 This path is the best fit when drift and the agent run in the same Python process. Use MCP instead when your host already discovers tools via `.vscode/mcp.json` or another MCP client.
 
-## MCP server
+## VS Code Copilot Chat — recommended starting point for AI tool users
 
-Drift also exposes an MCP (Model Context Protocol) server for agent-native integration in tools like VS Code Copilot Chat.
+The Copilot Chat integration is the lowest-friction way to get drift value in AI coding sessions. It requires no MCP server, no extra dependencies, and no config beyond a one-time setup per repository.
+
+**One-time setup:**
+
+```bash
+drift kit init
+```
+
+This creates `.github/prompts/` with three slash commands and merges `chat.promptFilesLocations` into `.vscode/settings.json`. Run it once per repository — safe to re-run.
+
+After any `drift analyze` run, open VS Code Copilot Chat and call:
+
+- `/drift-fix-plan` — prioritized repair tasks from the latest findings
+- `/drift-export-report` — shareable markdown report
+- `/drift-auto-fix-loop` — guided one-finding-at-a-time fix loop
+
+No MCP server is required. This path works with any editor that supports Copilot Chat and prompt files.
+
+See **[VS Code Copilot Chat Workflow](guides/vscode-copilot-workflow.md)** for the full setup guide.
+
+## MCP server — advanced execution layer
+
+MCP is an optional upgrade for agents that need deterministic, programmatic tool invocations — for example Cursor, Claude Code, and Copilot in agentic mode. Most users should start with `drift kit init` above and only add MCP when the session-loop pattern becomes the bottleneck.
 
 Install with optional extras:
 
@@ -193,19 +215,6 @@ Or use `drift init --mcp` to auto-generate. Cursor reads `.vscode/mcp.json` too,
 
 For setup details, tool catalog, and workflow examples, see the **[Cursor MCP Setup Guide](guides/cursor-mcp-setup.md)**.
 
-### VS Code Copilot Chat handoff
-
-After running `drift analyze`, drift writes `.vscode/drift-session.json` and shows a
-**Copilot Chat Handoff** panel in the terminal with three slash commands:
-
-- `/drift-fix-plan` — prioritized repair tasks
-- `/drift-export-report` — shareable markdown report
-- `/drift-auto-fix-loop` — guided one-finding-at-a-time fix loop
-
-This requires no MCP server — only `"chat.promptFilesLocations": [".github/prompts/"]` in `.vscode/settings.json`.
-
-See **[VS Code Copilot Chat Workflow](guides/vscode-copilot-workflow.md)** for the full setup guide.
-
 ## Example workflow assets in the repository
 
 - `action.yml` for the GitHub Action implementation
@@ -214,11 +223,13 @@ See **[VS Code Copilot Chat Workflow](guides/vscode-copilot-workflow.md)** for t
 
 ## Recommended adoption order
 
-1. CLI locally
-2. report-only CI
-3. SARIF visibility in pull requests
-4. selective gating on `high`
-5. deeper automation with JSON or Python API only where justified
+1. CLI locally (`drift analyze --repo .`)
+2. Copilot Chat slash commands (`drift kit init` — no MCP needed)
+3. report-only CI
+4. SARIF visibility in pull requests
+5. selective gating on `high`
+6. MCP server for deterministic agent execution loops (advanced)
+7. deeper automation with JSON or Python API only where justified
 
 ## Related pages
 
