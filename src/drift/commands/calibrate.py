@@ -58,10 +58,7 @@ def run(repo: Path, dry_run: bool, config: Path | None, fmt: str) -> None:
     events = load_feedback(feedback_path)
 
     # Collect git-correlation evidence if history exists
-    if hasattr(cfg, "resolve_artifact_path"):
-        history_dir = Path(cfg.resolve_artifact_path(repo, cfg.calibration.history_dir))
-    else:
-        history_dir = repo / cfg.calibration.history_dir
+    history_dir = cfg.resolve_artifact_path(repo, cfg.calibration.history_dir)
     if history_dir.exists():
         from drift.calibration.history import load_snapshots
 
