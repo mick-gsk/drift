@@ -83,7 +83,7 @@ jobs:
         run: |
           # Audit declared project dependencies in an isolated environment
           # (avoids host-runner packages and local file URL requirements).
-          python -m pip_audit --strict --desc on .
+          python -m pip_audit --strict --desc -- .
 
       - name: SAST scan (bandit)
         shell: pwsh
