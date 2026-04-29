@@ -112,7 +112,7 @@ The repository now includes a minimal Microsoft Agent Framework example that com
 
 This path is the best fit when drift and the agent run in the same Python process. Use MCP instead when your host already discovers tools via `.vscode/mcp.json` or another MCP client.
 
-## VS Code Copilot Chat — recommended starting point for AI tool users
+## VS Code Copilot Chat — recommended starting point for AI tool users {#copilot-chat}
 
 The Copilot Chat integration is the lowest-friction way to get drift value in AI coding sessions. It requires no MCP server, no extra dependencies, and no config beyond a one-time setup per repository.
 
