@@ -40,6 +40,8 @@ benchmark_results/*
 !benchmark_results/mutation_benchmark.json
 !benchmark_results/drift_self.json
 !benchmark_results/kpi_trend.jsonl
+!benchmark_results/*_feature_evidence.json
+!benchmark_results/quality_scorecard.json
 drift_score.json
 work_artifacts/
 master-backlog/*

@@ -1,0 +1,27 @@
+{
+  "version": "2.42.10",
+  "feature": "findings-change-effort-coupling",
+  "date": "2025-07-27",
+  "description": "Enrich PFS/MDS/EDS finding messages with boundary vocabulary and change-cost language",
+  "signals_modified": ["PFS", "MDS", "EDS"],
+  "tests_added": {
+    "file": "tests/test_finding_message_quality.py",
+    "count": 8,
+    "result": "all passed"
+  },
+  "keyword_coverage": {
+    "family_a": ["boundary", "concern", "responsibility", "shared concern", "shared responsibility"],
+    "family_b": ["change propagation", "change effort", "coupled", "change propagation risk", "cost of change isolation", "change isolation"]
+  },
+  "regression_results": {
+    "total_passed": 6732,
+    "total_skipped": 132,
+    "total_failed": 0,
+    "command": "pytest tests/ --ignore=tests/test_smoke_real_repos.py -m 'not slow' -q -n auto --dist=loadscope"
+  },
+  "lint": {
+    "ruff": "all checks passed",
+    "mypy": "success: no issues found in 3 source files"
+  },
+  "golden_snapshots_updated": true
+}
