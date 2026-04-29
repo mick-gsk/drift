@@ -1043,7 +1043,7 @@ async def drift_session_end(
 
 
 # ---------------------------------------------------------------------------
-# MCP Tools — Task-queue leasing (multi-agent coordination)
+# Legacy task-queue functions (unregistered; backward compatibility)
 # DEPRECATED: These tools will be removed in v3.0.
 # Removed from @mcp.tool() registration to reduce default MCP surface (Issue #545).
 # The underlying functions remain callable for backward compatibility.
