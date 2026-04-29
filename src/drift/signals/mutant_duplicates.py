@@ -394,7 +394,8 @@ class MutantDuplicateSignal(BaseSignal):
 
                 fix_exact = (
                     f"Extract {anchor.name}() into {common_parent.as_posix()}/shared.py. "
-                    f"{len(group)} identical copies (similarity: 1.00). Effort: S."
+                    f"{len(group)} identical copies (similarity: 1.00). Effort: S. "
+                    f"A shared boundary eliminates change propagation across {len(group)} sites."
                 )
 
                 locations_desc = ", ".join(
@@ -406,7 +407,10 @@ class MutantDuplicateSignal(BaseSignal):
                 score = 0.9
                 description = (
                     f"{len(group)} identical copies ({anchor.loc} lines each) "
-                    f"at: {locations_desc}. Consider consolidating."
+                    f"at: {locations_desc}. "
+                    f"Duplication across modules indicates a missing shared"
+                    f" responsibility boundary \u2014"
+                    f" every future change must be applied to all copies."
                 )
                 if is_cross_workspace_group:
                     severity = Severity.INFO
@@ -592,7 +596,8 @@ class MutantDuplicateSignal(BaseSignal):
                     effort = "S" if a.file_path.parent == b.file_path.parent else "M"
                     fix_near = (
                         f"Extract {a.name}() into {near_parent.as_posix()}/shared.py. "
-                        f"Similarity: {sim:.0%}. Effort: {effort}."
+                        f"Similarity: {sim:.0%}. Effort: {effort}. "
+                        f"A shared boundary reduces change propagation risk."
                     )
                     if is_cross_workspace_pair:
                         fix_near = (
@@ -600,17 +605,26 @@ class MutantDuplicateSignal(BaseSignal):
                             "unless shared runtime coupling is explicitly desired."
                         )
 
+                    near_desc = (
+                        f"{a.file_path.as_posix()}:{a.start_line} and "
+                        f"{b.file_path.as_posix()}:{b.start_line} are {sim:.0%} similar — "
+                        f"coupled copies indicate a shared responsibility"
+                        f" without a clear boundary. "
+                        f"Changes to one copy may need to propagate to the other."
+                        if not is_cross_workspace_pair
+                        else (
+                            f"{a.file_path.as_posix()}:{a.start_line} and "
+                            f"{b.file_path.as_posix()}:{b.start_line} are {sim:.0%} similar. "
+                            f"Small differences may indicate copy-paste divergence."
+                        )
+                    )
                     findings.append(
                         Finding(
                             signal_type=self.signal_type,
                             severity=severity,
                             score=score,
-                            title=f"Near-duplicate ({sim:.0%}): {a.name} ↔ {b.name}",
-                            description=(
-                                f"{a.file_path.as_posix()}:{a.start_line} and "
-                                f"{b.file_path.as_posix()}:{b.start_line} are {sim:.0%} similar. "
-                                f"Small differences may indicate copy-paste divergence."
-                            ),
+                            title=f"Near-duplicate ({sim:.0%}): {a.name} \u2194 {b.name}",
+                            description=near_desc,
                             file_path=a.file_path,
                             start_line=a.start_line,
                             related_files=[b.file_path],

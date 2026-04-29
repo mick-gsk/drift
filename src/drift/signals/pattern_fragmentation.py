@@ -375,7 +375,9 @@ class PatternFragmentationSignal(BaseSignal):
                 # Build description
                 desc_parts = [
                     f"{num_variants} {category.value} variants in {module_path.as_posix()}/ "
-                    f"({canonical_count}/{total} use canonical pattern).",
+                    f"({canonical_count}/{total} use canonical pattern). "
+                    f"Inconsistent patterns signal a shared concern without a dominant"
+                    f" convention \u2014 each variant requires separate maintenance effort.",
                 ]
                 if framework_hints:
                     desc_parts.append(
@@ -444,7 +446,9 @@ class PatternFragmentationSignal(BaseSignal):
                 fix = (
                     f"Consolidate to the dominant pattern ({canonical_count}x, "
                     f"exemplar: {_instance_ref(canonical_exemplar)}). "
-                    f"Deviations: {', '.join(deviation_refs)}."
+                    f"Deviations: {', '.join(deviation_refs)}. "
+                    f"Unresolved fragmentation spreads change effort \u2014"
+                    f" each variant must be updated separately."
                 )
 
                 findings.append(
