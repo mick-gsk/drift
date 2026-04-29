@@ -68,8 +68,8 @@ class ParseCache:  # drift:ignore[DCA]
         self._cache_dir = cache_dir / "parse"
         if not self._cache_dir.exists():
             self._cache_dir.mkdir(parents=True, exist_ok=True)
-            with suppress(OSError):
-                os.chmod(self._cache_dir, 0o700)
+        with suppress(OSError):
+            os.chmod(self._cache_dir, 0o700)
         self._cache_dir_key = self._cache_dir.as_posix()
         with ParseCache._l1_lock:
             ParseCache._l1_store.setdefault(self._cache_dir_key, OrderedDict())

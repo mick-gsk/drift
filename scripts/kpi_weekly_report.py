@@ -142,14 +142,17 @@ def _build_product_health_section(
     perf_snap = ph_snap.get("performance", {})
     stability_snap = ph_snap.get("stability", {})
 
-    pypi_last = adoption_snap.get("pypi_downloads_last_30d") or pypi_last_30d
+    pypi_last_snap = adoption_snap.get("pypi_downloads_last_30d")
+    pypi_last = pypi_last_snap if pypi_last_snap is not None else pypi_last_30d
     pypi_prev = adoption_snap.get("pypi_downloads_prev_30d")
     mom_delta = adoption_snap.get("pypi_downloads_mom_delta")
-    stars = adoption_snap.get("github_stars") or github_stars
+    stars_snap = adoption_snap.get("github_stars")
+    stars = stars_snap if stars_snap is not None else github_stars
     forks = adoption_snap.get("github_forks")
     open_issues = stability_snap.get("open_issues")
     open_bugs = stability_snap.get("open_bugs")
-    wall_clock = perf_snap.get("wall_clock_median_seconds") or perf_wall_clock
+    wall_clock_snap = perf_snap.get("wall_clock_median_seconds")
+    wall_clock = wall_clock_snap if wall_clock_snap is not None else perf_wall_clock
     budget_s = perf_snap.get("budget_seconds")
     headroom = perf_snap.get("budget_headroom_pct")
     collected_at = ph_snap.get("collected_at")

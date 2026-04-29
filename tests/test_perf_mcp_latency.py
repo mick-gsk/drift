@@ -2,7 +2,7 @@
 
 Tests cover:
 - ParseCache eviction rate-limiting (once per hour per cache dir)
-- dependency_dag topological sort cache (process-level dict keyed by frozenset)
+- dependency_dag topological sort cache (process-level dict keyed by tuple)
 - incremental.py signal class split cache (keyed by frozenset of registered signal classes)
 - IncrementalSignalRunner.run() uses the split cache on repeated calls
 """
@@ -101,19 +101,18 @@ class TestParseCacheEvictionRateLimiting:
 
         _reset_parse_cache_eviction_state()
         cache_dir = tmp_path / "bench"
-        # Cold: first call does eviction scan
-        t0 = time.perf_counter()
-        ParseCache(cache_dir)
-        cold_ms = (time.perf_counter() - t0) * 1000
 
-        # Warm: second call skips eviction
-        t1 = time.perf_counter()
-        ParseCache(cache_dir)
-        warm_ms = (time.perf_counter() - t1) * 1000
+        # Cold: first call records an eviction timestamp for this cache directory.
+        cold_cache = ParseCache(cache_dir)
+        t_first = ParseCache._last_eviction[cold_cache._cache_dir_key]
 
-        # Warm must be at least 5x faster than cold (generous bound)
-        assert warm_ms < cold_ms or warm_ms < 1.0, (
-            f"Warm path ({warm_ms:.3f} ms) should be faster than cold ({cold_ms:.3f} ms)"
+        # Warm: second call within the interval should skip eviction and leave the
+        # recorded timestamp unchanged.
+        warm_cache = ParseCache(cache_dir)
+        t_second = ParseCache._last_eviction[warm_cache._cache_dir_key]
+
+        assert t_first == t_second, (
+            "Warm path should skip eviction and preserve the recorded eviction timestamp"
         )
 
     def test_thread_safety(self, tmp_path: Path) -> None:
@@ -151,9 +150,9 @@ class TestTopoSortCache:
         _reset_topo_cache()
         classes = list(registered_signals())
         result = order_signal_classes_topologically(classes)
-        key = frozenset(classes)
+        key = tuple(classes)
         assert key in _topo_cache
-        assert _topo_cache[key] == result
+        assert list(_topo_cache[key]) == result
 
     def test_cache_returns_same_object_on_second_call(self) -> None:
         from drift.signals.base import registered_signals
@@ -163,7 +162,7 @@ class TestTopoSortCache:
         classes = list(registered_signals())
         r1 = order_signal_classes_topologically(classes)
         r2 = order_signal_classes_topologically(classes)
-        assert r1 is r2, "Second call should return the exact same list object from cache"
+        assert r1 == r2, "Second call should return an equal list from cache"
 
     def test_warm_path_faster_than_cold(self) -> None:
         from drift.signals.base import registered_signals
@@ -199,8 +198,8 @@ class TestTopoSortCache:
         r2 = order_signal_classes_topologically(classes2)
 
         assert r1 is not r2, "Different input must produce a different cache entry"
-        assert frozenset(classes) in _topo_cache
-        assert frozenset(classes2) in _topo_cache
+        assert tuple(classes) in _topo_cache
+        assert tuple(classes2) in _topo_cache
 
     def test_empty_list_not_cached(self) -> None:
         from drift.signals.dependency_dag import _topo_cache, order_signal_classes_topologically

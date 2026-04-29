@@ -20,6 +20,7 @@ import json
 import os
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote_plus
 from urllib.request import Request, urlopen
 
 _API_BASE = "https://api.github.com"
@@ -60,7 +61,7 @@ def _count_via_search(
     """
     url = (
         f"{_API_BASE}/repos/{repo}/issues"
-        f"?state=open&labels={label}&per_page=1&page=1"
+        f"?state=open&labels={quote_plus(label)}&per_page=1&page=1"
     )
     headers: dict[str, str] = {
         "Accept": "application/vnd.github+json",
@@ -130,21 +131,20 @@ def fetch_github_stats(
 
     stars: int | None = repo_data.get("stargazers_count")
     forks: int | None = repo_data.get("forks_count")
-    open_issues: int | None = repo_data.get("open_issues_count")
 
-    # open_issues_count in GitHub API includes PRs; subtract open PR count
+    # Use Search API to get accurate issue-only count (open_issues_count includes PRs).
+    open_issues: int | None = None
     try:
-        pr_data = _make_request(
-            f"{_API_BASE}/repos/{repo}/pulls?state=open&per_page=1",
+        search_data = _make_request(
+            f"{_API_BASE}/search/issues?q={quote_plus(f'is:issue is:open repo:{repo}')}&per_page=1",
             resolved_token,
             timeout,
         )
-        # Use Link header trick for PR count too
-        # Simplified: use open_issues_count directly (includes PRs) as upper bound;
-        # exact subtraction would require another paginated call — skip for now.
-        _ = pr_data  # fetched but not used for simplification
+        open_issues = search_data.get("total_count")
     except (HTTPError, URLError, OSError):
-        pass
+        # Fall back to the repo field (includes PRs) on error
+        raw = repo_data.get("open_issues_count")
+        open_issues = int(raw) if raw is not None else None
 
     # --- Bug count ---
     open_bugs = _count_via_search(repo, bug_label, resolved_token, timeout)

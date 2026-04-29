@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 
 from drift.signals.base import BaseSignal
 
-_topo_cache: dict[frozenset[type[BaseSignal]], list[type[BaseSignal]]] = {}
+_topo_cache: dict[tuple[type[BaseSignal], ...], tuple[type[BaseSignal], ...]] = {}
 _topo_cache_lock = threading.Lock()
 
 
@@ -23,10 +23,11 @@ def order_signal_classes_topologically(
     if len(classes) <= 1:
         return classes
 
-    cache_key = frozenset(classes)
-    cached = _topo_cache.get(cache_key)
+    cache_key = tuple(classes)
+    with _topo_cache_lock:
+        cached = _topo_cache.get(cache_key)
     if cached is not None:
-        return cached
+        return list(cached)
 
     by_signal_name: dict[str, type[BaseSignal]] = {}
     index_by_class: dict[type[BaseSignal], int] = {}
@@ -76,6 +77,8 @@ def order_signal_classes_topologically(
     if len(ordered) != len(classes):
         # Cycle or unknown edge case: preserve previous deterministic order.
         return classes
+    ordered_tuple = tuple(ordered)
     with _topo_cache_lock:
-        _topo_cache[cache_key] = ordered
-    return ordered
+        if _topo_cache.get(cache_key) is None:
+            _topo_cache[cache_key] = ordered_tuple
+    return list(ordered_tuple)

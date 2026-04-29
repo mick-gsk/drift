@@ -1,5 +1,5 @@
 {% set name = "drift-analyzer" %}
-{% set version = "2.42.9" %}
+{% set version = "2.48.1" %}
 
 package:
   name: {{ name }}
