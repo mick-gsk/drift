@@ -1240,6 +1240,15 @@
       "title": "Cache Dir",
       "type": "string"
     },
+    "output_root": {
+      "anyOf": [
+        {"type": "string"},
+        {"type": "null"}
+      ],
+      "default": null,
+      "description": "Optional base directory for all drift artifact paths (.drift-cache, .drift/feedback.jsonl, .drift/history, etc.). When set, artifact paths are resolved relative to this directory instead of the analysed repo root, keeping the analysed repo clean. Supports ~ expansion. Can also be set via the DRIFT_OUTPUT_ROOT environment variable.",
+      "title": "Output Root"
+    },
     "calibration": {
       "$ref": "#/$defs/CalibrationConfig"
     },
