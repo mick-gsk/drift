@@ -50,7 +50,7 @@ jobs:
           if (Test-Path benchmark_results/mutation_benchmark.json) {
             Remove-Item benchmark_results/mutation_benchmark.json -Force
           }
-          python scripts/_mutation_benchmark.py
+          python scripts/mutation_benchmark.py
           if ($LASTEXITCODE -ne 0) {
             throw "Mutation benchmark command failed with exit code $LASTEXITCODE"
           }
@@ -167,6 +167,7 @@ jobs:
 
       - name: Post mutation result to PR
         if: github.event_name == 'pull_request' && always()
+        continue-on-error: true
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           script: |

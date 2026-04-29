@@ -316,7 +316,7 @@ def test_score_to_grade_boundaries(score: float, expected_grade: str):
 def test_score_to_grade_returns_tuple():
     grade, label = score_to_grade(0.0)
     assert grade == "A"
-    assert label == "Excellent"
+    assert label == "Minimal Drift"
 
 
 def test_score_to_grade_worst_case():

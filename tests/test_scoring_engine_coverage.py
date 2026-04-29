@@ -35,11 +35,11 @@ def _finding(
 
 
 class TestScoreToGrade:
-    def test_excellent(self):
-        assert score_to_grade(0.1) == ("A", "Excellent")
+    def test_minimal_drift(self):
+        assert score_to_grade(0.1) == ("A", "Minimal Drift")
 
-    def test_good(self):
-        assert score_to_grade(0.3) == ("B", "Good")
+    def test_low_drift(self):
+        assert score_to_grade(0.3) == ("B", "Low Drift")
 
     def test_moderate(self):
         assert score_to_grade(0.5) == ("C", "Moderate Drift")
@@ -55,7 +55,7 @@ class TestScoreToGrade:
         assert score_to_grade(0.20)[0] == "B"
 
     def test_zero(self):
-        assert score_to_grade(0.0) == ("A", "Excellent")
+        assert score_to_grade(0.0) == ("A", "Minimal Drift")
 
 
 # -- compute_signal_scores -----------------------------------------------------

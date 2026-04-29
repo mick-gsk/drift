@@ -154,7 +154,7 @@ class TestScoreToGradeCustomBands:
     def test_default_bands_a(self) -> None:
         grade, label = score_to_grade(0.10)
         assert grade == "A"
-        assert label == "Excellent"
+        assert label == "Minimal Drift"
 
     def test_default_bands_f(self) -> None:
         grade, label = score_to_grade(0.99)

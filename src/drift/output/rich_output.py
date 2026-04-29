@@ -120,9 +120,11 @@ _SIGNAL_EXPLANATIONS: dict[str, tuple[str, str]] = {
         "Extract a shared helper or base class; parameterize the differences.",
     ),
     SignalType.EXPLAINABILITY_DEFICIT: (
-        "Complex logic lacks comments, docstrings, or clear naming,"
-        " making review and onboarding harder.",
-        "Add a docstring explaining intent; rename variables to convey purpose.",
+        "Undocumented complexity accumulates silently in AI-generated code — a structural"
+        " indicator that review depth is insufficient and architectural intent is no longer"
+        " visible.",
+        "Document the structural intent (not just the mechanics); ensure the code can be"
+        " reviewed without access to the original AI prompt.",
     ),
     SignalType.DOC_IMPL_DRIFT: (
         "Documentation and implementation have diverged — readers will be misled.",
@@ -137,8 +139,10 @@ _SIGNAL_EXPLANATIONS: dict[str, tuple[str, str]] = {
         "Rename to match project conventions; move to the expected package location.",
     ),
     SignalType.BROAD_EXCEPTION_MONOCULTURE: (
-        "Bare except or overly broad exception handlers swallow errors silently.",
-        "Catch specific exceptions; log or re-raise unexpected ones.",
+        "Divergent exception patterns accumulate in AI-generated code — a structural marker"
+        " that shared error-handling contracts are absent across the codebase.",
+        "Establish a shared exception-handling pattern; align file-level handlers with the"
+        " dominant codebase convention.",
     ),
     SignalType.TEST_POLARITY_DEFICIT: (
         "Tests only cover happy paths — negative/edge cases are untested.",
