@@ -1,0 +1,18 @@
+{
+  "version": "2.48.3",
+  "date": "2026-04-30",
+  "feature": "quickscan skill and output root config",
+  "description": "Feature evidence for drift-repo-quickscan skill and output_root config option (feat/quickscan-skill-and-output-root).",
+  "generated_by": {
+    "script": "manual",
+    "git_sha": "983bbf4801a06b6ff1294cb061669473a22d3bb5",
+    "drift_version": "2.48.3",
+    "timestamp": "2026-04-30T07:51:09.555051+02:00"
+  },
+  "tests": {
+    "total_passing": 6711,
+    "total_failing": 0,
+    "exit_code": 0
+  },
+  "audit_artifacts_updated": []
+}
