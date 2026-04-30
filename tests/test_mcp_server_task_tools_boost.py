@@ -228,7 +228,14 @@ def test_drift_map_success_and_error(monkeypatch: pytest.MonkeyPatch) -> None:
         "drift.api.drift_map", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
     )
     err = _run(mcp_server.drift_map(path="."))
-    assert err["status"] == "error"
+    assert err.get("status") == "error", (
+        "drift_map error response must use 'status' key (not 'type') — "
+        "see mick-gsk/drift#491 and consistent MCP error response convention"
+    )
+    assert "type" not in err, (
+        "drift_map error response must NOT have a 'type' key — "
+        "fixes regression locked in by previous wrong assertion"
+    )
     assert err["agent_instruction"]
 
 

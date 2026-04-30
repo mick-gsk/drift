@@ -854,7 +854,7 @@ async def run_map(
         from drift.api_helpers import _error_response
 
         error = _error_response("DRIFT-7001", str(exc), recoverable=True)
-        # Keep MCP consumers compatible with both error discriminators.
+        error.pop("type", None)
         error["status"] = "error"
         error["tool"] = "drift_map"
         error["agent_instruction"] = (
