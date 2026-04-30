@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def _load_docs_version_module() -> object:
-    module_path = Path(__file__).resolve().parents[1] / "hooks" / "docs_version.py"
+    module_path = Path(__file__).resolve().parents[1] / "src" / "hooks" / "docs_version.py"
     spec = importlib.util.spec_from_file_location("docs_version_under_test", module_path)
     assert spec is not None
     assert spec.loader is not None
