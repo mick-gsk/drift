@@ -1,0 +1,256 @@
+# drift-pr-reviewer.yml
+#
+# Automated reviewer agent for PR quality enforcement.
+# References: .github/agents/reviewer.agent.md
+#
+# Triggered on every non-draft PR targeting main. Runs three checks and posts a
+# structured, idempotent review comment:
+#
+#   1. drift analyze  — surface critical/high/medium signal findings
+#   2. lint-imports   — enforce module boundary contracts (.importlinter)
+#   3. missing tests  — detect source files changed without test changes
+#
+# Design notes:
+# - Uses pull_request (not pull_request_target) to avoid executing fork code
+#   with write permissions.
+# - Permissions are minimal: contents:read (checkout), pull-requests:write (comment).
+# - Idempotent: updates an existing comment on re-runs (marker <!-- drift-pr-reviewer -->).
+# - Report-only: never fails the PR. Blocking is drift-agent-gate.yml's responsibility.
+
+name: Drift — PR Reviewer
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: "drift-pr-reviewer-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Drift quality review
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: "!github.event.pull_request.draft"
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install drift-analyzer and import-linter
+        run: pip install --quiet drift-analyzer import-linter
+
+      # Run drift analyze. Always exit 0 so subsequent steps still run.
+      # Redirect only stdout to the JSON file; stderr is logged separately.
+      - name: Run drift analyze
+        id: drift-analyze
+        continue-on-error: true
+        run: |
+          drift analyze --repo . --format json --exit-zero > drift-pr-review.json
+
+      # Run import-linter against the configured contracts in .importlinter.
+      # Captures both stdout and stderr; exit code is preserved separately.
+      - name: Run import-linter
+        id: import-linter
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          lint-imports --config .importlinter 2>&1 | tee importlinter-output.txt
+          LINT_EXIT=${PIPESTATUS[0]}
+          echo "exit-code=${LINT_EXIT}" >> "$GITHUB_OUTPUT"
+
+      # Detect source files changed in this PR that have no corresponding
+      # test file in the diff. Passes results via GITHUB_OUTPUT as JSON.
+      - name: Check for missing test files
+        id: missing-tests
+        continue-on-error: true
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        shell: python
+        run: |
+          import subprocess
+          import os
+          import json
+
+          base_ref = os.environ.get("BASE_REF", "main")
+          result = subprocess.run(
+              ["git", "diff", "--name-only", f"origin/{base_ref}...HEAD"],
+              capture_output=True,
+              text=True,
+          )
+          changed_files = set(f for f in result.stdout.strip().split("\n") if f)
+
+          src_files = [
+              f for f in changed_files
+              if f.startswith("src/")
+              and f.endswith(".py")
+              and not f.endswith("__init__.py")
+          ]
+
+          missing = []
+          for src_file in src_files:
+              basename = os.path.basename(src_file).replace(".py", "")
+              has_test = any(
+                  f for f in changed_files
+                  if f.startswith("tests/") and basename in f
+              )
+              if not has_test:
+                  missing.append(src_file)
+
+          gha_output = os.environ.get("GITHUB_OUTPUT", "")
+          if gha_output:
+              with open(gha_output, "a", encoding="utf-8") as fh:
+                  fh.write(f"missing_tests={json.dumps(missing)}\n")
+
+          print(f"Source files without test changes: {missing}")
+
+      # Build the review comment from the three check results and upsert it on the PR.
+      - name: Post review comment
+        if: always()
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        env:
+          IMPORTLINTER_EXIT: ${{ steps.import-linter.outputs.exit-code }}
+          MISSING_TESTS: ${{ steps.missing-tests.outputs.missing_tests }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- drift-pr-reviewer -->';
+            const prNumber = context.payload.pull_request.number;
+
+            // ── Section 1: Drift findings ────────────────────────────────────
+            let driftSection = '';
+            try {
+              const raw = fs.readFileSync('drift-pr-review.json', 'utf8');
+              const report = JSON.parse(raw);
+              const findings = (report.findings || []).filter(f =>
+                ['critical', 'high', 'medium'].includes((f.severity || '').toLowerCase())
+              );
+              if (findings.length > 0) {
+                const rows = findings.slice(0, 10).map(f => {
+                  const loc = f.file
+                    ? `\`${f.file}:${f.start_line || ''}\``
+                    : '—';
+                  const title = (f.title || '').substring(0, 60).replace(/\|/g, '\\|');
+                  return `| ${(f.severity || '').toUpperCase()} | ${f.signal || '—'} | ${title} | ${loc} |`;
+                }).join('\n');
+                driftSection = [
+                  '### 🔍 Drift Findings',
+                  '',
+                  '| Severity | Signal | Finding | Location |',
+                  '|----------|--------|---------|----------|',
+                  rows,
+                  '',
+                ].join('\n');
+              } else {
+                driftSection = '### 🔍 Drift Findings\n\n✅ No critical/high/medium findings.\n';
+              }
+            } catch (e) {
+              driftSection = '### 🔍 Drift Findings\n\n⚠️ Could not parse drift output.\n';
+            }
+
+            // ── Section 2: Import-linter ─────────────────────────────────────
+            let importSection = '';
+            const importExit = parseInt(process.env.IMPORTLINTER_EXIT || '0', 10);
+            try {
+              const importOut = fs.readFileSync('importlinter-output.txt', 'utf8');
+              if (importExit !== 0) {
+                const lines = importOut.split('\n');
+                const relevant = lines
+                  .filter(l => l.includes('BROKEN') || l.includes('broken') || l.includes('Forbidden'))
+                  .slice(0, 15)
+                  .join('\n');
+                const block = (relevant || importOut).substring(0, 800);
+                importSection = [
+                  '### 🏗️ Module Boundary Violations',
+                  '',
+                  '```',
+                  block,
+                  '```',
+                  '',
+                  '> Contracts defined in `.importlinter`. See `.github/agents/reviewer.agent.md` Rule 2.',
+                  '',
+                ].join('\n');
+              } else {
+                importSection = '### 🏗️ Module Boundary Violations\n\n✅ All import contracts satisfied.\n';
+              }
+            } catch (e) {
+              importSection = '### 🏗️ Module Boundary Violations\n\n⚠️ Could not read import-linter output.\n';
+            }
+
+            // ── Section 3: Missing tests ─────────────────────────────────────
+            let testsSection = '';
+            try {
+              const missing = JSON.parse(process.env.MISSING_TESTS || '[]');
+              if (missing.length > 0) {
+                const list = missing.slice(0, 10).map(f => `- \`${f}\``).join('\n');
+                testsSection = [
+                  '### 🧪 Missing Test Coverage',
+                  '',
+                  'Source files changed without a corresponding test file change:',
+                  '',
+                  list,
+                  '',
+                  '> See review checklist §7 in `.github/prompts/_partials/review-checkliste.md`.',
+                  '',
+                ].join('\n');
+              } else {
+                testsSection = '### 🧪 Missing Test Coverage\n\n✅ All changed source files have test changes.\n';
+              }
+            } catch (e) {
+              testsSection = '### 🧪 Missing Test Coverage\n\n⚠️ Could not determine test coverage.\n';
+            }
+
+            // ── Compose the full comment body ────────────────────────────────
+            const body = [
+              marker,
+              '## 🤖 Drift PR Review',
+              '',
+              '> Automated quality review by [drift-analyzer](https://github.com/mick-gsk/drift).',
+              '> Agent config: `.github/agents/reviewer.agent.md`.',
+              '',
+              driftSection,
+              importSection,
+              testsSection,
+              '<sub>Posted by drift-pr-reviewer · report-only, no code was changed</sub>',
+            ].join('\n');
+
+            // ── Upsert the comment ───────────────────────────────────────────
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+
+            const existing = comments.find(c => (c.body || '').includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated drift-pr-reviewer comment (id: ${existing.id}).`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+              core.info('Created drift-pr-reviewer comment.');
+            }
