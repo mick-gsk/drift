@@ -5,22 +5,21 @@
 
 ## [2.48.5] - 2026-04-29
 
-Short version: Quickscan distributable skill + output_root config for clean analyzed repos.
+Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-ownership enforcement.
 
 ### Added
-- `output_root` config field and `resolve_artifact_path()` to keep analyzed repos artifact-free.
+- `output_root` config field and `resolve_artifact_path()` for clean analyzed repos.
 - `.github/skills/drift-repo-quickscan/SKILL.md` one-shot repo health-check skill.
-- HARNESS006/007 tool-ownership map + operative LLM-mode error
+- HARNESS006/007 AST-based MCP tool→router-owner map (`audit/harness-tool-map.json`), `--write-tool-map` flag, and contract checks; 5 new tests.
 
 ### Fixed
-- `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy `no-any-return`).
-- `commands/calibrate.py`: guard `resolve_artifact_path` call with `hasattr` for SimpleNamespace compat.
-- `calibration/feedback.py`: use `resolve_artifact_path` for feedback path resolution.
-- PII: hash coauthor strings in `git_history._serialize_commit` to prevent clear-text storage.
+- `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy).
+- `commands/calibrate.py`: guard `resolve_artifact_path` with `hasattr` (SimpleNamespace compat).
+- PII: hash coauthor strings in `git_history._serialize_commit`.
+- `ab_harness.py --mode llm`: operative exit with remediation instead of silent mock fallback (FU-001).
 
 ### Changed
-- compress top changelog entry to five bullets
-- add feature evidence for harness-tool-map feat commit
+- compress 2.48.5 changelog to <=5 bullets
 
 ## [2.48.2] - 2026-04-29
 
