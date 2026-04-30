@@ -265,6 +265,20 @@ Nach **jeder** Dateiänderung MUSS ein Coding-Agent `drift_nudge` als schnellen 
 
 ---
 
+## Pre-PR-Pflicht (für alle Coding-Agenten)
+
+Vor jedem PR-Push und vor jedem "fertig"-Claim MUSS ein Agent folgende drei Kommandos ausführen und deren Output vollständig lesen:
+
+```bash
+pre-commit run --all-files             # Secrets, Typos, Whitespace, Shellcheck (ci.yml/pre-commit + security-hygiene.yml)
+make check                             # lint + typecheck + pytest + self-analysis (ci.yml/test)
+make gate-check COMMIT_TYPE=<typ>      # CHANGELOG, Evidence, Audit-Artefakte, Versions-Konsistenz (pre-push Gates)
+```
+
+Schlägt eines der drei Kommandos fehl → **kein PR, keine Done-Meldung**. Erst beheben, dann erneut prüfen.
+
+---
+
 ## Arbeitsnavigation
 
 Die operative Referenz liegt in den folgenden Dateien und soll von Agenten bevorzugt gelesen werden statt hier gepflegte Kurzfassungen zu erraten:
