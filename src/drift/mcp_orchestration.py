@@ -877,7 +877,7 @@ def _pre_call_advisory(tool_name: str, session: Any) -> str:
     parts: list[str] = []
     try:
         from drift.mcp_server import _EXPORTED_MCP_TOOLS
-    except Exception:  # noqa: BLE001
+    except ImportError:
         exported_names: set[str] | None = None
     else:
         exported_names = {tool.__name__ for tool in _EXPORTED_MCP_TOOLS}

@@ -22,7 +22,7 @@ def _exported_mcp_tool_names() -> set[str] | None:
     """Return exported MCP tool names when available."""
     try:
         from drift.mcp_server import _EXPORTED_MCP_TOOLS
-    except Exception:  # noqa: BLE001
+    except ImportError:
         return None
     return {tool.__name__ for tool in _EXPORTED_MCP_TOOLS}
 

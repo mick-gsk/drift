@@ -1,3 +1,22 @@
+## [2.48.2] - 2026-04-29
+
+Short version: CI/security/mutation workflow unblocking, artifact lean mode, product boundary sharpening.
+
+### Fixed
+- Removed stray `artifact_dir` from committed config schema.
+- Sharpened product boundary: drift detects architectural erosion, not general quality.
+- Unblocked failing CI/security/mutation workflows.
+
+## [2.48.1] - 2026-04-28
+
+Short version: pre-push hook hardening (5-phase plan), retrieval slice migration, README improvements.
+
+### Fixed
+- Hardened pre-push hook with 5-phase plan for more reliable gate checks.
+
+### Changed
+- Migrated retrieval to ADR-099 slice convention.
+
 ## [2.48.0] - 2026-04-28
 
 Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
