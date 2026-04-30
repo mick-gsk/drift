@@ -1,0 +1,55 @@
+#!/usr/bin/env sh
+# post-commit hook — auto-insert CHANGELOG entry and amend the commit.
+#
+# After every commit that follows Conventional Commits (feat|fix|chore),
+# this hook inserts the corresponding bullet into CHANGELOG.md and silently
+# amends the commit to include the updated file.
+#
+# Skip conditions:
+#   DRIFT_SKIP_CHANGELOG=1   bypass entirely (set internally to prevent loops)
+#   Merge / fixup / squash   commits are skipped automatically
+#   Non-conventional commits silently skipped by the Python script
+
+set -e
+
+# Loop guard: the amend triggers another post-commit run; skip it.
+if [ "${DRIFT_SKIP_CHANGELOG:-0}" = "1" ]; then
+    exit 0
+fi
+
+# Git sets GIT_DIR; resolve COMMIT_EDITMSG portably.
+git_dir="$(git rev-parse --git-dir)"
+commit_msg_file="${git_dir}/COMMIT_EDITMSG"
+
+if [ ! -f "$commit_msg_file" ]; then
+    exit 0
+fi
+
+# Skip merge / fixup / squash commits.
+first_line="$(head -1 "$commit_msg_file")"
+case "$first_line" in
+    Merge\ *|fixup\!\ *|squash\!\ *)
+        exit 0 ;;
+esac
+
+# Locate the Python interpreter (prefer the venv used by the project).
+if [ -f ".venv/Scripts/python.exe" ]; then
+    PYTHON=".venv/Scripts/python.exe"
+elif [ -f ".venv/bin/python" ]; then
+    PYTHON=".venv/bin/python"
+else
+    PYTHON="python"
+fi
+
+# Run the integration script.  A non-zero exit means a real error.
+if ! "$PYTHON" scripts/integrate_changelog_entry.py \
+        --from-commit-msg "$commit_msg_file"; then
+    echo ">>> [post-commit] Warning: changelog integration failed (non-fatal)." >&2
+    exit 0
+fi
+
+# Amend the commit to include CHANGELOG.md if it was modified.
+if ! git diff --quiet CHANGELOG.md; then
+    git add CHANGELOG.md
+    DRIFT_SKIP_CHANGELOG=1 git commit --amend --no-edit --no-verify
+fi

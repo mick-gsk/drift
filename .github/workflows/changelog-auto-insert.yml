@@ -1,0 +1,65 @@
+name: changelog-auto-insert
+
+# Inserts a CHANGELOG entry for every feat/fix/chore push that does not
+# already include a matching CHANGELOG.md change.
+#
+# Loop safety: commits created by this workflow carry the message prefix
+# "chore: auto-insert changelog entry [skip ci]".  The job is skipped when
+# the triggering commit was authored by github-actions[bot].
+
+on:
+  push:
+    # All branches — each developer branch benefits from auto-inserts.
+    branches:
+      - "**"
+
+jobs:
+  insert:
+    name: Auto-insert CHANGELOG entry
+    runs-on: ubuntu-latest
+
+    # Skip bot commits to prevent infinite loops.
+    if: >
+      github.event.head_commit.author.name != 'github-actions[bot]' &&
+      !contains(github.event.head_commit.message, '[skip changelog]') &&
+      !contains(github.event.head_commit.message, '[skip ci]')
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch enough history so the amend has context.
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Write commit message to temp file
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          printf '%s' "$COMMIT_MSG" > /tmp/COMMIT_EDITMSG
+
+      - name: Run integrate_changelog_entry
+        id: integrate
+        run: |
+          python scripts/integrate_changelog_entry.py \
+            --from-commit-msg /tmp/COMMIT_EDITMSG
+          if git diff --quiet CHANGELOG.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit updated CHANGELOG.md
+        if: steps.integrate.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore: auto-insert changelog entry [skip ci]"
+          git push
