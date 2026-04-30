@@ -149,11 +149,11 @@ Every finding includes a human-readable `reason` and a concrete `next_action`. F
 
 ## 🔌 Works with
 
-| AI Tools (MCP) | Copilot Chat | CI/CD | Git Hooks | Install |
+| Copilot Chat | CI/CD | Git Hooks | Install | MCP (advanced) |
 |:---:|:---:|:---:|:---:|:---:|
-| Cursor · Claude Code · Copilot | `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker |
+| `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker | Cursor · Claude Code · Copilot |
 
-`Bootstrap:` `drift init --mcp --ci --hooks` scaffolds all integrations at once. Copilot Chat: `drift kit init` (once per repo → `/drift-fix-plan`). Language support: Python (full) · TypeScript/TSX 17/24 via `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
+`Start here (no MCP needed):` `drift kit init` → `/drift-fix-plan` in VS Code Copilot Chat. `Full CI + MCP:` `drift init --mcp --ci --hooks`. Language support: Python (full) · TypeScript/TSX 17/24 via `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
 
 ### GitHub Actions
 
@@ -182,7 +182,50 @@ jobs:
 
 **Outputs available** for downstream steps: `drift-score`, `grade`, `severity`, `finding-count`, `badge-svg`
 
-### MCP / AI Tools
+### VS Code Copilot Chat — no MCP needed
+
+`drift kit init` (once per repo) scaffolds prompt files for VS Code Copilot Chat. After `drift analyze`, drift writes `.vscode/drift-session.json` and shows a **Copilot Chat Handoff** panel in the terminal. Open VS Code Copilot Chat and call:
+
+| Slash command | What it does |
+|---|---|
+| `/drift-fix-plan` | Prioritized repair tasks from the latest findings |
+| `/drift-export-report` | Self-contained findings report as Markdown |
+| `/drift-auto-fix-loop` | Step through findings one-at-a-time with confirm/skip gates |
+
+**One-time setup — one command:**
+```bash
+drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
+```
+
+No additional Drift-specific extension install is needed for this workflow; you still need VS Code with GitHub Copilot Chat installed/enabled. `drift kit init` creates `.github/prompts/` with the three user-facing slash-command prompt files shown above, plus `drift-feature-guardrails.prompt.md`, and merges `chat.promptFilesLocations` into `.vscode/settings.json` without touching your existing keys. Idempotent — safe to re-run.
+
+📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
+
+### VS Code Extension
+
+The `vscode-drift` extension shows findings as inline **CodeLens** annotations — no terminal needed.
+
+```
+auth/handler.py             [Drift · C · score 0.71 · 3 findings (1 high, 2 medium)]
+  def authenticate(...):    [Drift · PFS · co-change coupling to auth/service.py · high]
+```
+
+**Install from VSIX:**
+```bash
+pip install drift-analyzer          # drift must be on PATH
+code --install-extension vscode-drift-0.1.0.vsix
+```
+
+Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page, or build from source:
+```bash
+cd extensions/vscode-drift && npm install && npm run compile
+```
+
+📖 [Extension README →](extensions/vscode-drift/README.md)
+
+### MCP / AI Tools — advanced execution layer
+
+> **This is the advanced path.** MCP is valuable for active agent loops with deterministic tool contracts — but it adds setup friction and consumes model context budget. Start with the Copilot Chat path above if you haven't already.
 
 Cursor, Claude Code, and Copilot call drift directly via MCP server — the agent runs a full session loop:
 
@@ -192,6 +235,8 @@ Cursor, Claude Code, and Copilot call drift directly via MCP server — the agen
 | **Code** | `drift_nudge` | Real-time `safe_to_commit` check after each edit |
 | **Verify** | `drift_diff` | Full before/after comparison before push |
 | **Learn** | `drift_feedback` | Mark findings as TP/FP — calibrates signal weights |
+
+The execution core (`brief`, `nudge`, `diff`, `fix-plan`, `feedback`) covers most agent loops. The full tool surface is documented in [integrations →](https://mick-gsk.github.io/drift/integrations/).
 
 #### Copy-paste MCP config
 
@@ -252,48 +297,6 @@ repos:
 ```
 
 📖 [Full integration guide →](https://mick-gsk.github.io/drift/integrations/) · [drift-pre-commit repo →](https://github.com/mick-gsk/drift-pre-commit)
-
-### VS Code Extension
-
-The `vscode-drift` extension shows findings as inline **CodeLens** annotations — no terminal needed.
-
-```
-auth/handler.py             [Drift · C · score 0.71 · 3 findings (1 high, 2 medium)]
-  def authenticate(...):    [Drift · PFS · co-change coupling to auth/service.py · high]
-```
-
-**Install from VSIX:**
-```bash
-pip install drift-analyzer          # drift must be on PATH
-code --install-extension vscode-drift-0.1.0.vsix
-```
-
-Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page, or build from source:
-```bash
-cd extensions/vscode-drift && npm install && npm run compile
-```
-
-📖 [Extension README →](extensions/vscode-drift/README.md)
-
-### VS Code Copilot Chat — slash commands after `drift analyze`
-
-After `drift analyze`, drift writes `.vscode/drift-session.json` and shows a
-**Copilot Chat Handoff** panel in the terminal. Open VS Code Copilot Chat and call:
-
-| Slash command | What it does |
-|---|---|
-| `/drift-fix-plan` | Prioritized repair tasks from the latest findings |
-| `/drift-export-report` | Self-contained findings report as Markdown |
-| `/drift-auto-fix-loop` | Step through findings one-at-a-time with confirm/skip gates |
-
-**One-time setup — one command:**
-```bash
-drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
-```
-
-No extension install needed. `drift kit init` creates `.github/prompts/` with all three prompt files and merges `chat.promptFilesLocations` into `.vscode/settings.json` without touching your existing keys. Idempotent — safe to re-run.
-
-📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
 
 ---
 
