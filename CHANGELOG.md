@@ -20,6 +20,7 @@ Short version: Quickscan distributable skill + output_root config for clean anal
 
 ### Changed
 - compress top changelog entry to five bullets
+- add feature evidence for harness-tool-map feat commit
 
 ## [2.48.2] - 2026-04-29
 
