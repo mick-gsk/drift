@@ -5,6 +5,9 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 ### Added
 - add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
 
+### Fixed
+- resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
+
 ## [2.48.5] - 2026-04-29
 
 Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-ownership enforcement.
