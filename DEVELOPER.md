@@ -152,6 +152,7 @@ make feat-start                             Vor dem ersten Edit bei feat: (Polic
 make fix-start                              Vor dem ersten Edit bei fix: (Baseline + Test-Run)
 make gate-check COMMIT_TYPE=feat            Gates proaktiv pruefen (vor Push)
 make audit-diff                             Zeigt Audit-Pflichten bei signals/ingestion/output
+make agent-harness-check                    Prueft Agent-Root-Map, Audit-Paket und MCP-Boundaries
 make changelog-entry COMMIT_TYPE=feat MSG=  Formatgerechten CHANGELOG-Snippet ausgeben
 make handover TASK='beschreibung'           Session-Uebergabe-Artefakt anlegen
 make catalog                                Alle scripts/ mit Kurzbeschreibung anzeigen

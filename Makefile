@@ -14,7 +14,7 @@ MYPY     ?= $(PYTHON) -m mypy
 SRC      := src/
 TESTS    := tests/
 
-.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry changelog-insert audit-diff markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
+.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -174,10 +174,21 @@ changelog-insert:  ## [Agent] Insert changelog entry into CHANGELOG.md in-place 
 audit-diff:  ## [Agent] Show required risk-audit updates for current diff
 	$(PYTHON) scripts/risk_audit_diff.py
 
+agent-harness-check:  ## [Agent] Validate harness navigation, audit docs, and MCP boundaries
+	$(PYTHON) scripts/check_agent_harness_contract.py --root .
+
 clean:  ## Remove caches and build artifacts
 	rm -rf .drift-cache .pytest_cache .ruff_cache .mypy_cache htmlcov dist build
 	rm -f .coverage out.json
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+guard-refresh:  ## Regenerate guard SKILL.md files from latest ArchGraph (runs drift map first)
+	$(PYTHON) -m drift map --repo . --exit-zero
+	$(PYTHON) -m drift generate-skills --repo . --write --force
+	@echo "Guard skills refreshed. Review changes before committing."
+
+test-for:  ## Run tests relevant for a specific source file: make test-for FILE=src/drift/session.py
+	$(PYTHON) scripts/_test_map_lookup.py $(FILE)
 
 # ---------------------------------------------------------------------------
 # Internal Evaluation System

@@ -23,6 +23,8 @@ Use this skill when Drift needs reproducible fixture coverage for signal behavio
 3. **Every fixture needs explicit expectations.** Empty fixtures are invalid.
 4. **Prefer source-like realism over size.** Small but representative beats large and noisy.
 5. **Use fixture kinds intentionally.** TP/TN are the baseline; boundary and confounder cases are for calibration and trust hardening.
+6. **Fixture und Logik zusammen bauen — nicht alle Fixtures zuerst.** Eine TP-Fixture schreiben, die passende Signal-Logik implementieren, dann TN. Horizontales Batch-Schreiben produziert Tests gegen imaginiertes Verhalten.
+7. **Nur an echten Systemgrenzen mocken.** Externe APIs, Zeit und Dateisystem sind valide Mock-Ziele. Interne Signal-Methoden, AST-Helfer und Scoring-Zwischenwerte nicht — teste ausschließlich den Public-Output von `analyze()`. Kurzregel: AST/Scoring = in-process, direkt testbar; Git-History = `file_history_overrides` als lokaler Stand-in; externe HTTP-Calls = an der Interface-Grenze mocken.
 
 ## Step 0: Run The Drift Policy Gate
 

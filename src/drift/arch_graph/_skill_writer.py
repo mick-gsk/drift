@@ -13,6 +13,8 @@ Usage::
 
 from __future__ import annotations
 
+import datetime
+
 from drift.arch_graph._models import SkillBriefing
 
 # ---------------------------------------------------------------------------
@@ -70,7 +72,7 @@ _SIGNAL_CHECKLIST_ITEM: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-def render_skill_md(briefing: SkillBriefing) -> str:
+def render_skill_md(briefing: SkillBriefing, *, generated_at: str | None = None) -> str:
     """Render *briefing* to SKILL.md text.
 
     The output follows the same structural template as hand-crafted Drift
@@ -81,6 +83,9 @@ def render_skill_md(briefing: SkillBriefing) -> str:
     briefing:
         A populated ``SkillBriefing`` as returned by
         ``generate_skill_briefings()``.
+    generated_at:
+        ISO-8601 timestamp to embed in the frontmatter as a staleness
+        indicator.  If *None*, the current UTC time is used.
 
     Returns
     -------
@@ -89,6 +94,7 @@ def render_skill_md(briefing: SkillBriefing) -> str:
     """
     signals_str = ", ".join(briefing.trigger_signals)
     conf_str = str(briefing.confidence)
+    ts = generated_at or datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     lines: list[str] = []
 
@@ -109,6 +115,7 @@ def render_skill_md(briefing: SkillBriefing) -> str:
         f"name: {briefing.name}",
         f'description: "{description}"',
         f'argument-hint: "{argument_hint}"',
+        f"generated_at: {ts}",
         "---",
         "",
     ]

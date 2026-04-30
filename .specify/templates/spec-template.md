@@ -81,12 +81,14 @@
   ACTION REQUIRED: The content in this section represents placeholders.
   Fill them out with the right functional requirements.
 
-  Constitution constraints (v1.0.0) that apply to every feature:
+  Constitution constraints (v1.1.0) that apply to every feature:
   - I. Library-First: feature logic MUST live in a standalone library (src/drift/<module>/)
   - II. Test-First: acceptance scenarios below drive the initial failing tests
   - III. Functional: prefer pure functions and frozen models; isolate side effects
   - IV. CLI: expose via Click subcommand; support JSON + Rich output
   - V. Simplicity: every requirement must justify its existence against YAGNI
+  - VI. Vertical Slices: feature MUST be a self-contained slice under src/drift/<feature_name>/
+    owning its own models, logic, CLI subcommand, and tests; cross-slice deps via public API only
 -->
 
 ### Functional Requirements

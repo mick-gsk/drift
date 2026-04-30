@@ -27,6 +27,20 @@ Zweifel → voller Workflow.
 
 ---
 
+## Aufgaben-Priorisierungsreihenfolge (Feature-First-Bias vermeiden)
+
+Bevor eine Aufgabe begonnen wird, gilt folgende feste Reihenfolge:
+
+1. Kritische Bugfixes
+2. Audit-Artefakte und Dev-Infrastruktur (Tests, CI) — Voraussetzung für alles andere
+3. Signal-Features als Tracer Bullet (dünner End-to-End-Slice zuerst)
+4. Vollständige Feature-Implementierung
+5. Refactoring und Polish
+
+Agenten wählen ohne explizite Reihenfolge typischerweise die „interessanteste“ Aufgabe und überspringen dabei notwendige Infrastruktur. Diese Reihenfolge verhindert das.
+
+---
+
 ## Verbindlicher Standardprozess (7 Stufen)
 
 ### Stufe 1 — Dual-Agent-Implementierung
@@ -133,6 +147,7 @@ Ein Mensch trifft die letzte Entscheidung.
 4. **Findings → konkrete nächste Schritte** — keine bloßen Kommentare
 5. **Unsicherheit, Trade-offs, fehlende Validierung, hohes Risiko** werden sichtbar an den Menschen eskaliert
 6. **Freigabestatus vor Abschluss** immer explizit ausgeben
+7. **Enforcement-Medium pro Finding benennen:** Bei jedem Review-Finding festhalten, ob die Regel nur sozial (Kommentar) oder mechanisch (Lint, Test, Make-Ziel, Gate) durchgesetzt werden kann. Mechanisch durchsetzbare Regeln müssen nach der Korrektur im entsprechenden Gate landen — nicht nur im Kommentar.
 
 ### Batch-Repair-Ausnahme
 

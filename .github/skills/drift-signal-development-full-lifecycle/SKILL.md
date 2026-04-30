@@ -91,6 +91,8 @@ Baseline expectation for meaningful signal work:
 
 Add boundary and confounder fixtures when the change is threshold-sensitive or meant to reduce specific false positives or false negatives.
 
+**Vertical-Slice-Regel:** Schreibe eine Fixture, implementiere die passende Logik, dann die nächste Fixture. Nicht alle Fixtures zuerst schreiben — Tests gegen noch nicht implementiertes Verhalten prüfen imaginären Code, keinen realen.
+
 ## Step 5: Add Direct Signal Tests
 
 Do not rely only on the shared precision/recall suite.

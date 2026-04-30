@@ -91,3 +91,12 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit]
+      - id: agent-harness-contract
+        name: agent harness contract
+        description: >-
+          Ensure the agent-harness map, audit artifacts, Markdown links, root
+          allowlist entries, and MCP registration/router boundaries stay valid.
+        entry: python scripts/check_agent_harness_contract.py --root .
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]

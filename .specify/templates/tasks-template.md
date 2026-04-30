@@ -60,20 +60,22 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-**Constitution gate (v1.0.0)**: Foundational tasks MUST establish:
+**Constitution gate (v1.1.0)**: Foundational tasks MUST establish:
 - Standalone library module (I. Library-First)
 - Failing test skeletons for all acceptance scenarios (II. Test-First)
 - Frozen Pydantic models and pure-function entry points (III. Functional)
 - Click subcommand stub with JSON + Rich output paths (IV. CLI)
+- Vertical slice directory `src/drift/<feature_name>/` with `__init__.py` exporting the
+  public API only; no cross-slice internal imports (VI. Vertical Slices)
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Create standalone library module under `src/drift/<name>/`
+- [ ] T004 Create vertical slice directory `src/drift/<feature_name>/` with `__init__.py`
 - [ ] T005 [P] Write failing test stubs for all acceptance scenarios (RED phase)
-- [ ] T006 [P] Define frozen Pydantic data models for feature domain
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Register Click subcommand stub (JSON + Rich output)
+- [ ] T006 [P] Define frozen Pydantic data models in `src/drift/<feature_name>/_models.py`
+- [ ] T007 Implement core detection/processing logic in `_detector.py` (pure functions)
+- [ ] T008 Configure error handling and logging at slice boundary
+- [ ] T009 Register Click subcommand stub in `_cmd.py` (JSON + Rich output)
 
 **Checkpoint**: Foundation ready — failing tests exist, library skeleton in place, user story implementation can now begin in parallel
 

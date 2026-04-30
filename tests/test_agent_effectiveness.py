@@ -11,13 +11,7 @@ from drift.config import AgentObjective, DriftConfig
 from drift.mcp_server import _update_session_from_verification_result
 from drift.session import DriftSession, OrchestrationMetrics, SessionManager
 
-
-@pytest.fixture(autouse=True)
-def _reset_manager():
-    """Ensure a fresh SessionManager for every test."""
-    SessionManager.reset_instance()
-    yield
-    SessionManager.reset_instance()
+pytestmark = pytest.mark.usefixtures("reset_session_manager")
 
 
 # ---------------------------------------------------------------------------
