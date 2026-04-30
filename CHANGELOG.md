@@ -15,11 +15,10 @@ Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-
 ### Fixed
 - `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy).
 - `commands/calibrate.py`: guard `resolve_artifact_path` with `hasattr` (SimpleNamespace compat).
-- PII: hash coauthor strings in `git_history._serialize_commit`.
-- `ab_harness.py --mode llm`: operative exit with remediation instead of silent mock fallback (FU-001).
+- PII: hash coauthor strings in `git_history._serialize_commit`; `ab_harness.py --mode llm` now exits operatively (FU-001).
 
 ### Changed
-- compress 2.48.5 changelog to <=5 bullets
+- trim changelog 2.48.5 to 5 bullets
 
 ## [2.48.2] - 2026-04-29
 
