@@ -1,0 +1,16 @@
+{
+  "version": "2.49.0",
+  "date": "2026-04-30",
+  "feature": "just-in-time context injection for agent workflows",
+  "description": "Feature evidence for just-in-time context injection for agent workflows (v2.49.0).",
+  "generated_by": {
+    "script": "scripts/generate_feature_evidence.py",
+    "git_sha": "ade11e78716af514831c301e506ea0563acaedac",
+    "drift_version": "2.49.0",
+    "timestamp": "2026-04-30T09:02:04.425239+00:00"
+  },
+  "self_analysis": {
+    "error": "JSON parse error: Extra data: line 35442 column 1 (char 1356200)"
+  },
+  "audit_artifacts_updated": []
+}

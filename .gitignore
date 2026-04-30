@@ -116,3 +116,6 @@ prof_warm.pstats
 node_modules/
 playground/dist/
 third_party_skills/
+
+# VS Code per-workspace drift session output (machine-generated, run-local)
+.vscode/drift-session.json

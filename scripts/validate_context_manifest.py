@@ -29,8 +29,9 @@ if str(_SCRIPTS_DIR) not in sys.path:
 import _context_mapping as ctx  # noqa: E402
 
 # Minimum number of signals that must have a dedicated mapping.
-# The issue's DoD requires at least 3; we set a higher bar here.
-MIN_MAPPED_SIGNALS = 3
+# 24 signals are mapped at the time of introduction; 20 protects against
+# accidental truncation without falsely failing on minor removals.
+MIN_MAPPED_SIGNALS = 20
 
 
 def _validate() -> list[str]:
