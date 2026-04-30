@@ -5,18 +5,12 @@
   "description": "Feature evidence for just-in-time context injection for agent workflows (v2.49.0).",
   "generated_by": {
     "script": "scripts/generate_feature_evidence.py",
-    "git_sha": "22f46d09bba1d642274b7b13519f71fe1dd0432a",
+    "git_sha": "ade11e78716af514831c301e506ea0563acaedac",
     "drift_version": "2.49.0",
-    "timestamp": "2026-04-30T08:33:32.482629+00:00"
+    "timestamp": "2026-04-30T09:02:04.425239+00:00"
   },
   "self_analysis": {
-    "error": "JSON parse error: Extra data: line 35444 column 1 (char 1356216)"
-  },
-  "tests": {
-    "total_passing": 4476,
-    "total_failing": 1,
-    "failing_note": "FAILED tests/test_workspace_value.py::TestSignalCoverageMatrix::test_baseline_version_has_7_signals - assert 0 == 7",
-    "exit_code": 2
+    "error": "JSON parse error: Extra data: line 35442 column 1 (char 1356200)"
   },
   "audit_artifacts_updated": []
 }
