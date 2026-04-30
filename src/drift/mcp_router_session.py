@@ -756,14 +756,13 @@ async def run_session_end(
         if isinstance(repo_candidate, (str, Path)):
             repo_for_release = repo_candidate
 
-    summary = mgr.destroy(session_id)
-    if summary is None:
-        return session_error_response(
-            "DRIFT-6001",
-            f"Session {session_id[:8]} not found or already ended.",
-            session_id,
-        )
+    # Auto-persist session snapshot before destroying so agents can resume
+    # after an MCP server restart.  Errors are non-fatal — a failed save
+    # must never block a clean session end.
+    if session is not None:
+        _try_autosave_session(session, session_id)
 
+    summary = mgr.destroy(session_id)
     if repo_for_release is not None:
         from drift.session_writer_lock import release_writer_advisory
 
@@ -773,6 +772,17 @@ async def run_session_end(
             logging.getLogger("drift").debug(
                 "writer-advisory release failed: %s", exc
             )
+    if summary is None:
+        from drift.api_helpers import _error_response
+
+        error = _error_response(
+            "DRIFT-6001",
+            f"Session {session_id[:8]} not found or already ended.",
+            recoverable=False,
+            suggested_fix={"action": "Check the session_id and retry."},
+        )
+        error["session_id"] = session_id
+        return json.dumps(error, default=str)
 
     summary["status"] = "ok"
     if gate_payload is not None:
@@ -862,3 +872,33 @@ async def run_map(
             "subdirectory. Retry drift_map with a corrected path."
         )
         return json.dumps(error, default=str)
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+def _try_autosave_session(session: Any, session_id: str) -> None:
+    """Persist *session* to ``.drift-cache/sessions/`` before destruction.
+
+    Failures are silently swallowed — a failed save must never block a
+    clean session end (non-fatal by design).
+    """
+    try:
+        repo_path = getattr(session, "repo_path", None)
+        if not repo_path:
+            return
+        save_dir = Path(repo_path) / ".drift-cache" / "sessions"
+        save_dir.mkdir(parents=True, exist_ok=True)
+        save_path = save_dir / f"session-{session_id[:8]}.json"
+        to_dict = getattr(session, "to_dict", None)
+        if callable(to_dict):
+            save_path.write_text(
+                json.dumps(to_dict(), default=str, indent=2),
+                encoding="utf-8",
+            )
+    except Exception:  # noqa: BLE001
+        logging.getLogger("drift").debug(
+            "auto-save of session %s failed (non-fatal)", session_id[:8]
+        )
