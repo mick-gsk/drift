@@ -8,17 +8,15 @@
 Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-ownership enforcement.
 
 ### Added
-- `output_root` config field and `resolve_artifact_path()` for clean analyzed repos.
-- `.github/skills/drift-repo-quickscan/SKILL.md` one-shot repo health-check skill.
-- HARNESS006/007 AST-based MCP tool→router-owner map (`audit/harness-tool-map.json`), `--write-tool-map` flag, and contract checks; 5 new tests.
+- `output_root` config field, `resolve_artifact_path()`, and `drift-repo-quickscan` skill.
+- HARNESS006/007 AST-based MCP tool→router-owner map, `--write-tool-map` flag, 5 new tests.
 
 ### Fixed
-- `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy).
-- `commands/calibrate.py`: guard `resolve_artifact_path` with `hasattr` (SimpleNamespace compat).
-- PII: hash coauthor strings in `git_history._serialize_commit`; `ab_harness.py --mode llm` now exits operatively (FU-001).
+- `commands/_last_scan.py` mypy cast; `commands/calibrate.py` SimpleNamespace guard.
+- PII: hash coauthor strings; `ab_harness.py --mode llm` operative exit (FU-001).
 
 ### Changed
-- trim changelog 2.48.5 to 5 bullets
+- fix CHANGELOG 2.48.5 to 4 bullets (gate-compliant)
 
 ## [2.48.2] - 2026-04-29
 
