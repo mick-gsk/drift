@@ -1,4 +1,6 @@
-## [Unreleased]
+## [2.49.0] - 2026-04-30
+
+Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
 
 ### Added
 - add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)

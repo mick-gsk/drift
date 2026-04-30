@@ -21,6 +21,10 @@ from drift.pr_loop._models import (
 class PollTimeoutError(Exception):
     """Raised when reviewer polling exceeds poll_timeout_seconds."""
 
+    def __init__(self, msg: str, verdicts: list[ReviewerVerdict] | None = None) -> None:
+        super().__init__(msg)
+        self.verdicts: list[ReviewerVerdict] = verdicts or []
+
 
 # ---------------------------------------------------------------------------
 # T013 — Self-review body builder (pure function)
@@ -94,7 +98,7 @@ def poll_reviews(
     for reviewer in configured:
         if reviewer not in responded_logins:
             final.append(ReviewerVerdict(reviewer=reviewer, state=ReviewState.NO_RESPONSE))
-    raise PollTimeoutError(f"Polling timed out after {config.poll_timeout_seconds}s")
+    raise PollTimeoutError(f"Polling timed out after {config.poll_timeout_seconds}s", final)
 
 
 # ---------------------------------------------------------------------------
@@ -253,7 +257,12 @@ def loop_until_approved(
         gate_result = gh.run_local_gates(dry_run=dry_run)
 
         # Step 3: Post self-review
-        gate_output: dict[str, object] = {"gate_output": gate_result.output}
+        gate_output: dict[str, object] = {
+            "pre_commit_passed": gate_result.passed,
+            "make_check_passed": gate_result.passed,
+            "gate_check_passed": gate_result.passed,
+            "output": gate_result.output,
+        }
         review_body = build_self_review_body(state, gate_output)
         review_comment_id = gh.post_self_review(pr_number, review_body, dry_run=dry_run)
 
@@ -263,9 +272,10 @@ def loop_until_approved(
         # Step 5: Poll for reviews
         try:
             verdicts = poll_reviews(pr_number, config)
-        except PollTimeoutError:
-            verdicts = [
-                ReviewerVerdict(reviewer=r, state=ReviewState.NO_RESPONSE) for r in config.reviewers
+        except PollTimeoutError as exc:
+            verdicts = exc.verdicts if exc.verdicts else [
+                ReviewerVerdict(reviewer=r, state=ReviewState.NO_RESPONSE)
+                for r in config.reviewers
             ]
 
         # Step 6: Check for contradiction

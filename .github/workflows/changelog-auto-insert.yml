@@ -9,9 +9,12 @@ name: changelog-auto-insert
 
 on:
   push:
-    # All branches — each developer branch benefits from auto-inserts.
+    # Restrict to integration branches to avoid bot commits on every feature branch.
     branches:
-      - "**"
+      - "main"
+      - "feat/**"
+      - "fix/**"
+      - "chore/**"
 
 jobs:
   insert:
