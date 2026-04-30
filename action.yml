@@ -128,6 +128,14 @@ outputs:
   badge-svg:
     description: "Absolute path to the generated SVG badge file."
     value: ${{ steps.drift-badge.outputs.badge-svg }}
+  context-hints:
+    description: >
+      Newline-separated list of workspace-relative documentation paths that are
+      relevant to the signals found in this run. Agents can load only these
+      files instead of the full llms.txt, reducing context budget consumption.
+      Empty when no findings are present or no mapping exists for the detected
+      signals.
+    value: ${{ steps.context-injection.outputs.context-hints }}
 
 runs:
   using: "composite"
@@ -301,7 +309,29 @@ runs:
         echo "finding-count=${COUNT}" >> "${GITHUB_OUTPUT}"
         echo "grade=${GRADE}" >> "${GITHUB_OUTPUT}"
 
-    # Generate self-contained SVG badge (no external HTTP needed).
+    # Just-in-time context injection (ADR-100).
+    # Maps the signals found in this run to their minimal documentation slice
+    # so agents load only what is relevant instead of the full llms.txt.
+    - name: Inject signal context hints
+      id: context-injection
+      if: always()
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        JSON_FILE="${RUNNER_TEMP}/drift-results.json"
+        HINTS=""
+        if [ -f "${JSON_FILE}" ]; then
+          HINTS=$(python3 "${ACTION_PATH}/scripts/get_context_hints.py" "${JSON_FILE}" 2>/dev/null || true)
+        fi
+        {
+          echo "context-hints<<DRIFT_HINTS_EOF"
+          printf '%s' "${HINTS}"
+          echo ""
+          echo "DRIFT_HINTS_EOF"
+        } >> "${GITHUB_OUTPUT}"
+
+
     - name: Generate drift badge SVG
       id: drift-badge
       if: always()

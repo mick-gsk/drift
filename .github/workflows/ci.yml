@@ -121,6 +121,14 @@ jobs:
         run: |
           & $env:PYTHON_BIN scripts/check_model_consistency.py
 
+      - name: Validate signal context manifest
+        # [win-only] PowerShell invocation on Windows runner.
+        # Ensures every path in SIGNAL_CONTEXT_PATHS exists and the budget
+        # constraints are met (ADR-100: just-in-time context injection).
+        shell: powershell
+        run: |
+          & $env:PYTHON_BIN scripts/validate_context_manifest.py
+
   test:
     # NOTE: Runs on Ubuntu and Windows for cross-platform coverage.
     runs-on: ${{ matrix.os }}
