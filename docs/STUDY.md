@@ -1774,3 +1774,20 @@ Aggregation script: `scripts/study_self_analysis_aggregate.py`.
 ```bash
 pytest tests/test_retrieval_corpus.py tests/test_retrieval_search.py tests/test_mcp_retrieval_tools.py
 ```
+
+---
+
+## Automated PR Reviewer Agent (v2.49.0)
+
+**Feature:** `.github/agents/reviewer.agent.md` + `.github/workflows/drift-pr-reviewer.yml`
+
+**Research question:** Does encoding recurring PR review patterns (missing tests, module boundary violations, drift signal regressions) as a structured automated reviewer agent reduce the manual comment loop for maintainers?
+
+**Design:** Three independent check steps feed a single idempotent PR comment:
+1. `drift analyze --format json --exit-zero` — surfaces critical/high/medium findings
+2. `lint-imports --config .importlinter` — enforces the four architecture boundary contracts
+3. A Python step using `git diff` to detect `src/drift/**/*.py` files changed without matching `tests/` file changes
+
+The agent is report-only (never blocks merges) and uses `<!-- drift-pr-reviewer -->` for idempotent comment upsert. Permission scope is minimal: `contents: read`, `pull-requests: write`.
+
+**Evidence artifact:** `benchmark_results/v2.49.0_pr-reviewer_feature_evidence.json`

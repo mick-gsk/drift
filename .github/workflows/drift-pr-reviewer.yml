@@ -96,7 +96,7 @@ jobs:
 
           src_files = [
               f for f in changed_files
-              if f.startswith("src/")
+              if f.startswith("src/drift/")
               and f.endswith(".py")
               and not f.endswith("__init__.py")
           ]
@@ -135,7 +135,9 @@ jobs:
             let driftSection = '';
             try {
               const raw = fs.readFileSync('drift-pr-review.json', 'utf8');
-              const report = JSON.parse(raw);
+              const jsonStart = raw.indexOf('{');
+              const jsonEnd = raw.lastIndexOf('}');
+              const report = JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
               const findings = (report.findings || []).filter(f =>
                 ['critical', 'high', 'medium'].includes((f.severity || '').toLowerCase())
               );
