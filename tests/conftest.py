@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import subprocess
 import textwrap
+from collections.abc import Callable
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import pytest
+
+if TYPE_CHECKING:
+    from drift.models import Finding
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -348,3 +353,102 @@ def sample_python_source() -> str:
             \"\"\"Add two numbers.\"\"\"
             return x + y
     """)
+
+
+# ---------------------------------------------------------------------------
+# Session fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def reset_session_manager():
+    """Reset SessionManager before and after each test.
+
+    Use this fixture in tests that create sessions to prevent state leaking
+    between tests. Prefer over defining _reset_manager locally in test files.
+    """
+    from drift.session import SessionManager
+
+    SessionManager.reset_instance()
+    yield
+    SessionManager.reset_instance()
+
+
+@pytest.fixture
+def agent_session(tmp_path: Path):
+    """Create a fresh DriftSession and reset SessionManager around the test.
+
+    Yields (DriftSession, session_id).
+    """
+    from drift.session import SessionManager
+
+    SessionManager.reset_instance()
+    mgr = SessionManager.instance()
+    sid = mgr.create(repo_path=str(tmp_path))
+    yield mgr.get(sid), sid
+    SessionManager.reset_instance()
+
+
+# ---------------------------------------------------------------------------
+# Git fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def tmp_git_repo(tmp_path: Path) -> Path:
+    """Return a tmp_path that has been initialised as a git repository."""
+    subprocess.run(["git", "init", str(tmp_path)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@test.com"],
+        cwd=tmp_path,
+        capture_output=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "Test"],
+        cwd=tmp_path,
+        capture_output=True,
+    )
+    return tmp_path
+
+
+# ---------------------------------------------------------------------------
+# Model builder fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def make_finding() -> Callable[..., Finding]:
+    """Factory fixture for drift Finding objects.
+
+    Usage::
+
+        def test_something(make_finding):
+            f = make_finding(signal_type="architecture_violation", score=0.7)
+    """
+    from drift.models import Finding, Severity, SignalType
+
+    def _build(
+        *,
+        signal_type: str = "architecture_violation",
+        severity: str = "medium",
+        score: float = 0.5,
+        title: str = "Test finding",
+        description: str = "Test description",
+        file_path: str = "src/module.py",
+        start_line: int = 1,
+        fix: str | None = None,
+        impact: float = 0.5,
+    ) -> Finding:
+        return Finding(
+            signal_type=SignalType(signal_type),
+            severity=Severity(severity),
+            score=score,
+            title=title,
+            description=description,
+            file_path=Path(file_path),
+            start_line=start_line,
+            fix=fix,
+            impact=impact,
+        )
+
+    return _build

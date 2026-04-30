@@ -15,9 +15,6 @@ Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-
 - `commands/_last_scan.py` mypy cast; `commands/calibrate.py` SimpleNamespace guard.
 - PII: hash coauthor strings; `ab_harness.py --mode llm` operative exit (FU-001).
 
-### Changed
-- fix CHANGELOG 2.48.5 to 4 bullets (gate-compliant)
-
 ## [2.48.2] - 2026-04-29
 
 Short version: CI/security/mutation workflow unblocking, artifact lean mode, product boundary sharpening.
