@@ -17,6 +17,9 @@ Short version: Quickscan distributable skill + output_root config for clean anal
 - `calibration/feedback.py`: use `resolve_artifact_path` for feedback path resolution.
 - PII: hash coauthor strings in `git_history._serialize_commit` to prevent clear-text storage.
 
+### Changed
+- compress top changelog entry to five bullets
+
 ## [2.48.2] - 2026-04-29
 
 Short version: CI/security/mutation workflow unblocking, artifact lean mode, product boundary sharpening.
