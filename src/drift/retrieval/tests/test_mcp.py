@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Any, Coroutine, cast
+from typing import Any, cast
 
 import pytest
 

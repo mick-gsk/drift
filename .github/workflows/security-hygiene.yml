@@ -81,8 +81,8 @@ jobs:
       - name: Audit Python dependencies (pip-audit)
         shell: pwsh
         run: |
-          python -m pip freeze --exclude-editable | Set-Content pip-audit-requirements.txt -Encoding utf8
-          python -m pip_audit --strict --desc --no-deps --disable-pip -r pip-audit-requirements.txt
+          # Audit the resolved environment used in this job, including .[dev].
+          python -m pip_audit --strict --desc
 
       - name: SAST scan (bandit)
         shell: pwsh

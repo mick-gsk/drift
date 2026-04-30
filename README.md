@@ -197,7 +197,7 @@ jobs:
 drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
 ```
 
-No additional Drift-specific extension install is needed for this workflow; you still need VS Code with GitHub Copilot Chat installed/enabled. `drift kit init` creates `.github/prompts/` with the three user-facing slash-command prompt files shown above, plus `drift-feature-guardrails.prompt.md`, and merges `chat.promptFilesLocations` into `.vscode/settings.json` without touching your existing keys. Idempotent — safe to re-run.
+No additional Drift-specific extension install is needed for this workflow; you still need VS Code with GitHub Copilot Chat installed/enabled. `drift kit init` creates `.github/prompts/` with all four prompt files and merges `chat.promptFilesLocations` into `.vscode/settings.json` without touching your existing keys. Idempotent — safe to re-run.
 
 📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
 

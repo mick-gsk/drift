@@ -121,4 +121,3 @@ def _run_analyze(repo: Path) -> None:
             "[yellow]Analysis returned a non-zero exit code. "
             "Check the output above for details.[/yellow]"
         )
-

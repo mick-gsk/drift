@@ -176,6 +176,33 @@ class TestEnrichmentNonDictResponse:
         assert session.trace[0]["tool"] == "drift_scan"
 
 
+class TestSessionToolRecommendationFiltering:
+    def test_next_tools_excludes_non_exported_task_tools(self) -> None:
+        from drift.mcp_server import _enrich_response_with_session
+        from drift.session import DriftSession
+
+        session = DriftSession(session_id="sid", repo_path=".", phase="fix")
+        raw = json.dumps({"status": "ok"})
+        enriched = json.loads(_enrich_response_with_session(raw, session))
+
+        next_tools = enriched["session"]["next_tools"]
+        assert "drift_task_claim" not in next_tools
+        assert "drift_task_complete" not in next_tools
+
+    def test_context_hint_follow_up_excludes_non_exported_tools(self) -> None:
+        from drift.mcp_server import _enrich_response_with_session
+        from drift.session import DriftSession
+
+        session = DriftSession(session_id="sid", repo_path=".", phase="done")
+        raw = json.dumps({"status": "ok"})
+        enriched = json.loads(
+            _enrich_response_with_session(raw, session, tool_name="drift_patch_commit")
+        )
+
+        follow_up_tools = enriched["session"]["context_hint"]["follow_up_tools"]
+        assert "drift_task_complete" not in follow_up_tools
+
+
 # ---------------------------------------------------------------------------
 # M1 — drift_map API function
 # ---------------------------------------------------------------------------

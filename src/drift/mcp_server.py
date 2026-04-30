@@ -32,6 +32,12 @@ Tool surface (v3 — sessions):
     drift_capture_intent  — Extract and persist a structured intent from user input
     drift_verify_intent   — Verify a build artifact against a captured intent
     drift_feedback_for_agent — Prioritised action list from verify state
+    drift_guard_contract  — Pre-edit architectural constraints for a target file
+    drift_patch_begin     — Begin a structured patch sequence
+    drift_patch_check     — Check an in-progress patch for coherence
+    drift_patch_commit    — Commit a verified patch with evidence
+    drift_retrieve        — Semantic retrieval over drift's own fact corpus
+    drift_cite            — Expand a Fact-ID to verbatim text with SHA anchor
     drift_task_claim      — (deprecated, unregistered) Claim a task from the fix-plan queue
     drift_task_renew      — (deprecated, unregistered) Extend an active task lease
     drift_task_release    — (deprecated, unregistered) Release a claimed task
