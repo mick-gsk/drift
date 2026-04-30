@@ -4,6 +4,16 @@
       "additionalProperties": false,
       "description": "Thresholds for deterministic low-effect/high-churn warnings.",
       "properties": {
+        "low_effect_resolved_per_changed_file": {
+          "default": 0.25,
+          "title": "Low Effect Resolved Per Changed File",
+          "type": "number"
+        },
+        "low_effect_resolved_per_100_loc_changed": {
+          "default": 0.5,
+          "title": "Low Effect Resolved Per 100 Loc Changed",
+          "type": "number"
+        },
         "high_churn_min_changed_files": {
           "default": 5,
           "title": "High Churn Min Changed Files",
@@ -13,16 +23,6 @@
           "default": 200,
           "title": "High Churn Min Loc Changed",
           "type": "integer"
-        },
-        "low_effect_resolved_per_100_loc_changed": {
-          "default": 0.5,
-          "title": "Low Effect Resolved Per 100 Loc Changed",
-          "type": "number"
-        },
-        "low_effect_resolved_per_changed_file": {
-          "default": 0.25,
-          "title": "Low Effect Resolved Per Changed File",
-          "type": "number"
         }
       },
       "title": "AgentEffectivenessThresholds",
@@ -32,15 +32,17 @@
       "additionalProperties": false,
       "description": "Declarative agent objective for drift.yaml.\n\nAllows agents to declare their goal, out-of-scope areas,\nand success criteria so drift can provide targeted feedback.\n\nExample drift.yaml::\n\n    agent:\n      goal: \"Migrate payment module to Stripe API\"\n      out_of_scope:\n        - \"legacy/\"\n        - \"tests/fixtures/\"\n      success_criteria:\n        - \"No new AVS findings in src/billing/\"",
       "properties": {
-        "effectiveness_thresholds": {
-          "$ref": "#/$defs/AgentEffectivenessThresholds",
-          "description": "Thresholds used for deterministic effectiveness warnings (e.g. low_effect_high_churn)."
-        },
         "goal": {
           "default": "",
           "description": "Natural-language description of the agent's current task.",
           "title": "Goal",
           "type": "string"
+        },
+        "strict_guardrails": {
+          "default": true,
+          "description": "When true, MCP orchestration enforces strict preconditions and blocks unsafe tool transitions with recovery hints. Default flipped to true in v2.25.0 (ADR-XXX). Set to false to restore the earlier advisory-only behaviour.",
+          "title": "Strict Guardrails",
+          "type": "boolean"
         },
         "out_of_scope": {
           "description": "Glob patterns or paths the agent should not modify or analyze.",
@@ -50,12 +52,6 @@
           "title": "Out Of Scope",
           "type": "array"
         },
-        "strict_guardrails": {
-          "default": true,
-          "description": "When true, MCP orchestration enforces strict preconditions and blocks unsafe tool transitions with recovery hints. Default flipped to true in v2.25.0 (ADR-XXX). Set to false to restore the earlier advisory-only behaviour.",
-          "title": "Strict Guardrails",
-          "type": "boolean"
-        },
         "success_criteria": {
           "description": "Conditions that define task completion (human-readable).",
           "items": {
@@ -63,6 +59,10 @@
           },
           "title": "Success Criteria",
           "type": "array"
+        },
+        "effectiveness_thresholds": {
+          "$ref": "#/$defs/AgentEffectivenessThresholds",
+          "description": "Thresholds used for deterministic effectiveness warnings (e.g. low_effect_high_churn)."
         }
       },
       "title": "AgentObjective",
@@ -72,23 +72,23 @@
       "additionalProperties": false,
       "description": "Configuration for causal attribution enrichment (ADR-034).\n\nWhen enabled, findings are enriched with git-blame provenance data\nidentifying the commit, author, and date that introduced the drifting code.\n\nExample drift.yaml::\n\n    attribution:\n      enabled: true\n      timeout_per_file_seconds: 3.0",
       "properties": {
-        "cache_enabled": {
-          "default": true,
-          "description": "Cache blame results per file content hash.",
-          "title": "Cache Enabled",
-          "type": "boolean"
-        },
         "enabled": {
           "default": false,
           "description": "Enable git-blame-based causal attribution on findings.",
           "title": "Enabled",
           "type": "boolean"
         },
-        "include_branch_hint": {
+        "cache_enabled": {
           "default": true,
-          "description": "Attempt to extract branch name from merge-commit messages.",
-          "title": "Include Branch Hint",
+          "description": "Cache blame results per file content hash.",
+          "title": "Cache Enabled",
           "type": "boolean"
+        },
+        "timeout_per_file_seconds": {
+          "default": 3.0,
+          "description": "Maximum seconds for a single git-blame subprocess call.",
+          "title": "Timeout Per File Seconds",
+          "type": "number"
         },
         "max_parallel_workers": {
           "default": 4,
@@ -96,11 +96,11 @@
           "title": "Max Parallel Workers",
           "type": "integer"
         },
-        "timeout_per_file_seconds": {
-          "default": 3.0,
-          "description": "Maximum seconds for a single git-blame subprocess call.",
-          "title": "Timeout Per File Seconds",
-          "type": "number"
+        "include_branch_hint": {
+          "default": true,
+          "description": "Attempt to extract branch name from merge-commit messages.",
+          "title": "Include Branch Hint",
+          "type": "boolean"
         }
       },
       "title": "AttributionConfig",
@@ -126,19 +126,17 @@
       "additionalProperties": false,
       "description": "Configuration for per-repo signal calibration (ADR-035).\n\nWhen enabled, drift collects and uses feedback evidence to compute\nproject-specific signal weights via Bayesian weight calibration.\n\nExample drift.yaml::\n\n    calibration:\n      enabled: true\n      min_samples: 20\n      bug_labels:\n        - bug\n        - regression",
       "properties": {
-        "auto_recalibrate": {
+        "enabled": {
           "default": false,
-          "description": "Automatically recalibrate after each drift analyze run.",
-          "title": "Auto Recalibrate",
+          "description": "Enable per-repo signal calibration.",
+          "title": "Enabled",
           "type": "boolean"
         },
-        "bug_labels": {
-          "description": "Issue labels that identify bug reports for GitHub correlation.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Bug Labels",
-          "type": "array"
+        "min_samples": {
+          "default": 20,
+          "description": "Minimum TP+FP observations per signal for full confidence. Below this, calibration blends toward default weights.",
+          "title": "Min Samples",
+          "type": "integer"
         },
         "correlation_window_days": {
           "default": 30,
@@ -152,17 +150,11 @@
           "title": "Decay Days",
           "type": "integer"
         },
-        "enabled": {
-          "default": false,
-          "description": "Enable per-repo signal calibration.",
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "feedback_path": {
-          "default": ".drift/feedback.jsonl",
-          "description": "Path to the feedback JSONL file (relative to repo root).",
-          "title": "Feedback Path",
-          "type": "string"
+        "weak_fp_window_days": {
+          "default": 60,
+          "description": "Days without a defect-fix \u2192 weak FP evidence.",
+          "title": "Weak Fp Window Days",
+          "type": "integer"
         },
         "fn_boost_factor": {
           "default": 0.1,
@@ -183,23 +175,25 @@
           "description": "GitHub API token for issue/PR correlation (or use DRIFT_GITHUB_TOKEN env).",
           "title": "Github Token"
         },
-        "history_dir": {
-          "default": ".drift/history",
-          "description": "Directory for scan history snapshots (relative to repo root).",
-          "title": "History Dir",
+        "bug_labels": {
+          "description": "Issue labels that identify bug reports for GitHub correlation.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Bug Labels",
+          "type": "array"
+        },
+        "auto_recalibrate": {
+          "default": false,
+          "description": "Automatically recalibrate after each drift analyze run.",
+          "title": "Auto Recalibrate",
+          "type": "boolean"
+        },
+        "feedback_path": {
+          "default": ".drift/feedback.jsonl",
+          "description": "Path to the feedback JSONL file (relative to repo root).",
+          "title": "Feedback Path",
           "type": "string"
-        },
-        "max_snapshots": {
-          "default": 20,
-          "description": "Maximum number of scan snapshots to retain.",
-          "title": "Max Snapshots",
-          "type": "integer"
-        },
-        "min_samples": {
-          "default": 20,
-          "description": "Minimum TP+FP observations per signal for full confidence. Below this, calibration blends toward default weights.",
-          "title": "Min Samples",
-          "type": "integer"
         },
         "shared_feedback_path": {
           "anyOf": [
@@ -214,10 +208,16 @@
           "description": "Optional team-shared feedback JSONL path (relative to repo root). When set, mark/calibrate commands read and write this path instead of calibration.feedback_path.",
           "title": "Shared Feedback Path"
         },
-        "weak_fp_window_days": {
-          "default": 60,
-          "description": "Days without a defect-fix \u2192 weak FP evidence.",
-          "title": "Weak Fp Window Days",
+        "history_dir": {
+          "default": ".drift/history",
+          "description": "Directory for scan history snapshots (relative to repo root).",
+          "title": "History Dir",
+          "type": "string"
+        },
+        "max_snapshots": {
+          "default": 20,
+          "description": "Maximum number of scan snapshots to retain.",
+          "title": "Max Snapshots",
           "type": "integer"
         }
       },
@@ -282,10 +282,12 @@
       "additionalProperties": false,
       "description": "Policy for finding-context classification and triage behavior.",
       "properties": {
-        "default_context": {
-          "default": "production",
-          "title": "Default Context",
-          "type": "string"
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/FindingContextRule"
+          },
+          "title": "Rules",
+          "type": "array"
         },
         "non_operational_contexts": {
           "items": {
@@ -294,12 +296,10 @@
           "title": "Non Operational Contexts",
           "type": "array"
         },
-        "rules": {
-          "items": {
-            "$ref": "#/$defs/FindingContextRule"
-          },
-          "title": "Rules",
-          "type": "array"
+        "default_context": {
+          "default": "production",
+          "title": "Default Context",
+          "type": "string"
         }
       },
       "title": "FindingContextPolicy",
@@ -309,12 +309,12 @@
       "additionalProperties": false,
       "description": "Classify findings by file path using glob patterns.",
       "properties": {
-        "context": {
-          "title": "Context",
-          "type": "string"
-        },
         "pattern": {
           "title": "Pattern",
+          "type": "string"
+        },
+        "context": {
+          "title": "Context",
           "type": "string"
         },
         "precedence": {
@@ -345,6 +345,12 @@
       "additionalProperties": false,
       "description": "A single grade band entry for the composite drift score.\n\nGrade bands map score ranges to letter grades and human-readable labels.\nThresholds are evaluated in order; the first entry whose ``threshold``\nexceeds the score is selected.\n\nExample::\n\n    - threshold: 0.20\n      grade: A\n      label: \"Minimal Drift\"",
       "properties": {
+        "threshold": {
+          "description": "Upper boundary (exclusive) for this grade.",
+          "exclusiveMinimum": 0.0,
+          "title": "Threshold",
+          "type": "number"
+        },
         "grade": {
           "description": "Letter grade, e.g. 'A', 'B', \u2026, 'F'.",
           "title": "Grade",
@@ -354,12 +360,6 @@
           "description": "Human-readable label, e.g. 'Minimal Drift'.",
           "title": "Label",
           "type": "string"
-        },
-        "threshold": {
-          "description": "Upper boundary (exclusive) for this grade.",
-          "exclusiveMinimum": 0.0,
-          "title": "Threshold",
-          "type": "number"
         }
       },
       "required": [
@@ -398,6 +398,34 @@
       "additionalProperties": false,
       "description": "Configuration for a single external tool integration.\n\nExample drift.yaml::\n\n    integrations:\n      - name: superpowers\n        tier: run\n        trigger_signals:\n          - pattern_fragmentation\n        command: [\"superpowers\", \"check\", \"--format\", \"json\", \"{repo_path}\"]",
       "properties": {
+        "name": {
+          "description": "Unique identifier for this integration.",
+          "title": "Name",
+          "type": "string"
+        },
+        "tier": {
+          "description": "Integration tier: hint (report only), run (subprocess), plugin (YAML).",
+          "enum": [
+            "hint",
+            "run",
+            "plugin"
+          ],
+          "title": "Tier",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "trigger_signals": {
+          "description": "List of signal types that activate this integration. Use '*' to trigger on any finding.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Trigger Signals",
+          "type": "array"
+        },
         "command": {
           "description": "Command to invoke (run/plugin tiers). Use {repo_path} as placeholder for the repository root.",
           "items": {
@@ -406,10 +434,20 @@
           "title": "Command",
           "type": "array"
         },
-        "enabled": {
-          "default": true,
-          "title": "Enabled",
-          "type": "boolean"
+        "timeout_seconds": {
+          "default": 30,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        },
+        "output_format": {
+          "default": "json",
+          "enum": [
+            "json",
+            "text"
+          ],
+          "title": "Output Format",
+          "type": "string"
         },
         "hint_text": {
           "anyOf": [
@@ -424,47 +462,9 @@
           "description": "Static hint text to render in reports (hint tier).",
           "title": "Hint Text"
         },
-        "name": {
-          "description": "Unique identifier for this integration.",
-          "title": "Name",
-          "type": "string"
-        },
-        "output_format": {
-          "default": "json",
-          "enum": [
-            "json",
-            "text"
-          ],
-          "title": "Output Format",
-          "type": "string"
-        },
         "severity_map": {
           "$ref": "#/$defs/IntegrationSeverityMap",
           "description": "Mapping of external tool severity levels to Drift severity values."
-        },
-        "tier": {
-          "description": "Integration tier: hint (report only), run (subprocess), plugin (YAML).",
-          "enum": [
-            "hint",
-            "run",
-            "plugin"
-          ],
-          "title": "Tier",
-          "type": "string"
-        },
-        "timeout_seconds": {
-          "default": 30,
-          "minimum": 1,
-          "title": "Timeout Seconds",
-          "type": "integer"
-        },
-        "trigger_signals": {
-          "description": "List of signal types that activate this integration. Use '*' to trigger on any finding.",
-          "items": {
-            "type": "string"
-          },
-          "title": "Trigger Signals",
-          "type": "array"
         }
       },
       "required": [
@@ -483,6 +483,11 @@
           "title": "Error",
           "type": "string"
         },
+        "warning": {
+          "default": "medium",
+          "title": "Warning",
+          "type": "string"
+        },
         "info": {
           "default": "info",
           "title": "Info",
@@ -491,11 +496,6 @@
         "note": {
           "default": "info",
           "title": "Note",
-          "type": "string"
-        },
-        "warning": {
-          "default": "medium",
-          "title": "Warning",
           "type": "string"
         }
       },
@@ -506,18 +506,18 @@
       "additionalProperties": false,
       "description": "Global integrations section in drift.yaml.\n\nExample::\n\n    integrations:\n      enabled: false   # opt-in: set to true to activate\n      adapters:\n        - name: superpowers\n          tier: run\n          ...",
       "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Global switch. Must be set to true to run any integration. Default false \u2014 explicit opt-in required.",
+          "title": "Enabled",
+          "type": "boolean"
+        },
         "adapters": {
           "items": {
             "$ref": "#/$defs/IntegrationConfig"
           },
           "title": "Adapters",
           "type": "array"
-        },
-        "enabled": {
-          "default": false,
-          "description": "Global switch. Must be set to true to run any integration. Default false \u2014 explicit opt-in required.",
-          "title": "Enabled",
-          "type": "boolean"
         }
       },
       "title": "IntegrationsGlobalConfig",
@@ -541,6 +541,14 @@
       "additionalProperties": false,
       "description": "A single layer boundary rule.",
       "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "from": {
+          "title": "From",
+          "type": "string"
+        },
         "deny_import": {
           "default": [],
           "items": {
@@ -548,14 +556,6 @@
           },
           "title": "Deny Import",
           "type": "array"
-        },
-        "from": {
-          "title": "From",
-          "type": "string"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
         }
       },
       "required": [
@@ -569,14 +569,13 @@
       "additionalProperties": false,
       "description": "Policy rule for enforcing lazy imports of selected modules.",
       "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
         "from": {
           "title": "From",
           "type": "string"
-        },
-        "module_level_only": {
-          "default": true,
-          "title": "Module Level Only",
-          "type": "boolean"
         },
         "modules": {
           "items": {
@@ -585,9 +584,10 @@
           "title": "Modules",
           "type": "array"
         },
-        "name": {
-          "title": "Name",
-          "type": "string"
+        "module_level_only": {
+          "default": true,
+          "title": "Module Level Only",
+          "type": "boolean"
         }
       },
       "required": [
@@ -601,6 +601,17 @@
       "additionalProperties": false,
       "description": "Per-path configuration overrides.\n\nMatch paths using glob patterns (e.g. ``tests/**``, ``legacy/``).\nMore specific patterns take precedence over broader ones.",
       "properties": {
+        "weights": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SignalWeights"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "exclude_signals": {
           "items": {
             "type": "string"
@@ -619,17 +630,6 @@
           ],
           "default": null,
           "title": "Severity Gate"
-        },
-        "weights": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SignalWeights"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
         }
       },
       "title": "PathOverride",
@@ -639,57 +639,6 @@
       "additionalProperties": false,
       "description": "Worker tuning controls for analysis pipeline execution.",
       "properties": {
-        "io_heavy_non_parser_ratio": {
-          "default": 0.45,
-          "description": "When the non-parser file share exceeds this ratio, auto mode dampens workers to account for higher I/O overhead.",
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Io Heavy Non Parser Ratio",
-          "type": "number"
-        },
-        "large_file_ratio_threshold": {
-          "default": 0.2,
-          "description": "Share of large files that triggers additional worker dampening.",
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Large File Ratio Threshold",
-          "type": "number"
-        },
-        "large_file_size_bytes": {
-          "default": 250000,
-          "description": "Files above this size are considered I/O-heavy for conservative tuning.",
-          "minimum": 1,
-          "title": "Large File Size Bytes",
-          "type": "integer"
-        },
-        "load_profile": {
-          "const": "conservative",
-          "default": "conservative",
-          "description": "Auto-tuning profile. Initial rollout supports conservative only.",
-          "title": "Load Profile",
-          "type": "string"
-        },
-        "max_workers": {
-          "default": 16,
-          "description": "Upper clamp for auto-tuned worker counts.",
-          "minimum": 1,
-          "title": "Max Workers",
-          "type": "integer"
-        },
-        "min_workers": {
-          "default": 2,
-          "description": "Lower clamp for auto-tuned worker counts.",
-          "minimum": 1,
-          "title": "Min Workers",
-          "type": "integer"
-        },
-        "small_repo_file_threshold": {
-          "default": 40,
-          "description": "Repos at or below this file count are downscaled to avoid over-parallelization.",
-          "minimum": 1,
-          "title": "Small Repo File Threshold",
-          "type": "integer"
-        },
         "worker_strategy": {
           "default": "fixed",
           "description": "Worker resolution strategy. 'fixed' uses CPU fallback (or env/CLI override). 'auto' applies conservative tuning based on repository size, file types, and I/O proxy load.",
@@ -699,6 +648,57 @@
           ],
           "title": "Worker Strategy",
           "type": "string"
+        },
+        "load_profile": {
+          "const": "conservative",
+          "default": "conservative",
+          "description": "Auto-tuning profile. Initial rollout supports conservative only.",
+          "title": "Load Profile",
+          "type": "string"
+        },
+        "min_workers": {
+          "default": 2,
+          "description": "Lower clamp for auto-tuned worker counts.",
+          "minimum": 1,
+          "title": "Min Workers",
+          "type": "integer"
+        },
+        "max_workers": {
+          "default": 16,
+          "description": "Upper clamp for auto-tuned worker counts.",
+          "minimum": 1,
+          "title": "Max Workers",
+          "type": "integer"
+        },
+        "small_repo_file_threshold": {
+          "default": 40,
+          "description": "Repos at or below this file count are downscaled to avoid over-parallelization.",
+          "minimum": 1,
+          "title": "Small Repo File Threshold",
+          "type": "integer"
+        },
+        "io_heavy_non_parser_ratio": {
+          "default": 0.45,
+          "description": "When the non-parser file share exceeds this ratio, auto mode dampens workers to account for higher I/O overhead.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Io Heavy Non Parser Ratio",
+          "type": "number"
+        },
+        "large_file_size_bytes": {
+          "default": 250000,
+          "description": "Files above this size are considered I/O-heavy for conservative tuning.",
+          "minimum": 1,
+          "title": "Large File Size Bytes",
+          "type": "integer"
+        },
+        "large_file_ratio_threshold": {
+          "default": 0.2,
+          "description": "Share of large files that triggers additional worker dampening.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Large File Ratio Threshold",
+          "type": "number"
         }
       },
       "title": "PerformanceConfig",
@@ -724,18 +724,6 @@
       "additionalProperties": false,
       "description": "Policy configuration for enforcement rules.",
       "properties": {
-        "ai_attribution": {
-          "additionalProperties": true,
-          "title": "Ai Attribution",
-          "type": "object"
-        },
-        "allowed_cross_layer": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Allowed Cross Layer",
-          "type": "array"
-        },
         "error_handling": {
           "additionalProperties": true,
           "title": "Error Handling",
@@ -748,19 +736,31 @@
           "title": "Layer Boundaries",
           "type": "array"
         },
-        "lazy_import_rules": {
-          "items": {
-            "$ref": "#/$defs/LazyImportRule"
-          },
-          "title": "Lazy Import Rules",
-          "type": "array"
-        },
         "max_pattern_variants": {
           "additionalProperties": {
             "type": "integer"
           },
           "title": "Max Pattern Variants",
           "type": "object"
+        },
+        "ai_attribution": {
+          "additionalProperties": true,
+          "title": "Ai Attribution",
+          "type": "object"
+        },
+        "allowed_cross_layer": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Cross Layer",
+          "type": "array"
+        },
+        "lazy_import_rules": {
+          "items": {
+            "$ref": "#/$defs/LazyImportRule"
+          },
+          "title": "Lazy Import Rules",
+          "type": "array"
         },
         "omnilayer_dirs": {
           "items": {
@@ -773,15 +773,60 @@
       "title": "PolicyConfig",
       "type": "object"
     },
+    "PrLoopConfig": {
+      "additionalProperties": false,
+      "description": "Configuration for the agent-driven PR review loop.",
+      "properties": {
+        "reviewers": {
+          "description": "GitHub reviewer logins to request (e.g. ['github-copilot[bot]']).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Reviewers",
+          "type": "array"
+        },
+        "max_rounds": {
+          "default": 5,
+          "description": "Maximum number of review rounds before escalating.",
+          "minimum": 1,
+          "title": "Max Rounds",
+          "type": "integer"
+        },
+        "poll_interval_seconds": {
+          "default": 60,
+          "description": "Seconds between review-status polls.",
+          "minimum": 10,
+          "title": "Poll Interval Seconds",
+          "type": "integer"
+        },
+        "poll_timeout_seconds": {
+          "default": 600,
+          "description": "Total seconds before marking a reviewer as NO_RESPONSE.",
+          "title": "Poll Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reviewers"
+      ],
+      "title": "PrLoopConfig",
+      "type": "object"
+    },
     "RecommendationsConfig": {
       "additionalProperties": false,
       "description": "Configuration for the adaptive recommendation engine (ARE).\n\nControls outcome tracking, effort calibration, and recommendation\nrefinement.  All features are opt-in (``enabled: false`` by default).\n\nExample drift.yaml::\n\n    recommendations:\n      enabled: true\n      archive_after_days: 180",
       "properties": {
-        "archive_after_days": {
-          "default": 180,
-          "description": "Archive resolved outcomes older than this many days.",
-          "title": "Archive After Days",
-          "type": "integer"
+        "enabled": {
+          "default": false,
+          "description": "Enable adaptive recommendation engine (outcome tracking + reward chain).",
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "outcome_path": {
+          "default": ".drift/outcomes.jsonl",
+          "description": "Path to the outcome JSONL file (relative to repo root).",
+          "title": "Outcome Path",
+          "type": "string"
         },
         "calibration_path": {
           "default": ".drift/effort_calibration.json",
@@ -789,23 +834,17 @@
           "title": "Calibration Path",
           "type": "string"
         },
-        "enabled": {
-          "default": false,
-          "description": "Enable adaptive recommendation engine (outcome tracking + reward chain).",
-          "title": "Enabled",
-          "type": "boolean"
+        "archive_after_days": {
+          "default": 180,
+          "description": "Archive resolved outcomes older than this many days.",
+          "title": "Archive After Days",
+          "type": "integer"
         },
         "min_calibration_samples": {
           "default": 10,
           "description": "Minimum resolved outcomes per signal type before effort calibration kicks in.",
           "title": "Min Calibration Samples",
           "type": "integer"
-        },
-        "outcome_path": {
-          "default": ".drift/outcomes.jsonl",
-          "description": "Path to the outcome JSONL file (relative to repo root).",
-          "title": "Outcome Path",
-          "type": "string"
         },
         "refinement_threshold": {
           "default": 0.7,
@@ -823,13 +862,6 @@
       "additionalProperties": false,
       "description": "Tunable scoring-engine parameters (drift.yaml \u2192 ``scoring:``)\n\nAll settings default to the validated ADR-003/ADR-041 values and are\nbackward-compatible \u2014 changing these knobs only affects repos that\nexplicitly set them.\n\nExample drift.yaml::\n\n    scoring:\n      dampening_k: 10\n      breadth_cap: 3.0\n      feedback_blend_alpha: 0.3",
       "properties": {
-        "breadth_cap": {
-          "default": 4.0,
-          "description": "Ceiling for the log-based breadth multiplier applied to impact scores (ADR-041). Prevents very large related-file clusters from inflating scores unboundedly.",
-          "exclusiveMinimum": 0.0,
-          "title": "Breadth Cap",
-          "type": "number"
-        },
         "dampening_k": {
           "default": 20,
           "description": "Count-dampening constant for signal aggregation (ADR-041). Finding counts above this value produce a dampening factor near 1.0. Lower values increase sensitivity to high-finding signals.",
@@ -837,12 +869,11 @@
           "title": "Dampening K",
           "type": "integer"
         },
-        "feedback_blend_alpha": {
-          "default": 0.0,
-          "description": "Blend factor for feedback-informed weight adjustment. 0.0 = pure auto-calibrate from finding distribution (default). 1.0 = weights fully driven by persisted feedback metrics. Values between 0 and 1 linearly interpolate both approaches. Effective only when ``calibration.enabled = true`` and feedback data exists at ``calibration.feedback_path``.",
-          "maximum": 1.0,
-          "minimum": 0.0,
-          "title": "Feedback Blend Alpha",
+        "breadth_cap": {
+          "default": 4.0,
+          "description": "Ceiling for the log-based breadth multiplier applied to impact scores (ADR-041). Prevents very large related-file clusters from inflating scores unboundedly.",
+          "exclusiveMinimum": 0.0,
+          "title": "Breadth Cap",
           "type": "number"
         },
         "grade_bands": {
@@ -852,6 +883,14 @@
           },
           "title": "Grade Bands",
           "type": "array"
+        },
+        "feedback_blend_alpha": {
+          "default": 0.0,
+          "description": "Blend factor for feedback-informed weight adjustment. 0.0 = pure auto-calibrate from finding distribution (default). 1.0 = weights fully driven by persisted feedback metrics. Values between 0 and 1 linearly interpolate both approaches. Effective only when ``calibration.enabled = true`` and feedback data exists at ``calibration.feedback_path``.",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Feedback Blend Alpha",
+          "type": "number"
         }
       },
       "title": "ScoringConfig",
@@ -861,84 +900,14 @@
       "additionalProperties": true,
       "description": "Weights for each detection signal in composite scoring.\n\nWeights are normalised internally \u2014 they don't need to sum to 1.0,\nbut a warning is emitted if they deviate significantly.\n\nSignals can be run in report-only mode by assigning weight 0.0.\nThis keeps detection visible while removing score impact until\nprecision/recall is sufficiently validated.",
       "properties": {
+        "pattern_fragmentation": {
+          "default": 0.16,
+          "title": "Pattern Fragmentation",
+          "type": "number"
+        },
         "architecture_violation": {
           "default": 0.16,
           "title": "Architecture Violation",
-          "type": "number"
-        },
-        "broad_exception_monoculture": {
-          "default": 0.04,
-          "title": "Broad Exception Monoculture",
-          "type": "number"
-        },
-        "bypass_accumulation": {
-          "default": 0.03,
-          "title": "Bypass Accumulation",
-          "type": "number"
-        },
-        "circular_import": {
-          "default": 0.0,
-          "title": "Circular Import",
-          "type": "number"
-        },
-        "co_change_coupling": {
-          "default": 0.005,
-          "title": "Co Change Coupling",
-          "type": "number"
-        },
-        "cognitive_complexity": {
-          "default": 0.0,
-          "title": "Cognitive Complexity",
-          "type": "number"
-        },
-        "cohesion_deficit": {
-          "default": 0.01,
-          "title": "Cohesion Deficit",
-          "type": "number"
-        },
-        "dead_code_accumulation": {
-          "default": 0.0,
-          "title": "Dead Code Accumulation",
-          "type": "number"
-        },
-        "doc_impl_drift": {
-          "default": 0.04,
-          "title": "Doc Impl Drift",
-          "type": "number"
-        },
-        "exception_contract_drift": {
-          "default": 0.03,
-          "title": "Exception Contract Drift",
-          "type": "number"
-        },
-        "explainability_deficit": {
-          "default": 0.09,
-          "title": "Explainability Deficit",
-          "type": "number"
-        },
-        "fan_out_explosion": {
-          "default": 0.005,
-          "title": "Fan Out Explosion",
-          "type": "number"
-        },
-        "guard_clause_deficit": {
-          "default": 0.03,
-          "title": "Guard Clause Deficit",
-          "type": "number"
-        },
-        "hardcoded_secret": {
-          "default": 0.01,
-          "title": "Hardcoded Secret",
-          "type": "number"
-        },
-        "insecure_default": {
-          "default": 0.01,
-          "title": "Insecure Default",
-          "type": "number"
-        },
-        "missing_authorization": {
-          "default": 0.02,
-          "title": "Missing Authorization",
           "type": "number"
         },
         "mutant_duplicate": {
@@ -946,24 +915,9 @@
           "title": "Mutant Duplicate",
           "type": "number"
         },
-        "naming_contract_violation": {
-          "default": 0.04,
-          "title": "Naming Contract Violation",
-          "type": "number"
-        },
-        "pattern_fragmentation": {
-          "default": 0.16,
-          "title": "Pattern Fragmentation",
-          "type": "number"
-        },
-        "phantom_reference": {
-          "default": 0.02,
-          "title": "Phantom Reference",
-          "type": "number"
-        },
-        "system_misalignment": {
-          "default": 0.08,
-          "title": "System Misalignment",
+        "explainability_deficit": {
+          "default": 0.09,
+          "title": "Explainability Deficit",
           "type": "number"
         },
         "temporal_volatility": {
@@ -971,14 +925,99 @@
           "title": "Temporal Volatility",
           "type": "number"
         },
+        "system_misalignment": {
+          "default": 0.08,
+          "title": "System Misalignment",
+          "type": "number"
+        },
+        "doc_impl_drift": {
+          "default": 0.04,
+          "title": "Doc Impl Drift",
+          "type": "number"
+        },
+        "broad_exception_monoculture": {
+          "default": 0.04,
+          "title": "Broad Exception Monoculture",
+          "type": "number"
+        },
         "test_polarity_deficit": {
           "default": 0.04,
           "title": "Test Polarity Deficit",
           "type": "number"
         },
+        "guard_clause_deficit": {
+          "default": 0.03,
+          "title": "Guard Clause Deficit",
+          "type": "number"
+        },
+        "cohesion_deficit": {
+          "default": 0.01,
+          "title": "Cohesion Deficit",
+          "type": "number"
+        },
+        "naming_contract_violation": {
+          "default": 0.04,
+          "title": "Naming Contract Violation",
+          "type": "number"
+        },
+        "bypass_accumulation": {
+          "default": 0.03,
+          "title": "Bypass Accumulation",
+          "type": "number"
+        },
+        "exception_contract_drift": {
+          "default": 0.03,
+          "title": "Exception Contract Drift",
+          "type": "number"
+        },
+        "co_change_coupling": {
+          "default": 0.005,
+          "title": "Co Change Coupling",
+          "type": "number"
+        },
         "ts_architecture": {
           "default": 0.0,
           "title": "Ts Architecture",
+          "type": "number"
+        },
+        "cognitive_complexity": {
+          "default": 0.0,
+          "title": "Cognitive Complexity",
+          "type": "number"
+        },
+        "circular_import": {
+          "default": 0.0,
+          "title": "Circular Import",
+          "type": "number"
+        },
+        "dead_code_accumulation": {
+          "default": 0.0,
+          "title": "Dead Code Accumulation",
+          "type": "number"
+        },
+        "fan_out_explosion": {
+          "default": 0.005,
+          "title": "Fan Out Explosion",
+          "type": "number"
+        },
+        "hardcoded_secret": {
+          "default": 0.01,
+          "title": "Hardcoded Secret",
+          "type": "number"
+        },
+        "phantom_reference": {
+          "default": 0.02,
+          "title": "Phantom Reference",
+          "type": "number"
+        },
+        "missing_authorization": {
+          "default": 0.02,
+          "title": "Missing Authorization",
+          "type": "number"
+        },
+        "insecure_default": {
+          "default": 0.01,
+          "title": "Insecure Default",
           "type": "number"
         },
         "type_safety_bypass": {
@@ -994,10 +1033,75 @@
       "additionalProperties": false,
       "description": "Tunable thresholds for detection signals.",
       "properties": {
+        "high_complexity": {
+          "default": 10,
+          "title": "High Complexity",
+          "type": "integer"
+        },
+        "medium_complexity": {
+          "default": 5,
+          "title": "Medium Complexity",
+          "type": "integer"
+        },
+        "min_function_loc": {
+          "default": 15,
+          "title": "Min Function Loc",
+          "type": "integer"
+        },
+        "min_complexity": {
+          "default": 8,
+          "title": "Min Complexity",
+          "type": "integer"
+        },
+        "similarity_threshold": {
+          "default": 0.8,
+          "title": "Similarity Threshold",
+          "type": "number"
+        },
+        "recency_days": {
+          "default": 14,
+          "title": "Recency Days",
+          "type": "integer"
+        },
+        "volatility_z_threshold": {
+          "default": 1.5,
+          "title": "Volatility Z Threshold",
+          "type": "number"
+        },
         "ai_confidence_threshold": {
           "default": 0.5,
           "title": "Ai Confidence Threshold",
           "type": "number"
+        },
+        "bem_min_handlers": {
+          "default": 3,
+          "title": "Bem Min Handlers",
+          "type": "integer"
+        },
+        "tpd_min_test_functions": {
+          "default": 5,
+          "title": "Tpd Min Test Functions",
+          "type": "integer"
+        },
+        "tpd_min_assertions_per_test": {
+          "default": 1,
+          "title": "Tpd Min Assertions Per Test",
+          "type": "integer"
+        },
+        "gcd_min_public_functions": {
+          "default": 3,
+          "title": "Gcd Min Public Functions",
+          "type": "integer"
+        },
+        "gcd_max_nesting_depth": {
+          "default": 4,
+          "title": "Gcd Max Nesting Depth",
+          "type": "integer"
+        },
+        "nbv_min_function_loc": {
+          "default": 3,
+          "title": "Nbv Min Function Loc",
+          "type": "integer"
         },
         "bat_density_threshold": {
           "default": 0.05,
@@ -1009,9 +1113,14 @@
           "title": "Bat Min Loc",
           "type": "integer"
         },
-        "bem_min_handlers": {
-          "default": 3,
-          "title": "Bem Min Handlers",
+        "ecm_max_files": {
+          "default": 50,
+          "title": "Ecm Max Files",
+          "type": "integer"
+        },
+        "ecm_lookback_commits": {
+          "default": 20,
+          "title": "Ecm Lookback Commits",
           "type": "integer"
         },
         "cxs_max_complexity": {
@@ -1019,10 +1128,30 @@
           "title": "Cxs Max Complexity",
           "type": "integer"
         },
+        "foe_max_imports": {
+          "default": 15,
+          "title": "Foe Max Imports",
+          "type": "integer"
+        },
         "dca_ignore_re_exports": {
           "default": true,
           "title": "Dca Ignore Re Exports",
           "type": "boolean"
+        },
+        "max_discovery_files": {
+          "default": 10000,
+          "title": "Max Discovery Files",
+          "type": "integer"
+        },
+        "small_repo_module_threshold": {
+          "default": 15,
+          "title": "Small Repo Module Threshold",
+          "type": "integer"
+        },
+        "small_repo_min_findings": {
+          "default": 2,
+          "title": "Small Repo Min Findings",
+          "type": "integer"
         },
         "diff_baseline_recommend_max_changed_files": {
           "default": 50,
@@ -1044,35 +1173,10 @@
           "title": "Diff Fuzzy Head Subtraction",
           "type": "boolean"
         },
-        "ecm_lookback_commits": {
-          "default": 20,
-          "title": "Ecm Lookback Commits",
-          "type": "integer"
-        },
-        "ecm_max_files": {
-          "default": 50,
-          "title": "Ecm Max Files",
-          "type": "integer"
-        },
-        "foe_max_imports": {
-          "default": 15,
-          "title": "Foe Max Imports",
-          "type": "integer"
-        },
-        "gcd_max_nesting_depth": {
-          "default": 4,
-          "title": "Gcd Max Nesting Depth",
-          "type": "integer"
-        },
-        "gcd_min_public_functions": {
-          "default": 3,
-          "title": "Gcd Min Public Functions",
-          "type": "integer"
-        },
-        "high_complexity": {
-          "default": 10,
-          "title": "High Complexity",
-          "type": "integer"
+        "phr_runtime_validation": {
+          "default": false,
+          "title": "Phr Runtime Validation",
+          "type": "boolean"
         },
         "hsc_min_entropy": {
           "default": 3.5,
@@ -1084,18 +1188,6 @@
           "title": "Hsc Min Length",
           "type": "integer"
         },
-        "max_discovery_files": {
-          "default": 10000,
-          "title": "Max Discovery Files",
-          "type": "integer"
-        },
-        "maz_dev_tool_paths": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Maz Dev Tool Paths",
-          "type": "array"
-        },
         "maz_public_endpoint_allowlist": {
           "items": {
             "type": "string"
@@ -1103,65 +1195,12 @@
           "title": "Maz Public Endpoint Allowlist",
           "type": "array"
         },
-        "medium_complexity": {
-          "default": 5,
-          "title": "Medium Complexity",
-          "type": "integer"
-        },
-        "min_complexity": {
-          "default": 8,
-          "title": "Min Complexity",
-          "type": "integer"
-        },
-        "min_function_loc": {
-          "default": 15,
-          "title": "Min Function Loc",
-          "type": "integer"
-        },
-        "nbv_min_function_loc": {
-          "default": 3,
-          "title": "Nbv Min Function Loc",
-          "type": "integer"
-        },
-        "phr_runtime_validation": {
-          "default": false,
-          "title": "Phr Runtime Validation",
-          "type": "boolean"
-        },
-        "recency_days": {
-          "default": 14,
-          "title": "Recency Days",
-          "type": "integer"
-        },
-        "similarity_threshold": {
-          "default": 0.8,
-          "title": "Similarity Threshold",
-          "type": "number"
-        },
-        "small_repo_min_findings": {
-          "default": 2,
-          "title": "Small Repo Min Findings",
-          "type": "integer"
-        },
-        "small_repo_module_threshold": {
-          "default": 15,
-          "title": "Small Repo Module Threshold",
-          "type": "integer"
-        },
-        "tpd_min_assertions_per_test": {
-          "default": 1,
-          "title": "Tpd Min Assertions Per Test",
-          "type": "integer"
-        },
-        "tpd_min_test_functions": {
-          "default": 5,
-          "title": "Tpd Min Test Functions",
-          "type": "integer"
-        },
-        "volatility_z_threshold": {
-          "default": 1.5,
-          "title": "Volatility Z Threshold",
-          "type": "number"
+        "maz_dev_tool_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Maz Dev Tool Paths",
+          "type": "array"
         }
       },
       "title": "ThresholdsConfig",
@@ -1171,20 +1210,9 @@
       "additionalProperties": false,
       "description": "Configuration for trend-based CI gate checks.\n\nThe gate evaluates score degradation across a commit window and can\nrequire at least one remediated finding fingerprint in that window.",
       "properties": {
-        "delta_threshold": {
-          "default": 0.05,
-          "minimum": 0.0,
-          "title": "Delta Threshold",
-          "type": "number"
-        },
         "enabled": {
           "default": false,
           "title": "Enabled",
-          "type": "boolean"
-        },
-        "require_remediation_activity": {
-          "default": true,
-          "title": "Require Remediation Activity",
           "type": "boolean"
         },
         "window_commits": {
@@ -1192,103 +1220,26 @@
           "minimum": 2,
           "title": "Window Commits",
           "type": "integer"
+        },
+        "delta_threshold": {
+          "default": 0.05,
+          "minimum": 0.0,
+          "title": "Delta Threshold",
+          "type": "number"
+        },
+        "require_remediation_activity": {
+          "default": true,
+          "title": "Require Remediation Activity",
+          "type": "boolean"
         }
       },
       "title": "TrendGateConfig",
       "type": "object"
     }
   },
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "Main drift configuration, loaded from drift.yaml.",
   "properties": {
-    "agent": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/AgentObjective"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Optional agent objective declaration. Helps drift provide targeted feedback aligned with the agent's task."
-    },
-    "attribution": {
-      "$ref": "#/$defs/AttributionConfig"
-    },
-    "audience": {
-      "default": "developer",
-      "description": "Target audience for finding messages. 'developer' (default): technical descriptions for programmers. 'plain': non-programmer-friendly messages translated via drift.lang.",
-      "enum": [
-        "developer",
-        "plain"
-      ],
-      "title": "Audience",
-      "type": "string"
-    },
-    "auto_calibrate": {
-      "default": true,
-      "title": "Auto Calibrate",
-      "type": "boolean"
-    },
-    "brief": {
-      "$ref": "#/$defs/BriefConfig"
-    },
-    "cache_dir": {
-      "default": ".drift-cache",
-      "title": "Cache Dir",
-      "type": "string"
-    },
-    "output_root": {
-      "anyOf": [
-        {"type": "string"},
-        {"type": "null"}
-      ],
-      "default": null,
-      "description": "Optional base directory for all drift artifact paths (.drift-cache, .drift/feedback.jsonl, .drift/history, etc.). When set, artifact paths are resolved relative to this directory instead of the analysed repo root, keeping the analysed repo clean. Supports ~ expansion. Can also be set via the DRIFT_OUTPUT_ROOT environment variable.",
-      "title": "Output Root"
-    },
-    "calibration": {
-      "$ref": "#/$defs/CalibrationConfig"
-    },
-    "context_dampening": {
-      "default": 0.5,
-      "title": "Context Dampening",
-      "type": "number"
-    },
-    "deferred": {
-      "items": {
-        "$ref": "#/$defs/DeferredArea"
-      },
-      "title": "Deferred",
-      "type": "array"
-    },
-    "dia": {
-      "$ref": "#/$defs/DocImplDriftConfig"
-    },
-    "embedding_batch_size": {
-      "default": 64,
-      "title": "Embedding Batch Size",
-      "type": "integer"
-    },
-    "embedding_model": {
-      "default": "all-MiniLM-L6-v2",
-      "title": "Embedding Model",
-      "type": "string"
-    },
-    "embeddings_enabled": {
-      "default": true,
-      "title": "Embeddings Enabled",
-      "type": "boolean"
-    },
-    "exclude": {
-      "items": {
-        "type": "string"
-      },
-      "title": "Exclude",
-      "type": "array"
-    },
     "extends": {
       "anyOf": [
         {
@@ -1302,10 +1253,92 @@
       "description": "Name of a built-in preset to inherit from (e.g. 'vibe-coding', 'strict', 'fastapi', 'library', 'monorepo'). User-level fields override preset defaults.",
       "title": "Extends"
     },
+    "include": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Include",
+      "type": "array"
+    },
+    "exclude": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Exclude",
+      "type": "array"
+    },
+    "policies": {
+      "$ref": "#/$defs/PolicyConfig"
+    },
+    "weights": {
+      "$ref": "#/$defs/SignalWeights"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/ThresholdsConfig"
+    },
+    "guided_thresholds": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GuidedThresholds"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Score band thresholds for guided-mode traffic light. When set via 'extends:', the profile's guided thresholds are applied automatically."
+    },
+    "cache_dir": {
+      "default": ".drift-cache",
+      "title": "Cache Dir",
+      "type": "string"
+    },
+    "test_file_handling": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Global handling for findings in test files: exclude | reduce_severity | include. When null, each signal uses its built-in default.",
+      "title": "Test File Handling"
+    },
+    "signal_cache_dependency_scopes_enabled": {
+      "default": true,
+      "description": "Enable dependency-aware signal cache keying (file_local/module_wide/repo_wide/git_dependent).",
+      "title": "Signal Cache Dependency Scopes Enabled",
+      "type": "boolean"
+    },
+    "git_history_index_enabled": {
+      "default": true,
+      "description": "Enable persistent incremental git-history index under cache_dir to avoid full git-log parsing on repeated scans.",
+      "title": "Git History Index Enabled",
+      "type": "boolean"
+    },
+    "git_history_index_subdir": {
+      "default": "git_history",
+      "description": "Subdirectory inside cache_dir used for persistent git-history index artifacts (manifest + commits jsonl).",
+      "title": "Git History Index Subdir",
+      "type": "string"
+    },
+    "nudge_baseline_ttl_seconds": {
+      "default": 3600,
+      "description": "Time-to-live in seconds for nudge baselines. After this period a full re-scan is triggered to refresh the baseline. Lower values suit high-churn repos; higher values reduce re-scan frequency in slow CI or infrequently-changing codebases. Default: 3600 (1 hour). Git-state changes (new commits, branch switch) invalidate the baseline immediately regardless of TTL.",
+      "title": "Nudge Baseline Ttl Seconds",
+      "type": "integer"
+    },
     "fail_on": {
       "default": "high",
       "title": "Fail On",
       "type": "string"
+    },
+    "context_dampening": {
+      "default": 0.5,
+      "title": "Context Dampening",
+      "type": "number"
     },
     "fail_on_delta": {
       "anyOf": [
@@ -1324,46 +1357,10 @@
       "title": "Fail On Delta Window",
       "type": "integer"
     },
-    "finding_context": {
-      "$ref": "#/$defs/FindingContextPolicy"
-    },
-    "gate": {
-      "$ref": "#/$defs/GateConfig"
-    },
-    "git_history_index_enabled": {
+    "auto_calibrate": {
       "default": true,
-      "description": "Enable persistent incremental git-history index under cache_dir to avoid full git-log parsing on repeated scans.",
-      "title": "Git History Index Enabled",
+      "title": "Auto Calibrate",
       "type": "boolean"
-    },
-    "git_history_index_subdir": {
-      "default": "git_history",
-      "description": "Subdirectory inside cache_dir used for persistent git-history index artifacts (manifest + commits jsonl).",
-      "title": "Git History Index Subdir",
-      "type": "string"
-    },
-    "guided_thresholds": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/GuidedThresholds"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Score band thresholds for guided-mode traffic light. When set via 'extends:', the profile's guided thresholds are applied automatically."
-    },
-    "include": {
-      "items": {
-        "type": "string"
-      },
-      "title": "Include",
-      "type": "array"
-    },
-    "integrations": {
-      "$ref": "#/$defs/IntegrationsGlobalConfig",
-      "description": "External tool integrations (hint / run / plugin tiers). Set enabled: true to activate. Default: disabled."
     },
     "language": {
       "anyOf": [
@@ -1378,14 +1375,95 @@
       "description": "ISO 639-1 output language for guided mode (e.g. 'de', 'en').",
       "title": "Language"
     },
+    "embeddings_enabled": {
+      "default": true,
+      "title": "Embeddings Enabled",
+      "type": "boolean"
+    },
+    "embedding_model": {
+      "default": "all-MiniLM-L6-v2",
+      "title": "Embedding Model",
+      "type": "string"
+    },
+    "embedding_batch_size": {
+      "default": 64,
+      "title": "Embedding Batch Size",
+      "type": "integer"
+    },
+    "path_overrides": {
+      "additionalProperties": {
+        "$ref": "#/$defs/PathOverride"
+      },
+      "title": "Path Overrides",
+      "type": "object"
+    },
+    "gate": {
+      "$ref": "#/$defs/GateConfig"
+    },
+    "deferred": {
+      "items": {
+        "$ref": "#/$defs/DeferredArea"
+      },
+      "title": "Deferred",
+      "type": "array"
+    },
+    "finding_context": {
+      "$ref": "#/$defs/FindingContextPolicy"
+    },
+    "brief": {
+      "$ref": "#/$defs/BriefConfig"
+    },
+    "plugins": {
+      "$ref": "#/$defs/PluginConfig"
+    },
+    "dia": {
+      "$ref": "#/$defs/DocImplDriftConfig"
+    },
+    "scoring": {
+      "$ref": "#/$defs/ScoringConfig"
+    },
+    "calibration": {
+      "$ref": "#/$defs/CalibrationConfig"
+    },
+    "recommendations": {
+      "$ref": "#/$defs/RecommendationsConfig"
+    },
+    "attribution": {
+      "$ref": "#/$defs/AttributionConfig"
+    },
     "languages": {
       "$ref": "#/$defs/LanguagesConfig"
     },
-    "nudge_baseline_ttl_seconds": {
-      "default": 3600,
-      "description": "Time-to-live in seconds for nudge baselines. After this period a full re-scan is triggered to refresh the baseline. Lower values suit high-churn repos; higher values reduce re-scan frequency in slow CI or infrequently-changing codebases. Default: 3600 (1 hour). Git-state changes (new commits, branch switch) invalidate the baseline immediately regardless of TTL.",
-      "title": "Nudge Baseline Ttl Seconds",
-      "type": "integer"
+    "performance": {
+      "$ref": "#/$defs/PerformanceConfig"
+    },
+    "pr_loop": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PrLoopConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Configuration for the agent-driven PR review loop. When set, enables 'drift pr-loop <PR_NUMBER>' command."
+    },
+    "integrations": {
+      "$ref": "#/$defs/IntegrationsGlobalConfig",
+      "description": "External tool integrations (hint / run / plugin tiers). Set enabled: true to activate. Default: disabled."
+    },
+    "agent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentObjective"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional agent objective declaration. Helps drift provide targeted feedback aligned with the agent's task."
     },
     "output_mode": {
       "default": "full",
@@ -1397,35 +1475,17 @@
       "title": "Output Mode",
       "type": "string"
     },
-    "path_overrides": {
-      "additionalProperties": {
-        "$ref": "#/$defs/PathOverride"
-      },
-      "title": "Path Overrides",
-      "type": "object"
+    "audience": {
+      "default": "developer",
+      "description": "Target audience for finding messages. 'developer' (default): technical descriptions for programmers. 'plain': non-programmer-friendly messages translated via drift.lang.",
+      "enum": [
+        "developer",
+        "plain"
+      ],
+      "title": "Audience",
+      "type": "string"
     },
-    "performance": {
-      "$ref": "#/$defs/PerformanceConfig"
-    },
-    "plugins": {
-      "$ref": "#/$defs/PluginConfig"
-    },
-    "policies": {
-      "$ref": "#/$defs/PolicyConfig"
-    },
-    "recommendations": {
-      "$ref": "#/$defs/RecommendationsConfig"
-    },
-    "scoring": {
-      "$ref": "#/$defs/ScoringConfig"
-    },
-    "signal_cache_dependency_scopes_enabled": {
-      "default": true,
-      "description": "Enable dependency-aware signal cache keying (file_local/module_wide/repo_wide/git_dependent).",
-      "title": "Signal Cache Dependency Scopes Enabled",
-      "type": "boolean"
-    },
-    "test_file_handling": {
+    "output_root": {
       "anyOf": [
         {
           "type": "string"
@@ -1435,16 +1495,11 @@
         }
       ],
       "default": null,
-      "description": "Global handling for findings in test files: exclude | reduce_severity | include. When null, each signal uses its built-in default.",
-      "title": "Test File Handling"
-    },
-    "thresholds": {
-      "$ref": "#/$defs/ThresholdsConfig"
-    },
-    "weights": {
-      "$ref": "#/$defs/SignalWeights"
+      "description": "Optional base directory for all drift artifact paths (.drift-cache, .drift/feedback.jsonl, .drift/history, etc.). When set, artifact paths are resolved relative to this directory instead of the analysed repo root, keeping the analysed repo clean. Supports ~ expansion. Can also be set via the DRIFT_OUTPUT_ROOT environment variable.",
+      "title": "Output Root"
     }
   },
   "title": "DriftConfig",
-  "type": "object"
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
 }

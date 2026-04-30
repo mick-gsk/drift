@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml  # type: ignore[import-untyped]
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from drift.config._schema import (
     AgentObjective,
@@ -38,18 +38,41 @@ from drift.config._schema import (
 
 _DETECT_EXCLUDE_DIRS: frozenset[str] = frozenset(
     {
-        "node_modules", "__pycache__", "venv", ".venv", ".git",
-        "dist", "build", ".tox", ".nox", "site-packages", "tests",
-        "test", "docs", "docs_src", "examples", "benchmarks",
-        "benchmark_results", "site", ".pixi", ".conda",
+        "node_modules",
+        "__pycache__",
+        "venv",
+        ".venv",
+        ".git",
+        "dist",
+        "build",
+        ".tox",
+        ".nox",
+        "site-packages",
+        "tests",
+        "test",
+        "docs",
+        "docs_src",
+        "examples",
+        "benchmarks",
+        "benchmark_results",
+        "site",
+        ".pixi",
+        ".conda",
     }
 )
 
 _AI_PACKAGES: frozenset[str] = frozenset(
     {
-        "openai", "langchain", "anthropic", "transformers",
-        "llama_index", "llama-index", "litellm", "autogen",
-        "crewai", "haystack-ai",
+        "openai",
+        "langchain",
+        "anthropic",
+        "transformers",
+        "llama_index",
+        "llama-index",
+        "litellm",
+        "autogen",
+        "crewai",
+        "haystack-ai",
     }
 )
 
@@ -97,6 +120,38 @@ def detect_repo_profile(repo_path: Path) -> tuple[str, int]:
     if file_count > 500 and has_ci:
         return ("strict", file_count)
     return ("default", file_count)
+
+
+class PrLoopConfig(BaseModel):
+    """Configuration for the agent-driven PR review loop."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reviewers: list[str] = Field(
+        description="GitHub reviewer logins to request (e.g. ['github-copilot[bot]']).",
+    )
+    max_rounds: int = Field(
+        default=5,
+        ge=1,
+        description="Maximum number of review rounds before escalating.",
+    )
+    poll_interval_seconds: int = Field(
+        default=60,
+        ge=10,
+        description="Seconds between review-status polls.",
+    )
+    poll_timeout_seconds: int = Field(
+        default=600,
+        description="Total seconds before marking a reviewer as NO_RESPONSE.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_timeouts(self) -> PrLoopConfig:
+        if self.poll_timeout_seconds <= self.poll_interval_seconds:
+            raise ValueError("poll_timeout_seconds must be greater than poll_interval_seconds")
+        if not self.reviewers:
+            raise ValueError("reviewers must be non-empty when pr_loop is configured")
+        return self
 
 
 def _default_includes() -> list[str]:
@@ -229,6 +284,13 @@ class DriftConfig(BaseModel):
     attribution: AttributionConfig = Field(default_factory=AttributionConfig)
     languages: LanguagesConfig = Field(default_factory=LanguagesConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
+    pr_loop: PrLoopConfig | None = Field(
+        default=None,
+        description=(
+            "Configuration for the agent-driven PR review loop. "
+            "When set, enables 'drift pr-loop <PR_NUMBER>' command."
+        ),
+    )
     integrations: IntegrationsGlobalConfig = Field(
         default_factory=IntegrationsGlobalConfig,
         description=(

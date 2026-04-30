@@ -1,3 +1,8 @@
+## [Unreleased]
+
+### Added
+- add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+
 ## [2.48.5] - 2026-04-29
 
 Short version: Quickscan distributable skill + output_root config for clean analyzed repos.
@@ -5,6 +10,7 @@ Short version: Quickscan distributable skill + output_root config for clean anal
 ### Added
 - `output_root` config field and `resolve_artifact_path()` to keep analyzed repos artifact-free.
 - `.github/skills/drift-repo-quickscan/SKILL.md` one-shot repo health-check skill.
+- add drift pr-loop command (agent-driven PR review loop)
 
 ### Fixed
 - `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy `no-any-return`).

@@ -1,0 +1,47 @@
+{
+  "version": "2.48.5",
+  "feature": "agent-pr-review-loop",
+  "spec": "specs/004-agent-pr-review-loop/spec.md",
+  "requirements": ["FR-001", "FR-002", "FR-003", "FR-004", "FR-005", "FR-006", "FR-007", "FR-008", "FR-009", "FR-010", "FR-011", "FR-012", "FR-013"],
+  "generated_at": "2026-04-30",
+  "drift_version": "2.48.5",
+  "tests": {
+    "total_failing": 0,
+    "total_passing": 73,
+    "suites": [
+      {"name": "tests/pr_loop/test_models_unit.py", "status": "passed"},
+      {"name": "tests/pr_loop/test_gh_contract.py", "status": "passed"},
+      {"name": "tests/pr_loop/test_engine_unit.py", "status": "passed"},
+      {"name": "tests/pr_loop/test_state_unit.py", "status": "passed"},
+      {"name": "tests/pr_loop/test_cmd_integration.py", "status": "passed"}
+    ]
+  },
+  "precision_recall": {
+    "note": "N/A — pr-loop is a side-effect orchestration feature, not a signal-based detection feature"
+  },
+  "audit_artifacts_updated": [],
+  "signal_scope": "none",
+  "self_analysis": {
+    "new_modules": [
+      "src/drift/pr_loop/_models.py",
+      "src/drift/pr_loop/_state.py",
+      "src/drift/pr_loop/_gh.py",
+      "src/drift/pr_loop/_engine.py",
+      "src/drift/pr_loop/_output.py",
+      "src/drift/pr_loop/_cmd.py",
+      "src/drift/pr_loop/__init__.py"
+    ],
+    "modified_modules": [
+      "src/drift/config/_loader.py",
+      "src/drift/cli.py",
+      "drift.schema.json",
+      "drift.yaml"
+    ],
+    "exit_codes": {
+      "APPROVED": 0,
+      "ESCALATED": 1,
+      "ERROR": 2,
+      "PRECONDITION_FAILED": 3
+    }
+  }
+}

@@ -116,3 +116,6 @@ prof_warm.pstats
 node_modules/
 playground/dist/
 third_party_skills/
+
+# PR Review Loop temporary state
+work_artifacts/pr-loop-*.json

@@ -55,3 +55,10 @@ calibration:
   bug_labels:
     - bug
     - regression
+
+pr_loop:
+  reviewers:
+    - github-copilot[bot]
+  max_rounds: 5
+  poll_interval_seconds: 60
+  poll_timeout_seconds: 600
