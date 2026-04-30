@@ -1,3 +1,11 @@
+## [2.49.0] - 2026-04-30
+
+Short version: Automated reviewer agent for PR quality enforcement.
+
+### Added
+- `.github/agents/reviewer.agent.md`: drift-aware reviewer agent config encoding three structured review rules: missing test coverage, module boundary violations (all four `.importlinter` contracts), and drift signal regressions (critical/high/medium findings).
+- `.github/workflows/drift-pr-reviewer.yml`: GitHub Actions workflow triggering on every non-draft PR targeting `main`. Runs `drift analyze`, `lint-imports`, and a missing-test detector; posts an idempotent structured review comment via `<!-- drift-pr-reviewer -->` marker.
+
 ## [2.48.5] - 2026-04-29
 
 Short version: Quickscan distributable skill + output_root config for clean analyzed repos.
