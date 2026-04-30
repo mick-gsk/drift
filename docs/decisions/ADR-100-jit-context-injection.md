@@ -10,7 +10,7 @@ supersedes:
 ## Kontext
 
 Drift-Agents laden bisher `llms.txt` als undifferenzierte Discovery-Datei in vollem
-Umfang. `llms.txt` enthält alle 25 Signale, Scoring-Metadaten, Release-Status und
+Umfang. `llms.txt` enthält alle 25 registrierten Signale, Scoring-Metadaten, Release-Status und
 allgemeine Use-Case-Beschreibungen — unabhängig davon, welche Signale im aktuellen
 Lauf tatsächlich gefunden wurden. Bei einem Lauf mit drei Findings aus
 `architecture_violation` werden damit auch zwanzig weitere Signaldokumentationen
@@ -114,7 +114,9 @@ ein realistisches Upper-Bound für einen handlungsrelevanten Lauf. Bei mehr als
 drei dominanten Signals degeneriert der Kontext-Gewinn pro weiterem Pfad.
 
 **Warum CI-Gate mit `MIN_MAPPED_SIGNALS = 20` statt 3?**
-Mit 24 gemappten Signalen zum Zeitpunkt der Einführung wäre ein Wert von 3
+Von 25 registrierten Signalen haben 24 zum Zeitpunkt der Einführung ein dediziertes Mapping
+(einzige Ausnahme: `type_safety_bypass`, dessen Kontextpfad erst in einem Folge-Commit
+hinzugefügt wird). Mit 24 gemappten Signalen wäre ein CI-Wert von 3
 wirkungslos gegen versehentliche Kürzungen. 20 reflektiert den tatsächlichen
 Produktivumfang und schlägt Alarm, bevor eine signifikante Mapping-Lücke
 unbemerkt auf `main` landet.
