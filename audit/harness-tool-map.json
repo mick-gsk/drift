@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "tools": [
+    {
+      "name": "drift_scan",
+      "lineno": 157,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_diff",
+      "lineno": 239,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_explain",
+      "lineno": 340,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_fix_plan",
+      "lineno": 375,
+      "owner": "drift.mcp_router_repair"
+    },
+    {
+      "name": "drift_validate",
+      "lineno": 452,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_nudge",
+      "lineno": 484,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_shadow_verify",
+      "lineno": 613,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_verify",
+      "lineno": 661,
+      "owner": "drift.mcp_router_repair"
+    },
+    {
+      "name": "drift_brief",
+      "lineno": 726,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_negative_context",
+      "lineno": 788,
+      "owner": "drift.mcp_router_analysis"
+    },
+    {
+      "name": "drift_session_start",
+      "lineno": 841,
+      "owner": "drift.mcp_router_session"
+    },
+    {
+      "name": "drift_session_status",
+      "lineno": 919,
+      "owner": "drift.mcp_router_session"
+    },
+    {
+      "name": "drift_session_update",
+      "lineno": 934,
+      "owner": "drift.mcp_router_session"
+    },
+    {
+      "name": "drift_session_end",
+      "lineno": 978,
+      "owner": "drift.mcp_router_session"
+    },
+    {
+      "name": "drift_session_trace",
+      "lineno": 1188,
+      "owner": "drift.mcp_router_session"
+    },
+    {
+      "name": "drift_guard_contract",
+      "lineno": 1207,
+      "owner": "drift.mcp_utils"
+    },
+    {
+      "name": "drift_map",
+      "lineno": 1253,
+      "owner": "drift.mcp_router_session"
+    },
+    {
+      "name": "drift_feedback",
+      "lineno": 1285,
+      "owner": "drift.mcp_router_calibration"
+    },
+    {
+      "name": "drift_calibrate",
+      "lineno": 1335,
+      "owner": "drift.mcp_router_calibration"
+    },
+    {
+      "name": "drift_capture_intent",
+      "lineno": 1365,
+      "owner": "drift.mcp_router_intent"
+    },
+    {
+      "name": "drift_verify_intent",
+      "lineno": 1390,
+      "owner": "drift.mcp_router_intent"
+    },
+    {
+      "name": "drift_feedback_for_agent",
+      "lineno": 1420,
+      "owner": "drift.mcp_router_intent"
+    },
+    {
+      "name": "drift_patch_begin",
+      "lineno": 1457,
+      "owner": "drift.mcp_router_patch"
+    },
+    {
+      "name": "drift_patch_check",
+      "lineno": 1522,
+      "owner": "drift.mcp_router_patch"
+    },
+    {
+      "name": "drift_patch_commit",
+      "lineno": 1561,
+      "owner": "drift.mcp_router_patch"
+    },
+    {
+      "name": "drift_fix_apply",
+      "lineno": 1600,
+      "owner": "drift.mcp_router_repair"
+    },
+    {
+      "name": "drift_steer",
+      "lineno": 1655,
+      "owner": "drift.mcp_router_architecture"
+    },
+    {
+      "name": "drift_compile_policy",
+      "lineno": 1710,
+      "owner": "drift.mcp_router_architecture"
+    },
+    {
+      "name": "drift_suggest_rules",
+      "lineno": 1776,
+      "owner": "drift.mcp_router_architecture"
+    },
+    {
+      "name": "drift_generate_skills",
+      "lineno": 1821,
+      "owner": "drift.mcp_router_architecture"
+    },
+    {
+      "name": "drift_retrieve",
+      "lineno": 1876,
+      "owner": "drift.retrieval.mcp"
+    },
+    {
+      "name": "drift_cite",
+      "lineno": 1936,
+      "owner": "drift.retrieval.mcp"
+    }
+  ],
+  "inline_allowed": []
+}
