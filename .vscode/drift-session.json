@@ -1,17 +1,17 @@
 {
   "schema_version": "1.0",
-  "repo_path": "C:/Users/mickg/PWBS/drift",
-  "analyzed_at": "2026-04-27T21:25:20Z",
-  "drift_score": 0.381,
+  "repo_path": "/home/runner/work/drift/drift",
+  "analyzed_at": "2026-04-30T08:33:33Z",
+  "drift_score": 0.369,
   "grade": "B",
-  "grade_label": "Good",
+  "grade_label": "Low Drift",
   "top_findings": [
     {
       "signal_type": "pattern_fragmentation",
       "severity": "high",
       "file_path": "src/drift",
       "line_range": null,
-      "reason": "7 return_pattern variants in src/drift/ (64/92 use canonical pattern).\n  - src/drift/adr_scanner.py:43 (_parse_frontmatter)\n  - src/drift/session_handover.py:416 (_parse_frontmatter)\n  - src/drift/baseline.py:181 (load_baseline)",
+      "reason": "7 return_pattern variants in src/drift/ (65/93 use canonical pattern).\n  - src/drift/adr_scanner.py:43 (_parse_frontmatter)\n  - src/drift/session_handover.py:416 (_parse_frontmatter)\n  - src/drift/baseline.py:181 (load_baseline)",
       "finding_id": "deeb9e777d6b70b7"
     },
     {
@@ -47,7 +47,7 @@
       "finding_id": "b4ce10207c5ebea7"
     }
   ],
-  "findings_total": 478,
+  "findings_total": 436,
   "critical_count": 0,
-  "high_count": 143
+  "high_count": 111
 }
