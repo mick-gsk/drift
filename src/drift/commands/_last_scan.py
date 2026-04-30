@@ -21,7 +21,7 @@ def get_last_scan_path(repo_path: Path, cache_dir: str) -> Path:
 def _get_last_scan_path_with_cfg(repo_path: Path, cache_dir: str, cfg: Any) -> Path:
     """Return the last-scan path, honouring cfg.resolve_artifact_path when available."""
     if cfg is not None and hasattr(cfg, "resolve_artifact_path"):
-        return cfg.resolve_artifact_path(repo_path, cache_dir) / LAST_SCAN_FILENAME
+        return Path(cfg.resolve_artifact_path(repo_path, cache_dir)) / LAST_SCAN_FILENAME
     return get_last_scan_path(repo_path, cache_dir)
 
 
