@@ -54,6 +54,7 @@ def pr_loop_cmd(
             check=True,
             capture_output=True,
             text=True,
+            stdin=subprocess.DEVNULL,
         )
     except (subprocess.CalledProcessError, FileNotFoundError):
         click.echo(

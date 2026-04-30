@@ -41,6 +41,7 @@ def _run(args: list[str], **kwargs: str | bool) -> subprocess.CompletedProcess[s
         check=True,
         capture_output=True,
         text=True,
+        stdin=subprocess.DEVNULL,
         **kwargs,  # type: ignore[call-overload]
     )
     return result
@@ -206,7 +207,9 @@ def run_local_gates(dry_run: bool = False) -> GateResult:
     outputs: list[str] = []
     for cmd in commands:
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=True, stdin=subprocess.DEVNULL
+            )
             outputs.append(result.stdout)
         except subprocess.CalledProcessError as exc:
             output = (exc.stdout or "") + (exc.stderr or "")
@@ -243,6 +246,7 @@ def detect_merge_conflicts() -> bool:
             capture_output=True,
             text=True,
             check=True,
+            stdin=subprocess.DEVNULL,
         )
         return "UU" in result.stdout or "AA" in result.stdout or "DD" in result.stdout
     except subprocess.CalledProcessError:
