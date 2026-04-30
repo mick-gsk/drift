@@ -875,6 +875,12 @@ def _pre_call_advisory(tool_name: str, session: Any) -> str:
         return ""
 
     parts: list[str] = []
+    try:
+        from drift.mcp_server import _EXPORTED_MCP_TOOLS
+    except Exception:  # noqa: BLE001
+        exported_names: set[str] | None = None
+    else:
+        exported_names = {tool.__name__ for tool in _EXPORTED_MCP_TOOLS}
 
     semantic_advisory = _semantic_pre_call_advisory(tool_name, session)
     if semantic_advisory:
@@ -899,7 +905,10 @@ def _pre_call_advisory(tool_name: str, session: Any) -> str:
     # Prerequisite check
     if entry.context.prerequisite_tools and not semantic_advisory:
         called_tools = _session_called_tools(session)
-        missing = [p for p in entry.context.prerequisite_tools if p not in called_tools]
+        prerequisite_tools = list(entry.context.prerequisite_tools)
+        if exported_names is not None:
+            prerequisite_tools = [p for p in prerequisite_tools if p in exported_names]
+        missing = [p for p in prerequisite_tools if p not in called_tools]
         if missing:
             parts.append(
                 f"Prerequisite tool(s) not yet called: {', '.join(missing)}."

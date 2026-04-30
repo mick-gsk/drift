@@ -18,6 +18,15 @@ from drift.mcp_orchestration import _pre_call_advisory  # noqa: E402
 logger = logging.getLogger(__name__)
 
 
+def _exported_mcp_tool_names() -> set[str] | None:
+    """Return exported MCP tool names when available."""
+    try:
+        from drift.mcp_server import _EXPORTED_MCP_TOOLS
+    except Exception:  # noqa: BLE001
+        return None
+    return {tool.__name__ for tool in _EXPORTED_MCP_TOOLS}
+
+
 def _enrich_response_with_session(
     raw_json: str,
     session: Any,
@@ -89,7 +98,11 @@ def _enrich_response_with_session(
     # Progressive tool disclosure — top tools for current phase (max 4)
     from drift.tool_metadata import tools_for_phase
 
-    session_block["next_tools"] = tools_for_phase(session.phase)[:4]
+    next_tools = tools_for_phase(session.phase)
+    exported_names = _exported_mcp_tool_names()
+    if exported_names is not None:
+        next_tools = [name for name in next_tools if name in exported_names]
+    session_block["next_tools"] = next_tools[:4]
 
     # Pre-call advisory (soft guidance)
     if advisory:
@@ -101,9 +114,13 @@ def _enrich_response_with_session(
 
         tool_entry = TOOL_CATALOG.get(tool_name)
         if tool_entry:
+            follow_up_tools = list(tool_entry.context.follow_up_tools)
+            exported_names = _exported_mcp_tool_names()
+            if exported_names is not None:
+                follow_up_tools = [t for t in follow_up_tools if t in exported_names]
             session_block["context_hint"] = {
                 "when_to_use": tool_entry.context.when_to_use,
-                "follow_up_tools": list(tool_entry.context.follow_up_tools),
+                "follow_up_tools": follow_up_tools,
             }
 
     result["session"] = session_block

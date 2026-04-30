@@ -122,13 +122,14 @@ The Copilot Chat integration is the lowest-friction way to get drift value in AI
 drift kit init
 ```
 
-This creates `.github/prompts/` with three slash commands and merges `chat.promptFilesLocations` into `.vscode/settings.json`. Run it once per repository — safe to re-run.
+This creates `.github/prompts/` with four slash commands and merges `chat.promptFilesLocations` into `.vscode/settings.json`. Run it once per repository — safe to re-run.
 
 After any `drift analyze` run, open VS Code Copilot Chat and call:
 
 - `/drift-fix-plan` — prioritized repair tasks from the latest findings
 - `/drift-export-report` — shareable markdown report
 - `/drift-auto-fix-loop` — guided one-finding-at-a-time fix loop
+- `/drift-feature-guardrails` — compact pre-edit constraints for new feature work
 
 No MCP server is required. This path works with any editor that supports Copilot Chat and prompt files.
 
