@@ -5,7 +5,6 @@ Short version: Quickscan distributable skill + output_root config for clean anal
 ### Added
 - `output_root` config field and `resolve_artifact_path()` to keep analyzed repos artifact-free.
 - `.github/skills/drift-repo-quickscan/SKILL.md` one-shot repo health-check skill.
-- `tests/test_config_output_root.py` with full output_root coverage.
 
 ### Fixed
 - `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy `no-any-return`).
