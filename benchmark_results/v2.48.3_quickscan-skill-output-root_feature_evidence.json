@@ -1,18 +1,28 @@
 {
   "version": "2.48.3",
   "date": "2026-04-30",
-  "feature": "quickscan skill and output root config",
-  "description": "Feature evidence for drift-repo-quickscan skill and output_root config option (feat/quickscan-skill-and-output-root).",
+  "feature": "quickscan skill output root",
+  "description": "Feature evidence for quickscan skill output root (v2.48.3).",
   "generated_by": {
-    "script": "manual",
-    "git_sha": "983bbf4801a06b6ff1294cb061669473a22d3bb5",
-    "drift_version": "2.48.3",
-    "timestamp": "2026-04-30T07:51:09.555051+02:00"
+    "script": "scripts/generate_feature_evidence.py",
+    "git_sha": "54d77fb7c6feea2272e5bff0defe33eeae6b0c79",
+    "drift_version": "2.42.10",
+    "timestamp": "2026-04-30T05:54:38.203747+00:00"
+  },
+  "self_analysis": {
+    "error": "JSON parse error: Extra data: line 40027 column 1 (char 1521842)"
   },
   "tests": {
-    "total_passing": 6711,
+    "total_passing": 6693,
     "total_failing": 0,
     "exit_code": 0
+  },
+  "precision_recall_suite": {
+    "total_tests": 207,
+    "passing": 207,
+    "failing": 0,
+    "exit_code": 0,
+    "source": "live: pytest tests/test_precision_recall.py -v --tb=short"
   },
   "audit_artifacts_updated": []
 }
