@@ -272,13 +272,24 @@ def resolve_feedback_paths(
 
     Returns (effective_path, local_path, shared_path). The effective path is
     shared_path when configured, otherwise local_path.
+    When cfg has ``resolve_artifact_path``, paths are resolved relative to
+    output_root (or DRIFT_OUTPUT_ROOT env var) instead of repo_path.
     """
     calibration_cfg = getattr(cfg, "calibration", None)
 
     local_rel = str(getattr(calibration_cfg, "feedback_path", ".drift/feedback.jsonl"))
-    local_path = repo_path / local_rel
+    if hasattr(cfg, "resolve_artifact_path"):
+        local_path = cfg.resolve_artifact_path(repo_path, local_rel)
+    else:
+        local_path = repo_path / local_rel
 
     shared_rel = getattr(calibration_cfg, "shared_feedback_path", None)
-    shared_path = (repo_path / str(shared_rel)) if shared_rel else None
+    if shared_rel:
+        if hasattr(cfg, "resolve_artifact_path"):
+            shared_path: Path | None = cfg.resolve_artifact_path(repo_path, str(shared_rel))
+        else:
+            shared_path = repo_path / str(shared_rel)
+    else:
+        shared_path = None
 
     return (shared_path or local_path), local_path, shared_path

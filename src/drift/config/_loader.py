@@ -261,6 +261,31 @@ class DriftConfig(BaseModel):
             "'plain': non-programmer-friendly messages translated via drift.lang."
         ),
     )
+    output_root: str | None = Field(
+        default=None,
+        description=(
+            "Optional base directory for all drift artifact paths "
+            "(.drift-cache, .drift/feedback.jsonl, .drift/history, etc.). "
+            "When set, artifact paths are resolved relative to this directory "
+            "instead of the analysed repo root, keeping the analysed repo clean. "
+            "Supports ~ expansion. Can also be set via the DRIFT_OUTPUT_ROOT "
+            "environment variable."
+        ),
+    )
+
+    def resolve_artifact_path(self, repo_path: Path, rel_path: str) -> Path:
+        """Resolve an artifact path relative to output_root (or repo_path as fallback).
+
+        When output_root is set (via config or DRIFT_OUTPUT_ROOT env var), all
+        artifact paths are placed under that directory instead of inside the
+        analysed repository.  Supports ``~`` expansion.
+        """
+        import os
+
+        root = self.output_root or os.environ.get("DRIFT_OUTPUT_ROOT")
+        if root:
+            return Path(root).expanduser() / rel_path
+        return repo_path / rel_path
 
     @staticmethod
     def _find_config_file(repo_path: Path) -> Path | None:

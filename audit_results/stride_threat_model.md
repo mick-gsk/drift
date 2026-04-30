@@ -608,3 +608,14 @@ No new trust-boundary changes introduced by Issue #121.
         - I (Information Disclosure): No PII stored — no author names, emails, commit hashes, or file content. Only signal types, fingerprints (SHA-256 of structural identifiers), and timing data.
         - D (Denial of Service): Outcome file grows linearly with findings × runs. Archive rotation (180 days) bounds growth. Calibration is O(n) over resolved outcomes, bounded by min_samples threshold.
         - E (Elevation of Privilege): No privilege boundary change. All operations are local filesystem reads/writes within the repo working directory.
+
+## 2026-04-29 - Ingestion PII Hardening: coauthor hash in git_history.py (v2.48.5)
+
+- Scope: `src/drift/ingestion/git_history.py` — `_serialize_commit` now SHA-256-hashes all coauthor strings before storing them, preventing clear-text author name/email storage in ingestion output.
+- STRIDE review:
+        - S (Spoofing): No identity boundary change. Coauthor data is now hashed; original strings are not recoverable from stored output.
+        - T (Tampering): No new write targets. Hash is deterministic (SHA-256, hex digest), no collision risk for audit-trail purposes.
+        - R (Repudiation): Commit hashes and timestamps remain unhashed for audit trail integrity. Coauthor hashes are stable across runs for the same input.
+        - I (Information Disclosure): Risk mitigated — coauthor names/emails are no longer stored in clear text in ingestion output or any downstream artifact. Applies to all callers of `_serialize_commit`.
+        - D (Denial of Service): No impact. SHA-256 hashing is O(1) per coauthor string; no performance regression.
+        - E (Elevation of Privilege): No privilege boundary change. Local filesystem reads/writes only.

@@ -774,7 +774,7 @@ def analyze(
     # Auto-save snapshot for `drift diff --auto` (silent on failure)
     from drift.commands._last_scan import save_last_scan
 
-    save_last_scan(analysis, repo, getattr(cfg, "cache_dir", ".drift-cache"))
+    save_last_scan(analysis, repo, getattr(cfg, "cache_dir", ".drift-cache"), cfg=cfg)
 
     if quiet:
         sev = analysis.max_severity.value.upper()

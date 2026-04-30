@@ -78,6 +78,12 @@ fail_on: none  # recommended for the first rollout pass
 # fail_on_delta: 0.05
 # fail_on_delta_window: 5   # Compare against mean of last N snapshots  default: 5
 
+# Output root: redirect all drift artifact paths (.drift-cache, .drift/feedback.jsonl,
+# .drift/history, ...) to a directory outside the analysed repo, keeping it clean.
+# Supports ~ expansion.  Can also be set via DRIFT_OUTPUT_ROOT env var.
+# Example: keep all drift data in a project-specific subdirectory of ~/.drift
+# output_root: ~/.drift/myproject
+
 # Tunable thresholds
 thresholds:
   similarity_threshold: 0.80   # MDS: Jaccard similarity cutoff

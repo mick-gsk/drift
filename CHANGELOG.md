@@ -1,3 +1,16 @@
+## [2.48.5] - 2026-04-29
+
+Short version: Quickscan distributable skill + output_root config for clean analyzed repos.
+
+### Added
+- `output_root` config field and `resolve_artifact_path()` to keep analyzed repos artifact-free.
+- `.github/skills/drift-repo-quickscan/SKILL.md` one-shot repo health-check skill.
+
+### Fixed
+- `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy `no-any-return`).
+- `commands/calibrate.py`: guard `resolve_artifact_path` with `hasattr` for SimpleNamespace compat.
+- PII: hash coauthor strings in `git_history._serialize_commit` to prevent clear-text storage.
+
 ## [2.48.2] - 2026-04-29
 
 Short version: CI/security/mutation workflow unblocking, artifact lean mode, product boundary sharpening.
