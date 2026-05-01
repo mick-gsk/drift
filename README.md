@@ -190,9 +190,10 @@ jobs:
 
 **Outputs available** for downstream steps: `drift-score`, `grade`, `severity`, `finding-count`, `badge-svg`
 
-### VS Code Copilot Chat — no MCP needed
+<details>
+<summary><strong>VS Code Copilot Chat — no MCP needed</strong></summary>
 
-`drift kit init` (once per repo) scaffolds prompt files for VS Code Copilot Chat. After `drift analyze`, drift writes `.vscode/drift-session.json` and shows a **Copilot Chat Handoff** panel in the terminal. Open VS Code Copilot Chat and call:
+`drift kit init` (once per repo) scaffolds prompt files for VS Code Copilot Chat. After `drift analyze`, open Copilot Chat and call:
 
 | Slash command | What it does |
 |---|---|
@@ -200,41 +201,32 @@ jobs:
 | `/drift-export-report` | Self-contained findings report as Markdown |
 | `/drift-auto-fix-loop` | Step through findings one-at-a-time with confirm/skip gates |
 
-**One-time setup — one command:**
 ```bash
 drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
 ```
 
-No additional Drift-specific extension is required; you only need VS Code with GitHub Copilot Chat enabled. `drift kit init` is idempotent and safe to re-run.
-
 📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
 
-### VS Code Extension
+</details>
 
-The `vscode-drift` extension shows findings as inline **CodeLens** annotations — no terminal needed.
+<details>
+<summary><strong>VS Code Extension (CodeLens annotations)</strong></summary>
 
-```
-auth/handler.py             [Drift · C · score 0.71 · 3 findings (1 high, 2 medium)]
-  def authenticate(...):    [Drift · PFS · co-change coupling to auth/service.py · high]
-```
+The `vscode-drift` extension shows findings inline — no terminal needed.
 
-**Install from VSIX:**
 ```bash
-pip install drift-analyzer          # drift must be on PATH
+pip install drift-analyzer
 code --install-extension vscode-drift-0.1.0.vsix
-# optional: build VSIX from source
-cd extensions/vscode-drift && npm install && npm run compile
 ```
 
-Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page.
+Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page. 📖 [Extension README →](extensions/vscode-drift/README.md)
 
-📖 [Extension README →](extensions/vscode-drift/README.md)
+</details>
 
-### MCP / AI Tools — advanced execution layer
+<details>
+<summary><strong>MCP / AI Tools — advanced execution layer</strong></summary>
 
-> **This is the advanced path.** MCP is valuable for active agent loops with deterministic tool contracts — but it adds setup friction and consumes model context budget. Start with the Copilot Chat path above if you haven't already.
-
-Cursor, Claude Code, and Copilot call drift directly via MCP server — the agent runs a full session loop:
+Cursor, Claude Code, and Copilot call drift directly via MCP server:
 
 | Phase | MCP Tool | What it does |
 |---|---|---|
@@ -243,11 +235,7 @@ Cursor, Claude Code, and Copilot call drift directly via MCP server — the agen
 | **Verify** | `drift_diff` | Full before/after comparison before push |
 | **Learn** | `drift_feedback` | Mark findings as TP/FP — calibrates signal weights |
 
-The execution core (`brief`, `nudge`, `diff`, `fix-plan`, `feedback`) covers most agent loops. The full tool surface is documented in [integrations →](https://mick-gsk.github.io/drift/integrations/).
-
-#### Copy-paste MCP config
-
-**VS Code** — add to `.vscode/mcp.json`:
+**VS Code** — `.vscode/mcp.json`:
 
 ```json
 {
@@ -261,13 +249,14 @@ The execution core (`brief`, `nudge`, `diff`, `fix-plan`, `feedback`) covers mos
 }
 ```
 
-Claude Desktop and Cursor use the same command (`drift mcp --serve`) with their tool-specific MCP config keys.
-
-Or auto-generate: `pip install drift-analyzer[mcp] && drift init --mcp`
+Claude Desktop and Cursor use the same command with their tool-specific config keys. Or auto-generate: `drift init --mcp`
 
 📖 [MCP setup guide →](https://mick-gsk.github.io/drift/integrations/)
 
-**pre-commit:** Add `drift diff --staged-only` as a hook — findings block the commit before they reach CI.
+</details>
+
+<details>
+<summary><strong>pre-commit hook</strong></summary>
 
 ```yaml
 # .pre-commit-config.yaml
@@ -279,6 +268,8 @@ repos:
 ```
 
 📖 [Full integration guide →](https://mick-gsk.github.io/drift/integrations/) · [drift-pre-commit repo →](https://github.com/mick-gsk/drift-pre-commit)
+
+</details>
 
 ---
 
@@ -373,15 +364,20 @@ If your team ships most changes via AI coding tools (Copilot, Cursor, Claude), d
 
 ## Coming from another tool?
 
+<details>
+<summary>Ruff / pylint · Semgrep / CodeQL · SonarQube · Copilot Code Review · jscpd</summary>
+
 **From Ruff / pylint:** Drift operates one layer above single-file style. It detects when AI generates the same error handler four different ways across modules — something no linter sees.
 
-**From Semgrep / CodeQL:** Semgrep finds known vulnerability patterns in single files. Drift finds structural erosion across files — pattern fragmentation, layer violations, temporal volatility — that security scanners don't target. Semgrep Pro Engine adds cross-file dataflow analysis for security — drift adds cross-file structural coherence analysis for architecture. Different questions.
+**From Semgrep / CodeQL:** Semgrep finds known vulnerability patterns in single files. Drift finds structural erosion across files. Different questions.
 
-**From SonarQube:** Drift runs locally with zero server setup and produces deterministic, reproducible findings per signal. Add it alongside SonarQube — not instead. See [drift vs SonarQube](https://mick-gsk.github.io/drift/comparisons/drift-vs-sonarqube/) for the detailed comparison.
+**From SonarQube:** Add alongside, not instead. See [drift vs SonarQube →](https://mick-gsk.github.io/drift/comparisons/drift-vs-sonarqube/)
 
-**From GitHub Copilot Code Review:** Copilot Review checks the PR after the code is written. Drift operates before (`drift brief` generates guardrails before an agent task starts) and during (`drift nudge` gives directional feedback inside the editing session). Use both — different positions in the workflow.
+**From GitHub Copilot Code Review:** Copilot Review checks the PR after writing. Drift operates before (`drift brief`) and during (`drift nudge`). Different positions in the workflow.
 
-**From jscpd / CPD:** Drift's duplicate detection is AST-level, not text-level. It finds near-duplicates that text diff misses and places them in architectural context.
+**From jscpd / CPD:** Drift's duplicate detection is AST-level, not text-level — finds near-duplicates that text diff misses.
+
+</details>
 
 ### Capability comparison
 
@@ -407,20 +403,13 @@ Comparison reflects primary design scope per [STUDY.md §9](https://github.com/m
 
 ## Add a drift badge to your README
 
-Show your repo's drift score with a shields.io badge:
-
 ```bash
-drift badge                    # prints URL + Markdown snippet
-drift badge --format svg -o badge.svg  # self-contained SVG
+drift badge   # prints the Markdown snippet
 ```
 
-Paste the Markdown output into your README:
-
-```markdown
 [![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](https://github.com/mick-gsk/drift)
-```
 
-**Automate in CI:** The [GitHub Action](https://github.com/marketplace/actions/drift-ai-code-coherence-monitor) exposes a `badge-svg` output — pipe it into your repo or a dashboard.
+The [GitHub Action](https://github.com/marketplace/actions/drift-ai-code-coherence-monitor) exposes a `badge-svg` output for CI automation.
 
 ---
 
@@ -537,14 +526,14 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 
 ² Single uncontrolled run — see [RESEARCH.md H4/H5](RESEARCH.md#h4--agent-guardrail-compliance-rate) for what a controlled study would require.
 
-- **No LLM in detection.** The deterministic core uses no LLM inference — same input, same output. Optional local embeddings (`pip install drift-analyzer[embeddings]`) improve near-duplicate detection but are not required and do not call external services.
+- **No LLM in detection.** Deterministic core — same input, same output. Optional local embeddings (`pip install drift-analyzer[embeddings]`) improve near-duplicate detection without calling external services.
 - **Single-rater caveat:** ground-truth classification is not yet independently replicated.
-- **Small-repo noise:** repositories with few files can produce noisy scores. Calibration mitigates but does not eliminate this.
-- **Temporal signals** depend on clone depth and git history quality.
-- **The composite score is orientation, not a verdict.** Interpret deltas via `drift trend`, not isolated snapshots.
-- **Own score context (0.36):** Drift's self-score is driven primarily by architecture violations and explainability deficit (undocumented internal functions). Pattern fragmentation in modules with intentionally diverse error-handling contracts (signals, API, calibration, integrations) is suppressed via `path_overrides` — those variations are architectural, not accidental. The score reflects a fast-moving codebase that prioritises signal correctness over internal documentation. See [drift_self.json](benchmark_results/drift_self.json) for the full breakdown.
-- **Signal overlap:** Some signals measure related phenomena (e.g., MDS and PFS both detect code similarity; CCC and TVS both use git history). A formal inter-signal correlation analysis has not been conducted. Overlap does not produce double-counting in the composite score (each signal contributes independently), but it means some findings may describe the same underlying issue from different angles.
-- **Weight derivation:** Default signal weights for the 6 original signals were derived via rank-correlation (Kendall's τ) against manual architectural assessments on 5 open-source repos (single rater). Weights for the 18 newer signals are conservative heuristic assignments pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [ADR-003](docs/decisions/ADR-003-composite-scoring-model.md).
+- **Small-repo noise:** few-file repos can produce noisy scores; calibration mitigates but does not eliminate this.
+- **Temporal signals** require full git history (`git fetch --unshallow` for shallow clones).
+- **The composite score is orientation, not a verdict.** Track deltas via `drift trend`, not isolated snapshots.
+- **Own score context (0.36):** driven by architecture violations and undocumented internal functions; intentional diversity in error-handling contracts is suppressed via `path_overrides`. See [drift_self.json](benchmark_results/drift_self.json).
+- **Signal overlap:** MDS/PFS and CCC/TVS measure related phenomena from different angles — no double-counting in the composite score, but some findings may describe the same underlying issue.
+- **Weight derivation:** 6 original weights derived via Kendall's τ against 5 repos (single rater); 18 newer weights are conservative heuristics pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [ADR-003](docs/decisions/ADR-003-composite-scoring-model.md).
 
 Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchmarking/) · [Full Study](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) · [Open Research Questions](RESEARCH.md)
 
