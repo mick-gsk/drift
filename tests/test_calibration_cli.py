@@ -59,7 +59,7 @@ class TestCalibrateRunWriteGuard:
             return not (str(path) == str(config) and mode == _os.W_OK)
 
         with patch("drift.commands.calibrate.os.access", side_effect=_mock_access):
-            runner = CliRunner(mix_stderr=False)
+            runner = CliRunner()
             result = runner.invoke(
                 calibrate,
                 ["run", "--repo", str(tmp_path), "--config", str(config)],
@@ -79,7 +79,7 @@ class TestCalibrateRunWriteGuard:
             return not (str(path) == str(config) and mode == _os.W_OK)
 
         with patch("drift.commands.calibrate.os.access", side_effect=_mock_access):
-            runner = CliRunner(mix_stderr=True)
+            runner = CliRunner()
             result = runner.invoke(
                 calibrate,
                 ["run", "--repo", str(tmp_path), "--config", str(config)],
@@ -98,7 +98,7 @@ class TestCalibrateRunWriteGuard:
             return not (str(path) == str(config) and mode == _os.W_OK)
 
         with patch("drift.commands.calibrate.os.access", side_effect=_mock_access):
-            runner = CliRunner(mix_stderr=False)
+            runner = CliRunner()
             result = runner.invoke(
                 calibrate,
                 ["run", "--repo", str(tmp_path), "--config", str(config), "--dry-run"],
