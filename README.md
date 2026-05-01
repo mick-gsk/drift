@@ -20,7 +20,7 @@ drift status         # traffic-light health check — your daily entry point
 ```
 
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
-[![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](benchmark_results/drift_self.json)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.45-yellow?style=flat)](benchmark_results/drift_self.json)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![PyPI Downloads](https://static.pepy.tech/badge/drift-analyzer/month)](https://pepy.tech/project/drift-analyzer)
@@ -407,7 +407,11 @@ Comparison reflects primary design scope per [STUDY.md §9](https://github.com/m
 drift badge   # prints the Markdown snippet
 ```
 
-[![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](https://github.com/mick-gsk/drift)
+Paste the Markdown output into your README:
+
+```markdown
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.45-yellow?style=flat)](https://github.com/mick-gsk/drift)
+```
 
 The [GitHub Action](https://github.com/marketplace/actions/drift-ai-code-coherence-monitor) exposes a `badge-svg` output for CI automation.
 
