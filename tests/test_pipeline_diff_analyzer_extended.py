@@ -60,41 +60,43 @@ def _make_blank_repo_analysis(repo_path: Path) -> RepoAnalysis:
 
 def test_prune_git_history_cache_stale_entries() -> None:
     """Line 268: pop stale entries from _GIT_HISTORY_CACHE."""
-    from drift.pipeline import (
-        _GIT_HISTORY_CACHE,
-        _GIT_HISTORY_CACHE_TTL_SECONDS,
-        _prune_git_history_cache,
-    )
+    import drift_engine.pipeline as _pe  # ADR-100 Phase 3: avoid stub/reload mismatch
+    git_history_cache = _pe._GIT_HISTORY_CACHE
+    git_history_cache_ttl_seconds = _pe._GIT_HISTORY_CACHE_TTL_SECONDS
+    prune_git_history_cache = _pe._prune_git_history_cache
 
-    _GIT_HISTORY_CACHE.clear()
+    git_history_cache.clear()
     # Insert a stale entry (TTL + 100 seconds old) to ensure it is pruned.
     stale_key = "__test_stale__"
-    _GIT_HISTORY_CACHE[stale_key] = (time.time() - (_GIT_HISTORY_CACHE_TTL_SECONDS + 100), [], {})
+    git_history_cache[stale_key] = (
+        time.time() - (git_history_cache_ttl_seconds + 100),
+        [],
+        {},
+    )
 
-    _prune_git_history_cache(time.time())
+    prune_git_history_cache(time.time())
 
-    assert stale_key not in _GIT_HISTORY_CACHE
-    _GIT_HISTORY_CACHE.clear()
+    assert stale_key not in git_history_cache
+    git_history_cache.clear()
 
 
 def test_prune_git_history_cache_max_entries() -> None:
     """Line 272: evict oldest when cache exceeds _GIT_HISTORY_CACHE_MAX_ENTRIES."""
-    from drift.pipeline import (
-        _GIT_HISTORY_CACHE,
-        _GIT_HISTORY_CACHE_MAX_ENTRIES,
-        _prune_git_history_cache,
-    )
+    import drift_engine.pipeline as _pe  # ADR-100 Phase 3: avoid stub/reload mismatch
+    git_history_cache = _pe._GIT_HISTORY_CACHE
+    git_history_cache_max_entries = _pe._GIT_HISTORY_CACHE_MAX_ENTRIES
+    prune_git_history_cache = _pe._prune_git_history_cache
 
-    _GIT_HISTORY_CACHE.clear()
+    git_history_cache.clear()
     now = time.time()
     # Fill to MAX + 2 with fresh (non-stale) entries having varying timestamps
-    for i in range(_GIT_HISTORY_CACHE_MAX_ENTRIES + 2):
-        _GIT_HISTORY_CACHE[f"__test_max_{i}__"] = (now - i, [], {})
+    for i in range(git_history_cache_max_entries + 2):
+        git_history_cache[f"__test_max_{i}__"] = (now - i, [], {})
 
-    _prune_git_history_cache(now)
+    prune_git_history_cache(now)
 
-    assert len(_GIT_HISTORY_CACHE) <= _GIT_HISTORY_CACHE_MAX_ENTRIES
-    _GIT_HISTORY_CACHE.clear()
+    assert len(git_history_cache) <= git_history_cache_max_entries
+    git_history_cache.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -209,7 +211,10 @@ def test_analyze_diff_subprocess_failure_fallback(tmp_path: Path) -> None:
 
     with (
         patch("subprocess.run", side_effect=subprocess.CalledProcessError(128, "git")),
-        patch("drift.analyzer.analyze_repo", return_value=fallback_analysis),
+        patch(
+            "drift_engine.analyzer.analyze_repo",
+            return_value=fallback_analysis,
+        ),  # ADR-100 Phase 3
     ):
         result = analyze_diff(tmp_path, config=DriftConfig(), diff_ref="HEAD~999")
 

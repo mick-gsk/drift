@@ -1,38 +1,11 @@
-"""GitHub Actions annotation output format.
+"""Re-export stub -- drift_output.github_format (ADR-100 Phase 4a)."""
 
-Emits findings as workflow commands that GitHub Actions renders as
-inline annotations on PRs and in the Actions log.
+import importlib as _importlib
+import sys as _sys
+from typing import Any
 
-Format reference:
-https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#setting-a-warning-message
-"""
+from drift_output.github_format import *  # noqa: F401,F403
 
-from __future__ import annotations
+findings_to_github_annotations: Any
 
-from drift.models import RepoAnalysis, Severity
-
-_LEVEL_MAP: dict[Severity, str] = {
-    Severity.CRITICAL: "error",
-    Severity.HIGH: "error",
-    Severity.MEDIUM: "warning",
-    Severity.LOW: "notice",
-    Severity.INFO: "notice",
-}
-
-
-def findings_to_github_annotations(analysis: RepoAnalysis) -> str:
-    """Convert analysis findings to GitHub Actions annotation commands."""
-    lines: list[str] = []
-    for f in analysis.findings:
-        level = _LEVEL_MAP.get(f.severity, "warning")
-        file = f.file_path.as_posix() if f.file_path else "unknown"
-        line = f.start_line or 1
-        end_line = f.end_line or line
-        title = f"{f.signal_type}: {f.title}"
-        msg = f.description.replace("\n", "%0A").replace("\r", "")
-        if f.fix:
-            msg += " Fix: " + f.fix.replace("\n", "%0A").replace("\r", "")
-        lines.append(
-            f"::{level} file={file},line={line},endLine={end_line},title={title}::{msg}"
-        )
-    return "\n".join(lines)
+_sys.modules[__name__] = _importlib.import_module("drift_output.github_format")
