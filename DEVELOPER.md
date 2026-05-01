@@ -151,6 +151,7 @@ Zusaetzliche Targets speziell fuer Agenten und Automatisierung:
 make feat-start                             Vor dem ersten Edit bei feat: (Policy-Gate + Baseline)
 make fix-start                              Vor dem ersten Edit bei fix: (Baseline + Test-Run)
 make gate-check COMMIT_TYPE=feat            Gates proaktiv pruefen (vor Push)
+make task-card TYPE=fix TASK='beschreibung' Kompakte Startkarte mit Gates, Routing und Scope-Template
 make audit-diff                             Zeigt Audit-Pflichten bei signals/ingestion/output
 make agent-harness-check                    Prueft Agent-Root-Map, Audit-Paket und MCP-Boundaries
 make changelog-entry COMMIT_TYPE=feat MSG=  Formatgerechten CHANGELOG-Snippet ausgeben

@@ -211,7 +211,7 @@ export function validate(data: string) {
         signal = ExceptionContractDriftSignal(repo_path=tmp_path)
 
         with patch(
-            "drift.signals.exception_contract_drift._git_show_file",
+            "drift_engine.signals.exception_contract_drift._git_show_file",
             return_value=old,
         ):
             findings = signal.analyze(
@@ -245,7 +245,7 @@ export function validate(data: string) {
         signal = ExceptionContractDriftSignal(repo_path=tmp_path)
 
         with patch(
-            "drift.signals.exception_contract_drift._git_show_file",
+            "drift_engine.signals.exception_contract_drift._git_show_file",
             return_value=source,
         ):
             findings = signal.analyze(
@@ -282,7 +282,7 @@ export function validate(data: string) {
         signal = ExceptionContractDriftSignal(repo_path=tmp_path)
 
         with patch(
-            "drift.signals.exception_contract_drift._git_show_file",
+            "drift_engine.signals.exception_contract_drift._git_show_file",
             return_value=old,
         ):
             findings = signal.analyze(

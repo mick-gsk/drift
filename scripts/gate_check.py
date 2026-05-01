@@ -8,12 +8,15 @@ This script mirrors the most important pre-push gates in a lightweight
 from __future__ import annotations
 
 import argparse
+import datetime
+import json
 import re
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+GATE_STATUS_PATH = REPO_ROOT / "work_artifacts" / "last_gate_status.json"
 EVIDENCE_PATTERN = re.compile(r"^benchmark_results/v\d+\.\d+\.\d+.*_feature_evidence\.json$")
 PUBLIC_DEF_PATTERN = re.compile(r"^\+def [a-z][a-zA-Z0-9_]*\(")
 ADDED_DOCSTRING_PATTERN = re.compile(r"^\+[ \t]*(?:\"\"\"|''')")
@@ -210,6 +213,24 @@ def _print_results(results: list[GateResult]) -> None:
         print(f"- [Gate {result.gate}] {result.status:<8} ({active}) - {result.reason}")
 
 
+def _write_gate_status(
+    results: list[GateResult], commit_type: str, head_sha: str | None
+) -> None:
+    """Persist gate-check outcome to work_artifacts/last_gate_status.json."""
+    payload = {
+        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "commit_type": commit_type,
+        "head_sha": head_sha,
+        "passed": not any(r.status == "MISSING" for r in results if r.active),
+        "gates": [
+            {"gate": r.gate, "active": r.active, "status": r.status, "reason": r.reason}
+            for r in results
+        ],
+    }
+    GATE_STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    GATE_STATUS_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Show proactive gate status before commit/push.")
     parser.add_argument(
@@ -236,6 +257,7 @@ def main() -> int:
         last_success_sha=last_success_sha,
     )
     _print_results(results)
+    _write_gate_status(results, commit_type, head_sha)
 
     has_missing = any(result.status == "MISSING" for result in results if result.active)
     return 1 if has_missing else 0

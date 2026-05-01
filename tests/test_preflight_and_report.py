@@ -245,7 +245,7 @@ class TestMarkdownCLIFormat:
             return analysis
 
         monkeypatch.setattr("drift.analyzer.analyze_repo", _fake_analyze)
-        monkeypatch.setattr("drift.analyzer._DEFAULT_WORKERS", 1)
+        monkeypatch.setattr("drift_engine.analyzer._DEFAULT_WORKERS", 1)
 
         # Ensure DriftConfig.load returns a default config
         def _fake_load(*a: object, **kw: object) -> DriftConfig:
