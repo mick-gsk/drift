@@ -1,15 +1,11 @@
 ## [2.49.0] - 2026-05-01
 
-Short version: Monorepo Phase 0+1+3+4a+4b+5a+5b plus Phase-6a meta-package scaffold for drift compat imports.
+Short version: Monorepo Phase 0+1+3+4a — uv workspace root + drift-config + drift-engine + drift-output capability packages extracted.
 
 ### Added
 - monorepo phase 0+1: uv workspace root + drift-config capability package (ADR-100)
 - monorepo phase 3: drift-engine capability package (signals/scoring/ingestion/pipeline/analyzer, ADR-100)
 - monorepo phase 4a: drift-output capability package (rendering/export surface, ADR-100)
-- monorepo phase 4b: drift-session capability package (session orchestration + outcome tracking, ADR-100)
-- monorepo phase 5a: drift-mcp capability package (MCP server + tool routing, ADR-100)
-- monorepo phase 5b: drift-cli capability package (CLI entry + command dispatch + commands module, ADR-100)
-- monorepo phase 6a (laufend): new `packages/drift` meta-package scaffold with compat `drift` entry modules and import smoke test (ADR-100)
 
 ## [2.49.0] - 2026-04-30
 
@@ -29,6 +25,7 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 - update harness prompt and skill catalog
 - agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle
 - agent harness FU-002 FU-004 -- neutral ab-harness mock mode and failed-turn repro bundle
+- revert unintended changelog carryover
 
 ## [2.48.5] - 2026-04-29
 
