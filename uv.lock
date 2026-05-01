@@ -14,6 +14,7 @@ members = [
     "drift-engine",
     "drift-output",
     "drift-sdk",
+    "drift-session",
 ]
 
 [[package]]
@@ -655,6 +656,7 @@ dependencies = [
     { name = "drift-engine" },
     { name = "drift-output" },
     { name = "drift-sdk" },
+    { name = "drift-session" },
     { name = "gitpython" },
     { name = "networkx" },
     { name = "pydantic" },
@@ -747,6 +749,7 @@ requires-dist = [
     { name = "drift-engine", editable = "packages/drift-engine" },
     { name = "drift-output", editable = "packages/drift-output" },
     { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "drift-session", editable = "packages/drift-session" },
     { name = "faiss-cpu", marker = "extra == 'embeddings'", specifier = ">=1.7" },
     { name = "gitpython", specifier = ">=3.1" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
@@ -864,6 +867,25 @@ dependencies = [
 requires-dist = [
     { name = "drift-config", editable = "packages/drift-config" },
     { name = "pydantic", specifier = ">=2.0" },
+]
+
+[[package]]
+name = "drift-session"
+version = "2.49.0"
+source = { editable = "packages/drift-session" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-output" },
+    { name = "drift-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-output", editable = "packages/drift-output" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
 ]
 
 [[package]]

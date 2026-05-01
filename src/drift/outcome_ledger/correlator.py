@@ -1,18 +1,10 @@
-"""Trajektorie-Klassifikation (ADR-088)."""
+"""Re-export stub -- drift_session.outcome_ledger.correlator (ADR-100 Phase 4b)."""
 
-from __future__ import annotations
+import importlib as _importlib
+import sys as _sys
 
-from drift.outcome_ledger._models import TrajectoryDirection
+from drift_session.outcome_ledger.correlator import (  # noqa: F401
+    classify_direction as classify_direction,
+)
 
-NOISE_FLOOR: float = 0.005
-
-
-def classify_direction(delta: float) -> TrajectoryDirection:
-    if delta < -NOISE_FLOOR:
-        return TrajectoryDirection.IMPROVED
-    if delta > NOISE_FLOOR:
-        return TrajectoryDirection.REGRESSED
-    return TrajectoryDirection.NEUTRAL
-
-
-__all__ = ["NOISE_FLOOR", "classify_direction"]
+_sys.modules[__name__] = _importlib.import_module("drift_session.outcome_ledger.correlator")
