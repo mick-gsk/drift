@@ -1,25 +1,31 @@
-## [2.50.0] - 2026-05-03
+## [2.49.0] - 2026-05-01
 
-Short version: Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs.
+Short version: Monorepo Phase 0+1+3+4a — uv workspace root + drift-config + drift-engine + drift-output capability packages extracted.
 
-### Changed
-- Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
-
-### Fixed
-- address PR review — cleanup on label removal, consistent section names, direct yaml import
+### Added
+- monorepo phase 0+1: uv workspace root + drift-config capability package (ADR-100)
+- monorepo phase 3: drift-engine capability package (signals/scoring/ingestion/pipeline/analyzer, ADR-100)
+- monorepo phase 4a: drift-output capability package (rendering/export surface, ADR-100)
 
 ## [2.49.0] - 2026-04-30
 
-Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
+Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle.
 
 ### Added
 - add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+- monorepo phase 0+1 -- uv workspace root + drift-config capability package (ADR-100)
+- monorepo phase 2 -- drift-sdk capability package (types + models, ADR-100)
+- monorepo phase 3 -- drift-engine capability package (signals/scoring/ingestion/pipeline/analyzer, ADR-100)
 
 ### Fixed
 - resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
+- harden output re-export stubs for typing
 
 ### Changed
 - update harness prompt and skill catalog
+- agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle
+- agent harness FU-002 FU-004 -- neutral ab-harness mock mode and failed-turn repro bundle
+- revert unintended changelog carryover
 
 ## [2.48.5] - 2026-04-29
 
