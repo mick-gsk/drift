@@ -3,6 +3,9 @@
 import importlib as _importlib
 import sys as _sys
 
+from drift_mcp.mcp_server import (  # noqa: F401
+    _EXPORTED_MCP_TOOLS as _EXPORTED_MCP_TOOLS,
+)
 from drift_mcp.mcp_server import (
     drift_brief as drift_brief,
 )
