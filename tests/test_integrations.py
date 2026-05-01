@@ -208,7 +208,7 @@ class TestSuperpowersAdapter:
         ctx.repo_path = tmp_path
         ctx.timeout_seconds = 30
 
-        with patch("drift.integrations.runner.run_command", return_value=mock_result):
+        with patch("drift_engine.integrations.runner.run_command", return_value=mock_result):
             adapter = SuperpowersAdapter()
             result = adapter.run(ctx)
 
@@ -227,7 +227,7 @@ class TestSuperpowersAdapter:
         ctx.repo_path = tmp_path
         ctx.timeout_seconds = 30
 
-        with patch("drift.integrations.runner.run_command", return_value=mock_result):
+        with patch("drift_engine.integrations.runner.run_command", return_value=mock_result):
             adapter = SuperpowersAdapter()
             result = adapter.run(ctx)
 
@@ -310,7 +310,7 @@ class TestPipelineIntegrationHook:
         cfg = MagicMock()
         cfg.integrations.enabled = False
 
-        with patch("drift.integrations.registry.get_registry") as mock_registry:
+        with patch("drift_engine.integrations.registry.get_registry") as mock_registry:
             results = run_integrations(tmp_path, [], cfg)
 
         mock_registry.assert_not_called()
@@ -333,7 +333,7 @@ class TestPipelineIntegrationHook:
 
         mock_adapter.run.return_value = IntegrationResult(source="fake", summary="ok")
 
-        with patch("drift.integrations.registry.get_registry", return_value=[mock_adapter]):
+        with patch("drift_engine.integrations.registry.get_registry", return_value=[mock_adapter]):
             results = run_integrations(tmp_path, [], cfg)
 
         assert len(results) == 1
@@ -349,8 +349,9 @@ class TestPipelineIntegrationHook:
         mock_adapter.enabled = False
         mock_adapter.name = "disabled_adapter"
 
-        with patch("drift.integrations.registry.get_registry", return_value=[mock_adapter]):
+        with patch("drift_engine.integrations.registry.get_registry", return_value=[mock_adapter]):
             results = run_integrations(tmp_path, [], cfg)
 
         mock_adapter.run.assert_not_called()
         assert results == []
+
