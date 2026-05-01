@@ -12,6 +12,7 @@ members = [
     "drift-analyzer",
     "drift-config",
     "drift-engine",
+    "drift-mcp",
     "drift-output",
     "drift-sdk",
     "drift-session",
@@ -654,6 +655,7 @@ dependencies = [
     { name = "click" },
     { name = "drift-config" },
     { name = "drift-engine" },
+    { name = "drift-mcp" },
     { name = "drift-output" },
     { name = "drift-sdk" },
     { name = "drift-session" },
@@ -747,6 +749,7 @@ requires-dist = [
     { name = "drift-analyzer", extras = ["typescript", "embeddings", "markdown", "mcp", "llm", "dev"], marker = "extra == 'all'" },
     { name = "drift-config", editable = "packages/drift-config" },
     { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-mcp", editable = "packages/drift-mcp" },
     { name = "drift-output", editable = "packages/drift-output" },
     { name = "drift-sdk", editable = "packages/drift-sdk" },
     { name = "drift-session", editable = "packages/drift-session" },
@@ -833,6 +836,27 @@ requires-dist = [
     { name = "pygments", specifier = ">=2.0" },
     { name = "tree-sitter", specifier = ">=0.21" },
     { name = "tree-sitter-typescript", specifier = ">=0.21" },
+]
+
+[[package]]
+name = "drift-mcp"
+version = "2.49.0"
+source = { editable = "packages/drift-mcp" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-output" },
+    { name = "drift-sdk" },
+    { name = "drift-session" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-output", editable = "packages/drift-output" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "drift-session", editable = "packages/drift-session" },
 ]
 
 [[package]]

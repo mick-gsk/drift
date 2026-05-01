@@ -17,6 +17,7 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 - monorepo phase 2 -- drift-sdk capability package (types + models, ADR-100)
 - monorepo phase 3 -- drift-engine capability package (signals/scoring/ingestion/pipeline/analyzer, ADR-100)
 - monorepo phase 4b -- drift-session capability package (session/outcome/reward, ADR-100)
+- monorepo phase 5a -- drift-mcp capability package (MCP server/routers, ADR-100)
 
 ### Fixed
 - resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
