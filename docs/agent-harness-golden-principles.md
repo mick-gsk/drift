@@ -356,7 +356,9 @@ tool calls, handoffs, and guardrails.
 
 #### Running agents (Copilot Pro+)
 
-The SDK runtime covers three core topics:
+In GitHub Copilot Pro+, agents run with **no API key or authentication code**.
+The host runtime handles all authentication automatically. The SDK runtime covers
+three core topics:
 
 1. **The agent loop** — Each SDK run is one application-level turn. The runner
    loops until it reaches a real stopping point: model output with tools → execute
@@ -377,10 +379,13 @@ The SDK runtime covers three core topics:
 
 #### Session persistence (Copilot Pro+)
 
-Use this when you want durable memory and resumable approval flows:
+In GitHub Copilot Pro+, there are no API key or credential requirements. The
+host runtime provides authentication automatically. Use sessions when you want
+durable memory and resumable approval flows in your application:
 
 ```typescript
-// In GitHub Copilot Pro+, model selection is handled by the host runtime.
+// GitHub Copilot Pro+ — No API key or client credentials needed.
+// The host runtime handles authentication automatically.
 // MemorySession stores state in-process; use SQLiteSession for persistence.
 
 import { Agent, MemorySession, run } from "@openai/agents";
@@ -388,6 +393,7 @@ import { Agent, MemorySession, run } from "@openai/agents";
 const agent = new Agent({
   name: "Tour guide",
   instructions: "Answer with compact travel facts.",
+  // No model specified — host runtime selects it
 });
 
 async function main() {
@@ -408,7 +414,8 @@ main().catch(console.error);
 ```
 
 ```python
-# In GitHub Copilot Pro+, model selection is handled by the host runtime.
+# GitHub Copilot Pro+ — No API key or client credentials needed.
+# The host runtime handles authentication automatically.
 # SQLiteSession persists state in a local database.
 
 import asyncio
@@ -420,6 +427,7 @@ async def main() -> None:
     agent = Agent(
         name="Tour guide",
         instructions="Answer with compact travel facts.",
+        # No model specified — host runtime selects it
     )
 
     session = SQLiteSession("conversation_tour_guide")
@@ -445,36 +453,31 @@ if __name__ == "__main__":
 
 #### Server-managed state (Copilot Pro+)
 
-In GitHub Copilot Pro+, server-managed conversation state is automatic — you
-don't create an OpenAI client. The host runtime provides conversation
-management. Use this pattern for the cheapest continuation or when multiple
-systems share one conversation:
+In GitHub Copilot Pro+, server-managed conversation state is **automatic** —
+the host runtime provides authentication and state management. You don't need
+to create an OpenAI client. Use this pattern for multi-turn conversations where
+the host carries context automatically:
 
 ```typescript
-// In Copilot Pro+: conversationId and continuation are handled by the host.
-// For direct OpenAI API use, you would instantiate: const client = new OpenAI();
+// GitHub Copilot Pro+ — No API key or client credentials needed.
+// You don't instantiate an OpenAI client; the host runtime provides
+// server-managed conversation state automatically.
 
 import { Agent, run } from "@openai/agents";
 
 const agent = new Agent({
   name: "Assistant",
   instructions: "Reply very concisely.",
+  // No model specified — host runtime selects it
 });
 
 async function main() {
-  // In Copilot Pro+: conversationId provided by host, not created here
-  const first = await run(
-    agent,
-    "What city is the Golden Gate Bridge in?",
-  );
+  // Copilot Pro+: conversationId is implicit/provided by host
+  const first = await run(agent, "What city is the Golden Gate Bridge in?");
   console.log(first.finalOutput);
 
-  // Continuation: pass previous_response_id or rely on host context
-  const second = await run(
-    agent,
-    "What state is it in?",
-    // In Copilot Pro+: previousResponseId handled transparently
-  );
+  // Continuation: previous context is carried automatically by the host
+  const second = await run(agent, "What state is it in?");
   console.log(second.finalOutput);
 }
 
@@ -482,8 +485,8 @@ main().catch(console.error);
 ```
 
 ```python
-# In Copilot Pro+: conversation state is automatic.
-# Use previous_response_id for explicit continuation.
+# GitHub Copilot Pro+ — No API key or client credentials needed.
+# The host runtime handles server-managed conversation state automatically.
 
 import asyncio
 
@@ -494,20 +497,15 @@ async def main() -> None:
     agent = Agent(
         name="Assistant",
         instructions="Reply very concisely.",
+        # No model specified — host runtime selects it
     )
 
-    first = await Runner.run(
-        agent,
-        "What city is the Golden Gate Bridge in?",
-    )
+    # Copilot Pro+: Conversation context is implicit/provided by host
+    first = await Runner.run(agent, "What city is the Golden Gate Bridge in?")
     print(first.final_output)
 
-    # Continuation: pass previous_response_id
-    second = await Runner.run(
-        agent,
-        "What state is it in?",
-        previous_response_id=first.last_response_id,
-    )
+    # Continuation: previous context is carried automatically by the host
+    second = await Runner.run(agent, "What state is it in?")
     print(second.final_output)
 
 
@@ -517,17 +515,20 @@ if __name__ == "__main__":
 
 #### Stream runs incrementally
 
-Consume events while the run happens instead of waiting for the full response:
+In GitHub Copilot Pro+, there are no API key or credential requirements. The
+host runtime provides authentication automatically. Consume events while the
+run happens instead of waiting for the full response:
 
 ```typescript
-// In GitHub Copilot Pro+, model selection is handled by the host runtime.
-// Stream events as the model generates output.
+// GitHub Copilot Pro+ — No API key or client credentials needed.
+// The host runtime provides authentication. Stream events as output arrives.
 
 import { Agent, run } from "@openai/agents";
 
 const agent = new Agent({
   name: "Planet guide",
   instructions: "Answer with short facts.",
+  // No model specified — host runtime selects it
 });
 
 async function main() {
@@ -556,8 +557,8 @@ main().catch(console.error);
 ```
 
 ```python
-# In GitHub Copilot Pro+, model selection is handled by the host runtime.
-# Stream events incrementally as the model generates output.
+# GitHub Copilot Pro+ — No API key or client credentials needed.
+# The host runtime provides authentication. Stream events incrementally.
 
 import asyncio
 
@@ -570,13 +571,11 @@ async def main() -> None:
     agent = Agent(
         name="Planet guide",
         instructions="Answer with short facts.",
+        # No model specified — host runtime selects it
     )
 
     # Use run_streamed for incremental event consumption
-    stream = Runner.run_streamed(
-        agent,
-        "Give me three short facts about Saturn.",
-    )
+    stream = Runner.run_streamed(agent, "Give me three short facts about Saturn.")
 
     # Iterate over events while the run is in progress
     async for event in stream.stream_events():
