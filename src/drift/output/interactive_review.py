@@ -2,10 +2,7 @@
 
 import importlib as _importlib
 import sys as _sys
-from typing import Any
 
-from drift_output.interactive_review import *  # noqa: F401,F403
-
-review_findings: Any
+from drift_output.interactive_review import review_findings  # noqa: F401
 
 _sys.modules[__name__] = _importlib.import_module("drift_output.interactive_review")

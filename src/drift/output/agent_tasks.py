@@ -2,11 +2,10 @@
 
 import importlib as _importlib
 import sys as _sys
-from typing import Any
 
-from drift_output.agent_tasks import *  # noqa: F401,F403
-
-analysis_to_agent_tasks: Any
-analysis_to_agent_tasks_json: Any
+from drift_output.agent_tasks import (  # noqa: F401
+    analysis_to_agent_tasks,
+    analysis_to_agent_tasks_json,
+)
 
 _sys.modules[__name__] = _importlib.import_module("drift_output.agent_tasks")

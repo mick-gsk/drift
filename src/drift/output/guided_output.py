@@ -2,17 +2,16 @@
 
 import importlib as _importlib
 import sys as _sys
-from typing import Any
 
-from drift_output.guided_output import *  # noqa: F401,F403
-
-can_continue: Any
-determine_status: Any
-emoji_for_status: Any
-headline_for_status: Any
-is_calibrated: Any
-plain_text_for_signal: Any
-profile_score_context: Any
-severity_label: Any
+from drift_output.guided_output import (  # noqa: F401
+    can_continue,
+    determine_status,
+    emoji_for_status,
+    headline_for_status,
+    is_calibrated,
+    plain_text_for_signal,
+    profile_score_context,
+    severity_label,
+)
 
 _sys.modules[__name__] = _importlib.import_module("drift_output.guided_output")

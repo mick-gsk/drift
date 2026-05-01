@@ -97,7 +97,7 @@ def _matches_rule(path_str: str, pattern: str) -> bool:
 def classify_path_context(path: Path | None, config: DriftConfig) -> str:
     """Return context class for a file path using configured glob rules."""
     if path is None:
-        return config.finding_context.default_context
+        return str(config.finding_context.default_context)
 
     posix = path.as_posix()
     cache_key = (id(config.finding_context), posix)
@@ -117,7 +117,7 @@ def classify_path_context(path: Path | None, config: DriftConfig) -> str:
                 )
                 _path_context_cache[cache_key] = result
                 return result
-    result = config.finding_context.default_context
+    result = str(config.finding_context.default_context)
     _path_context_cache[cache_key] = result
     return result
 

@@ -166,14 +166,31 @@ class TestBriefCli:
 
     @staticmethod
     def _extract_json(output: str) -> dict:
-        """Extract the JSON object from CLI output that may contain stderr."""
-        # When mix_stderr is unavailable (Click 8.2+), stderr may precede
-        # or follow the JSON payload.  Find the outermost { ... }.
-        start = output.find("{")
-        end = output.rfind("}")
+        """Extract the brief JSON object from CLI output that may contain stderr.
+
+        When mix_stderr is unavailable (Click 8.2+), JSON-lines progress messages
+        (type=progress) written to stderr appear in stdout too.  Strip those
+        single-line JSON-lines messages, then parse what remains.
+        """
+        # Strip leading single-line JSON-lines (progress events: type=progress)
+        remaining_lines = []
+        for line in output.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("{") and stripped.endswith("}"):
+                try:
+                    obj = json.loads(stripped)
+                    if isinstance(obj, dict) and obj.get("type") == "progress":
+                        continue
+                except json.JSONDecodeError:
+                    pass
+            remaining_lines.append(line)
+
+        cleaned = "\n".join(remaining_lines)
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
         if start == -1 or end == -1:
             raise ValueError(f"No JSON object in output: {output!r}")
-        return json.loads(output[start : end + 1])
+        return json.loads(cleaned[start : end + 1])
 
     def test_json_output_is_valid(self, tmp_repo: Path) -> None:
         runner = self._make_runner()

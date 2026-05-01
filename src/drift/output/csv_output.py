@@ -2,10 +2,7 @@
 
 import importlib as _importlib
 import sys as _sys
-from typing import Any
 
-from drift_output.csv_output import *  # noqa: F401,F403
-
-analysis_to_csv: Any
+from drift_output.csv_output import analysis_to_csv  # noqa: F401
 
 _sys.modules[__name__] = _importlib.import_module("drift_output.csv_output")

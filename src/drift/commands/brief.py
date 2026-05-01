@@ -151,11 +151,13 @@ def brief(
         progress_cb = _json_progress_callback
 
     # Redirect console output when using machine-readable formats
+    _console_restore = None
     if output_format != "rich":
         from rich.console import Console
 
         import drift.commands as _cmds
 
+        _console_restore = (_cmds, "console", _cmds.console)
         _cmds.console = Console(stderr=True)
 
     signals = (
@@ -164,38 +166,43 @@ def brief(
         else None
     )
 
-    result = api_brief(
-        path,
-        task=task,
-        scope_override=scope_override,
-        signals=signals,
-        max_guardrails=max_guardrails,
-        include_non_operational=include_non_operational,
-        on_progress=progress_cb,
-    )
+    try:
+        result = api_brief(
+            path,
+            task=task,
+            scope_override=scope_override,
+            signals=signals,
+            max_guardrails=max_guardrails,
+            include_non_operational=include_non_operational,
+            on_progress=progress_cb,
+        )
 
-    if output_format == "json":
-        text = to_json(result)
-        if output is not None:
-            _write_output_file(text, output)
-            click.echo(f"Output written to {output}", err=True)
+        if output_format == "json":
+            text = to_json(result)
+            if output is not None:
+                _write_output_file(text, output)
+                click.echo(f"Output written to {output}", err=True)
+            else:
+                click.echo(text)
+
+        elif output_format == "markdown":
+            text = _format_markdown(result)
+            if output is not None:
+                _write_output_file(text, output)
+                click.echo(f"Output written to {output}", err=True)
+            else:
+                click.echo(text)
+
         else:
-            click.echo(text)
+            _render_rich(result, quiet=quiet)
 
-    elif output_format == "markdown":
-        text = _format_markdown(result)
-        if output is not None:
-            _write_output_file(text, output)
-            click.echo(f"Output written to {output}", err=True)
-        else:
-            click.echo(text)
-
-    else:
-        _render_rich(result, quiet=quiet)
-
-    # Exit 1 for BLOCK risk level
-    if result.get("risk", {}).get("level") == "BLOCK":
-        sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
+        # Exit 1 for BLOCK risk level
+        if result.get("risk", {}).get("level") == "BLOCK":
+            sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
+    finally:
+        if _console_restore is not None:
+            _obj, _attr, _original = _console_restore
+            setattr(_obj, _attr, _original)
 
 
 # ---------------------------------------------------------------------------

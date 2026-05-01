@@ -2,10 +2,7 @@
 
 import importlib as _importlib
 import sys as _sys
-from typing import Any
 
-from drift_output.tui_renderer import *  # noqa: F401,F403
-
-DriftVisualizeApp: Any
+from drift_output.tui_renderer import DriftVisualizeApp  # noqa: F401
 
 _sys.modules[__name__] = _importlib.import_module("drift_output.tui_renderer")
