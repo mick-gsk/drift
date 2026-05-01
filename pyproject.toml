@@ -71,6 +71,7 @@ dependencies = [
     "drift-output",
     "drift-session",
     "drift-mcp",
+    "drift-cli",
 ]
 
 [tool.uv.sources]
@@ -80,6 +81,7 @@ drift-engine = { workspace = true }
 drift-output = { workspace = true }
 drift-session = { workspace = true }
 drift-mcp = { workspace = true }
+drift-cli = { workspace = true }
 
 [project.urls]
 Homepage = "https://mick-gsk.github.io/drift/"
@@ -164,7 +166,7 @@ packages = ["src/drift"]
 
 [tool.uv.workspace]
 members = ["packages/*"]
-exclude = ["packages/drift", "packages/drift-cli"]
+exclude = ["packages/drift"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
