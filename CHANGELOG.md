@@ -3,27 +3,15 @@
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle.
 
 ### Added
-- add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
-- monorepo phase 0+1 -- uv workspace root + drift-config capability package (ADR-100)
-- monorepo phase 2 -- drift-sdk capability package (types + models, ADR-100)
-- monorepo phase 3 -- drift-engine capability package (signals/scoring/ingestion/pipeline/analyzer, ADR-100)
-- monorepo phase 4b -- drift-session capability package (session/outcome/reward, ADR-100)
-- monorepo phase 5a -- drift-mcp capability package (MCP server/routers, ADR-100)
-- monorepo phase 5b -- drift-cli capability package (CLI commands, ADR-100)
-- v2.50.0 outcome-first validation study runner with session integration and CLI
+- `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+- monorepo ADR-100 phases 0+1/2/3/4b/5a/5b: uv workspace + drift-config/sdk/engine/session/mcp/cli capability packages
+- outcome-first validation study runner with session integration and CLI (scripts/outcome_first_validation.py)
 
 ### Fixed
-- resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
-- harden output re-export stubs for typing
-- restore global console state in brief cmd and fix Click 8.3 compat in tests
+- resolve PR #563 review issues; harden output stubs; restore brief cmd console state; FU-002/004 ab-harness mock mode
 
 ### Changed
-- update harness prompt and skill catalog
-- agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle
-- agent harness FU-002 FU-004 -- neutral ab-harness mock mode and failed-turn repro bundle
-- revert unintended changelog carryover
-- add packages/ to repo-root-allowlist (ADR-100 monorepo)
-- phase 6b -- add packages/** to CI/workflow path-filters (ADR-100)
+- add packages/ to repo-root-allowlist; phase 6b CI/workflow path-filters (ADR-100)
 
 ## [2.48.5] - 2026-04-29
 
