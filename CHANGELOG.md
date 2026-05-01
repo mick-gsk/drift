@@ -4,6 +4,7 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 
 ### Changed
 - merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
+- add script categories to catalog.py + agent-facing scripts/README.md
 
 ## [2.49.0] - 2026-04-30
 
