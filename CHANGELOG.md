@@ -13,6 +13,7 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 - `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
 - monorepo ADR-100 phases 0+1/2/3/4b/5a/5b: uv workspace + drift-config/sdk/engine/session/mcp/cli capability packages
 - outcome-first validation study runner with session integration and CLI (scripts/outcome_first_validation.py)
+- experiment B - drift-bug correlation script (precision 59%, F1 54%)
 
 ### Fixed
 - resolve PR #563 review issues; harden output stubs; restore brief cmd console state; FU-002/004 ab-harness mock mode
