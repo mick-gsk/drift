@@ -1,23 +1,28 @@
 ---
 name: guard-src-drift
-description: "Drift-generierter Guard fuer `src/drift`. Aktiv bei Signalen: AVS, EDS, MDS, PFS. Konfidenz: 0.95. Verwende diesen Skill wenn du Aenderungen an `src/drift` planst oder wiederholte Drift-Findings (AVS, EDS, MDS, PFS) fuer dieses Modul bearbeitest."
-argument-hint: "Beschreibe die geplante Aenderung in `src/drift` — welche Datei, welche Funktion, welcher Zweck."
+description: "Drift-generierter Guard fuer `packages/drift-engine` (Kern-Analyzer). Aktiv bei Signalen: AVS, EDS, MDS, PFS. Konfidenz: 0.95. Verwende diesen Skill wenn du Aenderungen an `packages/drift-engine` planst oder wiederholte Drift-Findings (AVS, EDS, MDS, PFS) fuer dieses Modul bearbeitest."
+argument-hint: "Beschreibe die geplante Aenderung in `packages/drift-engine` — welche Datei, welche Funktion, welcher Zweck."
 ---
 
-# Guard: `src/drift`
+# Guard: `packages/drift-engine` (kanonischer Code, vormals `src/drift`)
 
-`src/drift` ist der Kern des gesamten Analyzers. Er enthaelt `analyzer.py`, `pipeline.py`, `cache.py`, `scoring/`, `mcp_*.py`-Orchestrierung und alle oeffentlichen Einstiegspunkte. Jede Aenderung hier hat breite Auswirkungen auf Scan-Korrektheit, Scoring und Agenten-Verhalten.
+> **ADR-100 Phase 7a:** Der kanonische Code liegt in `packages/drift-engine/src/drift_engine/`.
+> `src/drift/` ist ein reiner Backward-Compat-Layer (Re-export-Stubs). Aenderungen gehoeren in `packages/drift-engine/`, nie in die Stubs.
+
+`packages/drift-engine/src/drift_engine/` enthaelt `analyzer.py`, `pipeline.py`, `cache.py`, `scoring/`, und alle MCP-Orchestrierungs-Module. Jede Aenderung hier hat breite Auswirkungen auf Scan-Korrektheit, Scoring und Agenten-Verhalten.
 
 **Konfidenz: 0.95** — alle vier Hauptsignale treten wiederholt auf.
 
 ## When To Use
 
-- Du aenderst eine Datei direkt in `src/drift/` (nicht in einem Unterpaket)
+- Du aenderst eine Datei in `packages/drift-engine/src/drift_engine/`
 - Du bearbeitest `analyzer.py`, `pipeline.py`, `cache.py`, `api_helpers.py`, `task_graph.py` oder `scoring/`
-- Ein Drift-Scan meldet AVS, EDS, MDS oder PFS fuer Dateien im Wurzelpaket
-- Vor einem Commit der `src/drift/__init__.py` oder oeffentliche Exports aendert
+- Ein Drift-Scan meldet AVS, EDS, MDS oder PFS fuer Dateien im Engine-Paket
+- Vor einem Commit der `packages/drift-engine/src/drift_engine/__init__.py` oder oeffentliche Exports aendert
 
-**Nicht benutzen** fuer Aenderungen ausschliesslich in `src/drift/signals/`, `src/drift/api/` oder `src/drift/output/` — dafuer gibt es dedizierte Guards.
+**Nicht benutzen** fuer Aenderungen ausschliesslich in `packages/drift-engine/src/drift_engine/signals/`, `packages/drift-sdk/src/drift_sdk/api/` oder `packages/drift-output/` — dafuer gibt es dedizierte Guards.
+
+> Hinweis: `src/drift/` im Repo-Root enthaelt nur Re-export-Stubs (ADR-100). Dort nichts aendern.
 
 ## Warum dieses Modul kritisch ist
 
@@ -67,6 +72,6 @@ drift nudge  # erwartet: safe_to_commit: true
 ## References
 
 - [DEVELOPER.md](../../DEVELOPER.md)
-- [src/drift/pipeline.py](../../../src/drift/pipeline.py) — Analyse-Pipeline
-- [src/drift/analyzer.py](../../../src/drift/analyzer.py) — Haupt-Analyzer
-- [src/drift/api_helpers.py](../../../src/drift/api_helpers.py) — Gemeinsame Hilfsfunktionen
+- [packages/drift-engine/src/drift_engine/pipeline.py](../../../packages/drift-engine/src/drift_engine/pipeline.py) — Analyse-Pipeline
+- [packages/drift-engine/src/drift_engine/analyzer.py](../../../packages/drift-engine/src/drift_engine/analyzer.py) — Haupt-Analyzer
+- [packages/drift-sdk/src/drift_sdk/](../../../packages/drift-sdk/src/drift_sdk/) — SDK inkl. api_helpers und types
