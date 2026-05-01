@@ -23,6 +23,7 @@ on:
       - "src/drift/ingestion/**"
       - "src/drift/signals/**"
       - "src/drift/scoring/**"
+      - "packages/**"
       - "tests/fuzz/**"
   workflow_dispatch:
     inputs:
