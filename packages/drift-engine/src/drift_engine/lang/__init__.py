@@ -1,4 +1,4 @@
-"""Translation Layer for Drift findings.
+﻿"""Translation Layer for Drift findings.
 
 Translates technical signal findings into plain language for non-programmers.
 
@@ -18,10 +18,10 @@ from __future__ import annotations
 import copy
 from typing import TYPE_CHECKING, Literal
 
-from drift.lang._catalog import FALLBACK_TEMPLATES, PLAIN_CATALOG
+from drift_engine.lang._catalog import FALLBACK_TEMPLATES, PLAIN_CATALOG
 
 if TYPE_CHECKING:
-    from drift.models._findings import Finding
+    from drift_sdk.models._findings import Finding
 
 Audience = Literal["developer", "plain"]
 

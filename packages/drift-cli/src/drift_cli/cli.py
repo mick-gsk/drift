@@ -298,6 +298,7 @@ from drift.commands.config_cmd import config
 from drift.commands.context_cmd import context
 from drift.commands.copilot_context import copilot_context
 from drift.commands.diff_cmd import diff
+from drift.commands.evidence import evidence_cmd
 from drift.commands.explain import explain
 from drift.commands.export_context import export_context
 from drift.commands.feedback import feedback
@@ -342,6 +343,7 @@ main.add_command(config)
 main.add_command(context)
 main.add_command(copilot_context)
 main.add_command(diff)
+main.add_command(evidence_cmd)
 main.add_command(explain)
 main.add_command(export_context)
 main.add_command(feedback)

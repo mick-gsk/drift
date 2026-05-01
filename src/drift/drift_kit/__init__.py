@@ -1,5 +1,9 @@
-﻿# ruff: noqa: F401, F403
-import drift_cli.drift_kit as _target
+﻿# ruff: noqa: F401, F403, E501
+import importlib as _importlib
+import sys as _sys
 
-__path__ = _target.__path__
-from drift_cli.drift_kit import *
+_target = _importlib.import_module("drift_cli.drift_kit")
+_sys.modules[__name__] = _target
+for _k, _v in list(_sys.modules.items()):
+    if _k.startswith("drift_cli.drift_kit."):
+        _sys.modules.setdefault(__name__ + _k[19:], _v)
