@@ -229,12 +229,10 @@ def test_drift_map_success_and_error(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     err = _run(mcp_server.drift_map(path="."))
     assert err.get("status") == "error", (
-        "drift_map error response must use 'status' key (not 'type') — "
-        "see mick-gsk/drift#491 and consistent MCP error response convention"
+        "drift_map error response must carry 'status: error' as MCP discriminator"
     )
-    assert "type" not in err, (
-        "drift_map error response must NOT have a 'type' key — "
-        "fixes regression locked in by previous wrong assertion"
+    assert err.get("type") == "error", (
+        "drift_map error response must carry 'type: error' (canonical _error_response shape)"
     )
     assert err["agent_instruction"]
 
@@ -311,3 +309,4 @@ def test_feedback_and_calibrate(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     # Apply path writes drift.yaml
     cal_apply = _run(mcp_server.drift_calibrate(path=str(tmp_path), dry_run=False))
     assert cal_apply["written"] is True
+
