@@ -1,0 +1,167 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-analyzer"
+version = "2.49.0"
+description = "Catches structural erosion from AI-generated code — the bugs that pass all your tests"
+readme = "../../README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Mick Gottschalk", email = "mick.gottsch@gmail.com" },
+]
+keywords = [
+    "ai",
+    "ai-assisted-development",
+    "code-analysis",
+    "code-quality",
+    "architecture",
+    "architecture-drift",
+    "architectural-erosion",
+    "architectural-linter",
+    "codebase-coherence",
+    "developer-tools",
+    "developer-tooling",
+    "github-actions",
+    "linter",
+    "pre-commit",
+    "technical-debt",
+    "github-action",
+    "sarif",
+    "static-analysis",
+    "structural-analysis",
+    "dependency-analysis",
+    "monorepo",
+    "dependency-cycle-detection",
+    "import-analysis",
+    "python-linter",
+    "coherence-check",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Environment :: Console",
+    "Typing :: Typed",
+]
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "gitpython>=3.1",
+    "networkx>=3.0",
+    "drift-config",
+    "drift-sdk",
+    "drift-engine",
+    "drift-output",
+    "drift-session",
+    "drift-mcp",
+    "drift-cli",
+]
+
+[tool.uv.sources]
+drift-config = { workspace = true }
+drift-sdk = { workspace = true }
+drift-engine = { workspace = true }
+drift-output = { workspace = true }
+drift-session = { workspace = true }
+drift-mcp = { workspace = true }
+drift-cli = { workspace = true }
+
+[project.urls]
+Homepage = "https://mick-gsk.github.io/drift/"
+Repository = "https://github.com/mick-gsk/drift"
+Issues = "https://github.com/mick-gsk/drift/issues"
+Discussions = "https://github.com/mick-gsk/drift/discussions"
+Documentation = "https://mick-gsk.github.io/drift/"
+Changelog = "https://github.com/mick-gsk/drift/blob/main/CHANGELOG.md"
+Releases = "https://github.com/mick-gsk/drift/releases"
+CI = "https://github.com/mick-gsk/drift/actions/workflows/ci.yml"
+Funding = "https://github.com/sponsors/mick-gsk"
+
+[project.optional-dependencies]
+# Analyze TypeScript, TSX, JavaScript, JSX files via tree-sitter
+typescript = [
+    "tree-sitter>=0.22",
+    "tree-sitter-typescript>=0.22",
+]
+# Semantic similarity matching for pattern fragmentation detection
+embeddings = [
+    "sentence-transformers>=3.0",
+    "faiss-cpu>=1.7",
+    "numpy>=1.26",
+]
+# Parse Markdown files for documentation-level analysis
+markdown = [
+    "mistune>=3.0",
+]
+# Enable MCP server mode for AI agent orchestration (Copilot, Cursor, Claude)
+mcp = [
+    "mcp[cli]>=1.2.0,<2.0",
+]
+# Auto-apply patches for high-confidence findings (add_docstring, add_guard_clause)
+autopatch = [
+    "libcst>=1.0",
+]
+# Live file-watching for `drift watch` (re-analyzes on save)
+watch = [
+    "watchfiles>=1.0",
+]
+# Fast JSON serialization/deserialization for parse cache (optional; stdlib fallback)
+fast-json = [
+    "orjson>=3.9",
+]
+# LLM-backed intent classification via litellm (optional)
+llm = [
+    "litellm>=1.0",
+]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-cov>=5.0",
+    "pytest-xdist>=3.6",
+    "pytest-timeout>=2.3",
+    "libcst>=1.0",
+    "textual>=0.80",
+    "mypy>=1.10",
+    "ruff>=0.4",
+    "mistune>=3.0",
+    "numpy>=1.26",
+    "vulture>=2.11",
+    "hypothesis>=6.100",
+    "mutmut>=2.4",
+    "pytest-benchmark>=4.0",
+    "python-semantic-release>=9.0",
+    "jsonschema>=4.0",
+    "scipy>=1.13",
+    "openai>=1.30",
+    "python-multipart>=0.0.26",
+    "setuptools>=78.1.1",
+    # tree-sitter required for TypeScript signal tests (tsb_ts_tp, etc.)
+    "tree-sitter>=0.22",
+    "tree-sitter-typescript>=0.22",
+]
+all = [
+    "drift-analyzer[typescript,embeddings,markdown,mcp,llm,dev]",
+]
+
+[project.scripts]
+drift = "drift.cli:safe_main"
+drift-analyzer = "drift.cli:safe_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift"]
