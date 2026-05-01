@@ -11,6 +11,8 @@ resolution-markers = [
 members = [
     "drift-analyzer",
     "drift-config",
+    "drift-engine",
+    "drift-sdk",
 ]
 
 [[package]]
@@ -649,6 +651,8 @@ source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-sdk" },
     { name = "gitpython" },
     { name = "networkx" },
     { name = "pydantic" },
@@ -738,6 +742,8 @@ requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "drift-analyzer", extras = ["typescript", "embeddings", "markdown", "mcp", "llm", "dev"], marker = "extra == 'all'" },
     { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
     { name = "faiss-cpu", marker = "extra == 'embeddings'", specifier = ">=1.7" },
     { name = "gitpython", specifier = ">=3.1" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
@@ -790,6 +796,52 @@ dependencies = [
 requires-dist = [
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pyyaml", specifier = ">=6.0" },
+]
+
+[[package]]
+name = "drift-engine"
+version = "2.49.0"
+source = { editable = "packages/drift-engine" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-sdk" },
+    { name = "gitpython" },
+    { name = "mistune" },
+    { name = "networkx" },
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "pygments" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-typescript" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "gitpython", specifier = ">=3.1" },
+    { name = "mistune", specifier = ">=3.0" },
+    { name = "networkx", specifier = ">=3.0" },
+    { name = "numpy", specifier = ">=1.24" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pygments", specifier = ">=2.0" },
+    { name = "tree-sitter", specifier = ">=0.21" },
+    { name = "tree-sitter-typescript", specifier = ">=0.21" },
+]
+
+[[package]]
+name = "drift-sdk"
+version = "2.49.0"
+source = { editable = "packages/drift-sdk" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "pydantic", specifier = ">=2.0" },
 ]
 
 [[package]]

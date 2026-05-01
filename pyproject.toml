@@ -66,10 +66,14 @@ dependencies = [
     "gitpython>=3.1",
     "networkx>=3.0",
     "drift-config",
+    "drift-sdk",
+    "drift-engine",
 ]
 
 [tool.uv.sources]
 drift-config = { workspace = true }
+drift-sdk = { workspace = true }
+drift-engine = { workspace = true }
 
 [project.urls]
 Homepage = "https://mick-gsk.github.io/drift/"

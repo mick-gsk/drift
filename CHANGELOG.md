@@ -1,9 +1,10 @@
 ## [2.49.0] - 2026-05-01
 
-Short version: Monorepo Phase 0+1 — uv workspace root + drift-config capability package extracted.
+Short version: Monorepo Phase 0+1+3 — uv workspace root + drift-config + drift-engine capability packages extracted.
 
 ### Added
 - monorepo phase 0+1: uv workspace root + drift-config capability package (ADR-100)
+- monorepo phase 3: drift-engine capability package (signals/scoring/ingestion/pipeline/analyzer, ADR-100)
 
 ## [2.49.0] - 2026-04-30
 
@@ -13,6 +14,7 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 - add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
 - monorepo phase 0+1 -- uv workspace root + drift-config capability package (ADR-100)
 - monorepo phase 2 -- drift-sdk capability package (types + models, ADR-100)
+- monorepo phase 3 -- drift-engine capability package (signals/scoring/ingestion/pipeline/analyzer, ADR-100)
 
 ### Fixed
 - resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope

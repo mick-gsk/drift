@@ -14,7 +14,7 @@ MYPY     ?= $(PYTHON) -m mypy
 SRC      := src/
 TESTS    := tests/
 
-.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check repro-bundle markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
+.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check task-card feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check repro-bundle markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -147,6 +147,11 @@ catalog:  ## [Agent] List scripts with short descriptions (use ARGS='--search ke
 gate-check:  ## [Agent] Proactive gate status before commit/push (COMMIT_TYPE=feat|fix|chore|signal)
 	$(PYTHON) scripts/gate_check.py --commit-type $(COMMIT_TYPE)
 
+task-card:  ## [Agent] Render compact kickoff card (TYPE=feat|fix|chore|signal|prompt|review TASK='short description')
+	$(if $(strip $(TYPE)),,$(error TYPE missing. Use: make task-card TYPE=fix TASK='...'))
+	$(if $(strip $(TASK)),,$(error TASK missing. Use: make task-card TYPE=fix TASK='...'))
+	$(PYTHON) scripts/task_card.py --type $(TYPE) --task "$(TASK)"
+
 feat-bundle:  ## [Agent] Generate + validate feature evidence, then auto-update CHANGELOG and STUDY.md (VERSION=X.Y.Z SLUG=name [MSG='description'])
 	@[ "$(VERSION)" ] || (echo "Error: VERSION missing. Use: make feat-bundle VERSION=X.Y.Z SLUG=name"; exit 1)
 	@[ "$(SLUG)" ] || (echo "Error: SLUG missing. Use: make feat-bundle VERSION=X.Y.Z SLUG=name"; exit 1)
@@ -160,6 +165,10 @@ feat-bundle:  ## [Agent] Generate + validate feature evidence, then auto-update 
 handover:  ## [Agent] Generate session handover artifact (TASK='description')
 	@[ "$(TASK)" ] || (echo "Error: TASK missing. Use: make handover TASK='description'"; exit 1)
 	$(PYTHON) scripts/session_handover.py --task "$(TASK)"
+	$(PYTHON) scripts/update_work_artifacts_index.py
+
+update-artifacts-index:  ## [Agent] Regenerate work_artifacts/index.json (run after any session)
+	$(PYTHON) scripts/update_work_artifacts_index.py
 
 changelog-entry:  ## [Agent] Preview changelog snippet on stdout (COMMIT_TYPE=feat|fix|chore MSG='text')
 	@[ "$(COMMIT_TYPE)" ] || (echo "Error: COMMIT_TYPE missing."; exit 1)

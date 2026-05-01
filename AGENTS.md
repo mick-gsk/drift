@@ -9,6 +9,14 @@ map, not a rulebook: follow the linked source files for the operative rules.
 2. Run the policy gate from [.github/instructions/drift-policy.instructions.md](.github/instructions/drift-policy.instructions.md) before file work.
 3. Use [DEVELOPER.md](DEVELOPER.md) for setup, commands, architecture overview, and targeted tests.
 4. Use [.github/AGENTS.md](.github/AGENTS.md) for the prompt, skill, and evaluation-prompt catalogue.
+5. Start each non-trivial task with a compact kickoff card:
+
+```powershell
+make task-card TYPE=fix TASK="short task summary"
+```
+
+This prints active gates, routing references, and a scope template before the
+first edit.
 
 ## Harness Engine Map
 

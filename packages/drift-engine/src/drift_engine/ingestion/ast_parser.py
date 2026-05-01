@@ -1,0 +1,702 @@
+"""Python AST parser using the built-in ast module.
+
+Uses Python's standard library ast module for zero-dependency Python parsing.
+TypeScript support requires the optional tree-sitter dependency.
+"""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+from pathlib import Path
+from typing import Any
+
+from drift.models import (
+    ClassInfo,
+    FunctionInfo,
+    ImportInfo,
+    ParseResult,
+    PatternCategory,
+    PatternInstance,
+)
+
+# ---------------------------------------------------------------------------
+# Cyclomatic complexity
+# ---------------------------------------------------------------------------
+
+
+class _ComplexityCounter(ast.NodeVisitor):
+    """Count decision points for cyclomatic complexity."""
+
+    def __init__(self) -> None:
+        self.complexity = 1
+
+    def visit_If(self, node: ast.If) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_For(self, node: ast.For) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_While(self, node: ast.While) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_BoolOp(self, node: ast.BoolOp) -> None:
+        self.complexity += len(node.values) - 1
+        self.generic_visit(node)
+
+    def visit_Assert(self, node: ast.Assert) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_comprehension(self, node: ast.comprehension) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+
+def _cyclomatic_complexity(node: ast.AST) -> int:
+    counter = _ComplexityCounter()
+    counter.visit(node)
+    return counter.complexity
+
+
+# ---------------------------------------------------------------------------
+# Error handling pattern fingerprinting
+# ---------------------------------------------------------------------------
+
+
+def _fingerprint_try_block(node: ast.Try) -> dict[str, Any]:
+    """Extract a structural fingerprint from a try/except block."""
+    handlers: list[dict[str, Any]] = []
+    for handler in node.handlers:
+        exc_type = "bare"
+        if handler.type is not None:
+            if isinstance(handler.type, ast.Name):
+                exc_type = handler.type.id
+            elif isinstance(handler.type, ast.Attribute):
+                exc_type = ast.dump(handler.type)
+            elif isinstance(handler.type, ast.Tuple):
+                exc_type = "|".join(getattr(e, "id", ast.dump(e)) for e in handler.type.elts)
+
+        body_actions: list[str] = []
+        for stmt in handler.body:
+            if isinstance(stmt, ast.Raise):
+                body_actions.append("raise")
+            elif isinstance(stmt, ast.Return):
+                body_actions.append("return")
+            elif isinstance(stmt, ast.Continue):
+                body_actions.append("loop_skip")
+            elif isinstance(stmt, ast.Pass):
+                body_actions.append("pass")
+            elif isinstance(stmt, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+                body_actions.append("fallback_assign")
+            elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
+                func = stmt.value.func
+                if isinstance(func, ast.Attribute):
+                    if func.attr in ("error", "exception", "warning", "critical"):
+                        body_actions.append("log")
+                    elif func.attr == "print":
+                        body_actions.append("print")
+                    else:
+                        body_actions.append("call")
+                elif isinstance(func, ast.Name):
+                    if func.id == "print":
+                        body_actions.append("print")
+                    elif func.id in ("logging", "logger", "log"):
+                        body_actions.append("log")
+                    else:
+                        body_actions.append("call")
+                else:
+                    body_actions.append("call")
+            else:
+                body_actions.append("other")
+
+        handlers.append(
+            {
+                "exception_type": exc_type,
+                "actions": body_actions,
+            }
+        )
+
+    return {
+        "handler_count": len(node.handlers),
+        "handlers": handlers,
+        "has_finally": bool(node.finalbody),
+        "has_else": bool(node.orelse),
+    }
+
+
+# ---------------------------------------------------------------------------
+# API endpoint pattern fingerprinting
+# ---------------------------------------------------------------------------
+
+_ROUTE_DECORATORS = {
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "head",
+    "options",
+    "route",
+    "api_view",
+    "action",
+    "websocket",
+}
+
+# Auth-related decorators recognised during endpoint fingerprinting.
+_AUTH_DECORATORS: frozenset[str] = frozenset({
+    "login_required",
+    "permission_required",
+    "requires",
+    "auth_required",
+    "roles_required",
+    "roles_accepted",
+    "user_passes_test",
+    "authentication_classes",
+    "permission_classes",
+    "jwt_required",
+    "token_required",
+    "protected",
+    "require_auth",
+    "require_login",
+    "staff_member_required",
+    "superuser_required",
+    "requires_auth",
+})
+
+# Names/attributes in function bodies that indicate an auth check.
+_AUTH_BODY_NAMES: frozenset[str] = frozenset({
+    "current_user",
+    "get_current_user",
+    "Depends",
+    "Security",
+})
+
+# Attribute access patterns that indicate auth (e.g. request.user).
+_AUTH_BODY_ATTRS: frozenset[str] = frozenset({
+    "user",
+    "auth",
+    "is_authenticated",
+    "has_perm",
+    "has_permission",
+    "check_permissions",
+})
+
+
+def _is_route_decorator(decorator: ast.expr) -> bool:
+    if isinstance(decorator, ast.Call):
+        decorator = decorator.func
+    if isinstance(decorator, ast.Attribute):
+        return decorator.attr.lower() in _ROUTE_DECORATORS
+    if isinstance(decorator, ast.Name):
+        return decorator.id.lower() in _ROUTE_DECORATORS
+    return False
+
+
+def _decorator_name(dec: ast.expr) -> str:
+    """Extract a human-readable name from a decorator AST node."""
+    if isinstance(dec, ast.Call):
+        dec = dec.func
+    if isinstance(dec, ast.Attribute):
+        return dec.attr
+    if isinstance(dec, ast.Name):
+        return dec.id
+    return ""
+
+
+def _has_auth_decorator(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """Return True if the function has any recognised auth decorator."""
+    for dec in node.decorator_list:
+        name = _decorator_name(dec).lower()
+        if name in _AUTH_DECORATORS:
+            return True
+    return False
+
+
+def _fingerprint_endpoint(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> dict[str, Any] | None:
+    """Extract pattern fingerprint for an API endpoint function."""
+    route_decorators = [d for d in node.decorator_list if _is_route_decorator(d)]
+    if not route_decorators:
+        return None
+
+    has_try = False
+    has_auth_check = _has_auth_decorator(node)
+    auth_mechanism: str | None = None
+    return_patterns: list[str] = []
+
+    if has_auth_check:
+        auth_mechanism = "decorator"
+
+    for child in ast.walk(node):
+        if isinstance(child, ast.Try):
+            has_try = True
+        if isinstance(child, ast.Name) and child.id in _AUTH_BODY_NAMES:
+            has_auth_check = True
+            if auth_mechanism is None:
+                auth_mechanism = "body_name"
+        if (
+            isinstance(child, ast.Attribute)
+            and child.attr in _AUTH_BODY_ATTRS
+        ):
+            has_auth_check = True
+            if auth_mechanism is None:
+                auth_mechanism = "body_attr"
+        if isinstance(child, ast.Return) and child.value and isinstance(child.value, ast.Call):
+            func = child.value.func
+            if isinstance(func, ast.Name):
+                return_patterns.append(func.id)
+            elif isinstance(func, ast.Attribute):
+                return_patterns.append(func.attr)
+
+    result = {
+        "has_error_handling": has_try,
+        "has_auth": has_auth_check,
+        "auth_mechanism": auth_mechanism,
+        "return_patterns": return_patterns,
+        "is_async": isinstance(node, ast.AsyncFunctionDef),
+    }
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Return-strategy fingerprinting (for PFS return-pattern detection)
+# ---------------------------------------------------------------------------
+
+
+def _classify_return_strategy(node: ast.Return) -> str:
+    """Classify a single return statement into a strategy label."""
+    if node.value is None:
+        return "return_none"
+    val = node.value
+    # return None literal
+    if isinstance(val, ast.Constant) and val.value is None:
+        return "return_none"
+    # return (value, error) — tuple return
+    if isinstance(val, ast.Tuple):
+        return "return_tuple"
+    # return {"key": ...} — dict literal
+    if isinstance(val, ast.Dict):
+        return "return_dict"
+    return "return_value"
+
+
+def _fingerprint_return_strategy(
+    node: ast.FunctionDef | ast.AsyncFunctionDef,
+) -> dict[str, Any] | None:
+    """Extract a return-strategy fingerprint from a function.
+
+    Returns ``None`` when the function has fewer than two distinct return
+    strategies, meaning there is no fragmentation to report.
+    """
+    strategies: set[str] = set()
+
+    # Walk children but stop at nested function/class defs (they get their own visit)
+    queue = list(ast.iter_child_nodes(node))
+    while queue:
+        child = queue.pop()
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        if isinstance(child, ast.Return):
+            strategies.add(_classify_return_strategy(child))
+        elif isinstance(child, ast.Raise):
+            strategies.add("raise")
+        queue.extend(ast.iter_child_nodes(child))
+
+    if len(strategies) < 2:
+        return None
+
+    result = {"strategies": sorted(strategies)}
+    return result
+
+
+# ---------------------------------------------------------------------------
+# AST n-gram computation (for Mutant Duplicate detection)
+# ---------------------------------------------------------------------------
+
+_NGRAM_N = 3
+
+
+def _compute_ast_ngrams(node: ast.AST) -> list[list[str]]:
+    """Extract n-grams of AST node types from a function AST node.
+
+    Names, string literals, and numeric constants are normalised away so that
+    renaming variables does not affect the fingerprint.  The result is stored
+    in FunctionInfo.ast_fingerprint["ngrams"] as a JSON-safe list of lists.
+
+    ``self.attr`` / ``cls.attr`` attribute accesses are collapsed to plain
+    ``Name`` nodes so that methods and standalone functions with equivalent
+    bodies produce identical fingerprints (method↔function normalisation).
+    """
+    node_types: list[str] = []
+    # Track self/cls Attribute nodes whose Name(self/cls) child should be skipped
+    _skip_ids: set[int] = set()
+    for child in ast.walk(node):
+        if id(child) in _skip_ids:
+            continue
+        # Normalise self.x / cls.x → plain Name (method ↔ function equivalence)
+        if (
+            isinstance(child, ast.Attribute)
+            and isinstance(child.value, ast.Name)
+            and child.value.id in ("self", "cls")
+        ):
+            node_types.append("Name")
+            _skip_ids.add(id(child.value))
+            continue
+        node_types.append(type(child).__name__)
+
+    if len(node_types) < _NGRAM_N:
+        return [node_types] if node_types else []
+
+    return [node_types[i : i + _NGRAM_N] for i in range(len(node_types) - _NGRAM_N + 1)]
+
+
+# ---------------------------------------------------------------------------
+# Main parser
+# ---------------------------------------------------------------------------
+
+
+class PythonFileParser(ast.NodeVisitor):
+    """Parse a Python file and extract structural information."""
+
+    def __init__(self, source: str, file_path: Path) -> None:
+        self.source = source
+        self.file_path = file_path
+        self._lines = source.splitlines()
+        self.functions: list[FunctionInfo] = []
+        self.classes: list[ClassInfo] = []
+        self.imports: list[ImportInfo] = []
+        self.patterns: list[PatternInstance] = []
+        self._current_class: str | None = None
+        self._scope_depth = 0
+
+    def parse(self) -> ParseResult:
+        try:
+            tree = ast.parse(self.source, filename=str(self.file_path))
+        except SyntaxError as exc:
+            return ParseResult(
+                file_path=self.file_path,
+                language="python",
+                line_count=len(self._lines),
+                parse_errors=[str(exc)],
+            )
+
+        self.visit(tree)
+
+        return ParseResult(
+            file_path=self.file_path,
+            language="python",
+            functions=self.functions,
+            classes=self.classes,
+            imports=self.imports,
+            patterns=self.patterns,
+            line_count=len(self._lines),
+        )
+
+    @staticmethod
+    def _walk_excluding_nested(node: ast.AST) -> list[ast.AST]:
+        """Walk AST children but stop descending into nested function/class defs."""
+        results: list[ast.AST] = []
+        queue = list(ast.iter_child_nodes(node))
+        while queue:
+            child = queue.pop()
+            results.append(child)
+            # Don't descend into nested functions/classes — they get their own visit
+            if not isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                queue.extend(ast.iter_child_nodes(child))
+        return results
+
+    # -- Functions ----------------------------------------------------------
+
+    def _process_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        """Visit a function or method AST node and collect its metadata into the parse output."""
+        decorators = []
+        for dec in node.decorator_list:
+            if isinstance(dec, ast.Name):
+                decorators.append(dec.id)
+            elif isinstance(dec, ast.Attribute):
+                decorators.append(f"{ast.dump(dec)}")
+            elif isinstance(dec, ast.Call):
+                if isinstance(dec.func, ast.Name):
+                    decorators.append(dec.func.id)
+                elif isinstance(dec.func, ast.Attribute):
+                    decorators.append(dec.func.attr)
+
+        params = []
+        for arg in node.args.args:
+            if arg.arg != "self" and arg.arg != "cls":
+                params.append(arg.arg)
+
+        return_type = None
+        if node.returns:
+            try:
+                return_type = ast.unparse(node.returns)
+            except Exception:
+                return_type = "unknown"
+
+        has_docstring = (
+            bool(node.body)
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(node.body[0].value, ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        )
+
+        body_source = ast.get_source_segment(self.source, node) or ""
+        body_hash = hashlib.sha256(body_source.encode()).hexdigest()[:16]
+
+        # Pre-compute AST n-grams for MDS signal (avoids re-reading files later)
+        ast_fp: dict[str, Any] = {}
+        ngrams = _compute_ast_ngrams(node)
+        if ngrams:
+            ast_fp["ngrams"] = ngrams
+
+        func_name = node.name
+        if self._current_class:
+            func_name = f"{self._current_class}.{node.name}"
+
+        info = FunctionInfo(
+            name=func_name,
+            file_path=self.file_path,
+            start_line=node.lineno,
+            end_line=node.end_lineno or node.lineno,
+            language="python",
+            complexity=_cyclomatic_complexity(node),
+            loc=(node.end_lineno or node.lineno) - node.lineno + 1,
+            parameters=params,
+            return_type=return_type,
+            decorators=decorators,
+            has_docstring=has_docstring,
+            body_hash=body_hash,
+            ast_fingerprint=ast_fp,
+        )
+        self.functions.append(info)
+
+        # Extract error handling patterns inside this function
+        # Walk the AST but skip nested function/class definitions to avoid
+        # double-counting patterns that will be found when visiting those nodes.
+        for child in self._walk_excluding_nested(node):
+            if isinstance(child, ast.Try):
+                fp = _fingerprint_try_block(child)
+                self.patterns.append(
+                    PatternInstance(
+                        category=PatternCategory.ERROR_HANDLING,
+                        file_path=self.file_path,
+                        function_name=func_name,
+                        start_line=child.lineno,
+                        end_line=child.end_lineno or child.lineno,
+                        fingerprint=fp,
+                    )
+                )
+
+        # Extract API endpoint patterns
+        ep_fp = _fingerprint_endpoint(node)
+        if ep_fp is not None:
+            self.patterns.append(
+                PatternInstance(
+                    category=PatternCategory.API_ENDPOINT,
+                    file_path=self.file_path,
+                    function_name=func_name,
+                    start_line=node.lineno,
+                    end_line=node.end_lineno or node.lineno,
+                    fingerprint=ep_fp,
+                )
+            )
+
+        # Extract return-strategy patterns
+        ret_fp = _fingerprint_return_strategy(node)
+        if ret_fp is not None:
+            self.patterns.append(
+                PatternInstance(
+                    category=PatternCategory.RETURN_PATTERN,
+                    file_path=self.file_path,
+                    function_name=func_name,
+                    start_line=node.lineno,
+                    end_line=node.end_lineno or node.lineno,
+                    fingerprint=ret_fp,
+                )
+            )
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._scope_depth += 1
+        try:
+            self._process_function(node)
+            self.generic_visit(node)
+        finally:
+            self._scope_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._scope_depth += 1
+        try:
+            self._process_function(node)
+            self.generic_visit(node)
+        finally:
+            self._scope_depth -= 1
+
+    # -- Classes ------------------------------------------------------------
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Visit a class definition node and record class metadata in the parse output."""
+        self._scope_depth += 1
+        try:
+            bases = []
+            for base in node.bases:
+                if isinstance(base, ast.Name):
+                    bases.append(base.id)
+                elif isinstance(base, ast.Attribute):
+                    try:
+                        bases.append(ast.unparse(base))
+                    except Exception:
+                        bases.append("unknown")
+
+            has_docstring = (
+                bool(node.body)
+                and isinstance(node.body[0], ast.Expr)
+                and isinstance(node.body[0].value, ast.Constant)
+                and isinstance(node.body[0].value.value, str)
+            )
+
+            prev_class = self._current_class
+            self._current_class = node.name
+
+            class_info = ClassInfo(
+                name=node.name,
+                file_path=self.file_path,
+                start_line=node.lineno,
+                end_line=node.end_lineno or node.lineno,
+                language="python",
+                bases=bases,
+                has_docstring=has_docstring,
+            )
+
+            self.generic_visit(node)
+
+            # Collect methods that were added while visiting this class
+            class_info.methods = [f for f in self.functions if f.name.startswith(f"{node.name}.")]
+
+            self.classes.append(class_info)
+            self._current_class = prev_class
+        finally:
+            self._scope_depth -= 1
+
+    # -- Imports ------------------------------------------------------------
+
+    def visit_Import(self, node: ast.Import) -> None:
+        for alias in node.names:
+            self.imports.append(
+                ImportInfo(
+                    source_file=self.file_path,
+                    imported_module=alias.name,
+                    imported_names=[alias.asname or alias.name],
+                    line_number=node.lineno,
+                    is_relative=False,
+                    is_module_level=self._scope_depth == 0,
+                )
+            )
+
+    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        module = node.module or ""
+        names = [alias.name for alias in (node.names or [])]
+        self.imports.append(
+            ImportInfo(
+                source_file=self.file_path,
+                imported_module=module,
+                imported_names=names,
+                line_number=node.lineno,
+                is_relative=(node.level or 0) > 0,
+                is_module_level=self._scope_depth == 0,
+            )
+        )
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def parse_python_file(file_path: Path, repo_path: Path) -> ParseResult:
+    """Parse a Python file and return structural information."""
+    full_path = repo_path / file_path
+    try:
+        source = full_path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return ParseResult(
+            file_path=file_path,
+            language="python",
+            parse_errors=[f"{type(exc).__name__}: {exc}"],
+        )
+    parser = PythonFileParser(source, file_path)
+    return parser.parse()
+
+
+def parse_file(file_path: Path, repo_path: Path, language: str) -> ParseResult:
+    """Parse a source file based on its language."""
+    if language == "python":
+        return parse_python_file(file_path, repo_path)
+
+    if language in ("typescript", "tsx", "javascript", "jsx"):
+        from drift_engine.ingestion.ts_parser import parse_typescript_file
+
+        return parse_typescript_file(file_path, repo_path, language)
+
+    return ParseResult(
+        file_path=file_path,
+        language=language,
+        parse_errors=[f"Unsupported language: {language}"],
+    )
+
+
+def _parse_typescript_stub(
+    file_path: Path,
+    repo_path: Path,
+    language: str = "typescript",
+) -> ParseResult:
+    """Minimal TypeScript parsing — imports and line count only.
+
+    Full TypeScript AST parsing requires tree-sitter (optional dependency).
+    """
+    full_path = repo_path / file_path
+    try:
+        source = full_path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return ParseResult(
+            file_path=file_path,
+            language=language,
+            parse_errors=[f"{type(exc).__name__}: {exc}"],
+        )
+    lines = source.splitlines()
+
+    imports: list[ImportInfo] = []
+    for i, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if (
+            stripped.startswith("import ") or stripped.startswith("from ")
+        ) and " from " in stripped:
+            parts = stripped.split(" from ")
+            module = parts[-1].strip().strip("'\";")
+            names_part = parts[0].replace("import", "").strip()
+            names = [n.strip().strip("{}") for n in names_part.split(",") if n.strip()]
+            imports.append(
+                ImportInfo(
+                    source_file=file_path,
+                    imported_module=module,
+                    imported_names=names,
+                    line_number=i,
+                    is_relative=module.startswith("."),
+                    is_module_level=True,
+                )
+            )
+
+    return ParseResult(
+        file_path=file_path,
+        language=language,
+        imports=imports,
+        line_count=len(lines),
+    )

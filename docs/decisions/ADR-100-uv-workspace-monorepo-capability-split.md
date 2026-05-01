@@ -118,7 +118,7 @@ Backward-Compat wird durch das Meta-Paket-Re-export sichergestellt — bestehend
 | 0 | ADR anlegen, Circular-Import-Analyse, feat-start | keine |
 | 1 | uv Workspace Root + `drift-config` extrahieren | Phase 0 |
 | 2 | `drift-sdk` extrahieren (`types.py`, `models/`) | Phase 1 |
-| 3 | `drift-engine` extrahieren | Phase 2 |
+| 3 ✅ | `drift-engine` extrahieren | Phase 2 |
 | 4a | `drift-output` extrahieren | Phase 3 |
 | 4b | `drift-session` extrahieren | Phase 4a |
 | 5a | `drift-mcp` extrahieren | Phase 4b |
