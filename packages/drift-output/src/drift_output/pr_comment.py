@@ -65,7 +65,7 @@ def _signal_long_name(signal_type: str) -> str:
 def _action_text(finding: Finding) -> str:
     """Return short action text from recommender or f.fix fallback (max 90 chars)."""
     try:
-        from drift.recommendations import generate_recommendation
+        from drift_output.recommendations import generate_recommendation
 
         rec = generate_recommendation(finding)
         if rec:

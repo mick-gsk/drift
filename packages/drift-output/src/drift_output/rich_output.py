@@ -12,8 +12,8 @@ from rich.table import Table
 from rich.text import Text
 
 from drift.commands import make_console
-from drift.finding_rendering import build_first_run_summary
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity, SignalType
+from drift_output.finding_rendering import build_first_run_summary
 
 # Brand accent: Deep Teal (slate/teal palette)
 _TEAL = "rgb(13,148,136)"

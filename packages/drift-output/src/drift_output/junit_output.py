@@ -5,8 +5,9 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
 
-from drift.api_helpers import signal_abbrev
-from drift.models import RepoAnalysis
+from drift_sdk.models import RepoAnalysis
+
+from drift_output.api_helpers import signal_abbrev
 
 
 def analysis_to_junit(analysis: RepoAnalysis) -> str:

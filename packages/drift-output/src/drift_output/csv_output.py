@@ -5,9 +5,10 @@ from __future__ import annotations
 import csv
 import io
 
-from drift.api_helpers import signal_abbrev
-from drift.models import Finding, RepoAnalysis
-from drift.signal_registry import get_meta
+from drift_engine.signal_registry import get_meta
+from drift_sdk.models import Finding, RepoAnalysis
+
+from drift_output.api_helpers import signal_abbrev
 
 
 def _finding_sort_key(finding: Finding) -> tuple[float, str, str, int, int]:

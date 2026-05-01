@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from drift import __version__
-from drift.api_helpers import build_drift_score_scope
 from drift.fix_intent import (
     _EDIT_KIND_FOR_SIGNAL,
     _refine_edit_kind,
@@ -29,9 +28,10 @@ from drift.models import (
     VerificationStrength,
 )
 from drift.negative_context import findings_to_negative_context, negative_context_to_dict
-from drift.recommendations import Recommendation, generate_recommendations
 from drift.repair_template_registry import get_registry
 from drift.signal_registry import get_meta
+from drift_output.api_helpers import build_drift_score_scope
+from drift_output.recommendations import Recommendation, generate_recommendations
 
 # ---------------------------------------------------------------------------
 # Deterministic task ID

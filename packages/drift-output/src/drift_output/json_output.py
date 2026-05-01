@@ -5,32 +5,36 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from drift import __version__
-from drift.api_helpers import (
-    build_drift_score_scope,
-    finding_base_payload,
-    signal_abbrev,
-    signal_abbrev_map,
-)
-from drift.baseline import finding_fingerprint
-from drift.config import DriftConfig
-from drift.finding_context import classify_finding_context, split_findings_by_context
-from drift.finding_priority import (
-    _dedupe_findings,
-    _expected_benefit_for_finding,
-    _next_step_for_finding,
-    _priority_class,
-)
-from drift.finding_rendering import _select_priority_findings_from_list, build_first_run_summary
-from drift.models import (
+from drift_config import DriftConfig
+from drift_engine.baseline import finding_fingerprint
+from drift_sdk.models import (
     OUTPUT_SCHEMA_VERSION,
     Finding,
     ModuleScore,
     RepoAnalysis,
     Severity,
 )
+
+from drift import __version__
 from drift.negative_context import findings_to_negative_context, negative_context_to_dict
-from drift.recommendations import generate_recommendation
+from drift_output.api_helpers import (
+    build_drift_score_scope,
+    finding_base_payload,
+    signal_abbrev,
+    signal_abbrev_map,
+)
+from drift_output.finding_context import classify_finding_context, split_findings_by_context
+from drift_output.finding_priority import (
+    _dedupe_findings,
+    _expected_benefit_for_finding,
+    _next_step_for_finding,
+    _priority_class,
+)
+from drift_output.finding_rendering import (
+    _select_priority_findings_from_list,
+    build_first_run_summary,
+)
+from drift_output.recommendations import generate_recommendation
 
 # JSON schema version — shared with API responses (ADR-042).
 SCHEMA_VERSION = OUTPUT_SCHEMA_VERSION

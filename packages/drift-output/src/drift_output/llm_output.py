@@ -6,9 +6,10 @@ context windows of language models and coding agents.
 
 from __future__ import annotations
 
+from drift_sdk.models import RepoAnalysis
+
 from drift import __version__
-from drift.api_helpers import signal_abbrev
-from drift.models import RepoAnalysis
+from drift_output.api_helpers import signal_abbrev
 
 _SEVERITY_ORDER = {
     "critical": 0,
