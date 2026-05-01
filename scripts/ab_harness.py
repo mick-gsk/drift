@@ -149,14 +149,36 @@ def _mock_agent_edit(
     task: dict[str, Any],
     has_brief: bool,
     rng: random.Random,
+    *,
+    mock_mode: str = "biased",
 ) -> str:
     """Produce a mock code edit.
 
-    Treatment (with brief): cleaner, fewer structural issues.
-    Control (no brief): naive edits, more pattern duplication.
+    ``mock_mode="biased"`` (default, original behaviour):
+        Treatment arm produces structurally clean code; control arm produces
+        deliberately duplicated try/except handlers.  This guarantees a high
+        Cohen's d but measures structural bias, not *brief* effectiveness.
+
+    ``mock_mode="neutral"``:
+        Both arms produce structurally equivalent single-function edits.
+        Only the naming style differs (guideline-compliant vs. generic).
+        Use this mode to measure the actual effect of receiving a drift brief.
     """
     target = task["target_files"][0] if task["target_files"] else "file.py"
-    if has_brief:
+
+    if mock_mode == "neutral":
+        # Both arms get structurally identical single-function edits; only naming differs.
+        name = (
+            f"fix_{task['id'].replace('-', '_').lower()}"
+            if has_brief
+            else f"handler_{rng.randint(1000, 9999)}"
+        )
+        lines = [
+            f"def {name}():",
+            f'    """Implements: {task["task_description"][:50]}"""',
+            "    pass",
+        ]
+    elif has_brief:
         lines = [
             "# Refactored per drift brief constraints",
             f"def fix_{task['id'].replace('-', '_').lower()}():",
@@ -184,7 +206,7 @@ def _mock_agent_edit(
             "    return result",
         ]
 
-    added = "\n".join(f"+{l}" for l in lines)
+    added = "\n".join(f"+{line}" for line in lines)
     return (
         f"diff --git a/{target} b/{target}\n"
         f"--- a/{target}\n+++ b/{target}\n"
@@ -262,6 +284,14 @@ def _load_corpus() -> list[dict[str, Any]]:
 
 def cmd_run(args: argparse.Namespace) -> None:
     """Run paired A/B experiment."""
+    if args.mode == "llm":
+        # FU-001: fail fast and operatively before any clone/analysis cost.
+        sys.exit(
+            "[ab] error: --mode llm is not implemented (no LLM adapter wired). "
+            "Remediation: re-run with --mode mock to use the deterministic "
+            "mock agent, or implement the LLM adapter and remove this guard. "
+            "See audit/follow-up.md FU-001."
+        )
     tasks = _load_corpus()
     rng = random.Random(42)
     outcomes: list[dict[str, Any]] = []
@@ -302,13 +332,21 @@ def cmd_run(args: argparse.Namespace) -> None:
 
                 # Generate edit
                 if args.mode == "mock":
-                    diff = _mock_agent_edit(task, has_brief, rng)
+                    diff = _mock_agent_edit(task, has_brief, rng, mock_mode=args.mock_mode)
                     _apply_mock_edit(repo_dir, diff)
                 else:
-                    # LLM mode — delegate to brief_ab_study if available
-                    print(f"  {label}: LLM mode not yet integrated, using mock")
-                    diff = _mock_agent_edit(task, has_brief, rng)
-                    _apply_mock_edit(repo_dir, diff)
+                    # FU-001: --mode llm has no real adapter yet. Silently
+                    # falling back to mock used to mislabel mock data as LLM
+                    # data in outcomes.json. Fail operatively instead so
+                    # callers see a clear, actionable error.
+                    sys.exit(
+                        "[ab] error: --mode llm is not implemented "
+                        "(no LLM adapter wired). "
+                        "Remediation: re-run with --mode mock to use the "
+                        "deterministic mock agent, or implement the LLM "
+                        "adapter and remove this guard. See "
+                        "audit/follow-up.md FU-001."
+                    )
 
                 # Measure
                 result = _drift_analyze(repo_dir)
@@ -334,7 +372,13 @@ def cmd_run(args: argparse.Namespace) -> None:
     WORK_DIR.mkdir(parents=True, exist_ok=True)
     OUTCOMES_FILE.write_text(
         json.dumps(
-            {"outcomes": outcomes, "created": datetime.now(UTC).isoformat()}, indent=2, default=str
+            {
+                "outcomes": outcomes,
+                "mock_mode": args.mock_mode,
+                "created": datetime.now(UTC).isoformat(),
+            },
+            indent=2,
+            default=str,
         ),
         encoding="utf-8",
     )
@@ -492,6 +536,19 @@ def main() -> None:
         choices=["mock", "llm"],
         default="mock",
         help="Agent mode (default: mock, deterministic)",
+    )
+    parser.add_argument(
+        "--mock-mode",
+        dest="mock_mode",
+        choices=["biased", "neutral"],
+        default="biased",
+        help=(
+            "Mock edit strategy. 'biased' (default): treatment arm produces structurally "
+            "clean code, control arm produces duplicate handlers — guarantees high Cohen's d "
+            "but measures structural bias, not brief effectiveness. "
+            "'neutral': both arms produce structurally equivalent single-function edits; "
+            "only naming style differs — measures actual effect of receiving a drift brief."
+        ),
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)

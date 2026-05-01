@@ -6,6 +6,7 @@
 
 | Prompt | Zweck | Relevanter Skill | Relevante Instruction | Wann verwenden |
 |--------|-------|-------------------|----------------------|----------------|
+| [drift-harness-engine](drift-harness-engine.prompt.md) | Harness-Engine-Audit: Maps, Contracts, Feedback-Loops, Agentenlesbarkeit und Entropieabwehr im Workspace verbessern | `drift-agent-prompt-authoring` | `drift-policy`, `drift-prompt-engineering` | Wenn Agenten die Workspace-Harness-Engine statt Produktoberflaechen verbessern sollen |
 | [drift-agent-ux](drift-agent-ux.prompt.md) | Agent-UX-Audit: Entscheidungsketten, Dead Ends, Recovery-Pfade | — | `drift-policy` | Agent-Nutzbarkeit der CLI bewerten |
 | [drift-agent-workflow-test](drift-agent-workflow-test.prompt.md) | Vollständiger CLI-Coverage-Test über alle Kommandos | — | `drift-policy` | Komplette CLI-Oberfläche testen |
 | [drift-ai-integration](drift-ai-integration.prompt.md) | LLM-Kontext-Qualität: Export-Formate, MCP, Token-Effizienz | — | `drift-policy` | AI-Integrations-Tauglichkeit prüfen |
@@ -26,6 +27,12 @@ Für eine umfassende Drift-Bewertung diese Prompts in dieser Reihenfolge ausfüh
 4. **drift-ci-gate** — CI-Pipeline-Sicherheit und -Stabilität
 5. **drift-ai-integration** — LLM-Kontext-Qualität und MCP-Tauglichkeit
 6. **drift-agent-ux** — Autonomes Agent-UX-Audit (baut auf Ergebnissen der vorherigen auf)
+
+## Harness-Engine statt Produkt-Evaluation
+
+Wenn die Aufgabe nicht die Drift-CLI oder das Produktverhalten selbst, sondern die agentische Arbeitsumgebung des Workspaces verbessern soll, zuerst **drift-harness-engine** verwenden.
+
+Der Prompt ist bewusst intern ausgerichtet und startet an Repo-Maps, Contracts und Harness-Checks statt an `drift-analyzer`-Produktflaechen. Das vermeidet, dass Agenten versehentlich in CLI- oder Field-Test-Prompts kippen, obwohl eigentlich die Workspace-Harness-Engine das Ziel ist.
 
 ## Tägliche Workflows
 

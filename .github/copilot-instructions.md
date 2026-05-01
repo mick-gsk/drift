@@ -10,37 +10,6 @@ Die Policy ist ein Vertrag — keine Empfehlung, kein Vorschlag.
 
 ---
 
-## PFLICHT-GATE: Zulässigkeitsprüfung vor jeder Aufgabe
-
-**Vor jeder Antwort, die eine Änderung, ein Feature, eine Analyse oder eine Umsetzung enthält, MUSS der Agent dieses Gate sichtbar ausgeben:**
-
-```
-### Drift Policy Gate
-- Aufgabe: [Kurzbeschreibung der Aufgabe in einem Satz]
-- Zulassungskriterium erfüllt: [JA / NEIN] → [welches Kriterium: Unsicherheit / Signal / Glaubwürdigkeit / Handlungsfähigkeit / Trend / Einführbarkeit]
-- Ausschlusskriterium ausgelöst: [JA / NEIN] → [falls JA: welches]
-- Roadmap-Phase: [Phase 1 / 2 / 3 / 4] — blockiert durch höhere Phase: [JA / NEIN]
-- Betrifft Signal/Architektur (§18): [JA / NEIN] → falls JA: Audit-Artefakte aktualisiert: [welche]
-- Entscheidung: [ZULÄSSIG / ABBRUCH]
-- Begründung: [ein Satz]
-```
-
-**Bei Entscheidung ABBRUCH:** Keine weitere Umsetzung. Stattdessen: kurze Erklärung, welches Kriterium verletzt wird und was stattdessen priorisiert werden sollte.
-
-**Korrektheitsregel:** Eine `ZULÄSSIG`-Entscheidung ist nur gültig, wenn das erfüllte Zulassungskriterium konkret zur Aufgabe passt. Generische Platzhalter wie "Signalqualität" oder "Einführbarkeit" ohne Bezug zur Aufgabe sind ungültig.
-
-**Kompaktformat für strikt triviale Mechanikaufgaben:** Für rein mechanische, verhaltensneutrale Änderungen wie `fix: typo`, `docs: wording`, `chore: lockfile refresh` oder `test: fixture rename` ist statt des Vollformats dieses Kurzformat zulässig:
-
-```
-### Drift Policy Gate
-- Trivialtask: JA
-- Zulässig: JA → rein mechanisch, ohne Verhaltens-, Policy-, Architektur- oder Signaleffekt
-```
-
-**Nicht trivial** sind insbesondere Änderungen an Policy, Instructions, Prompts, Skills, Agents, Signalen, Output-Formaten, CLI-Verhalten, Tests mit Verhaltensabsicherung oder Architekturgrenzen.
-
----
-
 ## Primärmodus bei Prompt-Engineering
 
 Wenn eine Aufgabe Prompts, Instructions, Skills, Agents oder diese Datei selbst betrifft,
@@ -262,6 +231,20 @@ Nach **jeder** Dateiänderung MUSS ein Coding-Agent `drift_nudge` als schnellen 
 | `direction: "stable"` | Kein messbarer Effekt | Weiter |
 
 **Grenzen:** Signale mit `cross_file`-Scope (MDS, AVS) sind im Nudge-Modus estimated — sie brauchen für volle Präzision einen Vollscan (`drift_diff`).
+
+---
+
+## Pre-PR-Pflicht (für alle Coding-Agenten)
+
+Vor jedem PR-Push und vor jedem "fertig"-Claim MUSS ein Agent folgende drei Kommandos ausführen und deren Output vollständig lesen:
+
+```bash
+pre-commit run --all-files             # Secrets, Typos, Whitespace, Shellcheck (ci.yml/pre-commit + security-hygiene.yml)
+make check                             # lint + typecheck + pytest + self-analysis (ci.yml/test)
+make gate-check COMMIT_TYPE=<typ>      # CHANGELOG, Evidence, Audit-Artefakte, Versions-Konsistenz (pre-push Gates)
+```
+
+Schlägt eines der drei Kommandos fehl → **kein PR, keine Done-Meldung**. Erst beheben, dann erneut prüfen.
 
 ---
 

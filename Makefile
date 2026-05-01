@@ -14,7 +14,7 @@ MYPY     ?= $(PYTHON) -m mypy
 SRC      := src/
 TESTS    := tests/
 
-.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry audit-diff markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
+.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -147,33 +147,48 @@ catalog:  ## [Agent] List scripts with short descriptions (use ARGS='--search ke
 gate-check:  ## [Agent] Proactive gate status before commit/push (COMMIT_TYPE=feat|fix|chore|signal)
 	$(PYTHON) scripts/gate_check.py --commit-type $(COMMIT_TYPE)
 
-feat-bundle:  ## [Agent] Generate + validate feature evidence (VERSION=X.Y.Z SLUG=name)
+feat-bundle:  ## [Agent] Generate + validate feature evidence, then auto-update CHANGELOG and STUDY.md (VERSION=X.Y.Z SLUG=name [MSG='description'])
 	@[ "$(VERSION)" ] || (echo "Error: VERSION missing. Use: make feat-bundle VERSION=X.Y.Z SLUG=name"; exit 1)
 	@[ "$(SLUG)" ] || (echo "Error: SLUG missing. Use: make feat-bundle VERSION=X.Y.Z SLUG=name"; exit 1)
-	@echo ">>> [1/2] Generate feature evidence..."
+	@echo ">>> [1/3] Generate feature evidence..."
 	$(PYTHON) scripts/generate_feature_evidence.py --version $(VERSION) --slug $(SLUG)
-	@echo ">>> [2/2] Validate generated evidence..."
+	@echo ">>> [2/3] Validate generated evidence..."
 	$(PYTHON) scripts/validate_feature_evidence.py benchmark_results/v$(VERSION)_$(SLUG)_feature_evidence.json --require-generated-by --push-head HEAD
-	@echo "Evidence validated. Manual follow-up still required:"
-	@echo "  - update CHANGELOG.md"
-	@echo "  - update docs/STUDY.md"
+	@echo ">>> [3/3] Auto-update CHANGELOG.md and docs/STUDY.md..."
+	$(PYTHON) scripts/feat_bundle_followup.py benchmark_results/v$(VERSION)_$(SLUG)_feature_evidence.json $(if $(MSG),--msg "$(MSG)",)
 
 handover:  ## [Agent] Generate session handover artifact (TASK='description')
 	@[ "$(TASK)" ] || (echo "Error: TASK missing. Use: make handover TASK='description'"; exit 1)
 	$(PYTHON) scripts/session_handover.py --task "$(TASK)"
 
-changelog-entry:  ## [Agent] Generate changelog snippet (COMMIT_TYPE=feat|fix|chore MSG='text')
+changelog-entry:  ## [Agent] Preview changelog snippet on stdout (COMMIT_TYPE=feat|fix|chore MSG='text')
 	@[ "$(COMMIT_TYPE)" ] || (echo "Error: COMMIT_TYPE missing."; exit 1)
 	@[ "$(MSG)" ] || (echo "Error: MSG missing."; exit 1)
 	$(PYTHON) scripts/generate_changelog_entry.py --commit-type $(COMMIT_TYPE) --message "$(MSG)"
 
+changelog-insert:  ## [Agent] Insert changelog entry into CHANGELOG.md in-place (COMMIT_TYPE=feat|fix|chore MSG='text')
+	@[ "$(COMMIT_TYPE)" ] || (echo "Error: COMMIT_TYPE missing."; exit 1)
+	@[ "$(MSG)" ] || (echo "Error: MSG missing."; exit 1)
+	$(PYTHON) scripts/integrate_changelog_entry.py --commit-type $(COMMIT_TYPE) --message "$(MSG)"
+
 audit-diff:  ## [Agent] Show required risk-audit updates for current diff
 	$(PYTHON) scripts/risk_audit_diff.py
+
+agent-harness-check:  ## [Agent] Validate harness navigation, audit docs, and MCP boundaries
+	$(PYTHON) scripts/check_agent_harness_contract.py --root .
 
 clean:  ## Remove caches and build artifacts
 	rm -rf .drift-cache .pytest_cache .ruff_cache .mypy_cache htmlcov dist build
 	rm -f .coverage out.json
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+guard-refresh:  ## Regenerate guard SKILL.md files from latest ArchGraph (runs drift map first)
+	$(PYTHON) -m drift map --repo . --exit-zero
+	$(PYTHON) -m drift generate-skills --repo . --write --force
+	@echo "Guard skills refreshed. Review changes before committing."
+
+test-for:  ## Run tests relevant for a specific source file: make test-for FILE=src/drift/session.py
+	$(PYTHON) scripts/_test_map_lookup.py $(FILE)
 
 # ---------------------------------------------------------------------------
 # Internal Evaluation System

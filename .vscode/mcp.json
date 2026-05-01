@@ -4,6 +4,11 @@
       "type": "stdio",
       "command": "C:\\Users\\mickg\\PWBS\\drift\\.venv\\Scripts\\python.exe",
       "args": ["-m", "drift", "mcp", "--serve"]
+    },
+    "drift-repo-ops": {
+      "type": "stdio",
+      "command": "C:\\Users\\mickg\\PWBS\\drift\\.venv\\Scripts\\python.exe",
+      "args": ["scripts\\mcp_product_health_server.py"]
     }
   }
 }

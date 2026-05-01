@@ -4,6 +4,7 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 2.49.x  | :white_check_mark: |
 | 2.48.x  | :white_check_mark: |
 | 2.47.x  | :white_check_mark: |
 | 2.46.x  | :white_check_mark: |
@@ -47,7 +48,7 @@
 | 2.4.x   | :white_check_mark: |
 | < 2.4   | :x:                |
 
-Current release line: **v2.48.5**.
+Current release line: **v2.49.0**.
 
 ## Reporting a Vulnerability
 

@@ -48,6 +48,8 @@ Do not force a new ADR for:
 
 If unsure, prefer a draft ADR that states the uncertainty explicitly.
 
+**Interface-Design-Tipp:** Vor dem Festschreiben eines Signal- oder API-Interface-Designs lohnt es sich, 2–3 Sub-Agenten mit explizit verschiedenen Constraints parallel zu spawnen (z. B. „minimiere das Interface", „maximiere Flexibilität", „optimiere für den häufigsten Caller"). Radikale Constraint-Divergenz erzwingt qualitativ unterschiedliche Designs — parallele Agenten ohne Vorgaben konvergieren meist zu ähnlichen Lösungen. Das `subagent-driven-development`-Skill liefert den operativen Rahmen.
+
 ## Step 2: Choose The Right Template
 
 Use the general template in `docs/decisions/templates/adr-template.md` for broad architecture or workflow decisions.

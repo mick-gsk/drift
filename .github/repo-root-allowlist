@@ -18,6 +18,7 @@
 .drift-baseline.json
 .shellcheckrc
 .vscode
+AGENTS.md
 CHANGELOG.md
 CITATION.cff
 CODE_OF_CONDUCT.md
@@ -36,6 +37,7 @@ ROADMAP.md
 SECURITY.md
 SUPPORT.md
 action.yml
+audit
 audit_results
 benchmarks
 benchmark_results

@@ -31,7 +31,7 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Verify each principle from `.specify/memory/constitution.md` (v1.0.0):
+Verify each principle from `.specify/memory/constitution.md` (v1.1.0):
 
 - [ ] **I. Library-First**: Is the new functionality implemented as a standalone library
   under `src/drift/`? Does no CLI command or MCP handler contain core logic?
@@ -43,6 +43,10 @@ Verify each principle from `.specify/memory/constitution.md` (v1.0.0):
   Are both JSON and Rich output formats supported?
 - [ ] **V. Simplicity & YAGNI**: Is every abstraction justified by a concrete, failing test
   or benchmark delta? Is there a simpler alternative that was considered and rejected?
+- [ ] **VI. Vertical Slices**: Is the feature organized as a self-contained slice
+  under `src/drift/<feature_name>/`? Does it own its own models, logic, and CLI
+  subcommand? Are cross-slice dependencies expressed only through public module
+  interfaces — no imports of sibling-slice internals?
 
 ## Project Structure
 
@@ -67,39 +71,32 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+# [REMOVE IF UNUSED] Option 1: Vertical Slice (DEFAULT for Drift features)
+# Each slice owns its models, logic, CLI subcommand, and tests.
+src/drift/<feature_name>/
+├── __init__.py          # Public API surface — no internals exported
+├── _models.py           # Frozen Pydantic models (private to slice)
+├── _detector.py         # Core detection / processing logic (pure functions)
+├── _output.py           # Output formatting (Rich + JSON)
+└── _cmd.py              # Click subcommand registration
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+tests/<feature_name>/
+├── test_<feature>_unit.py       # Pure-function unit tests
+├── test_<feature>_contract.py   # Public API contract tests
+└── test_<feature>_integration.py
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+# [REMOVE IF UNUSED] Option 2: New signal (Signal slice)
+src/drift/signals/<signal_name>.py   # Single-file slice when logic is compact
+tests/test_signals_<signal_name>.py
 
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+# [REMOVE IF UNUSED] Option 3: Multi-layer feature (only when explicitly required)
+# Use ONLY if the feature spans ingestion + signals + output and cannot be
+# decomposed into independent slices. Must be justified in Complexity Tracking.
+src/drift/<feature_name>/
+├── ingestion/
+├── signals/
+└── output/
+tests/<feature_name>/
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real

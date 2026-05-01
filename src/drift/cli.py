@@ -162,8 +162,14 @@ class SuggestingGroup(click.Group):
         (
             "Configuration",
             (
-                "init", "config", "preset", "calibrate", "feedback",
-                "suppress", "completions", "intent",
+                "init",
+                "config",
+                "preset",
+                "calibrate",
+                "feedback",
+                "suppress",
+                "completions",
+                "intent",
             ),
         ),
         ("Measurement", ("self", "precision", "roi-estimate", "start")),
@@ -208,6 +214,7 @@ class SuggestingGroup(click.Group):
     def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         """Prepend a version header to help output."""
         from drift import __version__
+
         formatter.write(f"drift v{__version__}\n\n")
         super().format_help(ctx, formatter)
 
@@ -370,6 +377,11 @@ main.add_command(visualize)
 main.add_command(watch)
 main.add_command(synthesize)
 
+# PR review loop subcommand
+from drift.pr_loop._cmd import pr_loop_cmd  # noqa: E402
+
+main.add_command(pr_loop_cmd)
+
 # --- Register plugin commands (drift.commands entry points) ---------------
 # Runs after all built-in commands so that plugins cannot shadow them.
 try:
@@ -384,6 +396,7 @@ try:
             _plugin_logger.debug("Registered plugin command: %s", _plugin_cmd.name)
 except Exception:  # noqa: BLE001
     import logging as _logging
+
     _logging.getLogger("drift").debug("Plugin command discovery failed; skipping.", exc_info=True)
 
 
@@ -421,7 +434,9 @@ def _handle_keyboard_interrupt(machine_errors: bool) -> None:
     if machine_errors:
         _emit_error_payload(
             _build_error_payload(
-                "DRIFT-0000", "system", "Interrupted.",
+                "DRIFT-0000",
+                "system",
+                "Interrupted.",
                 EXIT_INTERRUPTED,
             ),
         )
@@ -460,7 +475,9 @@ def _handle_file_not_found(exc: FileNotFoundError, machine_errors: bool) -> None
     if machine_errors:
         _emit_error_payload(
             _build_error_payload(
-                "DRIFT-2001", "system", str(exc),
+                "DRIFT-2001",
+                "system",
+                str(exc),
                 EXIT_SYSTEM_ERROR,
                 detail=f"[DRIFT-2001] {exc}",
             ),
@@ -479,7 +496,9 @@ def _handle_unexpected_error(exc: Exception, machine_errors: bool) -> None:
     if machine_errors:
         _emit_error_payload(
             _build_error_payload(
-                "DRIFT-3002", "analysis", str(exc),
+                "DRIFT-3002",
+                "analysis",
+                str(exc),
                 EXIT_ANALYSIS_ERROR,
                 detail=f"[DRIFT-3002] {exc}",
                 hint="Run with -v for the full traceback.",
@@ -545,10 +564,7 @@ def _handle_click_error(exc: click.ClickException) -> None:
 
         matches = difflib.get_close_matches(bad_option, known, n=1, cutoff=0.5)
         if matches:
-            exc.message = (
-                f"{exc.format_message().rstrip()}\n"
-                f"  Hint: did you mean '{matches[0]}'?"
-            )
+            exc.message = f"{exc.format_message().rstrip()}\n  Hint: did you mean '{matches[0]}'?"
         return
 
     if "No such command" in msg or "no such command" in msg:
@@ -564,7 +580,7 @@ def _handle_click_error(exc: click.ClickException) -> None:
         lower_msg = msg.lower()
         idx = lower_msg.find(marker.lower())
         if idx != -1:
-            tail = msg[idx + len(marker):].strip()
+            tail = msg[idx + len(marker) :].strip()
             bad_command = tail.strip("'\".")
 
         if not bad_command:
@@ -572,10 +588,7 @@ def _handle_click_error(exc: click.ClickException) -> None:
 
         matches = difflib.get_close_matches(bad_command, known_commands, n=1, cutoff=0.5)
         if matches:
-            exc.message = (
-                f"{exc.format_message().rstrip()}\n"
-                f"  Hint: did you mean '{matches[0]}'?"
-            )
+            exc.message = f"{exc.format_message().rstrip()}\n  Hint: did you mean '{matches[0]}'?"
 
 
 if __name__ == "__main__":

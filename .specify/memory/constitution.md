@@ -9,6 +9,17 @@ Templates requiring updates:
   ✅ spec-template.md — Requirements section aligned to Library-First + TDD principles
   ✅ tasks-template.md — Phase 2 foundational tasks reflect TDD and functional patterns
 Follow-up TODOs: none — all placeholders resolved
+
+SYNC IMPACT REPORT
+Version change: 1.0.0 → 1.1.0
+Added sections: Core Principles VI. Vertical Slices
+Modified principles: n/a
+Removed sections: n/a
+Templates requiring updates:
+  ✅ plan-template.md — Constitution Check gate extended with VI. Vertical Slices; Project Structure updated with vertical slice layout; version bumped to v1.1.0
+  ✅ spec-template.md — Requirements comment extended with VI. Vertical Slices constraint; version bumped to v1.1.0
+  ✅ tasks-template.md — Phase 2 Constitution gate extended with VI. Vertical Slices; version bumped to v1.1.0
+Follow-up TODOs: none — all placeholders resolved
 -->
 
 # Drift Constitution
@@ -74,6 +85,23 @@ Every added abstraction layer must pay its cost in demonstrated readability or p
 Rationale: Drift analyzes AI-generated code for over-engineering. Drift itself must
 model the practices it enforces.
 
+### VI. Vertical Slices
+
+New functionality MUST be organized as a self-contained vertical slice rather than a
+horizontal layer addition. A slice under `src/drift/<feature_name>/` owns everything it
+needs: data models, detection or processing logic, output formatting, and the Click
+subcommand that exposes it. Cross-slice dependencies are expressed through public module
+interfaces only — never by importing internals from a sibling slice's private helpers.
+Shared primitives (AST traversal, base signal types, Git access, Rich formatting
+utilities) live in designated shared modules (`src/drift/ingestion/`, `src/drift/models/`)
+and MUST NOT accumulate feature-specific logic.
+
+Rationale: Vertical slices prevent the subtle architectural drift that Drift itself
+detects in external codebases — horizontal cross-cutting dependencies, tangled shared
+layers, and features that cannot be tested or shipped independently. A slice-organized
+Drift remains a credible, self-demonstrating example of the structural health it
+measures.
+
 ## Technology Stack & Constraints
 
 **Language/Version**: Python 3.11+
@@ -115,7 +143,7 @@ templates in `.specify/templates/`.
 This constitution governs development discipline. In case of conflict, `POLICY.md` takes
 precedence. Runtime developer guidance: `DEVELOPER.md`.
 
-All PRs and code reviews MUST verify compliance with Principles I–V. Complexity that
+All PRs and code reviews MUST verify compliance with Principles I–VI. Complexity that
 cannot be justified against Principle V MUST be rejected regardless of test coverage.
 
 **Version**: 1.0.0 | **Ratified**: 2026-04-27 | **Last Amended**: 2026-04-27

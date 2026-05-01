@@ -19,7 +19,7 @@ Allowed categories:
 - public entry documents such as README, CHANGELOG, CONTRIBUTING, SECURITY, POLICY
 - build and packaging control such as pyproject, Makefile, mkdocs, GitHub Action metadata
 - automation and governance directories such as .github, .githooks, scripts
-- canonical content directories such as src, tests, docs, docs-site, benchmark_results, audit_results, examples
+- canonical content directories such as src, tests, docs, docs-site, benchmark_results, audit_results, audit, examples
 - explicitly designated artifact containers such as work_artifacts when local or review artifacts must stay versioned together
 
 ## Not Allowed in Root
@@ -41,6 +41,7 @@ Use these destinations by default:
 | public product and architecture docs | `docs/` |
 | published docs-site source | `docs-site/` |
 | empirical benchmark and validation evidence | `benchmark_results/`, `audit_results/` |
+| repo-level agent, harness, or process audit packages | `audit/` |
 | local or review artifacts that should not clutter root | `work_artifacts/` |
 | architecture and process decisions | `docs/decisions/` |
 | exploratory or internal drafts | `master-backlog/` |

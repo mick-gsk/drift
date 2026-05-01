@@ -1,0 +1,203 @@
+# TESTMAP.toml — source file → relevant test files
+#
+# Usage:
+#   python scripts/_test_map_lookup.py src/drift/session.py
+#   make test-for FILE=src/drift/session.py
+#
+# Keys are workspace-relative source paths.
+# Values are lists of glob patterns relative to the repo root.
+# Maintain this file when adding or renaming source/test modules.
+
+# ---------------------------------------------------------------------------
+# Signals
+# ---------------------------------------------------------------------------
+
+[signals]
+"src/drift/signals/avs.py" = [
+    "tests/test_architecture_violation.py",
+    "tests/test_avs_enhanced.py",
+    "tests/test_avs_helpers_coverage.py",
+    "tests/test_avs_mutations.py",
+    "tests/test_avs_missing_patterns_evidence.py",
+    "tests/test_precision_recall.py",
+]
+"src/drift/signals/mds.py" = [
+    "tests/test_mds_coverage.py",
+    "tests/test_mds_helpers_coverage.py",
+    "tests/test_cache_mds_ecd.py",
+    "tests/test_precision_recall.py",
+]
+"src/drift/signals/pfs.py" = [
+    "tests/test_pattern_fragmentation.py",
+    "tests/test_precision_recall.py",
+]
+"src/drift/signals/eds.py" = [
+    "tests/test_eds_api_corresponding_tests.py",
+    "tests/test_precision_recall.py",
+]
+"src/drift/signals/gcd.py" = [
+    "tests/test_guard_clause_deficit.py",
+    "tests/test_gcd_ecd_helpers_coverage.py",
+    "tests/test_precision_recall.py",
+]
+"src/drift/signals/hsc.py" = [
+    "tests/test_hardcoded_secret.py",
+    "tests/test_hsc_helpers_coverage.py",
+    "tests/test_precision_recall.py",
+]
+"src/drift/signals/dia.py" = [
+    "tests/test_dia_enhanced.py",
+    "tests/test_dia_helpers_coverage.py",
+    "tests/test_precision_recall.py",
+]
+"src/drift/signals/nbv.py" = [
+    "tests/test_nbv_helpers_coverage.py",
+    "tests/test_precision_recall.py",
+]
+
+# ---------------------------------------------------------------------------
+# Core runtime
+# ---------------------------------------------------------------------------
+
+[core]
+"src/drift/session.py" = [
+    "tests/test_agent_effectiveness.py",
+    "tests/test_issue_377_session_concurrent_lock.py",
+    "tests/test_issue_376_mcp_disconnect_handling.py",
+    "tests/test_mcp_server_task_tools_boost.py",
+]
+"src/drift/pipeline.py" = [
+    "tests/test_integration.py",
+    "tests/test_pipeline_components.py",
+    "tests/test_pipeline_diff_analyzer_extended.py",
+    "tests/test_analysis_degradation.py",
+]
+"src/drift/scoring/" = [
+    "tests/test_issue_371_scoring_thresholds.py",
+    "tests/test_quality_gate.py",
+    "tests/test_decision_rules.py",
+]
+"src/drift/models.py" = [
+    "tests/test_analysis_edge_cases.py",
+    "tests/test_analysis_status_and_trend_direction_enums.py",
+    "tests/test_normalize_findings.py",
+    "tests/test_grouping.py",
+]
+
+# ---------------------------------------------------------------------------
+# MCP / API
+# ---------------------------------------------------------------------------
+
+[mcp]
+"src/drift/mcp_server.py" = [
+    "tests/test_mcp_copilot.py",
+    "tests/test_mcp_hardening.py",
+    "tests/test_mcp_catalog.py",
+    "tests/test_mcp_orchestration_coverage.py",
+    "tests/test_issue_493_mcp_request_id.py",
+    "tests/test_issue_496_mcp_catalog_import_and_cache.py",
+]
+"src/drift/mcp_router_session.py" = [
+    "tests/test_agent_effectiveness.py",
+    "tests/test_mcp_orchestration_coverage.py",
+    "tests/test_issue_376_mcp_disconnect_handling.py",
+]
+"src/drift/mcp_orchestration.py" = [
+    "tests/test_mcp_orchestration_coverage.py",
+    "tests/test_orchestration_pipeline_coverage.py",
+    "tests/test_orchestration_extensions.py",
+]
+"src/drift/copilot_context.py" = [
+    "tests/test_mcp_copilot.py",
+    "tests/test_copilot_context_actionability.py",
+    "tests/test_copilot_context_coverage.py",
+    "tests/test_copilot_ctx_branches.py",
+    "tests/test_agent_context_formats.py",
+    "tests/test_agent_context_layer.py",
+]
+"src/drift/api/" = [
+    "tests/test_api_and_ts_arch_boost.py",
+    "tests/test_api_helpers_coverage.py",
+    "tests/test_api_quick_wins_coverage.py",
+    "tests/test_api_validate_scan_extended.py",
+]
+
+# ---------------------------------------------------------------------------
+# Ingestion
+# ---------------------------------------------------------------------------
+
+[ingestion]
+"src/drift/ingestion/ast_parser.py" = [
+    "tests/test_ast_parser.py",
+    "tests/test_ast_parser_extra.py",
+    "tests/test_ast_parser_helpers_coverage.py",
+    "tests/test_parse_file_resilience.py",
+]
+"src/drift/ingestion/file_discovery.py" = [
+    "tests/test_file_discovery.py",
+]
+"src/drift/ingestion/git_history.py" = [
+    "tests/test_git_history_edge_cases.py",
+    "tests/test_git_history_index.py",
+    "tests/test_git_history_safety.py",
+    "tests/test_git_blame_ingestion.py",
+    "tests/test_malformed_history.py",
+]
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+[config]
+"src/drift/config/_loader.py" = [
+    "tests/test_config.py",
+    "tests/test_config_schema.py",
+    "tests/test_config_validate.py",
+    "tests/test_config_output_root.py",
+    "tests/test_issue_383_schema_guided_thresholds.py",
+    "tests/test_issue_382_extends_guided_thresholds.py",
+]
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+
+[output]
+"src/drift/output/" = [
+    "tests/test_json_output.py",
+    "tests/test_sarif_contract.py",
+    "tests/test_junit_output.py",
+    "tests/test_csv_output.py",
+    "tests/test_output_golden.py",
+    "tests/test_output_schema_drift.py",
+    "tests/test_output_mode_mirror.py",
+    "tests/test_rich_output_boost.py",
+]
+
+# ---------------------------------------------------------------------------
+# Commands (CLI)
+# ---------------------------------------------------------------------------
+
+[commands]
+"src/drift/commands/generate_skills_cmd.py" = [
+    "tests/test_generate_skills_cmd.py",
+    "tests/test_guard_contract.py",
+]
+"src/drift/commands/analyze_cmd.py" = [
+    "tests/test_analyze_cmd_extended.py",
+    "tests/test_integration.py",
+]
+
+# ---------------------------------------------------------------------------
+# Arch graph
+# ---------------------------------------------------------------------------
+
+[arch_graph]
+"src/drift/arch_graph/" = [
+    "tests/test_arch_graph.py",
+    "tests/test_abstraction_index.py",
+]
+"src/drift/arch_graph/_skill_writer.py" = [
+    "tests/test_generate_skills_cmd.py",
+    "tests/test_guard_contract.py",
+]

@@ -1,15 +1,27 @@
-## [2.48.5] - 2026-04-29
+## [2.49.0] - 2026-04-30
 
-Short version: Quickscan distributable skill + output_root config for clean analyzed repos.
+Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
 
 ### Added
-- `output_root` config field and `resolve_artifact_path()` to keep analyzed repos artifact-free.
-- `.github/skills/drift-repo-quickscan/SKILL.md` one-shot repo health-check skill.
+- add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
 
 ### Fixed
-- `commands/_last_scan.py`: cast `resolve_artifact_path` return to `Path` (mypy `no-any-return`).
-- `commands/calibrate.py`: guard `resolve_artifact_path` with `hasattr` for SimpleNamespace compat.
-- PII: hash coauthor strings in `git_history._serialize_commit` to prevent clear-text storage.
+- resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
+
+### Changed
+- update harness prompt and skill catalog
+
+## [2.48.5] - 2026-04-29
+
+Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-ownership enforcement.
+
+### Added
+- `output_root` config field, `resolve_artifact_path()`, and `drift-repo-quickscan` skill.
+- HARNESS006/007 AST-based MCP tool→router-owner map, `--write-tool-map` flag, 5 new tests.
+
+### Fixed
+- `commands/_last_scan.py` mypy cast; `commands/calibrate.py` SimpleNamespace guard.
+- PII: hash coauthor strings; `ab_harness.py --mode llm` operative exit (FU-001).
 
 ## [2.48.2] - 2026-04-29
 
