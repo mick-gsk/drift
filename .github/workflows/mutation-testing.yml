@@ -18,6 +18,7 @@ on:
     paths:
       - "src/drift/scoring/**"
       - "src/drift/signals/**"
+      - "packages/**"
       - "tests/**"
   schedule:
     # Every Sunday at 03:00 UTC (before perf-regression-loop at 04:00)
