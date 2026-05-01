@@ -1,4 +1,4 @@
-"""Click subcommand: drift pr-loop (T014, T034)."""
+﻿"""Click subcommand: drift pr-loop (T014, T034)."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 
 import click
+from drift_config._loader import DriftConfig
 
-from drift.config._loader import DriftConfig
-from drift.pr_loop._engine import loop_until_approved
-from drift.pr_loop._models import LoopExitStatus
-from drift.pr_loop._output import render_json, render_rich
+from drift_mcp.pr_loop._engine import loop_until_approved
+from drift_mcp.pr_loop._models import LoopExitStatus
+from drift_mcp.pr_loop._output import render_json, render_rich
 
 _EXIT_CODES = {
     LoopExitStatus.APPROVED: 0,
