@@ -19,10 +19,8 @@ drift init --auto    # lock in the auto-detected config (no prompts, CI-friendly
 drift status         # traffic-light health check — your daily entry point
 ```
 
-> `drift status` → repo-level score (0–1 · 🟢/🟡/🔴) · `drift analyze` → per-finding detail (INFO/LOW/MEDIUM/HIGH). Bare `drift` runs `drift status`.
-
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
-[![Drift Score](https://img.shields.io/badge/drift%20score-0.45-yellow?style=flat)](benchmark_results/drift_self.json)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](benchmark_results/drift_self.json)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![PyPI Downloads](https://static.pepy.tech/badge/drift-analyzer/month)](https://pepy.tech/project/drift-analyzer)
@@ -39,25 +37,47 @@ drift status         # traffic-light health check — your daily entry point
 
 ---
 
-## ⚡ Try it — zero install
+## Start Here by Goal
+
+Use this map to jump to the right section on your first read:
+
+| If you want to... | Read this section first |
+|---|---|
+| run drift in under a minute | Try it - zero install |
+| understand the value quickly | Why drift? |
+| adopt drift step by step | 30-day adoption plan |
+| wire drift into tools and CI | Works with |
+| tune thresholds and profiles | Configuration profiles |
+| compare drift with other tools | Coming from another tool? |
+| debug setup issues | Troubleshooting |
+
+Suggested reading flow for first-time users: Try it -> Why drift -> 30-day adoption plan -> Works with.
+
+How this README is structured:
+- Learn value quickly: Why drift, Who is drift for, 30-day adoption plan
+- Execute and integrate: Try it, Works with, Configuration profiles
+- Validate and decide: Trust and limitations, comparisons, documentation, troubleshooting
+
+---
+
+## Try it — zero install
 
 ```bash
 uvx drift-analyzer analyze --repo .
 ```
 
-> One command. No pre-install. Results in ~30 seconds.
-> No config needed — `drift analyze` auto-detects the right profile. `drift init --auto` saves it to `drift.yaml` without prompts (`vibe-coding` / `default` / `strict`).
+> One command, no pre-install, results in ~30 seconds.
 
 🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/) · [Interactive code playground →](https://mick-gsk.github.io/drift/playground/)
 
 **Recommended install:** `pipx install drift-analyzer` (isolated CLI) · Python 3.11+ · also via [pip, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/) · best fit for Python repos with 20+ files; TypeScript/TSX: `pip install 'drift-analyzer[typescript]'`
 
 > [!NOTE]
-> **Drift eats its own dog food.** Every release runs `drift self` on its own source — score 0.63 → [drift_self.json](benchmark_results/drift_self.json). Precision/Recall details in [Trust & Limitations](#-trust-and-limitations).
+> **Drift eats its own dog food.** Every release runs `drift self` on its own source — score 0.63 → [drift_self.json](benchmark_results/drift_self.json). Precision/Recall details in [Trust & Limitations](#trust-and-limitations).
 
 ---
 
-## 🤔 Why drift?
+## Why drift?
 
 Most linters catch single-file style issues. Drift catches what they miss:
 cross-file structural drift that accumulates silently — in any codebase, at any scale.
@@ -84,14 +104,11 @@ cross-file structural drift that accumulates silently — in any codebase, at an
 </tr>
 </table>
 
-> 🔍 **Before** — `drift brief` analyses your repo scope and generates structural constraints ready to paste into your agent prompt
-> 🚦 **After** — `drift check` runs 20+ cross-file signals and exits 1 on violations — CI, SARIF, and pre-commit ready
-> 🧠 **Over time** — Adaptive calibration reweights signals via feedback, git outcome correlation, and GitHub label correlation
-> 📚 **Negative context library** — `drift_nudge` delivers structured anti-patterns (canonical alternatives + CWE tags) directly into your agent's context — no manual guardrail writing needed
+In practice, teams use `drift brief` before coding, `drift check` in CI/pre-push, and `drift trend` over time to track structural regressions.
 
 ---
 
-## 👤 Who is drift for?
+## Who is drift for?
 
 | Audience | Starting point | You'll use |
 |---|---|---|
@@ -101,9 +118,7 @@ cross-file structural drift that accumulates silently — in any codebase, at an
 
 ---
 
-## 📅 30-day adoption plan
-
-One page, three milestones — enough to go from first run to measurable improvement.
+## 30-day adoption plan
 
 | Week | Goal | Commands | Done when |
 |---|---|---|---|
@@ -113,18 +128,11 @@ One page, three milestones — enough to go from first run to measurable improve
 
 > **Which profile?** AI-heavy codebase → `drift init -p vibe-coding`. Unsure → `drift init` (default). You can switch later.
 
-**Before a session — generate guardrails:**
+**Typical session loop:**
 
 ```bash
 drift brief --task "refactor the auth service" --format markdown
-# → paste output into your agent prompt before delegation
-```
-
-**After a session — enforce structure:**
-
-```bash
 drift check --fail-on high         # local or CI gate
-drift check --fail-on none         # pre-commit hook (advisory, report-only)
 drift analyze --repo . --format json  # full report
 drift adr --repo .                 # list active ADRs and their relevance to scope
 ```
@@ -147,17 +155,13 @@ Every finding includes a human-readable `reason` and a concrete `next_action`. F
 
 ---
 
-## 🔌 Works with
+## Works with
 
 | Copilot Chat | CI/CD | Git Hooks | Install | MCP (advanced) |
 |:---:|:---:|:---:|:---:|:---:|
 | `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker | Cursor · Claude Code · Copilot |
 
-For GitHub Copilot coding agent (issue-assigned autonomous PRs), use the
-`Copilot Coding Agent Task` issue template and keep required task-brief
-sections complete. See [CONTRIBUTING.md](CONTRIBUTING.md#assigning-tasks-to-copilot-coding-agent).
-
-`Start here (no MCP needed):` `drift kit init` → `/drift-fix-plan` in VS Code Copilot Chat. `Full CI + MCP:` `drift init --mcp --ci --hooks`. Language support: Python (full) · TypeScript/TSX 17/24 via `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
+Start without MCP: `drift kit init` → `/drift-fix-plan` in VS Code Copilot Chat. For full CI + MCP setup, use `drift init --mcp --ci --hooks`. Language support: Python (full) and TypeScript/TSX (17/24 signals) via `pip install 'drift-analyzer[typescript]'` — [language matrix](docs/language-support-matrix.md).
 
 ### GitHub Actions
 
@@ -201,7 +205,7 @@ jobs:
 drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
 ```
 
-No additional Drift-specific extension install is needed for this workflow; you still need VS Code with GitHub Copilot Chat installed/enabled. `drift kit init` creates `.github/prompts/` with all four prompt files and merges `chat.promptFilesLocations` into `.vscode/settings.json` without touching your existing keys. Idempotent — safe to re-run.
+No additional Drift-specific extension is required; you only need VS Code with GitHub Copilot Chat enabled. `drift kit init` is idempotent and safe to re-run.
 
 📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
 
@@ -218,12 +222,11 @@ auth/handler.py             [Drift · C · score 0.71 · 3 findings (1 high, 2 m
 ```bash
 pip install drift-analyzer          # drift must be on PATH
 code --install-extension vscode-drift-0.1.0.vsix
-```
-
-Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page, or build from source:
-```bash
+# optional: build VSIX from source
 cd extensions/vscode-drift && npm install && npm run compile
 ```
+
+Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page.
 
 📖 [Extension README →](extensions/vscode-drift/README.md)
 
@@ -258,32 +261,7 @@ The execution core (`brief`, `nudge`, `diff`, `fix-plan`, `feedback`) covers mos
 }
 ```
 
-**Claude Desktop** — add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "drift": {
-      "command": "drift",
-      "args": ["mcp", "--serve"]
-    }
-  }
-}
-```
-
-**Cursor** — add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "drift": {
-      "type": "stdio",
-      "command": "drift",
-      "args": ["mcp", "--serve"]
-    }
-  }
-}
-```
+Claude Desktop and Cursor use the same command (`drift mcp --serve`) with their tool-specific MCP config keys.
 
 Or auto-generate: `pip install drift-analyzer[mcp] && drift init --mcp`
 
@@ -304,7 +282,7 @@ repos:
 
 ---
 
-## 🎛️ Configuration profiles
+## Configuration profiles
 
 Pick a profile that matches your project — or start with `default` and calibrate later:
 
@@ -324,7 +302,7 @@ Team tip: Commit `drift.yaml` → CI enforces the same thresholds. Inspect with 
 
 ---
 
-## 📈 Measuring improvement — baseline and ratchet
+## Measuring improvement — baseline and ratchet
 
 Drift is most useful when you track score **deltas**, not snapshots.
 
@@ -393,7 +371,7 @@ If your team ships most changes via AI coding tools (Copilot, Cursor, Claude), d
 
 ---
 
-## 🔄 Coming from another tool?
+## Coming from another tool?
 
 **From Ruff / pylint:** Drift operates one layer above single-file style. It detects when AI generates the same error handler four different ways across modules — something no linter sees.
 
@@ -427,7 +405,7 @@ Comparison reflects primary design scope per [STUDY.md §9](https://github.com/m
 
 ---
 
-## 🏷️ Add a drift badge to your README
+## Add a drift badge to your README
 
 Show your repo's drift score with a shields.io badge:
 
@@ -439,14 +417,14 @@ drift badge --format svg -o badge.svg  # self-contained SVG
 Paste the Markdown output into your README:
 
 ```markdown
-[![Drift Score](https://img.shields.io/badge/drift%20score-0.45-yellow?style=flat)](https://github.com/mick-gsk/drift)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](https://github.com/mick-gsk/drift)
 ```
 
 **Automate in CI:** The [GitHub Action](https://github.com/marketplace/actions/drift-ai-code-coherence-monitor) exposes a `badge-svg` output — pipe it into your repo or a dashboard.
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Topic | Description |
 |---|---|
@@ -466,7 +444,7 @@ Paste the Markdown output into your README:
 
 ---
 
-## 🛠 Troubleshooting
+## Troubleshooting
 
 <details>
 <summary><strong>No Python files found</strong></summary>
@@ -518,7 +496,7 @@ If you installed with `pip install --user`, add `~/.local/bin` (Linux/macOS) or 
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Drift's biggest blind spots are found by people running it on codebases the maintainers have never seen. A well-documented false positive can be more valuable than a new feature.
 
@@ -546,7 +524,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) · [ROADMAP.md](ROADMAP.md)
 
 ---
 
-## 🔒 Trust and limitations
+## Trust and limitations
 
 Drift's pipeline is deterministic and benchmark artifacts are published in the repository — claims can be inspected, not just trusted.
 
@@ -572,7 +550,7 @@ Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchm
 
 ---
 
-## � What drift is — and what it is not
+## What drift is — and what it is not
 
 **Drift detects architectural erosion:** structural patterns that accumulate silently across
 many commits and that static analysis, linters, and type checkers cannot see because they
@@ -606,7 +584,7 @@ the cumulative effect of 50+ small PRs.
 
 ---
 
-## �🔧 Sustainability
+## Sustainability
 
 Drift is maintained by [Mick Gottschalk](https://github.com/mick-gsk) as an independent open-source project.
 
@@ -617,7 +595,7 @@ Drift is maintained by [Mick Gottschalk](https://github.com/mick-gsk) as an inde
 
 ---
 
-## ⭐ Star History
+## Star history
 
 <div align="center">
 
@@ -627,6 +605,6 @@ Drift is maintained by [Mick Gottschalk](https://github.com/mick-gsk) as an inde
 
 ---
 
-## 📄 License
+## License
 
 MIT. See [LICENSE](LICENSE).
