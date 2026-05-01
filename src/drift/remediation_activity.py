@@ -1,47 +1,9 @@
-"""Helpers for remediation-activity detection in trend-gate windows."""
+"""Re-export stub -- canonical implementation lives in drift_session.remediation_activity."""
+# ruff: noqa: F401, F403
 
-from __future__ import annotations
+import importlib as _importlib
+import sys as _sys
 
-from typing import Any
+from drift_session.remediation_activity import *
 
-
-def finding_fingerprints(snapshot: dict[str, Any]) -> set[str]:
-    """Return normalized finding fingerprints from a history snapshot."""
-    raw = snapshot.get("finding_fingerprints")
-    if not isinstance(raw, list):
-        return set()
-    return {fp for fp in raw if isinstance(fp, str) and fp}
-
-
-def resolved_fingerprints(
-    before_snapshot: dict[str, Any],
-    after_snapshot: dict[str, Any],
-) -> set[str]:
-    """Return fingerprints present before and absent after."""
-    before = finding_fingerprints(before_snapshot)
-    after = finding_fingerprints(after_snapshot)
-    return before - after
-
-
-def has_remediation_activity(
-    snapshots: list[dict[str, Any]],
-    *,
-    window_commits: int,
-) -> bool:
-    """Return True if at least one commit in the window resolves findings."""
-    if window_commits < 2 or len(snapshots) < 2:
-        return False
-
-    for index in range(1, len(snapshots)):
-        before = snapshots[index - 1]
-        after = snapshots[index]
-
-        before_commit = before.get("commit_hash")
-        after_commit = after.get("commit_hash")
-        if before_commit == after_commit and before_commit is not None:
-            continue
-
-        if resolved_fingerprints(before, after):
-            return True
-
-    return False
+_sys.modules[__name__] = _importlib.import_module("drift_session.remediation_activity")
