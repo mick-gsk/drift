@@ -12,6 +12,7 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 
 ### Changed
 - add packages/ to repo-root-allowlist; phase 6b CI/workflow path-filters (ADR-100)
+- prevent post-commit hook from re-inserting CHANGELOG bullet on amend
 
 ## [2.48.5] - 2026-04-29
 
