@@ -19,6 +19,7 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 
 ### Fixed
 - resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
+- harden output re-export stubs for typing
 
 ### Changed
 - update harness prompt and skill catalog

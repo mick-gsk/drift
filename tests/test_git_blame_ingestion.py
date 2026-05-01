@@ -241,7 +241,10 @@ def test_blame_files_parallel_deduplicates_ranges(tmp_path: Path) -> None:
         calls.append(fpath)
         return []
 
-    with patch("drift_engine.ingestion.git_blame.blame_lines", side_effect=mock_blame):  # ADR-100 Phase 3
+    with patch(
+        "drift_engine.ingestion.git_blame.blame_lines",
+        side_effect=mock_blame,
+    ):  # ADR-100 Phase 3
         blame_files_parallel(
             tmp_path,
             [("same.py", 1, 5), ("same.py", 3, 10), ("other.py", None, None)],
@@ -260,7 +263,10 @@ def test_blame_files_parallel_widens_range_when_none(tmp_path: Path) -> None:
         calls.append((fpath, start, end))
         return []
 
-    with patch("drift_engine.ingestion.git_blame.blame_lines", side_effect=mock_blame):  # ADR-100 Phase 3
+    with patch(
+        "drift_engine.ingestion.git_blame.blame_lines",
+        side_effect=mock_blame,
+    ):  # ADR-100 Phase 3
         blame_files_parallel(
             tmp_path,
             [("f.py", 1, 5), ("f.py", None, None)],
