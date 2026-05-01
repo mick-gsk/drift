@@ -1,6 +1,5 @@
-"""Thin backward-compat wrapper -- real implementation lives in drift_sdk.types."""
-# ruff: noqa: F401, F403
-from drift_sdk.types import *
+"""Core SDK package for drift-analyzer: data models and type definitions."""
+
 from drift_sdk.types import (
     JsonDict as JsonDict,
 )

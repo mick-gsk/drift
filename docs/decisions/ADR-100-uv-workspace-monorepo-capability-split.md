@@ -106,11 +106,18 @@ Jede Phase ist ein eigenständiger PR. CI muss nach jeder Phase grün bleiben.
 Backward-Compat wird durch das Meta-Paket-Re-export sichergestellt — bestehende
 `from drift.X import Y`-Imports in `tests/` und Consumers müssen nicht sofort geändert werden.
 
+**Scope-Abgrenzung `drift-sdk` (Phase 2):**
+`drift-sdk` enthält `types.py` und `models/` (7 Untermodule: `_enums`, `_git`,
+`_parse`, `_patch`, `_policy`, `_context`, `_agent`, `_findings`).
+`api/` wird **nicht** in Phase 2 migriert: Die `api/`-Module haben Runtime-Imports auf
+`drift.analyzer` (Engine-Layer) — eine Migration würde Kreisabhängigkeiten erzeugen.
+`api/` wandert in Phase 3 zusammen mit `drift-engine`.
+
 | Phase | Inhalt | Voraussetzung |
 |-------|--------|---------------|
 | 0 | ADR anlegen, Circular-Import-Analyse, feat-start | keine |
 | 1 | uv Workspace Root + `drift-config` extrahieren | Phase 0 |
-| 2 | `drift-sdk` extrahieren | Phase 1 |
+| 2 | `drift-sdk` extrahieren (`types.py`, `models/`) | Phase 1 |
 | 3 | `drift-engine` extrahieren | Phase 2 |
 | 4a | `drift-output` extrahieren | Phase 3 |
 | 4b | `drift-session` extrahieren | Phase 4a |
