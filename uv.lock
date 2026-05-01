@@ -12,6 +12,7 @@ members = [
     "drift-analyzer",
     "drift-config",
     "drift-engine",
+    "drift-output",
     "drift-sdk",
 ]
 
@@ -652,6 +653,7 @@ dependencies = [
     { name = "click" },
     { name = "drift-config" },
     { name = "drift-engine" },
+    { name = "drift-output" },
     { name = "drift-sdk" },
     { name = "gitpython" },
     { name = "networkx" },
@@ -743,6 +745,7 @@ requires-dist = [
     { name = "drift-analyzer", extras = ["typescript", "embeddings", "markdown", "mcp", "llm", "dev"], marker = "extra == 'all'" },
     { name = "drift-config", editable = "packages/drift-config" },
     { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-output", editable = "packages/drift-output" },
     { name = "drift-sdk", editable = "packages/drift-sdk" },
     { name = "faiss-cpu", marker = "extra == 'embeddings'", specifier = ">=1.7" },
     { name = "gitpython", specifier = ">=3.1" },
@@ -827,6 +830,25 @@ requires-dist = [
     { name = "pygments", specifier = ">=2.0" },
     { name = "tree-sitter", specifier = ">=0.21" },
     { name = "tree-sitter-typescript", specifier = ">=0.21" },
+]
+
+[[package]]
+name = "drift-output"
+version = "2.49.0"
+source = { editable = "packages/drift-output" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-sdk" },
+    { name = "rich" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "rich", specifier = ">=13.0" },
 ]
 
 [[package]]

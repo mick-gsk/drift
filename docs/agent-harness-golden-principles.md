@@ -354,11 +354,273 @@ When you later move to SDK server runtimes, use the
 [Traces dashboard](https://platform.openai.com/traces) to inspect model calls,
 tool calls, handoffs, and guardrails.
 
-#### Next steps
+#### Running agents (Copilot Pro+)
 
-- [Agent definitions](https://developers.openai.com/api/docs/guides/agents/define-agents) for shaping one specialist cleanly
+The SDK runtime covers three core topics:
+
+1. **The agent loop** — Each SDK run is one application-level turn. The runner
+   loops until it reaches a real stopping point: model output with tools → execute
+   tools and continue; handoff to specialist → switch agents and continue; final
+   answer → return result.
+
+2. **Conversation strategy** — Choose how to carry state into the next turn:
+
+   | Strategy | State lives | Best for | Next turn |
+   | --- | --- | --- | --- |
+   | **History in your app** | Your application | Small chat loops, maximum control | Pass the replay-ready history |
+   | **`session`** | Your storage + SDK | Persistent chat, resumable runs | Pass the same session |
+   | **`conversationId`** | Server (OpenAI API) | Shared state across services/workers | Pass the conversation ID + new turn only |
+   | **`previous_response_id`** | Server (OpenAI API) | Lightest continuation, response-to-response | Pass the last response ID + new turn only |
+
+3. **Streaming and continuations** — Consume events while the run happens;
+   resume from state if the run pauses for approvals or tool work.
+
+#### Session persistence (Copilot Pro+)
+
+Use this when you want durable memory and resumable approval flows:
+
+```typescript
+// In GitHub Copilot Pro+, model selection is handled by the host runtime.
+// MemorySession stores state in-process; use SQLiteSession for persistence.
+
+import { Agent, MemorySession, run } from "@openai/agents";
+
+const agent = new Agent({
+  name: "Tour guide",
+  instructions: "Answer with compact travel facts.",
+});
+
+async function main() {
+  const session = new MemorySession();
+
+  const firstTurn = await run(
+    agent,
+    "What city is the Golden Gate Bridge in?",
+    { session },
+  );
+  console.log(firstTurn.finalOutput);
+
+  const secondTurn = await run(agent, "What state is it in?", { session });
+  console.log(secondTurn.finalOutput);
+}
+
+main().catch(console.error);
+```
+
+```python
+# In GitHub Copilot Pro+, model selection is handled by the host runtime.
+# SQLiteSession persists state in a local database.
+
+import asyncio
+
+from agents import Agent, Runner, SQLiteSession
+
+
+async def main() -> None:
+    agent = Agent(
+        name="Tour guide",
+        instructions="Answer with compact travel facts.",
+    )
+
+    session = SQLiteSession("conversation_tour_guide")
+
+    first_turn = await Runner.run(
+        agent,
+        "What city is the Golden Gate Bridge in?",
+        session=session,
+    )
+    print(first_turn.final_output)
+
+    second_turn = await Runner.run(
+        agent,
+        "What state is it in?",
+        session=session,
+    )
+    print(second_turn.final_output)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Server-managed state (Copilot Pro+)
+
+In GitHub Copilot Pro+, server-managed conversation state is automatic — you
+don't create an OpenAI client. The host runtime provides conversation
+management. Use this pattern for the cheapest continuation or when multiple
+systems share one conversation:
+
+```typescript
+// In Copilot Pro+: conversationId and continuation are handled by the host.
+// For direct OpenAI API use, you would instantiate: const client = new OpenAI();
+
+import { Agent, run } from "@openai/agents";
+
+const agent = new Agent({
+  name: "Assistant",
+  instructions: "Reply very concisely.",
+});
+
+async function main() {
+  // In Copilot Pro+: conversationId provided by host, not created here
+  const first = await run(
+    agent,
+    "What city is the Golden Gate Bridge in?",
+  );
+  console.log(first.finalOutput);
+
+  // Continuation: pass previous_response_id or rely on host context
+  const second = await run(
+    agent,
+    "What state is it in?",
+    // In Copilot Pro+: previousResponseId handled transparently
+  );
+  console.log(second.finalOutput);
+}
+
+main().catch(console.error);
+```
+
+```python
+# In Copilot Pro+: conversation state is automatic.
+# Use previous_response_id for explicit continuation.
+
+import asyncio
+
+from agents import Agent, Runner
+
+
+async def main() -> None:
+    agent = Agent(
+        name="Assistant",
+        instructions="Reply very concisely.",
+    )
+
+    first = await Runner.run(
+        agent,
+        "What city is the Golden Gate Bridge in?",
+    )
+    print(first.final_output)
+
+    # Continuation: pass previous_response_id
+    second = await Runner.run(
+        agent,
+        "What state is it in?",
+        previous_response_id=first.last_response_id,
+    )
+    print(second.final_output)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Stream runs incrementally
+
+Consume events while the run happens instead of waiting for the full response:
+
+```typescript
+// In GitHub Copilot Pro+, model selection is handled by the host runtime.
+// Stream events as the model generates output.
+
+import { Agent, run } from "@openai/agents";
+
+const agent = new Agent({
+  name: "Planet guide",
+  instructions: "Answer with short facts.",
+});
+
+async function main() {
+  const stream = await run(
+    agent,
+    "Give me three short facts about Saturn.",
+    { stream: true },
+  );
+
+  // Iterate over events while the run is in progress
+  for await (const event of stream) {
+    if (
+      event.type === "raw_model_stream_event" &&
+      event.data.type === "response.output_text.delta"
+    ) {
+      process.stdout.write(event.data.delta);
+    }
+  }
+
+  // Wait for the stream to complete before treating the run as settled
+  await stream.completed;
+  console.log("\nFinal:", stream.finalOutput);
+}
+
+main().catch(console.error);
+```
+
+```python
+# In GitHub Copilot Pro+, model selection is handled by the host runtime.
+# Stream events incrementally as the model generates output.
+
+import asyncio
+
+from openai.types.responses import ResponseTextDeltaEvent
+
+from agents import Agent, Runner
+
+
+async def main() -> None:
+    agent = Agent(
+        name="Planet guide",
+        instructions="Answer with short facts.",
+    )
+
+    # Use run_streamed for incremental event consumption
+    stream = Runner.run_streamed(
+        agent,
+        "Give me three short facts about Saturn.",
+    )
+
+    # Iterate over events while the run is in progress
+    async for event in stream.stream_events():
+        if (
+            event.type == "raw_response_event"
+            and isinstance(event.data, ResponseTextDeltaEvent)
+        ):
+            print(event.data.delta, end="", flush=True)
+
+    # Wait for the stream to complete before treating the run as settled
+    await stream.completed()
+    print(f"\nFinal: {stream.final_output}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Key streaming rules
+
+- Wait for the stream to finish before treating the run as settled.
+- If the run pauses for approval, resolve `interruptions` and resume from
+  `state` rather than starting a fresh turn.
+- If you cancel a stream mid-turn, resume from `state` if the same turn should
+  continue later.
+
+#### Handle pauses and failures
+
+Two classes of non-happy-path outcomes:
+
+- **Runtime or validation failures** — max-turn limits, guardrail exceptions,
+  tool errors. These break the turn and may be unrecoverable.
+- **Expected pauses** — human approval requests, where the run is intentionally
+  interrupted and should later resume from the same state. Treat approvals as
+  paused runs, not new turns, to keep history and response IDs consistent.
+
+---
+
+### Next steps
+
+- [Agent definitions](./agent-definitions-copilot-adapted.md) **← Copilot Pro+ adapted guide** for shaping one specialist cleanly (removes model hardcoding, shows host auth model, reality-tested patterns)
+- [Models and Providers (Copilot Pro+ Adapted)](./models-and-providers-copilot-adapted.md) **← Why model selection is not your job in Copilot Pro+** and how to focus on instructions instead
+- [Agent definitions (OpenAI original)](https://developers.openai.com/api/docs/guides/agents/define-agents) for the canonical reference
 - [Using tools](https://developers.openai.com/api/docs/guides/tools#usage-in-the-agents-sdk) for hosted tools, function tools, and agents-as-tools
-- [Running agents](https://developers.openai.com/api/docs/guides/agents/running-agents) for loop, streaming, and continuation strategies
 - [Orchestration and handoffs](https://developers.openai.com/api/docs/guides/agents/orchestration) for multi-specialist ownership rules
 
 ### Agent Builder for Hosted Workflows

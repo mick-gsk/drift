@@ -68,12 +68,14 @@ dependencies = [
     "drift-config",
     "drift-sdk",
     "drift-engine",
+    "drift-output",
 ]
 
 [tool.uv.sources]
 drift-config = { workspace = true }
 drift-sdk = { workspace = true }
 drift-engine = { workspace = true }
+drift-output = { workspace = true }
 
 [project.urls]
 Homepage = "https://mick-gsk.github.io/drift/"
