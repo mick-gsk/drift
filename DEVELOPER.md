@@ -8,7 +8,7 @@ Quick-reference for contributors and agents. For detailed contribution rules see
 
 ```bash
 git clone https://github.com/mick-gsk/drift.git && cd drift
-make install          # pip install -e ".[dev]" + git hooks
+uv sync --extra dev   # workspace-weite Dev-Umgebung (inkl. Packages)
 make check            # lint + typecheck + test + self-analysis
 ```
 

@@ -26,7 +26,7 @@ argument-hint: "Beschreibe die geplante Aenderung in `packages/drift-engine` —
 
 ## Warum dieses Modul kritisch ist
 
-`src/drift/` ist das einzige Modul mit allen vier Hochrisiko-Signalen gleichzeitig:
+`packages/drift-engine/src/drift_engine/` ist das einzige Modul mit allen vier Hochrisiko-Signalen gleichzeitig:
 
 | Signal | Was es bedeutet | Konkretes Risiko hier |
 |--------|-----------------|----------------------|
