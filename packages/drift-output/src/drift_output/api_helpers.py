@@ -24,6 +24,26 @@ from drift_engine.signal_mapping import (  # noqa: F401
 )
 from drift_sdk.models import OUTPUT_SCHEMA_VERSION
 
+# --- Re-exports: task graph ---
+from drift_session.task_graph import (  # noqa: F401
+    _DEFAULT_INVALIDATION_TRIGGERS,
+    _PATCH_SHAPE_DEFAULTS,
+    PlanValidationResult,
+    TaskGraph,
+    WorkflowPlan,
+    WorkflowStep,
+    _capture_repo_state,
+    _compute_plan_fingerprint,
+    _derive_repair_exemplar,
+    _derive_task_contract,
+    _git_cmd,
+    _task_to_api_dict,
+    build_consolidation_groups,
+    build_task_graph,
+    build_workflow_plan,
+    validate_plan,
+)
+
 # --- Re-exports: next-step contracts ---
 from drift.next_step_contract import (  # noqa: F401
     DONE_ACCEPT_CHANGE,
@@ -46,26 +66,6 @@ from drift.response_shaping import (  # noqa: F401
     apply_output_mode,
     build_drift_score_scope,
     shape_for_profile,
-)
-
-# --- Re-exports: task graph ---
-from drift.task_graph import (  # noqa: F401
-    _DEFAULT_INVALIDATION_TRIGGERS,
-    _PATCH_SHAPE_DEFAULTS,
-    PlanValidationResult,
-    TaskGraph,
-    WorkflowPlan,
-    WorkflowStep,
-    _capture_repo_state,
-    _compute_plan_fingerprint,
-    _derive_repair_exemplar,
-    _derive_task_contract,
-    _git_cmd,
-    _task_to_api_dict,
-    build_consolidation_groups,
-    build_task_graph,
-    build_workflow_plan,
-    validate_plan,
 )
 from drift_output.finding_context import classify_finding_context
 from drift_output.finding_priority import (
