@@ -1,19 +1,9 @@
-﻿from ._models import (
-    CapturedIntent,
-    FeedbackAction,
-    FeedbackActionItem,
-    FeedbackResult,
-    VerifyResult,
-)
-from ._storage import intent_store_path, load_intent, save_intent
+﻿# ruff: noqa: F401, F403, E501
+import importlib as _importlib
+import sys as _sys
 
-__all__ = [
-    "CapturedIntent",
-    "FeedbackAction",
-    "FeedbackActionItem",
-    "FeedbackResult",
-    "VerifyResult",
-    "intent_store_path",
-    "load_intent",
-    "save_intent",
-]
+_target = _importlib.import_module("drift_engine.intent")
+_sys.modules[__name__] = _target
+for _k, _v in list(_sys.modules.items()):
+    if _k.startswith("drift_engine.intent."):
+        _sys.modules.setdefault(__name__ + _k[19:], _v)
