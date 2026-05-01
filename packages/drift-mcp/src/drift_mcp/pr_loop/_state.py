@@ -1,11 +1,11 @@
-"""State persistence for the PR review loop (T011)."""
+﻿"""State persistence for the PR review loop (T011)."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from drift.pr_loop._models import LoopExitStatus, LoopState
+from drift_mcp.pr_loop._models import LoopExitStatus, LoopState
 
 
 class LoopStateError(Exception):
