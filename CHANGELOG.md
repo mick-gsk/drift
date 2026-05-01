@@ -1,25 +1,17 @@
-## [2.50.0] - 2026-05-03
-
-Short version: Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs.
-
-### Changed
-- Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
-
-### Fixed
-- address PR review — cleanup on label removal, consistent section names, direct yaml import
-
 ## [2.49.0] - 2026-04-30
 
-Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
+Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle.
 
 ### Added
-- add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+- `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+- monorepo ADR-100 phases 0+1/2/3/4b/5a/5b: uv workspace + drift-config/sdk/engine/session/mcp/cli capability packages
+- outcome-first validation study runner with session integration and CLI (scripts/outcome_first_validation.py)
 
 ### Fixed
-- resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
+- resolve PR #563 review issues; harden output stubs; restore brief cmd console state; FU-002/004 ab-harness mock mode
 
 ### Changed
-- update harness prompt and skill catalog
+- add packages/ to repo-root-allowlist; phase 6b CI/workflow path-filters (ADR-100)
 
 ## [2.48.5] - 2026-04-29
 
