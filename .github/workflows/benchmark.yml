@@ -18,6 +18,7 @@ on:
     branches: [main]
     paths:
       - "src/drift/**"
+      - "packages/**"
       - "tests/benchmarks/**"
   schedule:
     # Nightly at 04:30 UTC (after perf-regression-loop at 04:00)

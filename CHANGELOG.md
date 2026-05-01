@@ -31,6 +31,7 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 - agent harness FU-002 FU-004 -- neutral ab-harness mock mode and failed-turn repro bundle
 - revert unintended changelog carryover
 - add packages/ to repo-root-allowlist (ADR-100 monorepo)
+- phase 6b -- add packages/** to CI/workflow path-filters (ADR-100)
 
 ## [2.48.5] - 2026-04-29
 
