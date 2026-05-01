@@ -1,12 +1,15 @@
 ---
 name: guard-src-drift-commands
-description: "Drift-generierter Guard fuer `src/drift/commands`. Aktiv bei Signalen: EDS, PFS. Konfidenz: 0.89. Verwende diesen Skill wenn du Aenderungen an `src/drift/commands` planst oder wiederholte Drift-Findings (EDS, PFS) fuer dieses Modul bearbeitest."
+description: "Drift-generierter Guard fuer `packages/drift-cli` Commands. Aktiv bei Signalen: EDS, PFS. Konfidenz: 0.89. Verwende diesen Skill wenn du Aenderungen an `packages/drift-cli/src/drift_cli/commands` planst oder wiederholte Drift-Findings (EDS, PFS) fuer dieses Modul bearbeitest."
 argument-hint: "Beschreibe welchen CLI-Befehl (analyze, verify, serve, calibrate...) du veraenderst und warum."
 ---
 
-# Guard: `src/drift/commands`
+# Guard: `packages/drift-cli/src/drift_cli/commands`
 
-`src/drift/commands` enthaelt die CLI-Command-Handler. Jeder Subbefehl (`analyze`, `verify`, `serve`, `calibrate`, ...) hat eine eigene Datei. EDS entsteht wenn Commands direkt in `pipeline.py` oder `Analyzer()` einsteigen. PFS entsteht wenn Commands inkonsistente Argument-Parsing- oder Output-Handling-Muster verwenden.
+> **ADR-100 Phase 7a:** Kanonischer Code liegt in `packages/drift-cli/src/drift_cli/commands/`.
+> `src/drift/commands/` ist ein Re-export-Stub und darf nicht direkt editiert werden.
+
+`packages/drift-cli/src/drift_cli/commands` enthaelt die CLI-Command-Handler. Jeder Subbefehl (`analyze`, `verify`, `serve`, `calibrate`, ...) hat eine eigene Datei. EDS entsteht wenn Commands direkt in `pipeline.py` oder `Analyzer()` einsteigen. PFS entsteht wenn Commands inkonsistente Argument-Parsing- oder Output-Handling-Muster verwenden.
 
 **Konfidenz: 0.89** — EDS und PFS treten regelmaessig auf, oft nach Features die Shortcuts einbauen.
 
@@ -15,9 +18,9 @@ argument-hint: "Beschreibe welchen CLI-Befehl (analyze, verify, serve, calibrate
 - Du fuegest einen neuen CLI-Subbefehl hinzu
 - Du aenderst wie ein bestehender Befehl Argumente verarbeitet oder Ergebnisse ausgibt
 - Du aenderst wie Exit-Codes gesetzt werden
-- Drift meldet EDS oder PFS fuer eine Datei in `src/drift/commands/`
+- Drift meldet EDS oder PFS fuer eine Datei in `packages/drift-cli/src/drift_cli/commands/`
 
-**Nicht benutzen** fuer Aenderungen an der CLI-Definition in `cli.py` — das ist ein anderer Scope.
+**Nicht benutzen** fuer Aenderungen an der CLI-Definition in `packages/drift-cli/src/drift_cli/cli.py` — das ist ein anderer Scope.
 
 ## Warum dieses Modul kritisch ist
 
@@ -50,7 +53,7 @@ argument-hint: "Beschreibe welchen CLI-Befehl (analyze, verify, serve, calibrate
 
 ## References
 
-- [src/drift/cli.py](../../../src/drift/cli.py) — CLI-Einstiegspunkt und Command-Registrierung
-- [src/drift/api/](../../../src/drift/api/) — Alle aufrufbaren API-Funktionen
-- [src/drift/output/](../../../src/drift/output/) — Output-Formatter
+- [packages/drift-cli/src/drift_cli/cli.py](../../../packages/drift-cli/src/drift_cli/cli.py) — CLI-Einstiegspunkt und Command-Registrierung
+- [packages/drift-sdk/src/drift_sdk/api/](../../../packages/drift-sdk/src/drift_sdk/api/) — Alle aufrufbaren API-Funktionen
+- [packages/drift-output/src/drift_output/](../../../packages/drift-output/src/drift_output/) — Output-Formatter
 - [DEVELOPER.md](../../DEVELOPER.md)

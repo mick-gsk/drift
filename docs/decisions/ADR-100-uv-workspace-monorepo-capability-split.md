@@ -115,17 +115,18 @@ Backward-Compat wird durch das Meta-Paket-Re-export sichergestellt — bestehend
 
 | Phase | Inhalt | Voraussetzung |
 |-------|--------|---------------|
-| 0 | ADR anlegen, Circular-Import-Analyse, feat-start | keine |
-| 1 | uv Workspace Root + `drift-config` extrahieren | Phase 0 |
-| 2 | `drift-sdk` extrahieren (`types.py`, `models/`) | Phase 1 |
+| 0 ✅ | ADR anlegen, Circular-Import-Analyse, feat-start | keine |
+| 1 ✅ | uv Workspace Root + `drift-config` extrahieren | Phase 0 |
+| 2 ✅ | `drift-sdk` extrahieren (`types.py`, `models/`) | Phase 1 |
 | 3 ✅ | `drift-engine` extrahieren | Phase 2 |
 | 4a ✅ | `drift-output` extrahieren | Phase 3 |
-| 4b | `drift-session` extrahieren | Phase 4a |
-| 5a | `drift-mcp` extrahieren | Phase 4b |
-| 5b | `drift-cli` extrahieren | Phase 5a |
-| 6a | Meta-Paket (`packages/drift`) + Re-export-Stubs | Phase 5b |
-| 6b | Workflow- und Path-Filter-Migration (`src/drift/**` -> `packages/**`) | Phase 6a |
-| 6c | Docs/Guard-Skills/Cleanup (u.a. `DEVELOPER.md`, Guard-Pfade) | Phase 6b |
+| 4b ✅ | `drift-session` extrahieren | Phase 4a |
+| 5a ✅ | `drift-mcp` extrahieren | Phase 4b |
+| 5b ✅ | `drift-cli` extrahieren | Phase 5a |
+| 6a ✅ | Meta-Paket (`packages/drift`) + Re-export-Stubs | Phase 5b |
+| 6b ✅ | Workflow- und Path-Filter-Migration (`src/drift/**` -> `packages/**`) | Phase 6a |
+| 6c _(in 7a aufgegangen)_ | ~~Docs/Guard-Skills/Cleanup (u.a. `DEVELOPER.md`, Guard-Pfade)~~ | Phase 6b |
+| 7a ✅ | Guard-Skills auf `packages/drift-*/`-Pfade aktualisieren; `DEVELOPER.md` auf workspace-weite `uv sync`-Anleitung umstellen; veraltete `src/drift/**`-Referenzen in Docs und Instructions bereinigen | Phase 6b |
 
 ### Was explizit **nicht** entschieden wird
 
@@ -227,6 +228,6 @@ Zusätzlich zu den fünf Basis-Kriterien gelten je Phase folgende Zusatzprüfung
 | 5b (`drift-cli`) | End-to-end CLI-Command-Dispatch inkl. Entry-Points weiterhin funktional |
 | 6a | Re-export-Stubs vollständig, `drift --version` und Kernimporte aus Consumer-Sicht unverändert |
 | 6b | Workflow-Path-Filter decken `packages/**` vollständig ab, ohne unbeabsichtigte Trigger-Lücken |
-| 6c | Guard-Skills/Docs konsistent mit Paketpfaden, keine Referenzen auf veraltete `src/drift/**`-Pfade |
+| 7a ✅ | Guard-Skills referenzieren `packages/drift-*/`-Pfade; `DEVELOPER.md` beschreibt workspace-weiten `uv sync`-Workflow; keine `src/drift/**`-Pfad-Referenzen mehr in Docs, Instructions oder Skill-Descriptions |
 
 Referenz Policy §10 Lernzyklus: offen bis Phase-1-Validierung.

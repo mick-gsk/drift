@@ -73,13 +73,14 @@ baselines per repository and automatically invalidates them when:
 
 | Directory | Purpose |
 |---|---|
-| `src/drift/ingestion/` | File discovery, AST parsing (Python + TypeScript), git log parsing |
-| `src/drift/signals/` | 24 detection signals (19 scoring-active, 5 report-only), each implementing `BaseSignal` |
-| `src/drift/scoring/` | Weighted composite score, severity gating, module scores |
-| `src/drift/output/` | Rich terminal dashboard, JSON, SARIF formatters |
-| `src/drift/commands/` | Click CLI subcommands |
-| `src/drift/config.py` | Pydantic-based configuration with defaults |
-| `src/drift/models.py` | Core data models: `Finding`, `ParseResult`, `RepoAnalysis` |
+| `packages/drift-engine/src/drift_engine/ingestion/` | File discovery, AST parsing (Python + TypeScript), git log parsing |
+| `packages/drift-engine/src/drift_engine/signals/` | 24 detection signals (19 scoring-active, 5 report-only), each implementing `BaseSignal` |
+| `packages/drift-engine/src/drift_engine/scoring/` | Weighted composite score, severity gating, module scores |
+| `packages/drift-output/src/drift_output/` | Rich terminal dashboard, JSON, SARIF formatters |
+| `packages/drift-cli/src/drift_cli/commands/` | Click CLI subcommands |
+| `packages/drift-config/src/drift_config/` | Pydantic-based configuration with defaults |
+| `packages/drift-sdk/src/drift_sdk/models/` | Core data models: `Finding`, `ParseResult`, `RepoAnalysis` |
+| `src/drift/` | Backward-compat re-export stubs only (ADR-100) — do not edit |
 
 ---
 
@@ -222,33 +223,33 @@ Bei Drift-Fix-Loops gezielte Tests unmittelbar nach jeder Dateiänderung ausfüh
 
 | Geänderte Datei | Empfohlene Tests |
 |---|---|
-| `src/drift/signals/architecture_violation*` | `pytest tests/test_avs_*.py -q --tb=short` |
-| `src/drift/signals/doc_impl_drift*` | `pytest tests/test_dia_*.py -q --tb=short` |
-| `src/drift/signals/explainability_deficit*` | `pytest tests/test_eds_*.py -q --tb=short` |
-| `src/drift/signals/mutant_duplicates*` | `pytest tests/test_mutant_duplicates*.py -q --tb=short` |
-| `src/drift/signals/dead_code_accumulation*` | `pytest tests/test_dead_code*.py -q --tb=short` |
-| `src/drift/signals/pattern_fragmentation*` | `pytest tests/test_pattern_fragmentation*.py -q --tb=short` |
-| `src/drift/signals/naming_contract*` | `pytest tests/test_naming_contract*.py -q --tb=short` |
-| `src/drift/signals/test_polarity_deficit*` | `pytest tests/test_test_polarity_deficit*.py -q --tb=short` |
-| `src/drift/signals/cognitive_complexity*` | `pytest tests/test_cognitive_complexity*.py -q --tb=short` |
-| `src/drift/signals/circular_import*` | `pytest tests/test_circular_import*.py -q --tb=short` |
-| `src/drift/signals/guard_clause*` | `pytest tests/test_guard_clause*.py -q --tb=short` |
-| `src/drift/signals/insecure_default*` | `pytest tests/test_insecure_default*.py -q --tb=short` |
-| `src/drift/signals/missing_authorization*` | `pytest tests/test_missing_authorization*.py -q --tb=short` |
-| `src/drift/signals/hardcoded_secret*` | `pytest tests/test_hardcoded_secret*.py -q --tb=short` |
-| `src/drift/signals/exception_contract*` | `pytest tests/test_exception_contract*.py -q --tb=short` |
-| `src/drift/signals/fan_out_explosion*` | `pytest tests/test_fan_out_explosion*.py -q --tb=short` |
-| `src/drift/signals/cohesion_deficit*` | `pytest tests/test_cohesion_deficit*.py -q --tb=short` |
-| `src/drift/signals/bypass_accumulation*` | `pytest tests/test_bypass_accumulation*.py -q --tb=short` |
-| `src/drift/signals/*` (andere) | `pytest tests/test_precision_recall.py tests/test_mirofish_signal_improvements.py -q --tb=short` |
-| `src/drift/api.py` | `pytest tests/test_brief.py tests/test_integration.py tests/test_incremental.py tests/test_fix_actionability.py tests/test_nudge.py -q --tb=short` |
-| `src/drift/mcp_server.py` | `pytest tests/test_mcp_copilot.py tests/test_mcp_hardening.py tests/test_tool_metadata.py tests/test_negative_context_export.py -q --tb=short` |
-| `src/drift/output/*` | `pytest tests/test_json_output.py tests/test_csv_output.py tests/test_sarif_contract.py tests/test_output_golden.py tests/test_agent_tasks.py -q --tb=short` |
-| `src/drift/ingestion/*` | `pytest tests/test_ast_parser.py tests/test_file_discovery.py tests/test_scope_resolver.py tests/test_typescript_parser.py -q --tb=short` |
-| `src/drift/config.py` | `pytest tests/test_config.py tests/test_config_validate.py tests/test_model_consistency.py -q --tb=short` |
-| `src/drift/commands/*` | `pytest tests/test_self_command.py tests/test_patterns_command.py tests/test_ci_reality.py -q --tb=short` |
-| `src/drift/session.py` | `pytest tests/test_session.py -q --tb=short` |
-| `src/drift/incremental.py` | `pytest tests/test_incremental.py tests/test_nudge.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/architecture_violation*` | `pytest tests/test_avs_*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/doc_impl_drift*` | `pytest tests/test_dia_*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/explainability_deficit*` | `pytest tests/test_eds_*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/mutant_duplicates*` | `pytest tests/test_mutant_duplicates*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/dead_code_accumulation*` | `pytest tests/test_dead_code*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/pattern_fragmentation*` | `pytest tests/test_pattern_fragmentation*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/naming_contract*` | `pytest tests/test_naming_contract*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/test_polarity_deficit*` | `pytest tests/test_test_polarity_deficit*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/cognitive_complexity*` | `pytest tests/test_cognitive_complexity*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/circular_import*` | `pytest tests/test_circular_import*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/guard_clause*` | `pytest tests/test_guard_clause*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/insecure_default*` | `pytest tests/test_insecure_default*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/missing_authorization*` | `pytest tests/test_missing_authorization*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/hardcoded_secret*` | `pytest tests/test_hardcoded_secret*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/exception_contract*` | `pytest tests/test_exception_contract*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/fan_out_explosion*` | `pytest tests/test_fan_out_explosion*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/cohesion_deficit*` | `pytest tests/test_cohesion_deficit*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/bypass_accumulation*` | `pytest tests/test_bypass_accumulation*.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/signals/*` (andere) | `pytest tests/test_precision_recall.py tests/test_mirofish_signal_improvements.py -q --tb=short` |
+| `packages/drift-sdk/src/drift_sdk/api/` | `pytest tests/test_brief.py tests/test_integration.py tests/test_incremental.py tests/test_fix_actionability.py tests/test_nudge.py -q --tb=short` |
+| `packages/drift-mcp/src/drift_mcp/mcp_server.py` | `pytest tests/test_mcp_copilot.py tests/test_mcp_hardening.py tests/test_tool_metadata.py tests/test_negative_context_export.py -q --tb=short` |
+| `packages/drift-output/src/drift_output/*` | `pytest tests/test_json_output.py tests/test_csv_output.py tests/test_sarif_contract.py tests/test_output_golden.py tests/test_agent_tasks.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/ingestion/*` | `pytest tests/test_ast_parser.py tests/test_file_discovery.py tests/test_scope_resolver.py tests/test_typescript_parser.py -q --tb=short` |
+| `packages/drift-config/src/drift_config/` | `pytest tests/test_config.py tests/test_config_validate.py tests/test_model_consistency.py -q --tb=short` |
+| `packages/drift-cli/src/drift_cli/commands/*` | `pytest tests/test_self_command.py tests/test_patterns_command.py tests/test_ci_reality.py -q --tb=short` |
+| `packages/drift-session/src/drift_session/session.py` | `pytest tests/test_session.py -q --tb=short` |
+| `packages/drift-engine/src/drift_engine/incremental.py` | `pytest tests/test_incremental.py tests/test_nudge.py -q --tb=short` |
 | Fallback | `pytest tests/ -q --tb=short --ignore=tests/test_smoke_real_repos.py --maxfail=5` |
 
 Bei Testfehlschlag gilt: `AttributeError`/`TypeError` auf Interna → Test anpassen; `AssertionError` auf Public-API-Vertrag → Production-Fix überdenken. Vollständiger Entscheidungsbaum: `.github/prompts/drift-fix-loop.prompt.md` (Schritt 3b).
@@ -446,8 +447,8 @@ The `.githooks/pre-push` hook enforces 6 gates before code reaches the remote. T
 | **Changelog** | `feat:` or `fix:` commits | `CHANGELOG.md` must be updated |
 | **Version Bump** | `pyproject.toml` changed | Version must be valid SemVer and > last remote tag |
 | **Lockfile Sync** | `pyproject.toml` changed | `uv.lock` must exist and be synchronized |
-| **Public API Docstrings** | `src/drift/` changes | New public functions must have docstrings |
-| **Risk Audit (§18)** | `src/drift/signals/`, `ingestion/`, `output/` changes | At least one audit artifact under `audit_results/` must be updated |
+| **Public API Docstrings** | `packages/drift-*/` or `src/drift/` changes | New public functions must have docstrings |
+| **Risk Audit (§18)** | `packages/drift-engine/src/drift_engine/signals/`, `ingestion/`, `packages/drift-output/` changes | At least one audit artifact under `audit_results/` must be updated |
 
 ### Generating Feature Evidence before a feat: commit
 
