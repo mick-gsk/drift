@@ -261,6 +261,7 @@ jobs:
           & $env:PYTHON_BIN -m pip install --upgrade pip
           # Install workspace packages FIRST so pip resolves them locally.
           & $env:PYTHON_BIN -m pip install `
+            -e packages/drift `
             -e packages/drift-config `
             -e packages/drift-engine `
             -e packages/drift-sdk `
@@ -268,6 +269,7 @@ jobs:
             -e packages/drift-session `
             -e packages/drift-mcp `
             -e packages/drift-verify `
+            -e packages/drift-cockpit `
             -e packages/drift-cli
           $maxRetries = 3
           for ($i = 1; $i -le $maxRetries; $i++) {
@@ -523,6 +525,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install `
+            -e packages/drift `
             -e packages/drift-config `
             -e packages/drift-engine `
             -e packages/drift-sdk `
@@ -530,6 +533,7 @@ jobs:
             -e packages/drift-session `
             -e packages/drift-mcp `
             -e packages/drift-verify `
+            -e packages/drift-cockpit `
             -e packages/drift-cli
           python -m pip install -e ".[dev]"
 

@@ -10,6 +10,7 @@ Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script cata
 - resolve the remaining PR 576 quality regressions across packages/, tests, and CI checks
 - reduce workflow friction by suppressing the fallback MAZ false positive and stopping hooks from mutating commit history during commit and push
 - fix CI mypy/vulture to use packages/drift/src/drift (src/drift is not git-tracked after ADR-100)
+- add packages/drift and packages/drift-cockpit to CI test install (drift_cockpit import fix)
 
 ### Added
 - Phase 1 complete — VSA migration infrastructure setup (T001-T005)
