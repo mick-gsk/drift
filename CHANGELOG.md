@@ -11,6 +11,7 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 - ruff imports, shellcheck backticks, secrets baseline, smoke-pr deps (CI cleanup)
 - ruff I001 in packages/, shellcheck YAML syntax in workflows, fix end-of-files
 - remove UTF-8 BOM and ensure end-of-file newlines in packages/
+- add explicit mypy re-exports to ADR-100 sys.modules stubs
 
 ## [2.49.0] - 2026-04-30
 
