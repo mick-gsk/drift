@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from io import StringIO
 
-from rich.console import Console
-
 from drift.output.rich_output import render_trend_chart
+from rich.console import Console
 
 
 def _strip_ansi(text: str) -> str:

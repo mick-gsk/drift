@@ -2,6 +2,10 @@
 
 **Diese Datei ist für alle Copilot-Agenten, Coding-Agenten und KI-Assistenten im Drift-Workspace bindend.**
 
+<!-- SPECKIT START -->
+Active implementation plan: specs/009-complete-vsa-migration/plan.md
+<!-- SPECKIT END -->
+
 Die vollständige Policy befindet sich in:
 `POLICY.md` (Workspace-Root)
 
@@ -231,6 +235,22 @@ Nach **jeder** Dateiänderung MUSS ein Coding-Agent `drift_nudge` als schnellen 
 | `direction: "stable"` | Kein messbarer Effekt | Weiter |
 
 **Grenzen:** Signale mit `cross_file`-Scope (MDS, AVS) sind im Nudge-Modus estimated — sie brauchen für volle Präzision einen Vollscan (`drift_diff`).
+
+---
+
+## Kontext-Komprimierung (Pflicht fuer alle Coding-Agenten)
+
+Sobald ein Coding-Agent eine verlässliche Anzeige hat, dass der verfuegbare Kontext zu
+mindestens **50 %** verbraucht ist, MUSS er den aktiven Kontext **automatisch komprimieren**.
+
+Verbindliche Mindestform der Komprimierung:
+
+1. Den bisherigen Stand in 5 bis 10 praezisen Punkten zusammenfassen (Ziel, offene
+  Entscheidungen, relevante Befunde, naechste Schritte).
+2. Redundante Verlaufsdetails nicht fortschreiben; nur entscheidungsrelevante Fakten behalten.
+3. Vor weiterem Tool- oder Edit-Loop mit dem komprimierten Stand weiterarbeiten.
+
+Diese Pflicht dient der Stabilitaet laengerer Sessions und ist kein optionaler Stilhinweis.
 
 ---
 

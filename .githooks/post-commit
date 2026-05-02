@@ -6,7 +6,10 @@
 # amends the commit to include the updated file.
 #
 # Skip conditions:
-#   DRIFT_SKIP_CHANGELOG=1   bypass entirely (set internally to prevent loops)
+#   DRIFT_SKIP_CHANGELOG=1   bypass entirely (set internally to prevent loops
+#                            or when amending with --no-verify is insufficient)
+#   Amend commits            detected via ORIG_HEAD parent comparison; skipped
+#                            automatically so existing bullets are not re-inserted
 #   Merge / fixup / squash   commits are skipped automatically
 #   Non-conventional commits silently skipped by the Python script
 
@@ -15,6 +18,17 @@ set -e
 # Loop guard: the amend triggers another post-commit run; skip it.
 if [ "${DRIFT_SKIP_CHANGELOG:-0}" = "1" ]; then
     exit 0
+fi
+
+# Amend guard: if ORIG_HEAD exists and shares the same parent as HEAD, this
+# post-commit was triggered by `git commit --amend`.  Re-inserting the bullet
+# would cause the CHANGELOG bullet-count gate to fail on the next push.
+if git rev-parse --verify ORIG_HEAD >/dev/null 2>&1; then
+    _head_parent="$(git rev-parse HEAD^ 2>/dev/null)" || _head_parent=""
+    _orig_parent="$(git rev-parse ORIG_HEAD^ 2>/dev/null)" || _orig_parent=""
+    if [ -n "$_head_parent" ] && [ "$_head_parent" = "$_orig_parent" ]; then
+        exit 0
+    fi
 fi
 
 # Git sets GIT_DIR; resolve COMMIT_EDITMSG portably.

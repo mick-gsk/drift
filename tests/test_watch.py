@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from io import StringIO
 
-import pytest
-from rich.console import Console
-
 import drift.commands.watch as watch_cmd
+import pytest
 from drift.commands.watch import _print_nudge_summary
+from rich.console import Console
 
 
 def _render_watch_summary(result: dict, *, initial: bool = False) -> str:

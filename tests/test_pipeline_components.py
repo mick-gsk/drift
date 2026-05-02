@@ -11,8 +11,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
-from drift import __version__ as drift_version
 from drift.cache import CACHE_SCHEMA_VERSION, ParseCache
 from drift.config import DriftConfig
 from drift.models import (
@@ -38,6 +36,8 @@ from drift.pipeline import (
     ScoringPhase,
     SignalPhase,
 )
+
+from drift import __version__ as drift_version
 
 
 def _config() -> DriftConfig:
@@ -230,7 +230,7 @@ def test_ingestion_phase_reparses_when_parse_cache_schema_is_stale(tmp_path: Pat
 
 
 def test_fetch_git_history_uses_cache_for_same_head(monkeypatch) -> None:
-    import drift.pipeline as pipeline
+    import drift_engine.pipeline as pipeline  # ADR-100 Phase 3: real impl
 
     pipeline._GIT_HISTORY_CACHE.clear()
 
@@ -270,7 +270,7 @@ def test_fetch_git_history_uses_cache_for_same_head(monkeypatch) -> None:
 
 
 def test_fetch_git_history_cache_invalidates_on_head_change(monkeypatch) -> None:
-    import drift.pipeline as pipeline
+    import drift_engine.pipeline as pipeline  # ADR-100 Phase 3: real impl
 
     pipeline._GIT_HISTORY_CACHE.clear()
 
@@ -308,7 +308,7 @@ def test_fetch_git_history_cache_invalidates_on_head_change(monkeypatch) -> None
 
 
 def test_fetch_git_history_uses_persistent_index_when_enabled(monkeypatch) -> None:
-    import drift.pipeline as pipeline
+    import drift_engine.pipeline as pipeline  # ADR-100 Phase 3: real impl
 
     pipeline._GIT_HISTORY_CACHE.clear()
 
@@ -681,7 +681,7 @@ def test_scoring_phase_applies_small_repo_kwargs_and_post_processing() -> None:
 
 def test_default_workers_uses_env_override(monkeypatch) -> None:
     monkeypatch.setenv("DRIFT_WORKERS", "3")
-    pipeline = importlib.import_module("drift.pipeline")
+    pipeline = importlib.import_module("drift_engine.pipeline")  # ADR-100 Phase 3
     pipeline = importlib.reload(pipeline)
 
     assert pipeline.DEFAULT_WORKERS == 3
@@ -689,7 +689,7 @@ def test_default_workers_uses_env_override(monkeypatch) -> None:
 
 def test_default_workers_ignores_invalid_env(monkeypatch) -> None:
     monkeypatch.setenv("DRIFT_WORKERS", "abc")
-    pipeline = importlib.import_module("drift.pipeline")
+    pipeline = importlib.import_module("drift_engine.pipeline")  # ADR-100 Phase 3
     pipeline = importlib.reload(pipeline)
 
     assert 2 <= pipeline.DEFAULT_WORKERS <= 16

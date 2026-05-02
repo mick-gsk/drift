@@ -18,7 +18,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from drift.api import (
     _baseline_store,
     invalidate_nudge_baseline,

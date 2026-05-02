@@ -1,12 +1,15 @@
 ---
 name: guard-src-drift-api
-description: "Drift-generierter Guard fuer `src/drift/api`. Aktiv bei Signalen: EDS, PFS. Konfidenz: 0.95. Verwende diesen Skill wenn du Aenderungen an `src/drift/api` planst oder wiederholte Drift-Findings (EDS, PFS) fuer dieses Modul bearbeitest."
-argument-hint: "Beschreibe die geplante Aenderung in `src/drift/api` — welche Funktion, welches Modul, welcher Zweck."
+description: "Drift-generierter Guard fuer `packages/drift-sdk` API. Aktiv bei Signalen: EDS, PFS. Konfidenz: 0.95. Verwende diesen Skill wenn du Aenderungen an `packages/drift-sdk/src/drift_sdk/api` planst oder wiederholte Drift-Findings (EDS, PFS) fuer dieses Modul bearbeitest."
+argument-hint: "Beschreibe die geplante Aenderung in `packages/drift-sdk/src/drift_sdk/api` — welche Funktion, welches Modul, welcher Zweck."
 ---
 
-# Guard: `src/drift/api`
+# Guard: `packages/drift-sdk/src/drift_sdk/api`
 
-`src/drift/api` ist die einzige legitime Eintrittspforte fuer alle Agenten- und MCP-Aufrufe. Jede Datei hier (`scan.py`, `fix_plan.py`, `steer.py`, `nudge.py`, `brief.py`, `suggest_rules.py`, `generate_skills.py`, `diff.py`, `verify.py`) repraesentiert genau einen oeffentlichen Vertrag.
+> **ADR-100 Phase 7a:** Kanonischer Code liegt in `packages/drift-sdk/src/drift_sdk/api/`.
+> `src/drift/api/` ist ein Re-export-Stub und darf nicht direkt editiert werden.
+
+`packages/drift-sdk/src/drift_sdk/api` ist die einzige legitime Eintrittspforte fuer alle Agenten- und MCP-Aufrufe. Jede Datei hier (`scan.py`, `fix_plan.py`, `steer.py`, `nudge.py`, `brief.py`, `suggest_rules.py`, `generate_skills.py`, `diff.py`, `verify.py`) repraesentiert genau einen oeffentlichen Vertrag.
 
 **Konfidenz: 0.95** — EDS und PFS treten wiederholt auf, weil API-Funktionen interne Submodule direkt verdrahten statt sauber zu delegieren.
 
@@ -15,7 +18,7 @@ argument-hint: "Beschreibe die geplante Aenderung in `src/drift/api` — welche 
 - Du fuegest eine neue oeffentliche API-Funktion hinzu oder aenderst eine bestehende
 - Du implementierst einen neuen MCP-Tool-Handler
 - Du rufst intern `pipeline.py`, `analyzer.py` oder `scoring/` direkt aus einer neuen Funktion auf
-- Drift meldet EDS oder PFS fuer eine Datei in `src/drift/api/`
+- Drift meldet EDS oder PFS fuer eine Datei in `packages/drift-sdk/src/drift_sdk/api/`
 
 **Nicht benutzen** fuer reine CLI-Aenderungen — dafuer gibt es `guard-src-drift-commands`.
 
@@ -68,7 +71,7 @@ print(f'{len(findings)} findings in api/')
 
 ## References
 
-- [src/drift/api/_util.py](../../../src/drift/api/_util.py) — Gemeinsame API-Hilfsfunktionen
-- [src/drift/api/_config.py](../../../src/drift/api/_config.py) — API-Bootstrapping
-- [src/drift/api/scan.py](../../../src/drift/api/scan.py) — Referenz-Implementierung
+- [packages/drift-sdk/src/drift_sdk/api/_util.py](../../../packages/drift-sdk/src/drift_sdk/api/_util.py) — Gemeinsame API-Hilfsfunktionen
+- [packages/drift-sdk/src/drift_sdk/api/_config.py](../../../packages/drift-sdk/src/drift_sdk/api/_config.py) — API-Bootstrapping
+- [packages/drift-sdk/src/drift_sdk/api/scan.py](../../../packages/drift-sdk/src/drift_sdk/api/scan.py) — Referenz-Implementierung
 - [DEVELOPER.md](../../DEVELOPER.md)

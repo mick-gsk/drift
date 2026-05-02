@@ -6,7 +6,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.models import PatternCategory, PatternInstance
 

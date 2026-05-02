@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 from click.testing import CliRunner
-
 from drift.commands.explain import explain
 
 
@@ -87,9 +86,8 @@ def test_explain_repo_context_with_examples(
 
 def test_append_contract_section_with_list_value() -> None:
     """_append_contract_section: value is a list → body.append per item."""
-    from rich.text import Text
-
     from drift.commands.explain import _append_contract_section
+    from rich.text import Text
 
     body = Text()
     contract: dict[str, Any] = {
@@ -103,9 +101,8 @@ def test_append_contract_section_with_list_value() -> None:
 
 def test_append_contract_section_with_dict_value() -> None:
     """_append_contract_section: value is a dict."""
-    from rich.text import Text
-
     from drift.commands.explain import _append_contract_section
+    from rich.text import Text
 
     body = Text()
     contract: dict[str, Any] = {

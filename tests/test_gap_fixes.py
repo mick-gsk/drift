@@ -53,7 +53,6 @@ class TestPluginCommandsInCLI:
     def test_plugin_command_added_to_main_group(self) -> None:
         """Plugin commands discovered via discover_command_plugins are added to main."""
         import click
-
         from drift.cli import main
 
         fake_cmd = click.command("my-plugin-cmd-x")(lambda: None)
@@ -73,7 +72,6 @@ class TestPluginCommandsInCLI:
     def test_plugin_discovery_failure_does_not_crash_cli(self) -> None:
         """A broken plugin entry point must not prevent normal CLI startup."""
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()

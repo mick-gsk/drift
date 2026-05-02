@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from drift.models import (
     OUTPUT_SCHEMA_VERSION,
     AgentAction,

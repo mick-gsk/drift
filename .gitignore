@@ -91,6 +91,13 @@ tmplw89iq73.json
 .gate_check_cache
 pip-audit-requirements.txt
 tmp*.json
+tmp_*.py
+tmp_*.ps1
+tmp_*.txt
+_patch_stubs*.py
+result_line.txt
+td_parsed.json
+test_results.txt
 
 # Root-level temp/log artifacts
 *.log

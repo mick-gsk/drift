@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.commands.badge import _badge_color_for_score
 from drift.models import Severity, severity_for_score

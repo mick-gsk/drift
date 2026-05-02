@@ -15,8 +15,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from jsonschema import Draft7Validator
-
 from drift.models import (
     OUTPUT_SCHEMA_VERSION,
     AgentAction,
@@ -29,6 +27,7 @@ from drift.models import (
     SignalType,
 )
 from drift.output.json_output import analysis_to_json
+from jsonschema import Draft7Validator
 
 pytestmark = pytest.mark.contract
 

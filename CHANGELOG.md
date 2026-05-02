@@ -1,3 +1,10 @@
+## [2.50.0] - 2026-05-02
+
+Short version: Test infrastructure and CI/CD setup (split/02d)
+
+### Added
+- Test infrastructure and CI/CD setup (split/02d)
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).

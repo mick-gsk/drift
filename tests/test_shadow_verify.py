@@ -7,7 +7,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from drift.fix_intent import (
     CROSS_FILE_RISKY_EDIT_KINDS,
     EDIT_KIND_ADD_TEST,
