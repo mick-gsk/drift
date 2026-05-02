@@ -21,9 +21,10 @@ def _locate_static_dir() -> Path | None:
     try:
         ref = importlib.resources.files(_STATIC_PACKAGE)
         candidate = Path(str(ref))
-        # The directory must contain at least one non-.gitkeep file to be usable.
+        # The directory must contain at least one non-infrastructure file to be usable.
+        _skip = {".gitkeep", "__init__.py", "__pycache__"}
         if candidate.is_dir() and any(
-            f for f in candidate.iterdir() if f.name != ".gitkeep"
+            f for f in candidate.iterdir() if f.name not in _skip
         ):
             return candidate
     except (ModuleNotFoundError, FileNotFoundError):
