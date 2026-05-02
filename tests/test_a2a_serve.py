@@ -14,9 +14,8 @@ import pytest
 fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
 httpx = pytest.importorskip("httpx", reason="httpx not installed")
 
-from starlette.testclient import TestClient  # noqa: E402
-
 from drift.serve.app import create_app  # noqa: E402
+from starlette.testclient import TestClient  # noqa: E402
 
 BASE_URL = "http://testserver"
 

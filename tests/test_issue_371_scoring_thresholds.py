@@ -308,6 +308,7 @@ class TestScoringPhaseFeedbackBlend:
         """When feedback events exist, effective weights should be blended."""
         from drift.calibration.feedback import FeedbackEvent
         from drift.calibration.profile_builder import CalibrationResult
+
         from drift.pipeline import ScoringPhase
 
         cfg = self._make_config(alpha=0.5)
