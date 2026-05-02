@@ -109,6 +109,27 @@ def _validate_repo_path(path: str) -> str:
     return resolved
 
 
+def _validate_artifact_path(path: str) -> str:
+    """Validate and normalize an artifact file or directory path.
+
+    Prevents path traversal by resolving the path and ensuring it exists.
+
+    Args:
+        path: Raw path string from the request.
+
+    Returns:
+        Resolved absolute path string.
+
+    Raises:
+        ValueError: If path does not exist.
+    """
+    resolved = os.path.realpath(os.path.normpath(path))
+    if not os.path.exists(resolved):
+        msg = f"Artifact path does not exist: {path}"
+        raise ValueError(msg)
+    return resolved
+
+
 def dispatch(
     params: A2AMessageSendParams, request_id: str | int
 ) -> A2AResponse | A2AErrorResponse:
@@ -324,7 +345,7 @@ def _handle_capture_intent(params: dict[str, Any]) -> dict[str, Any]:
     from drift.api.capture_intent import capture_intent
 
     raw = params.get("raw", "")
-    path = params.get("path", ".")
+    path = _validate_repo_path(params.get("path", "."))
     if not raw:
         msg = "Parameter 'raw' is required for capture_intent."
         raise ValueError(msg)
@@ -335,14 +356,15 @@ def _handle_verify_intent(params: dict[str, Any]) -> dict[str, Any]:
     from drift.api.verify_intent import verify_intent
 
     intent_id = params.get("intent_id", "")
-    artifact_path = params.get("artifact_path", "")
-    path = params.get("path", ".")
+    raw_artifact_path = params.get("artifact_path", "")
+    path = _validate_repo_path(params.get("path", "."))
     if not intent_id:
         msg = "Parameter 'intent_id' is required for verify_intent."
         raise ValueError(msg)
-    if not artifact_path:
+    if not raw_artifact_path:
         msg = "Parameter 'artifact_path' is required for verify_intent."
         raise ValueError(msg)
+    artifact_path = _validate_artifact_path(raw_artifact_path)
     return verify_intent(intent_id=intent_id, artifact_path=artifact_path, path=path)
 
 
@@ -350,14 +372,15 @@ def _handle_feedback_for_agent(params: dict[str, Any]) -> dict[str, Any]:
     from drift.api.feedback_for_agent import feedback_for_agent
 
     intent_id = params.get("intent_id", "")
-    path = params.get("path", ".")
-    artifact_path = params.get("artifact_path", "")
+    path = _validate_repo_path(params.get("path", "."))
+    raw_artifact_path = params.get("artifact_path", "")
     if not intent_id:
         msg = "Parameter 'intent_id' is required for feedback_for_agent."
         raise ValueError(msg)
-    if not artifact_path:
+    if not raw_artifact_path:
         msg = "Parameter 'artifact_path' is required for feedback_for_agent."
         raise ValueError(msg)
+    artifact_path = _validate_artifact_path(raw_artifact_path)
     return feedback_for_agent(intent_id=intent_id, path=path, artifact_path=artifact_path)
 
 
