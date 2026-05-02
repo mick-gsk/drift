@@ -1,7 +1,7 @@
 # VSA Migration Inventory — ADR-100/102 Status
 
-**Date**: 2026-05-01  
-**Branch**: `feat/adr100-phase7a-cleanup`  
+**Date**: 2026-05-01
+**Branch**: `feat/adr100-phase7a-cleanup`
 **Sprint**: Complete VSA Migration (spec/009)
 
 ---
@@ -68,9 +68,9 @@ After migration, active implementations are located **exclusively** in:
 
 ### How Import Resolution Works
 
-1. **Public API entry**: `from drift.signals import PatternFragmentation` 
+1. **Public API entry**: `from drift.signals import PatternFragmentation`
    - Resolves to `packages/drift/src/drift/signals/__init__.py` (compat stub)
-   
+
 2. **Compat stub behavior** (sys.modules aliasing):
    ```python
    # packages/drift/src/drift/signals/__init__.py
@@ -286,7 +286,7 @@ The VSA migration adds two verification steps that fit into the existing pre-pus
 
 ---
 
-**Last Updated**: 2026-05-02 by speckit.implement — Phase 5/6 complete  
+**Last Updated**: 2026-05-02 by speckit.implement — Phase 5/6 complete
 **Next Review**: After SC-003 external measurement run (N=10)
 
 ---
