@@ -6,6 +6,7 @@ Usage (via `drift cockpit serve`):
 from __future__ import annotations
 
 import importlib.resources
+import re
 from pathlib import Path
 from urllib.parse import quote
 
@@ -15,6 +16,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 _STATIC_PACKAGE = "drift_cockpit.static"
+_PATH_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._~-]+$")
 
 
 def _locate_static_dir() -> Path | None:
@@ -52,10 +54,25 @@ def create_app(api_url: str) -> FastAPI:
     )
     async def proxy_api(request: Request, path: str) -> Response:
         # Reject path forms that can be interpreted as absolute/external targets.
-        if path.startswith(("/", "\\")) or "://" in path or path.startswith("//"):
+        if (
+            not path
+            or path.startswith(("/", "\\"))
+            or "://" in path
+            or path.startswith("//")
+        ):
             return JSONResponse({"error": "invalid proxy path"}, status_code=400)
 
-        safe_path = quote(path, safe="/-_.~")
+        segments = path.split("/")
+        if any(
+            not seg
+            or seg in {".", ".."}
+            or any(c in seg for c in ("/", "\\", "?", "#", "%"))
+            or _PATH_SEGMENT_RE.fullmatch(seg) is None
+            for seg in segments
+        ):
+            return JSONResponse({"error": "invalid proxy path"}, status_code=400)
+
+        safe_path = "/".join(quote(seg, safe="-_.~") for seg in segments)
         target = f"{api_url.rstrip('/')}/api/cockpit/{safe_path}"
         if request.query_string:
             target = f"{target}?{request.query_string.decode()}"
