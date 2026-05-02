@@ -8,7 +8,7 @@ from __future__ import annotations
 import importlib.resources
 import re
 from pathlib import Path
-from urllib.parse import parse_qsl, quote, urlencode
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
 import httpx
 from fastapi import FastAPI, Request, Response
@@ -17,6 +17,22 @@ from fastapi.staticfiles import StaticFiles
 
 _STATIC_PACKAGE = "drift_cockpit.static"
 _PATH_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._~-]+$")
+_ALLOWED_SCHEMES = {"http", "https"}
+
+
+def _parse_api_url(api_url: str) -> tuple[str, str]:
+    """Parse and validate api_url, returning (scheme, netloc).
+
+    Raises ValueError if the URL is not a valid http/https URL.
+    """
+    parsed = urlparse(api_url)
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise ValueError(
+            f"api_url scheme must be http or https, got: {parsed.scheme!r}"
+        )
+    if not parsed.netloc:
+        raise ValueError(f"api_url must include a host, got: {api_url!r}")
+    return parsed.scheme, parsed.netloc
 
 
 def _locate_static_dir() -> Path | None:
@@ -41,12 +57,16 @@ def create_app(api_url: str) -> FastAPI:
     Args:
         api_url: Base URL of the Drift Cockpit backend API (e.g. http://localhost:8001).
     """
+    # Parse api_url once at startup so scheme+netloc are trusted constants,
+    # never re-derived from per-request user input (prevents SSRF).
+    _api_scheme, _api_netloc = _parse_api_url(api_url)
+
     app = FastAPI(title="Drift Cockpit", docs_url=None, redoc_url=None)
 
     static_dir = _locate_static_dir()
 
     # ------------------------------------------------------------------
-    # Proxy: /api/cockpit/* → backend api_url/api/cockpit/*
+    # Proxy: /api/cockpit/* -> backend api_url/api/cockpit/*
     # ------------------------------------------------------------------
     @app.api_route(
         "/api/cockpit/{path:path}",
@@ -72,15 +92,22 @@ def create_app(api_url: str) -> FastAPI:
         ):
             return JSONResponse({"error": "invalid proxy path"}, status_code=400)
 
-        safe_path = "/".join(quote(seg, safe="-_.~") for seg in segments)
-        target = f"{api_url.rstrip('/')}/api/cockpit/{safe_path}"
+        safe_path = "/api/cockpit/" + "/".join(quote(seg, safe="-_.~") for seg in segments)
+
+        query = ""
         if request.query_string:
             # Parse and re-encode to prevent query-string injection into the URL
             pairs = parse_qsl(
                 request.query_string.decode(errors="replace"),
                 keep_blank_values=True,
             )
-            target = f"{target}?{urlencode(pairs)}"
+            query = urlencode(pairs)
+
+        # Reconstruct the target URL entirely from trusted components:
+        # scheme and netloc come from the startup-validated api_url constant,
+        # so the host is never influenced by the incoming request.
+        target = urlunparse((_api_scheme, _api_netloc, safe_path, "", query, ""))
+
         body = await request.body()
         async with httpx.AsyncClient() as client:
             upstream = await client.request(
