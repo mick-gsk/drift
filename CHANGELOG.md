@@ -1,6 +1,25 @@
 ## [2.50.0] - 2026-05-02
 
+<<<<<<< HEAD
 Short version: split cockpit ui and backend package
+=======
+Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
+
+### Changed
+- merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
+- add script categories to catalog.py + agent-facing scripts/README.md
+- snapshot all current workspace changes
+
+### Fixed
+- install workspace packages before root in all CI workflows (ADR-100 monorepo)
+- ruff imports, shellcheck backticks, secrets baseline, smoke-pr deps (CI cleanup)
+- ruff I001 in packages/, shellcheck YAML syntax in workflows, fix end-of-files
+- remove UTF-8 BOM and ensure end-of-file newlines in packages/
+- add explicit mypy re-exports to ADR-100 sys.modules stubs
+- unblock CI gates for PR checks
+- install workspace packages in drift-agent-gate workflow
+- resolve failing CI checks for PR 576
+>>>>>>> 18ee6ada0 (chore: snapshot all current workspace changes)
 
 ### Added
 - split cockpit ui and backend package
