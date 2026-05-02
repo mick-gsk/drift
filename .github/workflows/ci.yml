@@ -259,20 +259,31 @@ jobs:
         run: |
           & $env:PYTHON_BIN -m pip config set global.cache-dir $env:PIP_CACHE_DIR
           & $env:PYTHON_BIN -m pip install --upgrade pip
-          # Install workspace packages FIRST so pip resolves them locally.
-          & $env:PYTHON_BIN -m pip install `
-            -e packages/drift `
-            -e packages/drift-config `
-            -e packages/drift-engine `
-            -e packages/drift-sdk `
-            -e packages/drift-output `
-            -e packages/drift-session `
-            -e packages/drift-mcp `
-            -e packages/drift-verify `
-            -e packages/drift-cli
+          # Bootstrap local workspace packages without dependency resolution.
+          # This prevents pip from trying to resolve unpublished internal
+          # packages (for example drift-config) from PyPI during editable
+          # install and keeps all matrix jobs deterministic.
+          $workspacePackages = @(
+            "packages/drift-config",
+            "packages/drift-sdk",
+            "packages/drift-engine",
+            "packages/drift-output",
+            "packages/drift-session",
+            "packages/drift-mcp",
+            "packages/drift-verify",
+            "packages/drift-cockpit",
+            "packages/drift-cli",
+            "packages/drift"
+          )
+          foreach ($pkg in $workspacePackages) {
+            & $env:PYTHON_BIN -m pip install --no-deps -e $pkg
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "Workspace bootstrap failed for $pkg"
+              exit 1
+            }
+          }
           $maxRetries = 3
           for ($i = 1; $i -le $maxRetries; $i++) {
-            & $env:PYTHON_BIN -m pip install -e packages/drift -e packages/drift-config
             & $env:PYTHON_BIN -m pip install -e ".[dev,mcp]"
             if ($LASTEXITCODE -eq 0) { break }
             if ($i -lt $maxRetries) {
