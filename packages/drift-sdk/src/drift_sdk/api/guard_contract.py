@@ -497,4 +497,3 @@ def _build_agent_instruction(contract: dict[str, Any]) -> str:
     parts.append("After editing, call drift_nudge to verify no regressions.")
 
     return " ".join(parts)
-

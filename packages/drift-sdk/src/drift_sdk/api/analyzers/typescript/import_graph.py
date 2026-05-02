@@ -190,4 +190,3 @@ def build_relative_import_graph(repo_path: Path) -> dict[str, set[str]]:
             graph.setdefault(source_key, set()).add(target.as_posix())
 
     return graph
-

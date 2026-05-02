@@ -345,4 +345,3 @@ def patch_commit(
         repo_root=repo_path,
     )
     return result
-

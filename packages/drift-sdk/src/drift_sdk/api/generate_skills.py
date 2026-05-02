@@ -165,4 +165,3 @@ def _build_agent_instruction(
         "Each constraint's enforcement level (block/warn/info) must be "
         "reflected in the rule severity."
     )
-

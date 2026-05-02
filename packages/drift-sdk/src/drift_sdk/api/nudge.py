@@ -875,4 +875,3 @@ def invalidate_nudge_baseline(path: str | Path = ".") -> None:
     # Invalidate both BaselineManager and legacy store
     BaselineManager.instance().invalidate(repo_path)
     _baseline_store.pop(repo_key, None)
-

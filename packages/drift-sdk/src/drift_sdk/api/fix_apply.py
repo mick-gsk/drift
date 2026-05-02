@@ -371,4 +371,3 @@ def fix_apply(
         "summary": summary,
         "agent_instruction": agent_instruction,
     }
-

@@ -135,4 +135,3 @@ def negative_context(
             repo_root=repo_path,
         )
         return _error_response("DRIFT-6001", str(exc), recoverable=True)
-

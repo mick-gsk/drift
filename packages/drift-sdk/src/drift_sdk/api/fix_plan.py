@@ -661,4 +661,3 @@ def fix_plan(
             repo_root=repo_path,
         )
         raise
-

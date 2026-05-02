@@ -68,4 +68,3 @@ def feedback_for_agent(*, intent_id: str, path: str, artifact_path: str) -> dict
             repo_root=repo_root if repo_root.exists() else None,
         )
     return result
-

@@ -441,4 +441,3 @@ def _explain_finding_by_fingerprint(
             )
 
     return None
-

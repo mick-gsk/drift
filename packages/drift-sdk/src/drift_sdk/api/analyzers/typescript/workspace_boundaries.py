@@ -127,4 +127,3 @@ def build_workspace_package_membership(repo_path: Path) -> dict[str, set[str]]:
         membership.setdefault(package_root, set()).add(source_path)
 
     return membership
-

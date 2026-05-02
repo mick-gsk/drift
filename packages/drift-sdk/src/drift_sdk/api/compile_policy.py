@@ -175,4 +175,3 @@ def compile_policy(
             f"Policy compilation failed: {exc}",
             recoverable=True,
         )
-

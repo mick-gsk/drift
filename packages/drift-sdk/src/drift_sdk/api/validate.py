@@ -268,4 +268,3 @@ def validate(
             repo_root=repo_path,
         )
         raise
-

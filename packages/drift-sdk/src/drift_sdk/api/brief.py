@@ -621,4 +621,3 @@ def brief(
             repo_root=repo_path,
         )
         raise
-

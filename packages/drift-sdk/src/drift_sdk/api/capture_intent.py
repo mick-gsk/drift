@@ -65,4 +65,3 @@ def capture_intent(*, raw: str, path: str) -> dict[str, Any]:
             repo_root=repo_root if repo_root.exists() else None,
         )
     return result
-

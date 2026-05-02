@@ -218,4 +218,3 @@ def resolve_tsconfig_alias_import(
                 return relative
 
     return None
-

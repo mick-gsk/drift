@@ -159,4 +159,3 @@ def _build_agent_instruction(
     )
 
     return " ".join(parts)
-

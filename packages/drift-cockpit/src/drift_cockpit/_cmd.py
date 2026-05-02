@@ -355,4 +355,3 @@ def serve_cmd(port: int, api_url: str) -> None:
         "  Press Ctrl+C to stop."
     )
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
-
