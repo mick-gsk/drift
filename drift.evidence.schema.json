@@ -1,0 +1,388 @@
+{
+  "$defs": {
+    "ActionRecommendation": {
+      "description": "Machine-readable verdict.",
+      "properties": {
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "blocking_violation_count": {
+          "default": 0,
+          "title": "Blocking Violation Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "verdict",
+        "reason"
+      ],
+      "title": "ActionRecommendation",
+      "type": "object"
+    },
+    "EvidenceFlag": {
+      "enum": [
+        "no_changes_detected",
+        "rule_conflict",
+        "independent_review_unavailable"
+      ],
+      "title": "EvidenceFlag",
+      "type": "string"
+    },
+    "FunctionalEvidence": {
+      "description": "Caller-provided functional/CI evidence (FR-006).",
+      "properties": {
+        "tests_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tests Passed"
+        },
+        "tests_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tests Total"
+        },
+        "tests_failing": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tests Failing"
+        },
+        "lint_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lint Passed"
+        },
+        "typecheck_passed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Typecheck Passed"
+        },
+        "screenshots": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Screenshots",
+          "type": "array"
+        },
+        "logs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Logs",
+          "type": "array"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Metrics",
+          "type": "object"
+        }
+      },
+      "title": "FunctionalEvidence",
+      "type": "object"
+    },
+    "IndependentReviewResult": {
+      "description": "Result from reviewer agent (synchronous; unavailable on timeout).",
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "confidence_delta": {
+          "default": 0.0,
+          "title": "Confidence Delta",
+          "type": "number"
+        },
+        "findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Findings",
+          "type": "array"
+        },
+        "spec_criteria_violated": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Spec Criteria Violated",
+          "type": "array"
+        }
+      },
+      "required": [
+        "available"
+      ],
+      "title": "IndependentReviewResult",
+      "type": "object"
+    },
+    "RulePromotionProposal": {
+      "description": "Proposal to permanently add a rule based on recurring violations.",
+      "properties": {
+        "pattern_key": {
+          "title": "Pattern Key",
+          "type": "string"
+        },
+        "occurrence_count": {
+          "title": "Occurrence Count",
+          "type": "integer"
+        },
+        "threshold": {
+          "title": "Threshold",
+          "type": "integer"
+        },
+        "suggested_rule_id": {
+          "title": "Suggested Rule Id",
+          "type": "string"
+        },
+        "suggested_description": {
+          "title": "Suggested Description",
+          "type": "string"
+        },
+        "affected_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Affected Files",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pattern_key",
+        "occurrence_count",
+        "threshold",
+        "suggested_rule_id",
+        "suggested_description"
+      ],
+      "title": "RulePromotionProposal",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "Verdict": {
+      "enum": [
+        "automerge",
+        "needs_fix",
+        "needs_review",
+        "escalate_to_human"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    },
+    "ViolationFinding": {
+      "description": "Single architecture or structural rule violation.",
+      "properties": {
+        "violation_type": {
+          "$ref": "#/$defs/ViolationType"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "conflicting_rule_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conflicting Rule Id"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "remediation": {
+          "title": "Remediation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "violation_type",
+        "severity",
+        "message",
+        "remediation"
+      ],
+      "title": "ViolationFinding",
+      "type": "object"
+    },
+    "ViolationType": {
+      "enum": [
+        "layer_violation",
+        "forbidden_dependency",
+        "file_placement",
+        "naming_convention",
+        "rule_conflict"
+      ],
+      "title": "ViolationType",
+      "type": "string"
+    }
+  },
+  "description": "Central, immutable result artifact of drift verify.",
+  "properties": {
+    "schema": {
+      "default": "evidence-package-v1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    },
+    "change_set_id": {
+      "title": "Change Set Id",
+      "type": "string"
+    },
+    "repo": {
+      "title": "Repo",
+      "type": "string"
+    },
+    "verified_at": {
+      "format": "date-time",
+      "title": "Verified At",
+      "type": "string"
+    },
+    "drift_score": {
+      "title": "Drift Score",
+      "type": "number"
+    },
+    "spec_confidence_score": {
+      "title": "Spec Confidence Score",
+      "type": "number"
+    },
+    "action_recommendation": {
+      "$ref": "#/$defs/ActionRecommendation"
+    },
+    "violations": {
+      "items": {
+        "$ref": "#/$defs/ViolationFinding"
+      },
+      "title": "Violations",
+      "type": "array"
+    },
+    "functional_evidence": {
+      "$ref": "#/$defs/FunctionalEvidence"
+    },
+    "independent_review": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/IndependentReviewResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "rule_promotions": {
+      "items": {
+        "$ref": "#/$defs/RulePromotionProposal"
+      },
+      "title": "Rule Promotions",
+      "type": "array"
+    },
+    "flags": {
+      "items": {
+        "$ref": "#/$defs/EvidenceFlag"
+      },
+      "title": "Flags",
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "version",
+    "change_set_id",
+    "repo",
+    "verified_at",
+    "drift_score",
+    "spec_confidence_score",
+    "action_recommendation"
+  ],
+  "title": "EvidencePackage",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

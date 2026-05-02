@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.ingestion.ast_parser import PythonFileParser
 from drift.ingestion.ts_parser import parse_typescript_file, tree_sitter_available

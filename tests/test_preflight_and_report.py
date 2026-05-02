@@ -7,7 +7,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import AnalyzerWarning, RepoAnalysis
 from drift.output.markdown_report import analysis_to_markdown
@@ -222,7 +221,6 @@ class TestMarkdownCLIFormat:
 
     def test_analyze_help_lists_markdown_format(self) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -236,7 +234,6 @@ class TestMarkdownCLIFormat:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         analysis = _make_analysis(tmp_path, score=12.0)
@@ -245,7 +242,7 @@ class TestMarkdownCLIFormat:
             return analysis
 
         monkeypatch.setattr("drift.analyzer.analyze_repo", _fake_analyze)
-        monkeypatch.setattr("drift.analyzer._DEFAULT_WORKERS", 1)
+        monkeypatch.setattr("drift_engine.analyzer._DEFAULT_WORKERS", 1)
 
         # Ensure DriftConfig.load returns a default config
         def _fake_load(*a: object, **kw: object) -> DriftConfig:
@@ -269,9 +266,8 @@ class TestGuidanceFooter:
         """Guidance footer appears when repo has no drift.yaml."""
         from io import StringIO
 
-        from rich.console import Console
-
         from drift.output.rich_output import render_full_report
+        from rich.console import Console
 
         analysis = _make_analysis(tmp_path, score=20.0)
         buf = StringIO()
@@ -284,9 +280,8 @@ class TestGuidanceFooter:
         """Guidance footer does NOT appear when drift.yaml exists."""
         from io import StringIO
 
-        from rich.console import Console
-
         from drift.output.rich_output import render_full_report
+        from rich.console import Console
 
         (tmp_path / "drift.yaml").write_text("version: 1\n", encoding="utf-8")
         analysis = _make_analysis(tmp_path, score=20.0)
@@ -301,9 +296,8 @@ class TestGuidanceFooter:
         """German locale shows German guidance text."""
         from io import StringIO
 
-        from rich.console import Console
-
         from drift.output.rich_output import render_full_report
+        from rich.console import Console
 
         analysis = _make_analysis(tmp_path, score=20.0)
         buf = StringIO()

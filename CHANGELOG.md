@@ -1,15 +1,33 @@
-## [2.49.0] - 2026-04-30
+## [2.50.0] - 2026-05-01
 
-Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
-
-### Added
-- add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
-
-### Fixed
-- resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
+Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script catalog improvements.
 
 ### Changed
-- update harness prompt and skill catalog
+- merge main into feat/adr100-phase7a-cleanup; add script categories to catalog.py and scripts/README.md
+
+### Fixed
+- resolve monorepo CI regressions across install, lint, and quality checks (ADR-100), including local workspace package bootstrap and model-consistency environment setup
+- reduce workflow friction by suppressing the fallback MAZ false positive and stopping hooks from mutating commit history during commit and push
+- align CI static-analysis paths to packages/drift/src/drift after ADR-100 path migration
+
+### Added
+- Phase 1 complete — VSA migration infrastructure setup (T001-T005)
+
+## [2.49.0] - 2026-04-30
+
+Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle. New: `@drift-analyzer/sdk` npm package for Node.js/TypeScript programmatic access.
+
+### Added
+- `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+- Monorepo ADR-100 capability-split rollout (uv workspace + `drift-config`/`drift-sdk`/`drift-engine`/`drift-session`/`drift-mcp`/`drift-cli`) plus outcome-first validation runner
+- `@drift-analyzer/sdk` npm package for Node.js/TypeScript programmatic access (`analyze`, `check`, `brief`, `fix-plan`)
+
+### Fixed
+- resolve PR #563 review issues; harden output stubs; restore brief command console state; FU-002/004 ab-harness mock mode
+
+### Changed
+- add packages/ to repo-root-allowlist; phase 6b CI/workflow path-filters (ADR-100)
+- prevent post-commit hook from re-inserting CHANGELOG bullet on amend
 
 ## [2.48.5] - 2026-04-29
 

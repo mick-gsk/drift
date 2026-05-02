@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pytest
-
 from drift.models import AgentTask, Severity, SignalType
 from drift.next_step_contract import (
     DONE_SAFE_TO_COMMIT,

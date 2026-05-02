@@ -10,7 +10,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import (
     Finding,
@@ -301,7 +300,7 @@ def test_discover_files_skipped_langs_warning(
 
     # Patch supported languages to exclude typescript
     with patch(
-        "drift.ingestion.file_discovery._detect_supported_languages", return_value={"python"}
+        "drift_engine.ingestion.file_discovery._detect_supported_languages", return_value={"python"}
     ):
         skipped: dict[str, int] = {}
         files = discover_files(

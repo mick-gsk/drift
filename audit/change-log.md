@@ -65,3 +65,48 @@ guessing.
 | `.venv\Scripts\python.exe scripts\check_agent_harness_contract.py --write-tool-map` | `Wrote audit\harness-tool-map.json` (33 tools, 0 inline-only) |
 | `.venv\Scripts\python.exe -m pytest tests/test_agent_harness_contract.py -q --tb=short` | `11 passed` |
 | `.venv\Scripts\python.exe scripts/ab_harness.py --mode llm run` | exit 1 with operative error and FU-001 reference |
+
+## 2026-04-30 — Neutral A/B harness target and report provenance
+
+| File | Change | Reason | Validation |
+| --- | --- | --- | --- |
+| [../Makefile](../Makefile) | `ab-harness` now passes `--mock-mode neutral`. | Keeps the repo-level evaluation target focused on brief-effect measurement while preserving the script default for explicit compatibility runs. | Harness contract test and direct contract check. |
+| [../scripts/ab_harness.py](../scripts/ab_harness.py) | Reports now include `mock_mode` and `mock_mode_interpretation`. | Makes evaluation output say whether it measures structurally equivalent edits or fixture bias. | [../tests/test_ab_harness.py](../tests/test_ab_harness.py). |
+| [../scripts/check_agent_harness_contract.py](../scripts/check_agent_harness_contract.py) | Added HARNESS008 to enforce neutral mock mode in `make ab-harness`. | Prevents future Makefile drift from silently returning to biased repo-level automation. | [../tests/test_agent_harness_contract.py](../tests/test_agent_harness_contract.py). |
+| [../docs/agent-harness-golden-principles.md](../docs/agent-harness-golden-principles.md) | Added AH-GP-008. | Records the new invariant next to the executable enforcement. | Markdown link and contract checks. |
+| [follow-up.md](follow-up.md) | Closed FU-002. | Keeps the next-agent queue focused on remaining open gaps. | Read review plus targeted tests. |
+
+### Validation Log
+
+| Command | Result |
+| --- | --- |
+| `.venv\Scripts\python.exe -m ruff check scripts/check_agent_harness_contract.py scripts/ab_harness.py tests/test_agent_harness_contract.py tests/test_ab_harness.py` | `All checks passed!` |
+| `.venv\Scripts\python.exe -m pytest tests/test_agent_harness_contract.py tests/test_ab_harness.py -q --tb=short` | `15 passed in 0.32s` |
+| `.venv\Scripts\python.exe scripts\check_agent_harness_contract.py --root .` | `Agent harness contract: OK` |
+| `make agent-harness-check` | `Agent harness contract: OK` |
+
+### Global Gate Notes
+
+| Command | Result |
+| --- | --- |
+| `.venv\Scripts\pre-commit.exe run --all-files` | Blocked by pre-existing repo-wide hygiene issues: `ruff-format` would reformat 301 files, `actionlint` flags [.github/workflows/welcome.yml](../.github/workflows/welcome.yml) input names, and `markdownlint-cli2` reports existing Markdown spacing issues. It also auto-fixed EOF/trailing whitespace in two unrelated files. |
+| `make check` | Blocked by a stale global `pytest` shim pointing to `C:\Users\mickg\Real-Time Fortnite Coach\.conda\...`. |
+| `make check PYTHON=.venv\Scripts\python.exe RUFF=".venv\Scripts\python.exe -m ruff" MYPY=".venv\Scripts\python.exe -m mypy" PYTEST=".venv\Scripts\python.exe -m pytest"` | Lint and mypy passed; test run reached `1345 passed, 121 skipped` but ended with `KeyboardInterrupt` after 5:10, so it is not counted as a passing full check. |
+| `make gate-check COMMIT_TYPE=chore` | Gate 8 remained `NOT_YET`: no CI cache marker because full `make check` did not complete. |
+
+## 2026-04-30 — FU-004: repro-bundle Makefile target and HARNESS009 Makefile enforcement
+
+| File | Change | Reason | Validation |
+| --- | --- | --- | --- |
+| [../Makefile](../Makefile) | Added `repro-bundle` target with SUMMARY/FAILURE/CHECK/ENTRYPOINT params; added to `.PHONY`. | Gives agents a standard, discoverable workflow entry point so they can call the repro-bundle script without locating it manually. | `make agent-harness-check` and targeted pytest. |
+| [../scripts/check_agent_harness_contract.py](../scripts/check_agent_harness_contract.py) | Extended HARNESS009 to also fail when the Makefile lacks the `repro-bundle` target; added `REPRO_BUNDLE_MAKE_TARGET` constant. | Makes the "script exists" contract also include "there is a named Make entry point", i.e., the bundle is callable without terminal archaeology. | `pytest tests/test_agent_harness_contract.py::test_failed_turn_repro_bundle_contract_requires_makefile_target tests/test_agent_harness_contract.py::test_failed_turn_repro_bundle_contract_accepts_makefile_with_target`. |
+| [../tests/test_agent_harness_contract.py](../tests/test_agent_harness_contract.py) | Added two tests: one that verifies HARNESS009 fires without the target, one that verifies it passes with it. | RED→GREEN cycle prevents silent regression. | Targeted pytest: 3 passed in 0.34s. |
+| [follow-up.md](follow-up.md) | Closed FU-004. | Keeps the deferred-gap queue current. | Read review. |
+
+### Validation Log
+
+| Command | Result |
+| --- | --- |
+| `.venv\Scripts\python.exe scripts\check_agent_harness_contract.py --root .` | `Agent harness contract: OK` |
+| `.venv\Scripts\python.exe -m pytest tests/test_agent_harness_contract.py tests/test_agent_repro_bundle.py -q --tb=short` | `24 passed in 0.44s` |
+| `.venv\Scripts\python.exe -m ruff check scripts/check_agent_harness_contract.py tests/test_agent_harness_contract.py` | `All checks passed!` |

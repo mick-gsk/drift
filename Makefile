@@ -11,10 +11,10 @@ PYTEST   ?= pytest
 RUFF     ?= ruff
 MYPY     ?= $(PYTHON) -m mypy
 
-SRC      := src/
+SRC      := packages/
 TESTS    := tests/
 
-.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
+.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check task-card feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check repro-bundle markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -31,7 +31,7 @@ lint-fix:  ## Run ruff with auto-fix
 	$(RUFF) check --fix $(SRC) $(TESTS)
 
 typecheck:  ## Run mypy type checker
-	$(MYPY) src/drift
+	$(MYPY) packages/drift/src/drift packages/drift-engine/src/drift_engine packages/drift-sdk/src/drift_sdk packages/drift-output/src/drift_output packages/drift-cli/src/drift_cli packages/drift-mcp/src/drift_mcp packages/drift-session/src/drift_session packages/drift-config/src/drift_config
 
 test:  ## Run tests in parallel (skip slow smoke tests)
 	$(PYTEST) -v --tb=short --ignore=tests/test_smoke_real_repos.py -n auto --dist=loadscope
@@ -147,6 +147,11 @@ catalog:  ## [Agent] List scripts with short descriptions (use ARGS='--search ke
 gate-check:  ## [Agent] Proactive gate status before commit/push (COMMIT_TYPE=feat|fix|chore|signal)
 	$(PYTHON) scripts/gate_check.py --commit-type $(COMMIT_TYPE)
 
+task-card:  ## [Agent] Render compact kickoff card (TYPE=feat|fix|chore|signal|prompt|review TASK='short description')
+	$(if $(strip $(TYPE)),,$(error TYPE missing. Use: make task-card TYPE=fix TASK='...'))
+	$(if $(strip $(TASK)),,$(error TASK missing. Use: make task-card TYPE=fix TASK='...'))
+	$(PYTHON) scripts/task_card.py --type $(TYPE) --task "$(TASK)"
+
 feat-bundle:  ## [Agent] Generate + validate feature evidence, then auto-update CHANGELOG and STUDY.md (VERSION=X.Y.Z SLUG=name [MSG='description'])
 	@[ "$(VERSION)" ] || (echo "Error: VERSION missing. Use: make feat-bundle VERSION=X.Y.Z SLUG=name"; exit 1)
 	@[ "$(SLUG)" ] || (echo "Error: SLUG missing. Use: make feat-bundle VERSION=X.Y.Z SLUG=name"; exit 1)
@@ -160,6 +165,10 @@ feat-bundle:  ## [Agent] Generate + validate feature evidence, then auto-update 
 handover:  ## [Agent] Generate session handover artifact (TASK='description')
 	@[ "$(TASK)" ] || (echo "Error: TASK missing. Use: make handover TASK='description'"; exit 1)
 	$(PYTHON) scripts/session_handover.py --task "$(TASK)"
+	$(PYTHON) scripts/update_work_artifacts_index.py
+
+update-artifacts-index:  ## [Agent] Regenerate work_artifacts/index.json (run after any session)
+	$(PYTHON) scripts/update_work_artifacts_index.py
 
 changelog-entry:  ## [Agent] Preview changelog snippet on stdout (COMMIT_TYPE=feat|fix|chore MSG='text')
 	@[ "$(COMMIT_TYPE)" ] || (echo "Error: COMMIT_TYPE missing."; exit 1)
@@ -176,6 +185,19 @@ audit-diff:  ## [Agent] Show required risk-audit updates for current diff
 
 agent-harness-check:  ## [Agent] Validate harness navigation, audit docs, and MCP boundaries
 	$(PYTHON) scripts/check_agent_harness_contract.py --root .
+
+repro-bundle:  ## [Agent] Create a compact repro bundle for a failed agent turn (SUMMARY, FAILURE, CHECK, ENTRYPOINT required)
+	@[ "$(SUMMARY)" ] || (echo "Error: SUMMARY missing. Use: make repro-bundle SUMMARY='...' FAILURE='...' CHECK='...' ENTRYPOINT='...'"; exit 1)
+	@[ "$(FAILURE)" ] || (echo "Error: FAILURE missing."; exit 1)
+	@[ "$(CHECK)" ] || (echo "Error: CHECK missing."; exit 1)
+	@[ "$(ENTRYPOINT)" ] || (echo "Error: ENTRYPOINT missing."; exit 1)
+	$(PYTHON) scripts/agent_repro_bundle.py \
+		--summary "$(SUMMARY)" \
+		--failure-context "$(FAILURE)" \
+		--last-check-status "$(CHECK)" \
+		$(if $(NUDGE),--last-nudge-status "$(NUDGE)",) \
+		--next-agent-entrypoint "$(ENTRYPOINT)" \
+		$(if $(SESSION_ID),--session-id "$(SESSION_ID)",)
 
 clean:  ## Remove caches and build artifacts
 	rm -rf .drift-cache .pytest_cache .ruff_cache .mypy_cache htmlcov dist build
@@ -201,7 +223,7 @@ repair-eval:  ## Baustein 2: Repair evaluation with side-effect tracking
 	$(PYTHON) scripts/repair_eval.py run --apply
 
 ab-harness:  ## Baustein 3: A/B harness (mock mode, deterministic)
-	$(PYTHON) scripts/ab_harness.py run
+	$(PYTHON) scripts/ab_harness.py run --mock-mode neutral
 	$(PYTHON) scripts/ab_harness.py stats
 	$(PYTHON) scripts/ab_harness.py report
 

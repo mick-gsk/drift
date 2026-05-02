@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from drift.finding_priority import (
     _composite_sort_key,
     _context_score,

@@ -5,7 +5,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from drift.models import FunctionInfo, SignalType
 
 
@@ -327,6 +326,7 @@ def test_api_validate_core_paths(monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     baseline.write_text('{"drift_score": 0.6}', encoding="utf-8")
     monkeypatch.setattr("drift.baseline.load_baseline", lambda _p: {"fp1"})
     monkeypatch.setattr("drift.api.scan", lambda *_a, **_k: {"drift_score": 0.4})
+    monkeypatch.setattr("drift_sdk.api.scan", lambda *_a, **_k: {"drift_score": 0.4})
     monkeypatch.setattr(
         "drift.analyzer.analyze_repo", lambda *_a, **_k: SimpleNamespace(findings=[])
     )

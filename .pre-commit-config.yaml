@@ -7,7 +7,7 @@ repos:
       - id: trailing-whitespace
         exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.)"
       - id: end-of-file-fixer
-        exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.|\\.vscode/drift-session\\.json$|playground/.*\\.tsbuildinfo$)"
+        exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.|\\.vscode/drift-session\\.json$|playground/.*\\.tsbuildinfo$|packages/cockpit-ui/\\.next/|packages/cockpit-ui/playwright-report/|packages/cockpit-ui/test-results/|td_parsed\\.json$|result_line\\.txt$|_bisect_tests\\.txt$|last_nudge\\.json$|last_scan\\.json$|output\\.json$|(^|[\\/])nudge_baselines[\\/])"
       - id: check-yaml
         args: [--allow-multiple-documents, --unsafe]
         exclude: "^conda\\.recipe/"
@@ -33,6 +33,12 @@ repos:
           - "(^|[\\\\/])benchmarks[\\\\/]corpus[\\\\/]\\.drift-cache-golden[\\\\/]parse([\\\\/]|$)"
           - --exclude-files
           - "(^|[\\\\/])(benchmark_results|audit_results|site|docs-site|\\.hypothesis|\\.venv|dist|build|\\.mypy_cache|\\.pytest_cache|\\.ruff_cache|\\.drift-cache|work_artifacts|master-backlog|tagesplanung)([\\\\/]|$)"
+          - --exclude-files
+          - "(^|[\\\\/])packages[\\\\/]cockpit-ui[\\\\/]\\.next([\\\\/]|$)"
+          - --exclude-files
+          - "(^|[\\\\/])(last_nudge|last_scan|output)\\.json$|(^|[\\\\/])nudge_baselines[\\\\/]"
+          - --exclude-files
+          - "(^|[\\\\/])td_parsed\\.json$"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.1

@@ -10,7 +10,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from drift.copilot_context import (
     MARKER_BEGIN,
     MARKER_END,
@@ -408,8 +407,9 @@ class TestMcpServerHelpers:
         tmp_path: Path,
     ) -> None:
         """Session-scoped fix_plan can reuse queued tasks without re-analysis."""
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         SessionManager.reset_instance()
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
@@ -452,8 +452,9 @@ class TestMcpServerHelpers:
         tmp_path: Path,
     ) -> None:
         """response_profile='coder' remains eligible for session fast-path cache."""
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         SessionManager.reset_instance()
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
@@ -493,8 +494,9 @@ class TestMcpServerHelpers:
         """Fast-path pending queue must omit claimed and failed tasks (Issue #486)."""
         import time
 
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         SessionManager.reset_instance()
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
@@ -539,8 +541,9 @@ class TestMcpServerHelpers:
         tmp_path: Path,
     ) -> None:
         """Explicit filters disable fast-path and trigger the regular API call."""
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         SessionManager.reset_instance()
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
@@ -574,8 +577,9 @@ class TestMcpServerHelpers:
         tmp_path: Path,
     ) -> None:
         """response_profile='verifier' disables fast-path and uses API response shaping."""
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         SessionManager.reset_instance()
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
@@ -835,8 +839,9 @@ class TestMcpServerHelpers:
         """drift_brief should append a drift_brief trace entry for session workflows."""
         import json as _json
 
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         fake_result = {
             "type": "brief",
@@ -879,7 +884,6 @@ class TestMcpServerHelpers:
 class TestCLICommands:
     def test_mcp_help(self) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -889,7 +893,6 @@ class TestCLICommands:
 
     def test_mcp_no_args_shows_usage(self) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -900,7 +903,6 @@ class TestCLICommands:
 
     def test_mcp_list_shows_tools_without_starting_server(self) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -913,7 +915,6 @@ class TestCLICommands:
 
     def test_mcp_schema_outputs_tool_parameters(self) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -926,7 +927,6 @@ class TestCLICommands:
 
     def test_mcp_modes_are_mutually_exclusive(self) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -937,10 +937,10 @@ class TestCLICommands:
 
     def test_mcp_missing_extra_raises_structured_error(self, monkeypatch) -> None:
         from click.testing import CliRunner
-
-        from drift import mcp_server
         from drift.cli import main
         from drift.errors import DriftSystemError
+
+        from drift import mcp_server
 
         def _raise_missing_dependency() -> None:
             raise RuntimeError("requires optional dependency 'mcp'")
@@ -955,7 +955,6 @@ class TestCLICommands:
 
     def test_mcp_non_mcp_import_error_is_not_rewritten(self, monkeypatch) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         def _raise_non_mcp_import_error():
@@ -973,7 +972,6 @@ class TestCLICommands:
         import json as _json
 
         from click.testing import CliRunner
-
         from drift.cli import main
 
         class _TTY:
@@ -1004,7 +1002,6 @@ class TestCLICommands:
 
     def test_copilot_context_help(self) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -1018,7 +1015,6 @@ class TestCLICommands:
         tmp_path: Path,
     ) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         monkeypatch.setattr(
@@ -1050,7 +1046,6 @@ class TestCLICommands:
         tmp_path: Path,
     ) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         monkeypatch.setattr(
@@ -1092,7 +1087,6 @@ class TestCLICommands:
         tmp_path: Path,
     ) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         monkeypatch.setattr(

@@ -1,0 +1,28 @@
+{
+  "version": "2.50.0",
+  "date": "2026-05-01",
+  "feature": "outcome first validation",
+  "description": "Feature evidence for outcome first validation (v2.50.0).",
+  "generated_by": {
+    "script": "scripts/generate_feature_evidence.py",
+    "git_sha": "985524119e294b97215a1f2e0450a27dc6eba63b",
+    "drift_version": "2.49.0",
+    "timestamp": "2026-05-01T17:08:11.112000+00:00"
+  },
+  "self_analysis": {
+    "error": "JSON parse error: Extra data: line 26693 column 1 (char 1038757)"
+  },
+  "tests": {
+    "total_passing": 6746,
+    "total_failing": 0,
+    "exit_code": 0
+  },
+  "precision_recall_suite": {
+    "total_tests": 207,
+    "passing": 207,
+    "failing": 0,
+    "exit_code": 0,
+    "source": "live: pytest tests/test_precision_recall.py -v --tb=short"
+  },
+  "audit_artifacts_updated": []
+}

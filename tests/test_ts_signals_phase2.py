@@ -10,7 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import (
     FunctionInfo,

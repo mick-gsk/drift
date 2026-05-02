@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 
 import pytest
-
 from drift.cache import SignalCache
 from drift.config import DriftConfig
 from drift.incremental import (  # noqa: I001

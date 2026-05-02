@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-
 from drift.models import Finding, FindingStatus, LogicalLocation, Severity
 from drift.outcome_tracker import OutcomeTracker, compute_fingerprint
 

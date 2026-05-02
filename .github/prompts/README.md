@@ -7,6 +7,9 @@
 | Prompt | Zweck | Relevanter Skill | Relevante Instruction | Wann verwenden |
 |--------|-------|-------------------|----------------------|----------------|
 | [drift-harness-engine](drift-harness-engine.prompt.md) | Harness-Engine-Audit: Maps, Contracts, Feedback-Loops, Agentenlesbarkeit und Entropieabwehr im Workspace verbessern | `drift-agent-prompt-authoring` | `drift-policy`, `drift-prompt-engineering` | Wenn Agenten die Workspace-Harness-Engine statt Produktoberflaechen verbessern sollen |
+| [drift-context-engineering](drift-context-engineering.prompt.md) | Context-Engineering-Audit: statischer Kontext, dynamischer Kontext, Freshness, Single Source of Truth und repo-lokale Kontextluecken bewerten | `drift-agent-prompt-authoring` | `drift-policy`, `drift-prompt-engineering` | Wenn unklar ist, ob Agenten im Workspace ueber die richtigen und ausreichend frischen Informationen verfuegen |
+| [drift-harness-followup](drift-harness-followup.prompt.md) | Harness-Follow-up: bestehenden Artefaktordner lesen, naechsten offenen Hebeldefekt waehlen und eng umsetzen | `drift-agent-prompt-authoring` | `drift-policy`, `drift-prompt-engineering` | Nach einem Lauf von `drift-harness-engine`, wenn aus den Artefakten die naechste gezielte Verbesserung abgeleitet werden soll |
+| [drift-context-engineering-followup](drift-context-engineering-followup.prompt.md) | Context-Engineering-Follow-up: offenen Kontext-Gap aus Context-Engineering-Artefakten lesen und genau eine Repo-Aenderung umsetzen | `drift-agent-prompt-authoring` | `drift-policy`, `drift-prompt-engineering` | Nach einem Lauf von `drift-context-engineering`, wenn der naechste offene Kontext-Hebel direkt umgesetzt werden soll |
 | [drift-agent-ux](drift-agent-ux.prompt.md) | Agent-UX-Audit: Entscheidungsketten, Dead Ends, Recovery-Pfade | — | `drift-policy` | Agent-Nutzbarkeit der CLI bewerten |
 | [drift-agent-workflow-test](drift-agent-workflow-test.prompt.md) | Vollständiger CLI-Coverage-Test über alle Kommandos | — | `drift-policy` | Komplette CLI-Oberfläche testen |
 | [drift-ai-integration](drift-ai-integration.prompt.md) | LLM-Kontext-Qualität: Export-Formate, MCP, Token-Effizienz | — | `drift-policy` | AI-Integrations-Tauglichkeit prüfen |
@@ -33,6 +36,10 @@ Für eine umfassende Drift-Bewertung diese Prompts in dieser Reihenfolge ausfüh
 Wenn die Aufgabe nicht die Drift-CLI oder das Produktverhalten selbst, sondern die agentische Arbeitsumgebung des Workspaces verbessern soll, zuerst **drift-harness-engine** verwenden.
 
 Der Prompt ist bewusst intern ausgerichtet und startet an Repo-Maps, Contracts und Harness-Checks statt an `drift-analyzer`-Produktflaechen. Das vermeidet, dass Agenten versehentlich in CLI- oder Field-Test-Prompts kippen, obwohl eigentlich die Workspace-Harness-Engine das Ziel ist.
+
+Wenn der groesste Engpass nicht die gesamte Harness-Engine, sondern speziell der verfuegbare Agenten-Kontext ist, zuerst **drift-context-engineering** verwenden. Dieser Prompt trennt bewusst zwischen statischem Kontext, dynamischem Kontext, Freshness und Single-Source-of-Truth-Luecken.
+
+Wenn bereits ein Artefaktordner aus einem Harness-Lauf existiert und **kein neues Voll-Audit**, sondern der naechste gezielte Folgeschritt gewuenscht ist, danach **drift-harness-followup** verwenden. Dieser Prompt baut bewusst auf `harness_engine_report.md`, `leverage_findings.md` und `autonomy_ladder.md` auf, statt die gesamte Harness-Analyse erneut breit aufzurollen.
 
 ## Tägliche Workflows
 
@@ -65,6 +72,7 @@ Alle Prompts nutzen gemeinsame Referenz-Dateien unter `_partials/`:
 | Datei | Inhalt |
 |-------|--------|
 | [`_partials/bewertungs-taxonomie.md`](_partials/bewertungs-taxonomie.md) | Einheitliches Bewertungssystem (Labels, Scores, Klassifikationen) |
+| [`_partials/context-engineering-contract.md`](_partials/context-engineering-contract.md) | Shared Contract fuer statischen Kontext, dynamischen Kontext, Freshness und Single-Source-of-Truth-Pruefung |
 | [`_partials/konventionen.md`](_partials/konventionen.md) | Policy-Gate-Pflicht, Datumsformat, Artefakt-Pfade, Sandbox-Erstellung |
 | [`_partials/issue-filing.md`](_partials/issue-filing.md) | Issue-Template für interne Prompts |
 | [`_partials/issue-filing-external.md`](_partials/issue-filing-external.md) | Issue-Template für Field-Test-Prompts (Cross-Repo) |

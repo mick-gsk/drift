@@ -16,9 +16,8 @@ import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-import pytest
-
 import drift.fix_plan_dismissals as fix_plan_dismissals
+import pytest
 from drift.fix_plan_dismissals import (
     _write_entries,
     dismiss_task,

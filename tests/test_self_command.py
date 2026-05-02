@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.config import DriftConfig
 from drift.errors import DriftSystemError
