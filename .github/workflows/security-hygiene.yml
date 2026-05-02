@@ -48,6 +48,7 @@ jobs:
             -e packages/drift-output `
             -e packages/drift-session `
             -e packages/drift-mcp `
+            -e packages/drift-verify `
             -e packages/drift-cli
           # Non-editable install avoids pip-audit failures on editable metadata.
           python -m pip install ".[dev]" pre-commit==4.2.0 pip-audit

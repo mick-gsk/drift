@@ -351,4 +351,3 @@ def _run_all_phases(
         response["files_written"].append("drift.repair.prompt.md")
 
     return response
-

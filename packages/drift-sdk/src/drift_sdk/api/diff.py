@@ -1247,4 +1247,3 @@ def _diff_next_step_contract(
         fallback_tool="drift_scan",
         fallback_params={"response_detail": "concise"},
     )
-

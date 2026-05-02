@@ -37,6 +37,7 @@ jobs:
             -e packages/drift-output \
             -e packages/drift-session \
             -e packages/drift-mcp \
+            -e packages/drift-verify \
             -e packages/drift-cli
           pip install -e ".[dev]" import-linter --quiet
 
@@ -167,6 +168,7 @@ jobs:
             -e packages/drift-output \
             -e packages/drift-session \
             -e packages/drift-mcp \
+            -e packages/drift-verify \
             -e packages/drift-cli
           pip install -e ".[dev]" pip-audit --quiet
 

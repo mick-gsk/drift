@@ -400,4 +400,3 @@ def verify(
             recoverable=True,
             recovery_tool_call={"tool": "drift_scan", "params": {"path": str(path)}},
         )
-

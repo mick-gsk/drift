@@ -689,4 +689,3 @@ def _top_affected_files(findings: list, *, max_files: int = _TOP_AFFECTED_FILES_
                 if len(seen) >= max_files:
                     break
     return list(seen)
-

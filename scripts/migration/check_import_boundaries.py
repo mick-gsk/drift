@@ -31,7 +31,7 @@ from typing import Any
 def check_import_boundaries(repo_root: Path) -> dict[str, Any]:
     """
     Scan public API entry points and check for direct canonical package imports.
-    
+
     Returns:
         {
             "status": "ok" | "warning" | "error",
@@ -40,13 +40,13 @@ def check_import_boundaries(repo_root: Path) -> dict[str, Any]:
         }
     """
     compat_root = repo_root / "packages" / "drift" / "src" / "drift"
-    
+
     report: dict[str, Any] = {
         "status": "ok",
         "files_scanned": 0,
         "violations": [],
     }
-    
+
     if not compat_root.exists():
         report["status"] = "error"
         report["violations"].append(
@@ -58,13 +58,13 @@ def check_import_boundaries(repo_root: Path) -> dict[str, Any]:
             }
         )
         return report
-    
+
     # T007-T009 placeholder: Implement boundary check logic
     # For now: return empty check (structure is correct)
-    
+
     if report["violations"]:
         report["status"] = "error"
-    
+
     return report
 
 
@@ -93,11 +93,11 @@ def main() -> int:
         action="append",
         help="Check specific package (can be repeated; default: all)",
     )
-    
+
     args = parser.parse_args()
-    
+
     report = check_import_boundaries(args.repo)
-    
+
     if args.json:
         print(json.dumps(report, indent=2))
     else:
@@ -108,17 +108,17 @@ def main() -> int:
             for v in report["violations"]:
                 print(f"    - {v['file']}:{v['line']}: {v['import']}")
                 print(f"      {v['reason']}")
-    
+
     # Determine exit code
     exit_code = {
         "ok": 0,
         "warning": 1,
         "error": 2,
     }.get(report["status"], 2)
-    
+
     if args.strict and exit_code == 1:
         exit_code = 2
-    
+
     return exit_code
 
 

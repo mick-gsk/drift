@@ -1,15 +1,15 @@
 import { CockpitShell } from '@/components/CockpitShell'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     owner: string
     repo: string
     pr_number: string
-  }
+  }>
 }
 
-export default function CockpitPage({ params }: PageProps) {
-  const { owner, repo, pr_number } = params
+export default async function CockpitPage({ params }: PageProps) {
+  const { owner, repo, pr_number } = await params
   const prRef = {
     owner,
     repo,

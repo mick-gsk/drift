@@ -30,7 +30,7 @@ from typing import Any
 def audit_compat_stubs(repo_root: Path) -> dict[str, Any]:
     """
     Enumerate all compat stubs and verify canonical targets exist.
-    
+
     Returns:
         {
             "status": "ok" | "warning" | "error",
@@ -42,7 +42,7 @@ def audit_compat_stubs(repo_root: Path) -> dict[str, Any]:
         }
     """
     compat_root = repo_root / "packages" / "drift" / "src" / "drift"
-    
+
     report: dict[str, Any] = {
         "status": "ok",
         "total_stubs": 0,
@@ -51,22 +51,22 @@ def audit_compat_stubs(repo_root: Path) -> dict[str, Any]:
         "misaligned_stubs": [],
         "active_implementation_in_compat": [],
     }
-    
+
     if not compat_root.exists():
         report["status"] = "error"
         report["active_implementation_in_compat"].append(
             f"Compat root not found: {compat_root}"
         )
         return report
-    
+
     # T006-T007 placeholder: Implement stub enumeration logic
     # For now: return empty audit (structure is correct)
-    
+
     if report["active_implementation_in_compat"]:
         report["status"] = "error"
     elif report["misaligned_stubs"]:
         report["status"] = "warning"
-    
+
     return report
 
 
@@ -90,11 +90,11 @@ def main() -> int:
         action="store_true",
         help="Exit with error code 2 if any warnings found (strict mode)",
     )
-    
+
     args = parser.parse_args()
-    
+
     report = audit_compat_stubs(args.repo)
-    
+
     if args.json:
         print(json.dumps(report, indent=2))
     else:
@@ -113,17 +113,17 @@ def main() -> int:
             print(f"  Active implementation in compat: {len(report['active_implementation_in_compat'])}")
             for item in report["active_implementation_in_compat"]:
                 print(f"    - {item}")
-    
+
     # Determine exit code
     exit_code = {
         "ok": 0,
         "warning": 1,
         "error": 2,
     }.get(report["status"], 2)
-    
+
     if args.strict and exit_code == 1:
         exit_code = 2
-    
+
     return exit_code
 
 
