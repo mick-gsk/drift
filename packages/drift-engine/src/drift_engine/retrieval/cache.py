@@ -198,4 +198,3 @@ def clear_memory_cache() -> None:
 def iter_tracked_files(repo_root: Path) -> Iterable[Path]:
     """Expose the tracked-file list for diagnostics and testing."""
     yield from _tracked_files(repo_root.resolve())
-

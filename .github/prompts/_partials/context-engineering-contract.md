@@ -1,4 +1,4 @@
-﻿# Context-Engineering Contract
+# Context-Engineering Contract
 
 > Shared Contract fuer Harness-Prompts, die die Sichtbarkeit, Frische und Repo-Lokalitaet von Agenten-Kontext bewerten.
 

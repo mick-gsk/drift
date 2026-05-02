@@ -145,4 +145,3 @@ def clear_engine_cache() -> None:
     """Drop process-local engine caches (used in tests)."""
     with _engine_lock:
         _engines.clear()
-

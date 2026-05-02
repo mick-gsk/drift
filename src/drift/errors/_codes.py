@@ -7,4 +7,3 @@ import sys as _sys
 from drift_sdk.errors._codes import *
 
 _sys.modules[__name__] = _importlib.import_module("drift_sdk.errors._codes")
-

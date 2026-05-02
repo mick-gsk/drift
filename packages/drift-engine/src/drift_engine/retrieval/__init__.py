@@ -52,4 +52,3 @@ __all__ = [
     "retrieve",
     "tokenize",
 ]
-

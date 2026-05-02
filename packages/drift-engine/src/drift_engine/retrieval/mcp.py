@@ -97,4 +97,3 @@ async def run_cite(*, path: str, fact_id: str) -> str:
         "corpus_sha256": engine.manifest.corpus_sha256,
     }
     return json.dumps(payload, ensure_ascii=False)
-

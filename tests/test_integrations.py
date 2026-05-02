@@ -354,4 +354,3 @@ class TestPipelineIntegrationHook:
 
         mock_adapter.run.assert_not_called()
         assert results == []
-

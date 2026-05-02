@@ -146,4 +146,3 @@ class BM25Index:
 
     def chunk_at(self, index: int) -> FactChunk:
         return self._chunks[index]
-

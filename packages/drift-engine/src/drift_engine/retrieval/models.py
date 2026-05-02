@@ -67,4 +67,3 @@ class CorpusManifest(BaseModel):
     chunk_count: int = Field(ge=0)
     sources: tuple[SourceEntry, ...] = Field(default=())
     built_at: str = Field(description="ISO-8601 UTC timestamp of build.")
-

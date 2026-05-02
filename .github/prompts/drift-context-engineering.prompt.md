@@ -1,4 +1,4 @@
-﻿---
+---
 name: "drift-context-engineering"
 agent: agent
 description: "Analysiert die Context-Engineering-Saeule des Workspace-Harnesses: statischer Kontext, dynamischer Kontext, Freshness, Single Source of Truth und repo-lokale Kontextluecken fuer Agenten."

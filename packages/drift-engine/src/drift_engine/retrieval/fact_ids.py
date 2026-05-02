@@ -118,4 +118,3 @@ class MigrationRegistry:
 
     def __len__(self) -> int:
         return len(self._entries)
-
