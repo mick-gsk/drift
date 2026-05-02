@@ -261,7 +261,6 @@ jobs:
           & $env:PYTHON_BIN -m pip install --upgrade pip
           # Install workspace packages FIRST so pip resolves them locally.
           & $env:PYTHON_BIN -m pip install `
-            -e packages/drift `
             -e packages/drift-config `
             -e packages/drift-engine `
             -e packages/drift-sdk `
@@ -310,7 +309,6 @@ jobs:
 
       - name: Run tests with coverage (reference Python, Linux)
         if: matrix.python-version == '3.12' && runner.os == 'Linux'
-        shell: bash
         run: |
           $PYTHON_BIN -m pytest -v --tb=short --cov=drift --cov-report=term-missing --cov-report=xml:coverage.xml -m "not slow"
           $PYTHON_BIN -m coverage report --fail-under=73
@@ -323,7 +321,6 @@ jobs:
 
       - name: Ensure deterministic coverage.xml
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
-        shell: bash
         run: |
           if [ ! -f coverage.xml ] && [ -f .coverage ]; then
             echo "coverage.xml missing after pytest; generating from .coverage"
@@ -339,7 +336,6 @@ jobs:
 
       - name: Validate coverage.xml structure
         if: matrix.python-version == '3.12' && runner.os == 'Linux' && always()
-        shell: bash
         run: |
           if [ ! -f coverage.xml ]; then
             echo "ERROR: coverage.xml not found"
@@ -527,7 +523,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install `
-            -e packages/drift `
             -e packages/drift-config `
             -e packages/drift-engine `
             -e packages/drift-sdk `
