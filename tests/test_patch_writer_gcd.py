@@ -7,6 +7,7 @@ from pathlib import Path
 from drift.fix_intent import EDIT_KIND_ADD_GUARD_CLAUSE
 from drift.models import Finding, Severity
 from drift.patch_writer import PatchResultStatus, get_writer
+
 from tests.fixtures.patch_writer import (
     GCD_EXPECTED_WITH_GUARD_BOTH,
     GCD_EXPECTED_WITH_GUARD_ORDER,

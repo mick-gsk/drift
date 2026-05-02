@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-
 from drift.api.fix_plan import _build_fix_plan_response_from_analysis
 from drift.commands.fix_plan import fix_plan as fix_plan_cmd
 from drift.models import Severity

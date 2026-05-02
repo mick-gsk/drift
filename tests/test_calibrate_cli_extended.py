@@ -7,7 +7,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-
 from drift.commands.calibrate import calibrate
 
 # ---------------------------------------------------------------------------
@@ -400,7 +399,6 @@ def test_reset_no_weights_in_config(tmp_path: Path) -> None:
 
 def test_write_calibrated_weights_keeps_original_on_replace_error(tmp_path: Path) -> None:
     import yaml
-
     from drift.commands.calibrate import _write_calibrated_weights
 
     config_file = tmp_path / "drift.yaml"

@@ -323,8 +323,9 @@ class TestDriftMapMcpTool:
         assert result["agent_instruction"]
 
     def test_mcp_tool_with_session(self, tmp_repo: Path):
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         mgr = SessionManager.instance()
         sid = mgr.create(str(tmp_repo))

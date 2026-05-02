@@ -29,8 +29,9 @@ _LEVEL_ORDER = ["diagnosis", "plannable", "example_based", "verifiable"]
 
 def _build_matrix() -> dict:
     """Build the full repair-coverage matrix payload."""
-    from drift import __version__
     from drift.signal_registry import get_all_meta, get_repair_coverage_summary
+
+    from drift import __version__
 
     summary = get_repair_coverage_summary()
     all_meta = {m.signal_id: m for m in get_all_meta()}

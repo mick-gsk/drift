@@ -20,9 +20,8 @@ import sys
 from pathlib import Path
 
 import yaml  # type: ignore[import-untyped]
-from pydantic import ValidationError
-
 from drift.task_spec import TaskSpec, validate_task_spec
+from pydantic import ValidationError
 
 EXAMPLE_SPEC = """\
 # Example TaskSpec — copy and adapt for your task

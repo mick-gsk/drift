@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 
 import click
-
 from drift.config._loader import DriftConfig
 from drift.pr_loop._engine import loop_until_approved
 from drift.pr_loop._models import LoopExitStatus

@@ -2,6 +2,10 @@
 
 **Diese Datei ist für alle Copilot-Agenten, Coding-Agenten und KI-Assistenten im Drift-Workspace bindend.**
 
+<!-- SPECKIT START -->
+Active implementation plan: specs/009-complete-vsa-migration/plan.md
+<!-- SPECKIT END -->
+
 Die vollständige Policy befindet sich in:
 `POLICY.md` (Workspace-Root)
 

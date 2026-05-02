@@ -53,7 +53,17 @@ jobs:
           fetch-depth: 1
 
       - name: Set up Python
+<<<<<<< HEAD
         uses: actions/setup-python@v6
+=======
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Set up Python + workspace dependencies
+        uses: ./.github/actions/python-setup
+>>>>>>> 18ee6ada0 (chore: snapshot all current workspace changes)
         with:
           python-version: "3.11"
           cache: pip

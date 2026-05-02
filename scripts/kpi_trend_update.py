@@ -267,6 +267,7 @@ def _run_precision_recall_lightweight() -> dict[str, Any]:
         sys.path.insert(0, str(REPO_ROOT / "tests"))
         # Import ground truth fixtures and evaluate
         from drift.signals import get_all_signals  # noqa: PLC0415
+
         from fixtures.ground_truth import ALL_FIXTURES  # noqa: PLC0415
 
         total_tp = 0

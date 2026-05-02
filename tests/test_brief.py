@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from drift.api import brief as api_brief
 from drift.commands.brief import brief as brief_cmd
 from drift.guardrails import (

@@ -7,7 +7,6 @@ from pathlib import Path
 
 import yaml
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.commands import init_cmd as init_cmd_module
 from drift.profiles import PROFILES, get_profile, list_profiles

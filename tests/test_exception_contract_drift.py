@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.ingestion.ast_parser import PythonFileParser
 from drift.models import FileHistory, ParseResult, SignalType

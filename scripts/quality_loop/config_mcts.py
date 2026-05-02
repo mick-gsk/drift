@@ -19,10 +19,9 @@ import math
 import random
 from dataclasses import dataclass, field
 
+from drift.config import DriftConfig
 from scripts.quality_loop.config_transforms import ALL_TRANSFORMS, ConfigAction
 from scripts.quality_loop.pr_metric import PrecisionRecallMetric
-
-from drift.config import DriftConfig
 
 
 @dataclass

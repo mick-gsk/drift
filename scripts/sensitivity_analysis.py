@@ -20,11 +20,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from tests.fixtures.ground_truth import (  # noqa: E402
-    ALL_FIXTURES,
-    GroundTruthFixture,
-)
-
 import drift.signals.architecture_violation  # noqa: E402, F401
 import drift.signals.doc_impl_drift  # noqa: E402, F401
 import drift.signals.explainability_deficit  # noqa: E402, F401
@@ -41,6 +36,10 @@ from drift.scoring.engine import (  # noqa: E402
     compute_signal_scores,
 )
 from drift.signals.base import AnalysisContext, create_signals  # noqa: E402
+from tests.fixtures.ground_truth import (  # noqa: E402
+    ALL_FIXTURES,
+    GroundTruthFixture,
+)
 
 
 def _run_all_fixtures(

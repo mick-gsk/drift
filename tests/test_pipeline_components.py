@@ -11,8 +11,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
-from drift import __version__ as drift_version
 from drift.cache import CACHE_SCHEMA_VERSION, ParseCache
 from drift.config import DriftConfig
 from drift.models import (
@@ -38,6 +36,8 @@ from drift.pipeline import (
     ScoringPhase,
     SignalPhase,
 )
+
+from drift import __version__ as drift_version
 
 
 def _config() -> DriftConfig:

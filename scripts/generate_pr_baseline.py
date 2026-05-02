@@ -26,12 +26,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
-from tests.fixtures.ground_truth import (  # noqa: E402
-    ALL_FIXTURES,
-    GroundTruthFixture,
-)
-
-from drift import __version__  # noqa: E402
 from drift.config import SignalWeights  # noqa: E402
 from drift.models import SignalType  # noqa: E402
 from drift.precision import (  # noqa: E402
@@ -39,6 +33,12 @@ from drift.precision import (  # noqa: E402
     ensure_signals_registered,
     evaluate_fixtures,
 )
+from tests.fixtures.ground_truth import (  # noqa: E402
+    ALL_FIXTURES,
+    GroundTruthFixture,
+)
+
+from drift import __version__  # noqa: E402
 
 
 def _fixture_coverage_analysis(

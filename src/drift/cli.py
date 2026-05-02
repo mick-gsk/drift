@@ -16,8 +16,6 @@ import sys
 import warnings
 
 import click
-
-from drift import __version__
 from drift.commands import console
 from drift.errors import (
     ERROR_REGISTRY,
@@ -26,6 +24,8 @@ from drift.errors import (
     EXIT_SYSTEM_ERROR,
     DriftError,
 )
+
+from drift import __version__
 
 __all__ = ["console"]
 

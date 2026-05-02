@@ -3,7 +3,13 @@
 Short version: Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs.
 
 ### Changed
+<<<<<<< HEAD
 - Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
+=======
+- merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
+- add script categories to catalog.py + agent-facing scripts/README.md
+- snapshot all current workspace changes
+>>>>>>> 18ee6ada0 (chore: snapshot all current workspace changes)
 
 ### Fixed
 - address PR review — cleanup on label removal, consistent section names, direct yaml import

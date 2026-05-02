@@ -35,11 +35,6 @@ sys.path.insert(0, str(_project_root / "src"))
 sys.path.insert(0, str(_project_root))
 
 import drift.signals.architecture_violation  # noqa: E402, F401  # isort: skip
-from tests.fixtures.ground_truth import (  # noqa: E402
-    FIXTURES_BY_SIGNAL,
-    GroundTruthFixture,
-)
-
 import drift.signals.broad_exception_monoculture  # noqa: E402, F401
 import drift.signals.cohesion_deficit  # noqa: E402, F401
 import drift.signals.doc_impl_drift  # noqa: E402, F401
@@ -62,6 +57,10 @@ from drift.models import (  # noqa: E402
     SignalType,
 )
 from drift.signals.base import AnalysisContext, create_signals  # noqa: E402
+from tests.fixtures.ground_truth import (  # noqa: E402
+    FIXTURES_BY_SIGNAL,
+    GroundTruthFixture,
+)
 
 # ---------------------------------------------------------------------------
 # Signal → expected section heading mapping

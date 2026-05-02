@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from drift.session import DriftSession, SessionManager
 from drift.session_handover import ChangeClass, validate
 

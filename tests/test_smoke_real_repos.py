@@ -18,7 +18,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from drift.analyzer import analyze_repo
 from drift.config import DriftConfig
 from drift.models import RepoAnalysis, Severity, SignalType

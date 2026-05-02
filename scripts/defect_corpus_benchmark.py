@@ -36,14 +36,13 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 sys.path.insert(0, str(_REPO_ROOT))
 
-from tests.fixtures.defect_corpus import (  # noqa: E402
-    ALL_DEFECT_CORPUS,
-)
-
 from drift.precision import (  # noqa: E402 (sys.path set above)
     ensure_signals_registered,
     has_matching_finding,
     run_fixture,
+)
+from tests.fixtures.defect_corpus import (  # noqa: E402
+    ALL_DEFECT_CORPUS,
 )
 
 _DEFAULT_OUT = _REPO_ROOT / "benchmark_results" / "defect_corpus_recall.json"

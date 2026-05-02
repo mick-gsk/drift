@@ -6,7 +6,6 @@ import datetime
 from pathlib import Path
 
 import pytest
-
 from drift.ingestion.git_history import load_or_update_git_history_index
 from drift.models import CommitInfo
 

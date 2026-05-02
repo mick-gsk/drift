@@ -32,11 +32,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from drift import __version__
 from drift.analyzer import analyze_repo
 from drift.models import Finding, RepoAnalysis, Severity, SignalType
 from drift.output.agent_tasks import analysis_to_agent_tasks_json
 from drift.output.json_output import analysis_to_json
+
+from drift import __version__
 
 # Import repo builders (same directory)
 sys.path.insert(0, str(Path(__file__).resolve().parent))

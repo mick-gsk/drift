@@ -13,11 +13,10 @@ import sys
 from pathlib import Path
 
 import click
-from rich.console import Console
-
 from drift.commands import console, fail_glyph, ok_glyph
 from drift.commands._io import _emit_machine_output
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
+from rich.console import Console
 
 
 @click.command()

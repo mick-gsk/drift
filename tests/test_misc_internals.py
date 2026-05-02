@@ -10,7 +10,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import (
     Finding,

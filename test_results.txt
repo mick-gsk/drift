@@ -1,0 +1,192 @@
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+bringing up nodes...
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+bringing up nodes...
+
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+....................................................................s... [ 23%]
+....ss.s...s..s.s..s....s....s..s........s.s.....s...................... [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+...................................s....s..s...s.........s........s..ss. [ 32%]
+.ss..................................................................... [ 33%]
+...................................s...s.s..............s............... [ 34%]
+......ss..s..sss........................................................ [ 35%]
+........................................................................ [ 36%]
+.................................................................s...... [ 37%]
+..sssss.s..s............s............................................... [ 38%]
+........................................................................ [ 39%]
+..................................................................ss.s.s [ 40%]
+..s..ss...s..s.s..s..s.ss.s..s.......................................... [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+.............................................s...s.s.s...sssssssssssss.. [ 50%]
+sssssss................................................................. [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 58%]
+.........................ss.s.s.s....................................... [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+...............................s......s..ss............................. [ 68%]
+...................s.s.s.......s........................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+.......................................................................s [ 74%]
+..............s......................................................... [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+............................................s.s...ss.s.s.............s.. [ 78%]
+.s...s.................................................................. [ 79%]
+...............................................................s......s. [ 80%]
+......s................................................................. [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 87%]
+...................................................................s.... [ 88%]
+........................................ss.ssssssss.s..ss.ss.s.......... [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+..s.s................................................................... [ 92%]
+...............................................s........................ [ 93%]
+...........................................................s..s......... [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+.......................................                                  [100%]
+============================== warnings summary ===============================
+tests/test_calibrate_precision_self_setup.py::test_collect_git_correlation_success_and_failure
+  C:\Users\mickg\PWBS\drift\.venv\Lib\site-packages\_pytest\monkeypatch.py:79: DeprecationWarning: drift.calibration.outcome_correlator is deprecated and will be removed in v3.0. Use 'drift calibrate' with Bayesian Weight Calibration instead.
+    __import__(used)
+
+tests/test_calibrate_precision_self_setup.py::test_setup_command_non_interactive_and_json
+tests/test_setup_watch_boost.py::test_setup_build_config_and_overwrite_paths
+tests/test_setup_watch_boost.py::test_setup_build_config_and_overwrite_paths
+tests/test_setup_watch_boost.py::test_setup_interactive_path
+tests/test_guided_mode.py::TestSetupCommand::test_setup_non_interactive
+  C:\Users\mickg\PWBS\drift\src\drift\commands\setup.py:211: DeprecationWarning: drift setup is deprecated. Use 'drift init --interactive' instead.
+    warnings.warn(
+
+tests/test_github_api_correlator_and_export.py::test_correlate_github_issues_tp_and_fn
+  C:\Users\mickg\PWBS\drift\tests\test_github_api_correlator_and_export.py:21: DeprecationWarning: drift.calibration.github_correlator is deprecated and will be removed in v3.0. Use 'drift calibrate' with Bayesian Weight Calibration instead.
+    from drift.calibration.github_correlator import correlate_github_issues
+
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_not_found_and_no_tasks
+  C:\Users\mickg\PWBS\drift\src\drift\mcp_router_session.py:578: DeprecationWarning: drift_session_update is deprecated and will be removed in v3.0. Use drift_session_start(autopilot=true) for automatic session orchestration.
+    warnings.warn(
+
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+  C:\Users\mickg\PWBS\drift\src\drift\mcp_server.py:1182: DeprecationWarning: DEPRECATED: Task leasing tools (drift_task_claim, drift_task_renew, drift_task_release, drift_task_complete, drift_task_status) will be removed in v3.0. Use drift_session_end(completed_tasks=[...]) instead.
+    return await run_task_status(
+
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_not_found_and_no_tasks
+tests/test_mcp_server_task_tools_boost.py::test_task_claim_no_tasks_available
+  C:\Users\mickg\PWBS\drift\src\drift\mcp_server.py:1082: DeprecationWarning: DEPRECATED: Task leasing tools (drift_task_claim, drift_task_renew, drift_task_release, drift_task_complete, drift_task_status) will be removed in v3.0. Use drift_session_end(completed_tasks=[...]) instead.
+    return await run_task_claim(
+
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_not_found_and_no_tasks
+  C:\Users\mickg\PWBS\drift\src\drift\mcp_server.py:1109: DeprecationWarning: DEPRECATED: Task leasing tools (drift_task_claim, drift_task_renew, drift_task_release, drift_task_complete, drift_task_status) will be removed in v3.0. Use drift_session_end(completed_tasks=[...]) instead.
+    return await run_task_renew(
+
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_not_found_and_no_tasks
+  C:\Users\mickg\PWBS\drift\src\drift\mcp_server.py:1135: DeprecationWarning: DEPRECATED: Task leasing tools (drift_task_claim, drift_task_renew, drift_task_release, drift_task_complete, drift_task_status) will be removed in v3.0. Use drift_session_end(completed_tasks=[...]) instead.
+    return await run_task_release(
+
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_update_status_end_trace_and_tasks
+tests/test_mcp_server_task_tools_boost.py::test_session_not_found_and_no_tasks
+  C:\Users\mickg\PWBS\drift\src\drift\mcp_server.py:1166: DeprecationWarning: DEPRECATED: Task leasing tools (drift_task_claim, drift_task_renew, drift_task_release, drift_task_complete, drift_task_status) will be removed in v3.0. Use drift_session_end(completed_tasks=[...]) instead.
+    return await run_task_complete(
+
+tests/test_calibration.py::TestOutcomeCorrelator::test_tp_correlation
+  C:\Users\mickg\PWBS\drift\tests\test_calibration.py:352: DeprecationWarning: drift.calibration.outcome_correlator is deprecated and will be removed in v3.0. Use 'drift calibrate' with Bayesian Weight Calibration instead.
+    from drift.calibration.outcome_correlator import correlate_outcomes
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+6819 passed, 133 skipped, 25 warnings in 52.60s

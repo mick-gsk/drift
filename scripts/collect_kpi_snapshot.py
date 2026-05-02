@@ -67,6 +67,7 @@ def collect_precision_recall() -> dict:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
     from drift.precision import ensure_signals_registered, evaluate_fixtures
+
     from fixtures.ground_truth import ALL_FIXTURES
 
     ensure_signals_registered()

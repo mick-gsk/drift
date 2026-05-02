@@ -6,7 +6,6 @@ import datetime
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import CommitInfo, ImportInfo, ParseResult, SignalType
 from drift.precision import (
@@ -16,6 +15,7 @@ from drift.precision import (
 )
 from drift.signals.base import SignalCapabilities
 from drift.signals.co_change_coupling import CoChangeCouplingSignal
+
 from tests.fixtures.ground_truth import FIXTURES_BY_SIGNAL, GroundTruthFixture
 
 

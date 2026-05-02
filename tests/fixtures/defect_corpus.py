@@ -33,6 +33,7 @@ import enum
 from dataclasses import dataclass, field
 
 from drift.models import SignalType
+
 from tests.fixtures.ground_truth import ExpectedFinding, FixtureKind, GroundTruthFixture
 
 

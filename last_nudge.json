@@ -1,0 +1,19 @@
+{
+  "agent_instruction": "Use drift_nudge between edits for fast direction checks. Call drift_diff after completing a batch for full verification.",
+  "changed_files": [
+    "src/drift/finding_rendering.py",
+    "tests/test_api_and_ts_arch_boost.py"
+  ],
+  "delta": -0.316,
+  "direction": "improving",
+  "file_hashes": {
+    "src/drift/finding_rendering.py": "0de40759373bdb15",
+    "tests/test_api_and_ts_arch_boost.py": "249deef8bfd0b49a"
+  },
+  "latency_ms": 859,
+  "repo_path": "C:/Users/mickg/PWBS/drift",
+  "revert_recommended": false,
+  "safe_to_commit": true,
+  "schema_version": 1,
+  "timestamp": 1777646561.8296366
+}

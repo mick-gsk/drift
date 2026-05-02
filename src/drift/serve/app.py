@@ -5,9 +5,6 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-
 from drift.serve.agent_card import build_agent_card
 from drift.serve.models import (
     INVALID_REQUEST,
@@ -16,6 +13,8 @@ from drift.serve.models import (
     A2AErrorResponse,
     A2ARequest,
 )
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 # Custom media type registered by the A2A spec
 _A2A_MEDIA_TYPE = "application/a2a+json"

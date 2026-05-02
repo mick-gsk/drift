@@ -10,7 +10,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from drift.models import Severity
 from drift.models._agent import AgentTask
 from drift.repair_template_registry import (

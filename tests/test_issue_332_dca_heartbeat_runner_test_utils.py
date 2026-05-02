@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.ingestion.test_detection import classify_file_context, is_test_file
 from drift.models import FunctionInfo, ParseResult, Severity

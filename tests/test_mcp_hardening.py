@@ -356,8 +356,9 @@ class TestMcpSessionIntegration:
             )
 
     def test_scan_with_session_updates_state(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         fake_scan = {
             "drift_score": 35.5,
@@ -398,6 +399,7 @@ class TestMcpSessionIntegration:
     ) -> None:
         """Autopilot must not run duplicate full analyses for scan and fix_plan."""
         import drift.analyzer as analyzer_module
+
         from drift import mcp_server
 
         monkeypatch.setattr(
@@ -521,8 +523,9 @@ class TestMcpSessionIntegration:
         assert result.get("pass") is None
 
     def test_session_start_returns_structured_error_when_capacity_reached(self) -> None:
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         mgr = SessionManager(max_sessions=1)
         first = mgr.create("/tmp/test")
@@ -544,6 +547,7 @@ class TestMcpSessionIntegration:
     ) -> None:
         """Autopilot result must include intent_capture_hint when ai_ratio > 0.7."""
         import drift.analyzer as analyzer_module
+
         from drift import mcp_server
 
         (tmp_path / "module.py").write_text(
@@ -614,8 +618,9 @@ class TestMcpStrictGuardrails:
         expected_recovery_tool: str,
         expected_reason: str,
     ) -> None:
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         self._write_agent_config(tmp_path, strict=True)
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
@@ -702,8 +707,9 @@ class TestMcpStrictGuardrails:
         assert any(r["reason"] == "missing_scan_baseline" for r in second["block_reasons"])
 
     def test_strict_mode_blocks_session_end_with_open_tasks(self, tmp_path: Path) -> None:
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         self._write_agent_config(tmp_path, strict=True)
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))

@@ -12,10 +12,9 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from drift.ingestion.ast_parser import parse_python_file
 from hypothesis import given
 from hypothesis import strategies as st
-
-from drift.ingestion.ast_parser import parse_python_file
 
 # ---------------------------------------------------------------------------
 # Helpers

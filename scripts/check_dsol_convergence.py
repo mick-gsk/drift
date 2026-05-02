@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 
 import click
-
 from drift.self_improvement.engine import _convergence_check
 
 

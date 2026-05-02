@@ -7,7 +7,6 @@ from types import SimpleNamespace
 
 import pytest
 from click.testing import CliRunner
-
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity
 
 
@@ -336,7 +335,6 @@ def test_baseline_and_copilot_context(monkeypatch, tmp_path: Path) -> None:
 
 def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
     import click
-
     from drift.plugins import (
         COMMAND_GROUP,
         OUTPUT_GROUP,

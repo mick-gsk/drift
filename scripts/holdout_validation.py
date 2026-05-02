@@ -34,8 +34,6 @@ from statistics import mean, stdev
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from tests.fixtures.ground_truth import ALL_FIXTURES, GroundTruthFixture
-
 import drift.signals.architecture_violation  # noqa: F401
 import drift.signals.doc_impl_drift  # noqa: F401
 import drift.signals.explainability_deficit  # noqa: F401
@@ -49,6 +47,7 @@ from drift.ingestion.file_discovery import discover_files
 from drift.models import FileHistory, Finding, SignalType
 from drift.scoring.engine import calibrate_weights
 from drift.signals.base import AnalysisContext, create_signals
+from tests.fixtures.ground_truth import ALL_FIXTURES, GroundTruthFixture
 
 ACTIVE_SIGNALS = [
     SignalType.PATTERN_FRAGMENTATION,
