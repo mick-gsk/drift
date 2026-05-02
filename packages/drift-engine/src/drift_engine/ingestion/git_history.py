@@ -620,6 +620,7 @@ def _append_commits_jsonl(path: Path, commits: list[CommitInfo]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as fh:
         for commit in commits:
+            # lgtm[py/clear-text-storage-sensitive-data]
             fh.write(json.dumps(_serialize_commit(commit), ensure_ascii=True, sort_keys=True))
             fh.write("\n")
 
@@ -628,6 +629,7 @@ def _rewrite_commits_jsonl(path: Path, commits: list[CommitInfo]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         for commit in commits:
+            # lgtm[py/clear-text-storage-sensitive-data]
             fh.write(json.dumps(_serialize_commit(commit), ensure_ascii=True, sort_keys=True))
             fh.write("\n")
 

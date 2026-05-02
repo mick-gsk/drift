@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
+from typing import Any, cast
 
 from drift_mcp.serve.models import (
     INTERNAL_ERROR,
@@ -328,7 +328,7 @@ def _handle_capture_intent(params: dict[str, Any]) -> dict[str, Any]:
     if not raw:
         msg = "Parameter 'raw' is required for capture_intent."
         raise ValueError(msg)
-    return capture_intent(raw=raw, path=path)
+    return cast(dict[str, Any], capture_intent(raw=raw, path=path))
 
 
 def _handle_verify_intent(params: dict[str, Any]) -> dict[str, Any]:
@@ -343,7 +343,10 @@ def _handle_verify_intent(params: dict[str, Any]) -> dict[str, Any]:
     if not artifact_path:
         msg = "Parameter 'artifact_path' is required for verify_intent."
         raise ValueError(msg)
-    return verify_intent(intent_id=intent_id, artifact_path=artifact_path, path=path)
+    return cast(
+        dict[str, Any],
+        verify_intent(intent_id=intent_id, artifact_path=artifact_path, path=path),
+    )
 
 
 def _handle_feedback_for_agent(params: dict[str, Any]) -> dict[str, Any]:
@@ -358,7 +361,10 @@ def _handle_feedback_for_agent(params: dict[str, Any]) -> dict[str, Any]:
     if not artifact_path:
         msg = "Parameter 'artifact_path' is required for feedback_for_agent."
         raise ValueError(msg)
-    return feedback_for_agent(intent_id=intent_id, path=path, artifact_path=artifact_path)
+    return cast(
+        dict[str, Any],
+        feedback_for_agent(intent_id=intent_id, path=path, artifact_path=artifact_path),
+    )
 
 
 def _handle_blast_radius(params: dict[str, Any]) -> dict[str, Any]:

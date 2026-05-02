@@ -122,9 +122,11 @@ def _compute_baseline_progress(
 ) -> dict[str, Any]:
     """Compute progress dict by comparing current scan against the given baseline."""
     try:
-        from drift.baseline import load_baseline
-        import drift_sdk.api as _api_pkg
         import json as _json
+
+        from drift.baseline import load_baseline
+
+        import drift_sdk.api as _api_pkg
 
         bl_fingerprints = load_baseline(Path(baseline_file))
         scan_result = _api_pkg.scan(repo_path, max_findings=9999, response_detail="concise")

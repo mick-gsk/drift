@@ -809,6 +809,7 @@ dependencies = [
     { name = "drift-output" },
     { name = "drift-sdk" },
     { name = "drift-session" },
+    { name = "drift-verify" },
     { name = "rich" },
 ]
 
@@ -821,6 +822,7 @@ requires-dist = [
     { name = "drift-output", editable = "packages/drift-output" },
     { name = "drift-sdk", editable = "packages/drift-sdk" },
     { name = "drift-session", editable = "packages/drift-session" },
+    { name = "drift-verify", editable = "packages/drift-verify" },
     { name = "rich", specifier = ">=13.0" },
 ]
 
@@ -971,7 +973,7 @@ requires-dist = [
 
 [[package]]
 name = "drift-verify"
-version = "2.49.0"
+version = "2.50.0"
 source = { editable = "packages/drift-verify" }
 dependencies = [
     { name = "drift-config" },

@@ -308,12 +308,12 @@ jobs:
       - name: Lint with ruff
         shell: pwsh
         run: |
-          & $env:PYTHON_BIN -m ruff check src/ tests/
+          & $env:PYTHON_BIN -m ruff check packages/ tests/
 
       - name: Type-check with mypy
         shell: pwsh
         run: |
-          & $env:PYTHON_BIN -m mypy packages/drift/src/drift
+          & $env:PYTHON_BIN -m mypy packages/drift/src/drift packages/drift-engine/src/drift_engine packages/drift-sdk/src/drift_sdk packages/drift-output/src/drift_output packages/drift-cli/src/drift_cli packages/drift-mcp/src/drift_mcp packages/drift-session/src/drift_session packages/drift-config/src/drift_config
 
       - name: Dead code detection with vulture
         shell: pwsh

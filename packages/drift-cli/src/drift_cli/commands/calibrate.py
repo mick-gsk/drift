@@ -9,6 +9,7 @@ import tempfile
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, cast
 
 import click
 
@@ -310,11 +311,14 @@ def _collect_git_correlation(
     window = getattr(cal_cfg, "correlation_window_days", 30) if cal_cfg else 30
     weak_fp = getattr(cal_cfg, "weak_fp_window_days", 60) if cal_cfg else 60
 
-    return correlate_outcomes(
-        snapshots,
-        commits,
-        correlation_window_days=window,
-        weak_fp_window_days=weak_fp,
+    return cast(
+        list[Any],
+        correlate_outcomes(
+            snapshots,
+            commits,
+            correlation_window_days=window,
+            weak_fp_window_days=weak_fp,
+        ),
     )
 
 

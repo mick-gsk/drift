@@ -12,9 +12,10 @@ RUFF     ?= ruff
 MYPY     ?= $(PYTHON) -m mypy
 
 SRC      := packages/
+SRC_LEGACY := src/
 TESTS    := tests/
 
-.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check task-card feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check repro-bundle markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
+.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci preflight feat-start fix-start catalog gate-check task-card feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check repro-bundle markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -24,13 +25,13 @@ install:  ## Dev install (editable + all dev extras) and activate git hooks
 	git config core.hooksPath .githooks
 	@command -v pre-commit >/dev/null 2>&1 && pre-commit install --install-hooks || echo "  (pre-commit not found — skipping hook install)"
 
-lint:  ## Run ruff linter
+lint:  ## Run ruff linter (packages/ + tests/ - matches CI)
 	$(RUFF) check $(SRC) $(TESTS)
 
 lint-fix:  ## Run ruff with auto-fix
 	$(RUFF) check --fix $(SRC) $(TESTS)
 
-typecheck:  ## Run mypy type checker
+typecheck:  ## Run mypy type checker (packages - matches CI)
 	$(MYPY) packages/drift/src/drift packages/drift-engine/src/drift_engine packages/drift-sdk/src/drift_sdk packages/drift-output/src/drift_output packages/drift-cli/src/drift_cli packages/drift-mcp/src/drift_mcp packages/drift-session/src/drift_session packages/drift-config/src/drift_config
 
 test:  ## Run tests in parallel (skip slow smoke tests)
@@ -114,9 +115,21 @@ package-kpis-example:  ## Generate monthly package KPI example report JSON
 quality-score:  ## Build ISO/IEC 25010 quality scorecard JSON
 	$(PYTHON) scripts/quality_scorecard.py --apply
 
-ci:  ## Replicate full CI pipeline locally
+preflight:  ## [Agent] Run ALL PR-blocking CI checks locally before committing (use this, not make ci)
+	$(PYTHON) scripts/agent_preflight.py $(ARGS)
+
+ci:  ## Replicate full CI pipeline locally (exact CI parity: packages/ lint, packages mypy, pytest not-slow)
+	@echo ">>> [ci/1] Version check..."
 	$(PYTHON) scripts/check_version.py --check-semver
-	$(MAKE) check
+	@echo ">>> [ci/2] Lint (packages/ tests/ - same paths as CI)..."
+	$(RUFF) check packages/ $(TESTS)
+	@echo ">>> [ci/3] Type-check (packages - same target as CI)..."
+	$(MYPY) packages/drift/src/drift packages/drift-engine/src/drift_engine packages/drift-sdk/src/drift_sdk packages/drift-output/src/drift_output packages/drift-cli/src/drift_cli packages/drift-mcp/src/drift_mcp packages/drift-session/src/drift_session packages/drift-config/src/drift_config
+	@echo ">>> [ci/4] Tests (not slow - same marker as CI)..."
+	$(PYTEST) -q --tb=short -m "not slow" --ignore=tests/test_smoke_real_repos.py
+	@echo ">>> [ci/5] Self-analysis..."
+	$(MAKE) --no-print-directory self
+	@echo ">>> CI-parity check complete. Safe to push."
 
 # ---------------------------------------------------------------------------
 # Agent Workflow Shortcuts

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import importlib.resources
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 from fastapi import FastAPI, Request, Response
@@ -50,7 +51,12 @@ def create_app(api_url: str) -> FastAPI:
         methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     )
     async def proxy_api(request: Request, path: str) -> Response:
-        target = f"{api_url.rstrip('/')}/api/cockpit/{path}"
+        # Reject path forms that can be interpreted as absolute/external targets.
+        if path.startswith(("/", "\\")) or "://" in path or path.startswith("//"):
+            return JSONResponse({"error": "invalid proxy path"}, status_code=400)
+
+        safe_path = quote(path, safe="/-_.~")
+        target = f"{api_url.rstrip('/')}/api/cockpit/{safe_path}"
         if request.query_string:
             target = f"{target}?{request.query_string.decode()}"
         body = await request.body()
