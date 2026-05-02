@@ -43,6 +43,7 @@ benchmark_results/*
 drift_score.json
 work_artifacts/*
 !work_artifacts/vsa_migration_inventory.md
+!work_artifacts/vsa_import_mapping.csv
 master-backlog/*
 # Tracked exceptions: Phase-B/C strategy items linked from ADR-084
 !master-backlog/04-audience-validation-experiment.md
