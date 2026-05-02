@@ -261,7 +261,6 @@ jobs:
           & $env:PYTHON_BIN -m pip install --upgrade pip
           # Install workspace packages FIRST so pip resolves them locally.
           & $env:PYTHON_BIN -m pip install `
-            -e packages/drift-config `
             -e packages/drift-engine `
             -e packages/drift-sdk `
             -e packages/drift-output `
