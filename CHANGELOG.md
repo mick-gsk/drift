@@ -1,24 +1,17 @@
 ## [2.50.0] - 2026-05-01
 
-Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
+Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script catalog improvements.
 
 ### Changed
-- merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
-- add script categories to catalog.py + agent-facing scripts/README.md
-- snapshot all current workspace changes
+- merge main into feat/adr100-phase7a-cleanup; add script categories to catalog.py and scripts/README.md
 
 ### Fixed
-- install workspace packages before root in all CI workflows (ADR-100 monorepo)
-- ruff imports, shellcheck backticks, secrets baseline, smoke-pr deps (CI cleanup)
-- ruff I001 in packages/, shellcheck YAML syntax in workflows, fix end-of-files
-- remove UTF-8 BOM and ensure end-of-file newlines in packages/
-- add explicit mypy re-exports to ADR-100 sys.modules stubs
-- unblock CI gates for PR checks
-- install workspace packages in drift-agent-gate workflow
-- resolve failing CI checks for PR 576
+- install workspace packages in all CI workflows and drift-agent-gate (ADR-100 monorepo)
+- ruff, shellcheck, mypy re-exports, UTF-8 BOM, and end-of-file fixes across packages/
+- resolve failing CI checks for PR 576 (CodeQL, Bandit, uninitialized vars)
 
 ### Added
-- Phase 1 complete - VSA migration infrastructure setup (T001-T005)
+- Phase 1 complete — VSA migration infrastructure setup (T001-T005)
 
 ## [2.49.0] - 2026-04-30
 
