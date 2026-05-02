@@ -8,7 +8,7 @@ from __future__ import annotations
 import importlib.resources
 import re
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import parse_qsl, quote, urlencode
 
 import httpx
 from fastapi import FastAPI, Request, Response
@@ -75,7 +75,12 @@ def create_app(api_url: str) -> FastAPI:
         safe_path = "/".join(quote(seg, safe="-_.~") for seg in segments)
         target = f"{api_url.rstrip('/')}/api/cockpit/{safe_path}"
         if request.query_string:
-            target = f"{target}?{request.query_string.decode()}"
+            # Parse and re-encode to prevent query-string injection into the URL
+            pairs = parse_qsl(
+                request.query_string.decode(errors="replace"),
+                keep_blank_values=True,
+            )
+            target = f"{target}?{urlencode(pairs)}"
         body = await request.body()
         async with httpx.AsyncClient() as client:
             upstream = await client.request(
