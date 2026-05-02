@@ -55,7 +55,7 @@ for _p in [
 try:
     from drift.signal_registry import SignalMeta, get_all_meta  # noqa: E402
 except (ImportError, ModuleNotFoundError):
-    from drift_engine.signal_registry import SignalMeta, get_all_meta  # noqa: E402, F401
+    from drift_engine.signal_registry import SignalMeta, get_all_meta  # noqa: E402
 
 LLMS_TXT = _REPO_ROOT / "llms.txt"
 PYPROJECT = _REPO_ROOT / "pyproject.toml"
