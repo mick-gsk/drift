@@ -34,7 +34,7 @@ permissions:
 jobs:
   mutmut:
     name: Mutation score gate
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
@@ -45,7 +45,7 @@ jobs:
 
       - name: Run mutation benchmark (synthetic patterns)
         id: mutation_benchmark
-        shell: powershell
+        shell: pwsh
         run: |
           python scripts/mutation_benchmark.py
           $json = Get-Content benchmark_results/mutation_benchmark.json -Raw | ConvertFrom-Json
@@ -55,7 +55,7 @@ jobs:
 
       - name: Run mutmut on scoring + signals
         id: mutmut_run
-        shell: powershell
+        shell: pwsh
         run: |
           # Run mutmut against scoring/ and signals/ paths defined in pyproject.toml.
           # Uses a scoped runner to keep runtime under 30 min.
@@ -67,7 +67,7 @@ jobs:
 
       - name: Parse mutmut score and apply gate
         id: score_gate
-        shell: powershell
+        shell: pwsh
         run: |
           $threshold = ${{ inputs.fail_threshold || '75' }}
           # Extract survived / total from mutmut results
@@ -102,7 +102,7 @@ jobs:
 
       - name: Save mutation results to benchmark_results
         if: always()
-        shell: powershell
+        shell: pwsh
         run: |
           $ts = Get-Date -Format "yyyyMMdd_HHmmss"
           $outFile = "benchmark_results/mutation_ci_run_$ts.json"
