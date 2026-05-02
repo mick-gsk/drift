@@ -1,3 +1,10 @@
+## [2.50.0] - 2026-05-02
+
+Short version: Cockpit UI and backend packages (split/02a)
+
+### Added
+- Cockpit UI and backend packages (split/02a)
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
