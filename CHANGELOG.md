@@ -1,3 +1,10 @@
+## [2.50.0] - 2026-05-02
+
+Short version: Drift Engine package (split/02b)
+
+### Added
+- Drift Engine package (split/02b)
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
