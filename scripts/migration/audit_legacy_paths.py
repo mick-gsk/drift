@@ -110,7 +110,8 @@ def main() -> int:
             for item in report["misaligned_stubs"]:
                 print(f"    - {item['stub']} -> {item['target']}: {item['reason']}")
         if report["active_implementation_in_compat"]:
-            print(f"  Active implementation in compat: {len(report['active_implementation_in_compat'])}")
+            count = len(report["active_implementation_in_compat"])
+            print(f"  Active implementation in compat: {count}")
             for item in report["active_implementation_in_compat"]:
                 print(f"    - {item}")
 
