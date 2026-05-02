@@ -1,0 +1,30 @@
+﻿[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-cli"
+version = "2.49.0"
+description = "CLI command dispatch and command modules for drift-analyzer"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+    "drift-config",
+    "drift-sdk",
+    "drift-engine",
+    "drift-output",
+    "drift-session",
+    "drift-mcp",
+]
+
+[tool.uv.sources]
+drift-config = { workspace = true }
+drift-sdk = { workspace = true }
+drift-engine = { workspace = true }
+drift-output = { workspace = true }
+drift-session = { workspace = true }
+drift-mcp = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_cli"]
