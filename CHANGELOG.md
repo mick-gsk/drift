@@ -10,6 +10,7 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 - install workspace packages before root in all CI workflows (ADR-100 monorepo)
 - ruff imports, shellcheck backticks, secrets baseline, smoke-pr deps (CI cleanup)
 - ruff I001 in packages/, shellcheck YAML syntax in workflows, fix end-of-files
+- remove UTF-8 BOM and ensure end-of-file newlines in packages/
 
 ## [2.49.0] - 2026-04-30
 
