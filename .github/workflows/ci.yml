@@ -119,9 +119,12 @@ jobs:
       - name: Check model consistency
         # [win-only] PowerShell invocation on Windows runner.
         # Requires workspace packages (drift_engine) to be importable.
+        # packages/drift (drift-analyzer meta) provides drift.signal_registry
+        # stub so generate_llms_txt.py resolves correctly (ADR-100 monorepo).
         shell: powershell
         run: |
           & $env:PYTHON_BIN -m pip install --quiet `
+            -e packages/drift `
             -e packages/drift-config `
             -e packages/drift-engine `
             -e packages/drift-sdk `
