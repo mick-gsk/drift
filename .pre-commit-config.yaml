@@ -37,6 +37,8 @@ repos:
           - "(^|[\\\\/])packages[\\\\/]cockpit-ui[\\\\/]\\.next([\\\\/]|$)"
           - --exclude-files
           - "(^|[\\\\/])(last_nudge|last_scan|output)\\.json$|(^|[\\\\/])nudge_baselines[\\\\/]"
+          - --exclude-files
+          - "(^|[\\\\/])td_parsed\\.json$"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.1

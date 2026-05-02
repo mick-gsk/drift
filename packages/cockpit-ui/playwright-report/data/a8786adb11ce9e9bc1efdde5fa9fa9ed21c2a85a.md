@@ -80,7 +80,7 @@ Call log:
   97  |     return r.fulfill({ json: PR_DECISION })
   98  |   })
   99  | }
-  100 | 
+  100 |
   101 | // ---------------------------------------------------------------------------
   102 | // US1: Decision Panel
   103 | // ---------------------------------------------------------------------------
@@ -93,7 +93,7 @@ Call log:
   110 |     await expect(page.getByTestId('confidence-bar')).toBeVisible()
   111 |     await expect(page.getByTestId('risk-driver-item').first()).toBeVisible()
   112 |   })
-  113 | 
+  113 |
   114 |   test('shows no-go when evidence is insufficient', async ({ page }) => {
   115 |     await mockApiRoutes(page)
   116 |     await page.goto('/cockpit/mick-gsk/drift/456')
@@ -101,7 +101,7 @@ Call log:
   118 |     await expect(page.getByText(/insufficient evidence/i)).toBeVisible()
   119 |   })
   120 | })
-  121 | 
+  121 |
   122 | // ---------------------------------------------------------------------------
   123 | // US2: Minimal Safe Plans
   124 | // ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ Call log:
   132 |     await page.getByTestId('safe-plan-card').first().getByRole('button').click()
   133 |     await expect(page.getByTestId('guardrail-item').first()).toBeVisible()
   134 |   })
-  135 | 
+  135 |
   136 |   test('checking a guardrail toggles without reload', async ({ page }) => {
   137 |     await mockApiRoutes(page)
   138 |     await page.goto('/cockpit/mick-gsk/drift/123?tab=plan')
@@ -125,7 +125,7 @@ Call log:
   142 |     await expect(checkbox).toBeChecked()
   143 |   })
   144 | })
-  145 | 
+  145 |
   146 | // ---------------------------------------------------------------------------
   147 | // US3: Accountability Graph
   148 | // ---------------------------------------------------------------------------
@@ -136,7 +136,7 @@ Call log:
   153 |     await expect(page.getByTestId('cluster-node').first()).toBeVisible()
   154 |     await expect(page.getByTestId('cluster-node').first()).toContainText(/%/)
   155 |   })
-  156 | 
+  156 |
   157 |   test('clicking cluster expands file list', async ({ page }) => {
   158 |     await mockApiRoutes(page)
   159 |     await page.goto('/cockpit/mick-gsk/drift/123?tab=graph')
@@ -144,7 +144,7 @@ Call log:
   161 |     await expect(page.getByTestId('cluster-file-item').first()).toBeVisible()
   162 |   })
   163 | })
-  164 | 
+  164 |
   165 | // ---------------------------------------------------------------------------
   166 | // US4: Decision Form
   167 | // ---------------------------------------------------------------------------
@@ -163,7 +163,7 @@ Call log:
   179 |     // Justification field should be visible
   180 |     await expect(page.getByTestId('justification-field')).toBeVisible()
   181 |   })
-  182 | 
+  182 |
   183 |   test('submits decision successfully', async ({ page }) => {
   184 |     await mockApiRoutes(page)
   185 |     await page.goto('/cockpit/mick-gsk/drift/123')
@@ -174,7 +174,7 @@ Call log:
   190 |     await expect(page.getByTestId('decision-form')).toBeVisible()
   191 |   })
   192 | })
-  193 | 
+  193 |
   194 | // ---------------------------------------------------------------------------
   195 | // US5: Ledger
   196 | // ---------------------------------------------------------------------------
@@ -186,7 +186,7 @@ Call log:
   202 |     await expect(page.getByTestId('outcome-slot-pending').first()).toContainText(/ausstehend/i)
   203 |   })
   204 | })
-  205 | 
+  205 |
   206 | // ---------------------------------------------------------------------------
   207 | // FR-014: Viewport ≥ 1024px (T050)
   208 | // ---------------------------------------------------------------------------
@@ -199,5 +199,5 @@ Call log:
   215 |     await expect(page.getByRole('tablist')).toBeVisible()
   216 |   })
   217 | })
-  218 | 
+  218 |
 ```

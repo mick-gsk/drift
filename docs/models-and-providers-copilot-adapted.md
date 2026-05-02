@@ -73,7 +73,7 @@ agent = Agent(
 # ✗ BAD: Trying to control model via instructions
 agent = Agent(
     name="Calendar extractor",
-    instructions="""Extract calendar events. Use gpt-5.5 for accuracy. 
+    instructions="""Extract calendar events. Use gpt-5.5 for accuracy.
 Be very fast; this is latency-critical.""",
     # ↑ Can't control model in instructions; host decides.
 )

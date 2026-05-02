@@ -424,4 +424,3 @@ def _build_agent_instruction(
             parts.append(f"WARN: {rules_text}")
 
     return " ".join(parts)
-
