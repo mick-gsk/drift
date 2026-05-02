@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: Drift Human Decision Cockpit API
+  version: 0.1.0
+  description: Contract fuer PR-zentrierte Governance-Entscheidungen im Drift Cockpit.
+servers:
+  - url: /api/cockpit
+paths:
+  /prs/{pr_id}/decision:
+    get:
+      summary: Liefert den aktuellen Decision Panel Zustand fuer einen PR
+      parameters:
+        - in: path
+          name: pr_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Decision Panel geladen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DecisionPanelResponse'
+    post:
+      summary: Speichert menschliche Entscheidung (inkl. Override-Regeln)
+      parameters:
+        - in: path
+          name: pr_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DecisionWriteRequest'
+      responses:
+        '200':
+          description: Entscheidung gespeichert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerEntry'
+        '409':
+          description: Versionskonflikt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionConflict'
+  /prs/{pr_id}/safe-plan:
+    get:
+      summary: Liefert Minimal Safe Change Set fuer einen PR
+      parameters:
+        - in: path
+          name: pr_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Safe Plan geladen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MinimalSafePlan'
+  /prs/{pr_id}/clusters:
+    get:
+      summary: Liefert Accountability Cluster
+      parameters:
+        - in: path
+          name: pr_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cluster geladen
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountabilityCluster'
+  /prs/{pr_id}/outcomes/{window}:
+    patch:
+      summary: Aktualisiert 7d oder 30d Outcome
+      parameters:
+        - in: path
+          name: pr_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: window
+          required: true
+          schema:
+            type: string
+            enum: [7d, 30d]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutcomeWriteRequest'
+      responses:
+        '200':
+          description: Outcome aktualisiert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LedgerEntry'
+components:
+  schemas:
+    DecisionStatus:
+      type: string
+      enum: [go, go_with_guardrails, no_go]
+    DecisionPanelResponse:
+      type: object
+      required: [pr_id, status, confidence, evidence_sufficient, top_risk_drivers, version]
+      properties:
+        pr_id:
+          type: string
+        status:
+          $ref: '#/components/schemas/DecisionStatus'
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        evidence_sufficient:
+          type: boolean
+        top_risk_drivers:
+          type: array
+          items:
+            $ref: '#/components/schemas/RiskDriver'
+        version:
+          type: integer
+          minimum: 1
+    RiskDriver:
+      type: object
+      required: [driver_id, title, impact]
+      properties:
+        driver_id:
+          type: string
+        title:
+          type: string
+        impact:
+          type: number
+        severity:
+          type: string
+        source_refs:
+          type: array
+          items:
+            type: string
+    GuardrailCondition:
+      type: object
+      required: [condition_id, description, verification_method, must_pass_before_merge]
+      properties:
+        condition_id:
+          type: string
+        description:
+          type: string
+        verification_method:
+          type: string
+        must_pass_before_merge:
+          type: boolean
+    MinimalSafePlan:
+      type: object
+      required: [plan_id, pr_id, steps, expected_risk_delta, expected_score_delta, target_threshold, feasible]
+      properties:
+        plan_id:
+          type: string
+        pr_id:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuardrailCondition'
+        expected_risk_delta:
+          type: number
+        expected_score_delta:
+          type: number
+        target_threshold:
+          type: number
+        feasible:
+          type: boolean
+    AccountabilityCluster:
+      type: object
+      required: [cluster_id, label, files, risk_contribution]
+      properties:
+        cluster_id:
+          type: string
+        label:
+          type: string
+        files:
+          type: array
+          items:
+            type: string
+        risk_contribution:
+          type: number
+        dominant_drivers:
+          type: array
+          items:
+            type: string
+    DecisionWriteRequest:
+      type: object
+      required: [human_status, decision_actor, version]
+      properties:
+        human_status:
+          $ref: '#/components/schemas/DecisionStatus'
+        override_reason:
+          type: string
+          nullable: true
+        decision_actor:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+      description: Wenn human_status von Empfehlung abweicht, ist override_reason verpflichtend.
+    OutcomeWriteRequest:
+      type: object
+      required: [state, version]
+      properties:
+        state:
+          type: string
+          enum: [pending, captured, not_available]
+        rework_events:
+          type: integer
+          nullable: true
+        merge_velocity_delta:
+          type: number
+          nullable: true
+        version:
+          type: integer
+          minimum: 1
+    LedgerEntry:
+      type: object
+      required: [ledger_entry_id, pr_id, recommended_status, human_status, decision_actor, version]
+      properties:
+        ledger_entry_id:
+          type: string
+        pr_id:
+          type: string
+        recommended_status:
+          $ref: '#/components/schemas/DecisionStatus'
+        human_status:
+          $ref: '#/components/schemas/DecisionStatus'
+        override_reason:
+          type: string
+          nullable: true
+        decision_actor:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
+        outcome_7d:
+          type: object
+        outcome_30d:
+          type: object
+        version:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+    VersionConflict:
+      type: object
+      required: [error, pr_id, expected_version, actual_version]
+      properties:
+        error:
+          type: string
+          example: version_conflict
+        pr_id:
+          type: string
+        expected_version:
+          type: integer
+        actual_version:
+          type: integer
