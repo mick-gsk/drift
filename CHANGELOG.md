@@ -6,13 +6,9 @@ Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script cata
 - merge main into feat/adr100-phase7a-cleanup; add script categories to catalog.py and scripts/README.md
 
 ### Fixed
-- install workspace packages in all CI workflows and drift-agent-gate (ADR-100 monorepo)
-- ruff, shellcheck, mypy re-exports, UTF-8 BOM, and end-of-file fixes across packages/
-- resolve failing CI checks for PR 576 (CodeQL, Bandit, uninitialized vars)
-- add packages/drift to CI model-consistency install step (ADR-100 drift.signal_registry resolution)
-- suppress false-positive MAZ finding on no_frontend fallback endpoint (drift:ignore[MAZ])
-- fix ruff I001 import sort in test_command_and_router_coverage_boost2.py
-- stop git hooks from mutating commit history during commit and push
+- restore monorepo CI package installs and add packages/drift to the model-consistency environment (ADR-100)
+- resolve the remaining PR 576 quality regressions across packages/, tests, and CI checks
+- reduce workflow friction by suppressing the fallback MAZ false positive and stopping hooks from mutating commit history during commit and push
 
 ### Added
 - Phase 1 complete — VSA migration infrastructure setup (T001-T005)
