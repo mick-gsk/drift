@@ -8,6 +8,7 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 
 ### Fixed
 - install workspace packages before root in all CI workflows (ADR-100 monorepo)
+- ruff imports, shellcheck backticks, secrets baseline, smoke-pr deps (CI cleanup)
 
 ## [2.49.0] - 2026-04-30
 
