@@ -627,17 +627,13 @@ if echo "$push_changed_files" | grep -Eq '^tests/'; then
 	_pp_has_tests=1
 fi
 
-# 0. Auto-repair version refs (llms.txt, SECURITY.md) and regenerate llms.txt
-#    from signal_registry (ADR-092) before any gate runs. If drift is detected,
-#    sync_version.py fixes version refs and generate_llms_txt.py rewrites
-#    llms.txt from authoritative sources (pyproject.toml version +
-#    src/drift/signal_registry.py weights/abbrevs). Both repairs are grouped
-#    into a lightweight "chore: sync version refs" commit that is included
-#    in the push. This prevents check_model_consistency failures caused by
-#    CI-managed files getting ahead of manually maintained ones.
-#    Bypass: DRIFT_SKIP_VERSION_SYNC=1 (also skips llms.txt regeneration)
+# 0. Preflight check version refs (llms.txt, SECURITY.md) and llms.txt
+#    generation before any gate runs. If drift is detected, block with concrete
+#    repair instructions instead of mutating history during the push.
+#    This keeps push behavior deterministic and preserves the pre-push CI cache.
+#    Bypass: DRIFT_SKIP_VERSION_SYNC=1 skips this preflight check entirely.
 if [ "${DRIFT_SKIP_VERSION_SYNC:-0}" != "1" ]; then
-        echo ">>> [0/6] Checking version refs (llms.txt, SECURITY.md) and llms.txt signal table..."
+	echo ">>> [0/6] Checking version refs (llms.txt, SECURITY.md) and llms.txt signal table..."
         sync_output=$("$PYTHON_CMD" scripts/sync_version.py --json 2>/dev/null || echo "[]")
         drift_count=$(echo "$sync_output" | "$PYTHON_CMD" -c \
                 "import sys, json; data=json.load(sys.stdin); print(len(data))" 2>/dev/null || echo "0")
@@ -650,27 +646,22 @@ if [ "${DRIFT_SKIP_VERSION_SYNC:-0}" != "1" ]; then
                 llms_drift=1
         fi
 
-        if [ "$drift_count" -gt 0 ] || [ "$llms_drift" -eq 1 ]; then
-                if [ "$drift_count" -gt 0 ]; then
-                        echo ">>> [0/6] Version drift detected ($drift_count file(s)) — auto-repairing..."
-                        "$PYTHON_CMD" scripts/sync_version.py --fix --git-add
-                fi
-                if [ "$llms_drift" -eq 1 ]; then
-                        echo ">>> [0/6] llms.txt drift detected (signal table or version) — regenerating..."
-                        "$PYTHON_CMD" scripts/generate_llms_txt.py --write
-                        git add llms.txt
-                fi
-                if ! git diff --cached --quiet; then
-                        echo ">>> [0/6] NOTICE: Committing auto-repair: 'chore: sync version refs'"
-                        git commit -m "chore: sync version refs"
-                        echo ">>> [0/6] Refs synced and committed. Push continues with sync commit."
-                        current_head_sha=$(git rev-parse HEAD 2>/dev/null || true)
-                else
-                        echo ">>> [0/6] Drift signalled but no staged changes — skipping commit."
-                fi
-        else
-                echo ">>> [0/6] Version refs and llms.txt consistent — no repair needed."
-        fi
+		if [ "$drift_count" -gt 0 ] || [ "$llms_drift" -eq 1 ]; then
+			echo ">>> [0/6] ERROR: Version refs or llms.txt are out of sync."
+			if [ "$drift_count" -gt 0 ]; then
+				echo ">>> [0/6] Detected version drift in $drift_count file(s)."
+				echo ">>> [0/6] Fix: python scripts/sync_version.py --fix --git-add"
+			fi
+			if [ "$llms_drift" -eq 1 ]; then
+				echo ">>> [0/6] Detected llms.txt drift from authoritative sources."
+				echo ">>> [0/6] Fix: python scripts/generate_llms_txt.py --write && git add llms.txt"
+			fi
+			echo ">>> [0/6] Create an explicit follow-up commit after the repair, then retry the push."
+			echo ">>> [0/6] Emergency bypass: DRIFT_SKIP_VERSION_SYNC=1 git push"
+			exit 1
+		fi
+
+		echo ">>> [0/6] Version refs and llms.txt consistent — no repair needed."
 fi
 
 # 1. Version format (SemVer)

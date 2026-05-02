@@ -12,6 +12,7 @@ Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script cata
 - add packages/drift to CI model-consistency install step (ADR-100 drift.signal_registry resolution)
 - suppress false-positive MAZ finding on no_frontend fallback endpoint (drift:ignore[MAZ])
 - fix ruff I001 import sort in test_command_and_router_coverage_boost2.py
+- stop git hooks from mutating commit history during commit and push
 
 ### Added
 - Phase 1 complete — VSA migration infrastructure setup (T001-T005)
