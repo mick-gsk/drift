@@ -335,6 +335,7 @@ def test_baseline_and_copilot_context(monkeypatch, tmp_path: Path) -> None:
 
 def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
     import click
+    import drift.serve.a2a_router as router
     import drift.signals.base as signal_base
     from drift.plugins import (
         COMMAND_GROUP,
@@ -346,7 +347,6 @@ def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
         discover_signal_plugins,
         load_all_plugins,
     )
-    import drift.serve.a2a_router as router
     from drift.serve.models import A2AMessage, A2AMessagePart, A2AMessageSendParams
 
     class _EP:

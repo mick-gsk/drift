@@ -82,7 +82,7 @@ def create_app(api_url: str) -> FastAPI:
     else:
 
         @app.get("/")
-        async def no_frontend() -> JSONResponse:
+        async def no_frontend() -> JSONResponse:  # drift:ignore[MAZ]
             return JSONResponse(
                 {
                     "error": "No frontend assets found.",

@@ -10,6 +10,8 @@ Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script cata
 - ruff, shellcheck, mypy re-exports, UTF-8 BOM, and end-of-file fixes across packages/
 - resolve failing CI checks for PR 576 (CodeQL, Bandit, uninitialized vars)
 - add packages/drift to CI model-consistency install step (ADR-100 drift.signal_registry resolution)
+- suppress false-positive MAZ finding on no_frontend fallback endpoint (drift:ignore[MAZ])
+- fix ruff I001 import sort in test_command_and_router_coverage_boost2.py
 
 ### Added
 - Phase 1 complete — VSA migration infrastructure setup (T001-T005)
