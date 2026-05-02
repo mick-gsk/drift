@@ -1,3 +1,10 @@
+## [2.50.0] - 2026-05-02
+
+Short version: CLI, SDK, and Session packages (split/02c)
+
+### Added
+- CLI, SDK, and Session packages (split/02c)
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).

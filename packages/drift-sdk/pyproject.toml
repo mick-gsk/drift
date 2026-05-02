@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-sdk"
+version = "2.49.0"
+description = "Core data models and type definitions for drift-analyzer"
+requires-python = ">=3.11"
+dependencies = [
+    "drift-config",
+    "pydantic>=2.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_sdk"]
