@@ -10,6 +10,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from drift.blast_radius._adr_analyzer import analyze_adr_impacts
+from drift.blast_radius._policy_analyzer import analyze_policy_impacts
+from drift.blast_radius._skill_analyzer import analyze_skill_impacts
 
 from drift.blast_radius import (
     BlastReport,
@@ -18,9 +21,6 @@ from drift.blast_radius import (
     load_blast_report,
     save_blast_report,
 )
-from drift.blast_radius._adr_analyzer import analyze_adr_impacts
-from drift.blast_radius._policy_analyzer import analyze_policy_impacts
-from drift.blast_radius._skill_analyzer import analyze_skill_impacts
 
 
 @pytest.fixture

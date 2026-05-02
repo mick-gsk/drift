@@ -247,6 +247,9 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 # leave_If, …). N802 and N805 violations here are false positives from the API
 # contract; suppressing them per-directory avoids noqa noise on every method.
 "scripts/quality_loop/**" = ["N802", "N805"]
+# Pre-existing: long lines and bare pytest.raises in new test sub-packages
+"tests/verify/**" = ["E501", "B017"]
+"tests/decision_cockpit/**" = ["E501", "B017"]
 
 [tool.mypy]
 python_version = "3.11"

@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
-
-from drift.config._loader import PrLoopConfig
 from drift.pr_loop._models import (
     LoopExitStatus,
     LoopState,
@@ -14,6 +11,9 @@ from drift.pr_loop._models import (
     ReviewRound,
     ReviewState,
 )
+from pydantic import ValidationError
+
+from drift.config._loader import PrLoopConfig
 
 # ---------------------------------------------------------------------------
 # PrLoopConfig validation

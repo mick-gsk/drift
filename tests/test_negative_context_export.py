@@ -6,17 +6,18 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+from drift.negative_context.export import (
+    MARKER_BEGIN,
+    MARKER_END,
+    render_negative_context_markdown,
+)
+
 from drift.models import (
     NegativeContext,
     NegativeContextCategory,
     NegativeContextScope,
     Severity,
     SignalType,
-)
-from drift.negative_context.export import (
-    MARKER_BEGIN,
-    MARKER_END,
-    render_negative_context_markdown,
 )
 
 # ---------------------------------------------------------------------------
