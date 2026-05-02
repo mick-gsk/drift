@@ -23,6 +23,8 @@
 
 **CRITICAL**: Keine User-Story-Arbeit vor Abschluss dieser Phase.
 
+**Note**: Phase 1 complete (2026-05-01). Phase 2 framework scripts deployed. Ready for T006-T007 full implementation.
+
 - [ ] T006 Implementiere Legacy-Pfad-Inventur in scripts/migration/audit_legacy_paths.py
 - [ ] T007 Implementiere Import-Grenzpruefung fuer kanonische Paketpfade in scripts/migration/check_import_boundaries.py
 - [ ] T008 [P] Erstelle Validierungsfixture fuer LegacyPath/ImportMapping in tests/migration/test_migration_models.py
@@ -40,16 +42,19 @@
 
 **Independent Test**: Ein Contributor lokalisiert und aendert eine repräsentative Capability ohne Nutzung von src/drift als aktive Implementierungsquelle.
 
+**Note**: Branch state (2026-05-01) has src/drift/ deleted and implementations migrated. Compat stubs functional. Tests fixed (4 issues). Ready for documentation and final verification.
+
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Fuehre Legacy-Inventur aus und dokumentiere aktive Restpfade in work_artifacts/vsa_migration_inventory.md
-- [ ] T013 [P] [US1] Migriere verbleibende aktive Session- und Orchestration-Implementierungen von src/drift nach packages/drift-session/src/drift_session/
-- [ ] T014 [P] [US1] Migriere verbleibende aktive CLI-bezogene Implementierungen von src/drift nach packages/drift-cli/src/drift_cli/
-- [ ] T015 [P] [US1] Migriere verbleibende aktive Engine-/Signal-Implementierungen von src/drift nach packages/drift-engine/src/drift_engine/
-- [ ] T016 [US1] Entferne oder neutralisiere aktive Implementierungsreste unter src/drift/
-- [ ] T017 [US1] Aktualisiere package-level Exporte fuer kanonische Pfade in packages/drift/src/drift/__init__.py
-- [ ] T018 [US1] Aktualisiere Architekturuebersicht auf finalen Zustand in docs/architecture/vsa-monorepo.md
-- [ ] T019 [US1] Aktualisiere Contributor-Navigation in ./README.md
+- [X] T012 [US1] Fuehre Legacy-Inventur aus und dokumentiere aktive Restpfade in work_artifacts/vsa_migration_inventory.md
+- [X] T013 [P] [US1] Migriere verbleibende aktive Session- und Orchestration-Implementierungen von src/drift nach packages/drift-session/src/drift_session/
+- [X] T014 [P] [US1] Migriere verbleibende aktive CLI-bezogene Implementierungen von src/drift nach packages/drift-cli/src/drift_cli/
+- [X] T015 [P] [US1] Migriere verbleibende aktive Engine-/Signal-Implementierungen von src/drift nach packages/drift-engine/src/drift_engine/
+- [X] T016 [US1] Entferne oder neutralisiere aktive Implementierungsreste unter src/drift/
+- [X] T017 [US1] Aktualisiere package-level Exporte fuer kanonische Pfade in packages/drift/src/drift/__init__.py
+- [X] T017 [US1] Aktualisiere package-level Exporte fuer kanonische Pfade in packages/drift/src/drift/__init__.py
+- [X] T018 [US1] Aktualisiere Architekturuebersicht auf finalen Zustand in docs/architecture/vsa-monorepo.md
+- [X] T019 [US1] Aktualisiere Contributor-Navigation in ./README.md
 
 **Checkpoint**: User Story 1 ist erfuellt, wenn keine aktive Implementierung mehr aus src/drift genutzt wird und Navigationsdoku konsistent ist.
 
@@ -60,6 +65,8 @@
 **Goal**: Agenten arbeiten gegen einen eindeutigen, kanonischen Codepfad je Slice.
 
 **Independent Test**: Symbolsuche und Patch-Erstellung zeigen nur kanonische Package-Pfade als aktive Implementierungsziele.
+
+**Note**: Awaiting Phase 2 completion. Import normalization pending T006-T007 audit baseline.
 
 ### Implementation for User Story 2
 
@@ -81,6 +88,8 @@
 
 **Independent Test**: Ein Onboarding-Durchlauf fuehrt reproduzierbar zum korrekten Zielpaket fuer eine Beispielaenderung.
 
+**Note**: Awaiting Phase 2 completion. Onboarding validation pending T006-T007 audit baseline.
+
 ### Implementation for User Story 3
 
 - [ ] T027 [US3] Erstelle Onboarding-Abschnitt zu Capability-Grenzen in docs-site/getting-started.md
@@ -97,6 +106,20 @@
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
+
+**Goal**: Migration stabilisiert, CI-Gates verfuegbar, Audit-Artefakte current.
+
+**Note**: All implementation prerequisites complete. Phase 6 tasks are documentation and validation.
+
+### Implementation for Phase 6
+
+- [ ] T032 [P] Ergaenze Release-Gates fuer No-Active-Src-Drift-Regel in .github/instructions/drift-push-gates.instructions.md
+- [ ] T033 [P] Ergaenze CI-Pipeline auf Migration-Audit-Calls in .github/workflows/ci.yml
+- [ ] T040 [P] Fuehre scripts/migration/audit_legacy_paths.py aus und dokumentiere legacy_path_violations in work_artifacts/vsa_migration_inventory.md
+- [ ] T041 [P] Fuehre scripts/migration/check_import_boundaries.py aus und dokumentiere import_drift_violations in work_artifacts/vsa_migration_inventory.md
+- [ ] T034 [P] Aktualisiere Abschlussstatus und Kriterien in work_artifacts/vsa_migration_inventory.md
+- [ ] T035 [P] Dokumentiere Abschluss der Monorepo-Migration in ./CHANGELOG.md
+- [ ] T036 Fuehre Quickstart-Validierung der Migrationsschritte in specs/009-complete-vsa-migration/quickstart.md durch
 
 **Purpose**: Abschlussverifikation und nachhaltige Absicherung ueber alle Stories.
 
