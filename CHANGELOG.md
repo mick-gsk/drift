@@ -1,25 +1,39 @@
-## [2.50.0] - 2026-05-03
+## [2.50.0] - 2026-05-01
 
-Short version: Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs.
+Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
 
 ### Changed
-- Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
+- merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
+- add script categories to catalog.py + agent-facing scripts/README.md
 
 ### Fixed
-- address PR review — cleanup on label removal, consistent section names, direct yaml import
+- install workspace packages before root in all CI workflows (ADR-100 monorepo)
+- ruff imports, shellcheck backticks, secrets baseline, smoke-pr deps (CI cleanup)
+- ruff I001 in packages/, shellcheck YAML syntax in workflows, fix end-of-files
+- remove UTF-8 BOM and ensure end-of-file newlines in packages/
+- add explicit mypy re-exports to ADR-100 sys.modules stubs
+- unblock CI gates for PR checks
+- install workspace packages in drift-agent-gate workflow
+- resolve failing CI checks for PR 576
+
+### Added
+- Phase 1 complete - VSA migration infrastructure setup (T001-T005)
 
 ## [2.49.0] - 2026-04-30
 
-Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
+Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle. New: `@drift-analyzer/sdk` npm package for Node.js/TypeScript programmatic access.
 
 ### Added
-- add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+- `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
+- Monorepo ADR-100 capability-split rollout (uv workspace + `drift-config`/`drift-sdk`/`drift-engine`/`drift-session`/`drift-mcp`/`drift-cli`) plus outcome-first validation runner
+- `@drift-analyzer/sdk` npm package for Node.js/TypeScript programmatic access (`analyze`, `check`, `brief`, `fix-plan`)
 
 ### Fixed
-- resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
+- resolve PR #563 review issues; harden output stubs; restore brief command console state; FU-002/004 ab-harness mock mode
 
 ### Changed
-- update harness prompt and skill catalog
+- add packages/ to repo-root-allowlist; phase 6b CI/workflow path-filters (ADR-100)
+- prevent post-commit hook from re-inserting CHANGELOG bullet on amend
 
 ## [2.48.5] - 2026-04-29
 
