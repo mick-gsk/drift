@@ -8,9 +8,9 @@ from pathlib import Path
 from typing import Literal, cast
 
 import click
+from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 from rich.console import Console
 
-from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 from drift_cli.commands import fail_glyph, ok_glyph
 from drift_cli.commands._shared import (
     apply_baseline_filtering,
@@ -326,6 +326,10 @@ def check(
         from drift.config import apply_signal_filter, resolve_signal_names
 
         apply_signal_filter(cfg, select_signals, ignore_signals)
+    else:
+
+        def resolve_signal_names(_: str) -> list[str]:  # type: ignore[misc]
+            return []
 
     drift_score_scope = build_drift_score_scope(
         context="diff",

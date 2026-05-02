@@ -8,9 +8,8 @@ from pathlib import Path
 from typing import Literal, cast
 
 import click
-from rich.console import Console
-
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
+from rich.console import Console
 
 
 def _apply_analysis_cfg_overrides(
@@ -111,7 +110,7 @@ def _maybe_enrich_plain_messages(
         from drift.lang import enrich_human_messages
 
         analysis.findings = enrich_human_messages(  # type: ignore[union-attr, attr-defined]
-            analysis.findings,
+            analysis.findings,  # type: ignore[attr-defined]
             lang=effective_language,
             audience="plain",  # type: ignore[union-attr, attr-defined]
         )
@@ -183,7 +182,6 @@ def _render_analysis_details(
 
     if output_format == "rich":
         from drift.calibration.feedback import resolve_feedback_paths
-
         from drift.output.rich_output import render_feedback_calibration_hint
 
         _feedback_path, _, _ = resolve_feedback_paths(repo, cfg)
@@ -228,7 +226,6 @@ def _refine_recommendations_with_are(
     from datetime import datetime as _datetime
 
     from drift.calibration.recommendation_calibrator import load_calibration
-
     from drift.outcome_tracker import Outcome, OutcomeTracker, compute_fingerprint
     from drift.recommendation_refiner import refine
     from drift.reward_chain import (
@@ -314,7 +311,6 @@ def _run_interactive_review(
     if not (review_mode and output_format == "rich" and not quiet):
         return
     from drift.calibration.feedback import resolve_feedback_paths
-
     from drift.output.interactive_review import review_findings
 
     feedback_path, _, _ = resolve_feedback_paths(repo, cfg)
@@ -674,6 +670,9 @@ def analyze(
       json    JSON-lines on stderr — useful for CI log parsing: --progress json
       none    Silent — no progress output at all
     """
+    from drift.analyzer import analyze_repo
+    from drift.api_helpers import build_drift_score_scope, signal_scope_label
+    from drift.config import DriftConfig
     from rich.progress import (
         BarColumn,
         MofNCompleteColumn,
@@ -682,9 +681,6 @@ def analyze(
         TimeRemainingColumn,
     )
 
-    from drift.analyzer import analyze_repo
-    from drift.api_helpers import build_drift_score_scope, signal_scope_label
-    from drift.config import DriftConfig
     from drift_cli.commands._shared import (
         apply_baseline_filtering,
         build_effective_console,
@@ -719,6 +715,10 @@ def analyze(
         apply_signal_filter(cfg, select_signals, ignore_signals)
         if select_signals:
             active_signals = set(resolve_signal_names(select_signals))
+    else:
+
+        def resolve_signal_names(_: str) -> list[str]:  # type: ignore[misc]
+            return []
 
     drift_score_scope = build_drift_score_scope(
         context="repo",

@@ -14,6 +14,7 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 - add explicit mypy re-exports to ADR-100 sys.modules stubs
 - unblock CI gates for PR checks
 - install workspace packages in drift-agent-gate workflow
+- resolve failing CI checks for PR 576
 
 ### Added
 - Phase 1 complete - VSA migration infrastructure setup (T001-T005)

@@ -16,6 +16,7 @@ dependencies = [
     "drift-output",
     "drift-session",
     "drift-mcp",
+    "drift-verify",
 ]
 
 [tool.uv.sources]
@@ -25,6 +26,7 @@ drift-engine = { workspace = true }
 drift-output = { workspace = true }
 drift-session = { workspace = true }
 drift-mcp = { workspace = true }
+drift-verify = { workspace = true }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/drift_cli"]
