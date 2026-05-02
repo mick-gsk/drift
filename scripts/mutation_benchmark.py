@@ -1215,6 +1215,10 @@ def _check_detection(mutations, findings):
 
 
 def main():
+    # Ensure Unicode mutation descriptions (e.g. arrows) print safely on Windows CI.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     tmpdir = tempfile.mkdtemp(prefix="drift_mutation_")
     repo_dir = Path(tmpdir) / "synthetic_repo"
     repo_dir.mkdir()
