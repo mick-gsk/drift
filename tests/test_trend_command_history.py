@@ -8,7 +8,6 @@ import subprocess
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.config import DriftConfig
 

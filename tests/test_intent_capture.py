@@ -3,14 +3,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from drift.intent import CapturedIntent, FeedbackActionItem, FeedbackResult, VerifyResult
 from drift.intent.capture import (
     _detect_output_type,
     _extract_features,
     _is_vague,
     extract_intent,
 )
-
-from drift.intent import CapturedIntent, FeedbackActionItem, FeedbackResult, VerifyResult
 
 # ── Model tests ───────────────────────────────────────────────────────────────
 

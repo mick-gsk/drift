@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.ingestion.git_history import (
     _detect_ai_attribution,
     _is_defect_correlated,

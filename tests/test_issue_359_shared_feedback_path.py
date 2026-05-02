@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 from drift.calibration.feedback import FeedbackEvent, load_feedback, record_feedback
-
 from drift.commands.calibrate import calibrate
 from drift.commands.feedback import feedback
 

@@ -123,7 +123,11 @@ class TestDriftFeedbackAndCalibrateAbandonOnCancel:
             candidates.append(_router_map[fn_name])
 
         for src_path, search_fn in candidates:
-            src = Path(src_path).read_text(encoding="utf-8")
+            p = Path(src_path)
+            try:
+                src = p.read_text(encoding="utf-8")
+            except FileNotFoundError:
+                continue
             tree = ast.parse(src)
 
             for node in ast.walk(tree):

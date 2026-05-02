@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from drift.ci_detect import detect_ci_environment
 
 

@@ -17,7 +17,6 @@ Property invariants:
 from pathlib import Path
 
 import pytest
-
 from drift.config import SignalWeights
 from drift.models import Finding, Severity, SignalType, severity_for_score
 from drift.scoring.engine import (

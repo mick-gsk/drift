@@ -11,7 +11,6 @@ from drift.calibration.recommendation_calibrator import (
     load_effort,
     save_calibration,
 )
-
 from drift.outcome_tracker import Outcome
 
 # ---------------------------------------------------------------------------

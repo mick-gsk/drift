@@ -14,8 +14,6 @@ import datetime
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 import drift.signals.architecture_violation  # noqa: F401
 import drift.signals.broad_exception_monoculture  # noqa: F401
 import drift.signals.bypass_accumulation  # noqa: F401
@@ -30,6 +28,7 @@ import drift.signals.pattern_fragmentation  # noqa: F401
 import drift.signals.system_misalignment  # noqa: F401
 import drift.signals.temporal_volatility  # noqa: F401
 import drift.signals.test_polarity_deficit  # noqa: F401
+import pytest
 from drift.config import DriftConfig, SignalWeights
 from drift.ingestion.ast_parser import parse_file
 from drift.ingestion.file_discovery import discover_files
@@ -43,6 +42,7 @@ from drift.scoring.engine import (
     compute_signal_scores,
 )
 from drift.signals.base import AnalysisContext, create_signals
+
 from tests.fixtures.ground_truth import (
     ALL_FIXTURES,
     GroundTruthFixture,

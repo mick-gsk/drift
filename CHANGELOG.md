@@ -15,6 +15,9 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 - unblock CI gates for PR checks
 - install workspace packages in drift-agent-gate workflow
 
+### Added
+- Phase 1 complete - VSA migration infrastructure setup (T001-T005)
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle. New: `@drift-analyzer/sdk` npm package for Node.js/TypeScript programmatic access.

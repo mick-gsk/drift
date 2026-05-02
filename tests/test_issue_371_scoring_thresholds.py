@@ -16,9 +16,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
-from drift.config import DriftConfig, GradeBandConfig, ScoringConfig, SignalWeights
-from drift.config._schema import PathOverride
+from drift.config import DriftConfig, GradeBandConfig, PathOverride, ScoringConfig, SignalWeights
 from drift.models import Finding, Severity
 from drift.scoring.engine import (
     apply_path_overrides,
@@ -308,7 +306,6 @@ class TestScoringPhaseFeedbackBlend:
         """When feedback events exist, effective weights should be blended."""
         from drift.calibration.feedback import FeedbackEvent
         from drift.calibration.profile_builder import CalibrationResult
-
         from drift.pipeline import ScoringPhase
 
         cfg = self._make_config(alpha=0.5)

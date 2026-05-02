@@ -728,9 +728,8 @@ class TestIntentAPI:
     """Test the intent() API function."""
 
     def test_intent_phase_1(self, intent_repo: Path) -> None:
-        from drift.intent.registry import clear_cache
-
         from drift.api.intent import intent
+        from drift.intent.registry import clear_cache
 
         clear_cache()
         result = intent(
@@ -746,10 +745,9 @@ class TestIntentAPI:
         assert (intent_repo / "drift.intent.json").exists()
 
     def test_intent_phase_2(self, intent_repo: Path) -> None:
+        from drift.api.intent import intent
         from drift.intent.capture import save_intent_json
         from drift.intent.registry import clear_cache
-
-        from drift.api.intent import intent
 
         clear_cache()
         # Pre-create intent.json for phase 2
@@ -779,9 +777,8 @@ class TestIntentAPI:
         assert "validation" in result
 
     def test_intent_phase_3(self, intent_repo: Path) -> None:
-        from drift.intent.capture import save_intent_json
-
         from drift.api.intent import intent
+        from drift.intent.capture import save_intent_json
 
         save_intent_json(
             {
@@ -810,9 +807,8 @@ class TestIntentAPI:
         assert (intent_repo / "drift.agent.prompt.md").exists()
 
     def test_intent_phase_4(self, intent_repo: Path) -> None:
-        from drift.intent.capture import save_intent_json
-
         from drift.api.intent import intent
+        from drift.intent.capture import save_intent_json
 
         save_intent_json(
             {
@@ -841,9 +837,8 @@ class TestIntentAPI:
         assert result["all_fulfilled"] is True
 
     def test_intent_phase_5_all_fulfilled(self, intent_repo: Path) -> None:
-        from drift.intent.capture import save_intent_json
-
         from drift.api.intent import intent
+        from drift.intent.capture import save_intent_json
 
         save_intent_json(
             {
@@ -871,9 +866,8 @@ class TestIntentAPI:
         assert result["repair_status"] == "all_fulfilled"
 
     def test_intent_full_loop(self, intent_repo: Path) -> None:
-        from drift.intent.registry import clear_cache
-
         from drift.api.intent import intent
+        from drift.intent.registry import clear_cache
 
         clear_cache()
         result = intent(

@@ -4,17 +4,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from drift.negative_context.core import (
-    _affected,
-    _scope_from_finding,
-)
-
 # Re-import the generators indirectly to trigger registration
 import drift.negative_context  # noqa: F401
 from drift.models import Finding, Severity, SignalType
 from drift.negative_context import (
     _neg_id,
     findings_to_negative_context,
+)
+from drift.negative_context.core import (
+    _affected,
+    _scope_from_finding,
 )
 
 # ---------------------------------------------------------------------------

@@ -12,7 +12,6 @@ from drift.calibration.recommendation_calibrator import (
     load_calibration,
     save_calibration,
 )
-
 from drift.models import Finding, FindingStatus, LogicalLocation, Severity
 from drift.outcome_tracker import Outcome, OutcomeTracker, compute_fingerprint
 from drift.recommendation_refiner import refine

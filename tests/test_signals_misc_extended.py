@@ -413,7 +413,6 @@ def test_extract_dir_refs_regex_fallback_when_no_mistune() -> None:
 def test_extract_dir_refs_mistune_exception_returns_empty() -> None:
     """Lines 275-277: if mistune MD parse fails, returns empty set."""
     import mistune
-
     from drift.signals.doc_impl_drift import _extract_dir_refs_from_ast
 
     def _raise_bad(_: object) -> object:

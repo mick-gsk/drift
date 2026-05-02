@@ -5,9 +5,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import pytest
-
 import drift.mcp_server as mcp_server
+import pytest
 
 
 def _run(coro):

@@ -10,13 +10,12 @@ import sys
 from pathlib import Path
 
 from click.testing import CliRunner
-from rich.console import Console
-
 from drift.commands.analyze import analyze
 from drift.commands.check import check
 from drift.commands.init_cmd import init
 from drift.models import RepoAnalysis, SignalType
 from drift.output.rich_output import _signal_label, render_summary
+from rich.console import Console
 
 
 class _DummyConfig:

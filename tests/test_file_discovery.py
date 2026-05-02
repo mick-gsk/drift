@@ -15,7 +15,6 @@ import os
 from pathlib import Path
 
 import pytest
-
 from drift.ingestion.file_discovery import (
     _matches_any,
     _mtime_fingerprint,

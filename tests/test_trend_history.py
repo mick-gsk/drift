@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
 from drift.models import RepoAnalysis
 from drift.trend_history import apply_trend_and_persist_snapshot, save_history
 

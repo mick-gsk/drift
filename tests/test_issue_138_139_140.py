@@ -50,7 +50,6 @@ class TestIssue140CheckPathOption:
 
     def test_check_accepts_path_option(self) -> None:
         from click.testing import CliRunner
-
         from drift.commands.check import check
 
         runner = CliRunner()
@@ -61,7 +60,6 @@ class TestIssue140CheckPathOption:
 
     def test_check_accepts_target_path_alias(self) -> None:
         from click.testing import CliRunner
-
         from drift.commands.check import check
 
         runner = CliRunner()

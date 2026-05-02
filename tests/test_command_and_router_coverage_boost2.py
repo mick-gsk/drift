@@ -7,7 +7,6 @@ from types import SimpleNamespace
 
 import pytest
 from click.testing import CliRunner
-
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity
 
 
@@ -336,9 +335,7 @@ def test_baseline_and_copilot_context(monkeypatch, tmp_path: Path) -> None:
 
 def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
     import click
-    from drift.serve.a2a_router import dispatch
-    from drift.serve.models import A2AMessage, A2AMessagePart, A2AMessageSendParams
-
+    import drift.signals.base as signal_base
     from drift.plugins import (
         COMMAND_GROUP,
         OUTPUT_GROUP,
@@ -349,6 +346,8 @@ def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
         discover_signal_plugins,
         load_all_plugins,
     )
+    import drift.serve.a2a_router as router
+    from drift.serve.models import A2AMessage, A2AMessagePart, A2AMessageSendParams
 
     class _EP:
         def __init__(self, name, value, obj=None, exc=False):
@@ -392,7 +391,7 @@ def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
             ],
         }[group],
     )
-    monkeypatch.setattr("drift.signals.base.BaseSignal", _BaseSignal)
+    monkeypatch.setattr(signal_base, "BaseSignal", _BaseSignal)
 
     sigs = discover_signal_plugins()
     assert _Sig in sigs
@@ -404,15 +403,15 @@ def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
     assert cmds and cmds[0].name == "x"
 
     monkeypatch.setattr("drift.plugins.discover_signal_plugins", lambda: [_Sig])
-    monkeypatch.setattr("drift.signals.base._SIGNAL_REGISTRY", [])
-    monkeypatch.setattr("drift.signals.base.register_signal", lambda cls: None)
+    monkeypatch.setattr(signal_base, "_SIGNAL_REGISTRY", [])
+    monkeypatch.setattr(signal_base, "register_signal", lambda cls: None)
     load_all_plugins()
 
     # A2A router dispatch
     params_missing = A2AMessageSendParams(
         message=A2AMessage(parts=[A2AMessagePart(kind="text", text="hi")])
     )
-    r_missing = dispatch(params_missing, "1")
+    r_missing = router.dispatch(params_missing, "1")
     assert hasattr(r_missing, "error")
 
     params_unknown = A2AMessageSendParams(
@@ -420,14 +419,12 @@ def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
             metadata={"skillId": "does-not-exist"}, parts=[A2AMessagePart(kind="text", text="hi")]
         )
     )
-    r_unknown = dispatch(params_unknown, "1")
+    r_unknown = router.dispatch(params_unknown, "1")
     assert hasattr(r_unknown, "error")
 
-    monkeypatch.setattr("os.path.realpath", lambda p: str(tmp_path))
+    monkeypatch.setattr("os.path.realpath", lambda p, *args, **kwargs: str(tmp_path))
     monkeypatch.setattr("os.path.normpath", lambda p: p)
     monkeypatch.setattr("os.path.isdir", lambda p: True)
-
-    import drift.serve.a2a_router as router
 
     original_dispatch = dict(router._SKILL_DISPATCH)
     try:
@@ -440,21 +437,21 @@ def test_plugins_and_a2a_router(monkeypatch, tmp_path: Path) -> None:
                 parts=[A2AMessagePart(kind="data", data={"skill": "scan", "path": str(tmp_path)})],
             )
         )
-        r_ok = dispatch(params_ok, "1")
+        r_ok = router.dispatch(params_ok, "1")
         assert hasattr(r_ok, "result")
 
         router._SKILL_DISPATCH.clear()
         router._SKILL_DISPATCH.update(
             {"scan": lambda p: (_ for _ in ()).throw(ValueError("bad params"))}
         )
-        r_val = dispatch(params_ok, "1")
+        r_val = router.dispatch(params_ok, "1")
         assert hasattr(r_val, "error")
 
         router._SKILL_DISPATCH.clear()
         router._SKILL_DISPATCH.update(
             {"scan": lambda p: (_ for _ in ()).throw(RuntimeError("boom"))}
         )
-        r_err = dispatch(params_ok, "1")
+        r_err = router.dispatch(params_ok, "1")
         assert hasattr(r_err, "error")
     finally:
         router._SKILL_DISPATCH.clear()

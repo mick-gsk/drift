@@ -239,7 +239,6 @@ class TestServeCommand:
 
     def test_serve_missing_deps_shows_hint(self) -> None:
         from click.testing import CliRunner
-
         from drift.commands.serve import serve
 
         with patch.dict("sys.modules", {"uvicorn": None, "fastapi": None}):

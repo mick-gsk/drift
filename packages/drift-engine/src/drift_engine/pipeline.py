@@ -14,6 +14,7 @@ from __future__ import annotations
 import datetime
 import fnmatch
 import hashlib
+import inspect
 import logging
 import os
 import subprocess
@@ -42,6 +43,7 @@ from drift.models import (
     RepoAnalysis,
 )
 from drift.suppression import SuppressionFilterResult, filter_findings, scan_suppression_entries
+
 from drift_engine.ingestion.ast_parser import parse_file
 from drift_engine.ingestion.git_history import (
     build_file_histories,
@@ -939,7 +941,28 @@ class SignalPhase:
             commits=parsed.commits,
         )
         try:
-            signals = self._signal_factory(ctx, active_signals=active_signals)
+            factory_sig = inspect.signature(self._signal_factory)
+            params = factory_sig.parameters
+            accepts_active_signals_kw = "active_signals" in params or any(
+                p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
+            )
+        except (TypeError, ValueError):
+            accepts_active_signals_kw = False
+
+        try:
+            if active_signals is not None and accepts_active_signals_kw:
+                # Use **kwargs dispatch so static analysers don't flag the kwarg
+                # against factory signatures that intentionally omit active_signals.
+                _extra: dict[str, Any] = {"active_signals": active_signals}
+                signals = self._signal_factory(ctx, **_extra)  # type: ignore[call-arg]
+            else:
+                signals = self._signal_factory(ctx)
+                if active_signals is not None:
+                    signals = [
+                        s for s in signals
+                        if getattr(s, "signal_type", None) is not None
+                        and s.signal_type.value in active_signals
+                    ]
         except TypeError:
             # Backward-compatible fallback for custom factories that only accept ctx.
             signals = self._signal_factory(ctx)
@@ -1309,10 +1332,9 @@ class ScoringPhase:
             # Optionally blend with feedback-informed weights (scoring.feedback_blend_alpha).
             alpha = config.scoring.feedback_blend_alpha
             if alpha > 0.0 and config.calibration.enabled:
-                from drift.calibration.feedback import resolve_feedback_paths
-                from drift.calibration.profile_builder import build_profile
-
-                from drift.calibration import load_feedback
+                from drift_engine.calibration import load_feedback
+                from drift_engine.calibration.feedback import resolve_feedback_paths
+                from drift_engine.calibration.profile_builder import build_profile
 
                 feedback_path, _local, _shared = resolve_feedback_paths(repo_path, config)
                 events = load_feedback(feedback_path)

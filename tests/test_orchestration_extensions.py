@@ -8,7 +8,6 @@ from __future__ import annotations
 import time
 
 import pytest
-
 from drift.api_helpers import (
     PlanValidationResult,
     WorkflowPlan,

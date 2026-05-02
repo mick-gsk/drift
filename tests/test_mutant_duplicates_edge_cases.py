@@ -16,7 +16,6 @@ and false positives here reduce trust in the entire analysis.
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import FunctionInfo, ParseResult
 from drift.signals.mutant_duplicates import (

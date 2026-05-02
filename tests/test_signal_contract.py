@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import drift_engine.signals.base as signal_base  # ADR-100 Phase 3
-
 from drift.config import DriftConfig
 from drift.models import CommitInfo, FileHistory, Finding, ParseResult, SignalType
 from drift.signals.base import AnalysisContext, BaseSignal, create_signals

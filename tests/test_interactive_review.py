@@ -8,13 +8,12 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from rich.console import Console
-
 from drift.models import Finding, FindingStatus, Severity, SignalType
 from drift.output.interactive_review import (
     _CALIBRATION_HINT_THRESHOLD,
     review_findings,
 )
+from rich.console import Console
 
 # ---------------------------------------------------------------------------
 # Helpers
