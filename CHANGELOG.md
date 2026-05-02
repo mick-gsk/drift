@@ -4,6 +4,7 @@ Short version: split cockpit ui and backend package
 
 ### Added
 - split cockpit ui and backend package
+- split vscode extension scaffold
 
 ## [2.49.0] - 2026-04-30
 

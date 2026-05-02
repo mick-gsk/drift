@@ -1,0 +1,110 @@
+{
+  "name": "vscode-drift",
+  "displayName": "Drift",
+  "description": "Architectural drift detection via inline diagnostics, status-bar score, and on-save nudge.",
+  "version": "0.1.0",
+  "publisher": "mick-gsk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mick-gsk/drift"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters"
+  ],
+  "keywords": [
+    "drift",
+    "architecture",
+    "linter",
+    "mcp",
+    "code quality"
+  ],
+  "activationEvents": [
+    "workspaceContains:drift.yaml",
+    "workspaceContains:.drift.yaml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "drift.analyzeWorkspace",
+        "title": "Drift: Analyze Workspace",
+        "category": "Drift"
+      },
+      {
+        "command": "drift.nudgeCurrentFile",
+        "title": "Drift: Nudge Current File",
+        "category": "Drift"
+      },
+      {
+        "command": "drift.openFindings",
+        "title": "Drift: Show Findings",
+        "category": "Drift"
+      },
+      {
+        "command": "drift.clearDiagnostics",
+        "title": "Drift: Clear Diagnostics",
+        "category": "Drift"
+      }
+    ],
+    "configuration": {
+      "title": "Drift",
+      "properties": {
+        "drift.pythonPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the Python interpreter that has drift-analyzer installed. Leave empty to use the workspace virtual environment or system Python."
+        },
+        "drift.analyzeOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run Drift: Nudge Current File automatically on every file save (low-cost; requires a prior Analyze Workspace run)."
+        },
+        "drift.maxFindings": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "Maximum number of findings returned by Analyze Workspace."
+        },
+        "drift.serverStartupTimeoutMs": {
+          "type": "number",
+          "default": 10000,
+          "minimum": 1000,
+          "description": "Milliseconds to wait for the Drift MCP server to start before treating it as unavailable."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "node esbuild.config.js",
+    "compile:check": "tsc --noEmit",
+    "watch": "node esbuild.config.js --watch",
+    "package": "node esbuild.config.js --production && vsce package --no-dependencies",
+    "lint": "eslint src --ext .ts",
+    "pretest": "tsc -p tsconfig.test.json --noEmit false",
+    "test": "node ./out/test/runTest.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0"
+  },
+  "overrides": {
+    "serialize-javascript": ">=7.0.5"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@vscode/test-electron": "^2.3.0",
+    "@vscode/vsce": "^3.0.0",
+    "esbuild": "^0.28.0",
+    "eslint": "^8.57.0",
+    "mocha": "^10.0.0",
+    "typescript": "^5.4.0"
+  }
+}
