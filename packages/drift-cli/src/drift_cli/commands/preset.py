@@ -23,9 +23,8 @@ def preset_list(output_json: bool) -> None:
     """List all available presets (built-in and plugin-provided)."""
     import json as json_mod
 
-    from rich.table import Table
-
     from drift.profiles import list_profiles
+    from rich.table import Table
 
     # Discover external presets via entry points
     external = _discover_external_presets()

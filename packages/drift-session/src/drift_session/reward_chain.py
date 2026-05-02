@@ -11,9 +11,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from drift.models import Finding
 from drift_output.recommendations import Recommendation
 
-from drift.models import Finding
 from drift_session.outcome_tracker import Outcome
 
 # Sub-score weights (F-08)

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from drift.ingestion.git_history import _detect_ai_attribution
+
 from drift_session.outcome_ledger._models import AuthorType
 
 

@@ -95,12 +95,11 @@ def export_context(
         drift export-context --include-positive # combined positive + negative context
         drift export-context -w -o .github/instructions/anti-patterns.instructions.md
     """
-    from drift.negative_context.export import render_negative_context_markdown
-
     from drift.analyzer import analyze_repo
     from drift.config import DriftConfig
     from drift.finding_context import split_findings_by_context
     from drift.negative_context import findings_to_negative_context
+    from drift.negative_context.export import render_negative_context_markdown
 
     repo_path = repo.resolve()
     cfg = DriftConfig.load(config or repo_path)

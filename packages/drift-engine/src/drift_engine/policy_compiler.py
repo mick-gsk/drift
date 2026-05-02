@@ -23,12 +23,12 @@ from typing import TYPE_CHECKING, Any
 from drift.models._policy import CompiledPolicy, PolicyCategory, PolicyRule
 
 if TYPE_CHECKING:
-    from drift.arch_graph._models import (
+    from drift.task_spec import TaskSpec
+
+    from drift_engine.arch_graph._models import (
         ArchAbstraction,
         ArchGraph,
     )
-
-    from drift.task_spec import TaskSpec
 
 _log = logging.getLogger("drift")
 
@@ -163,7 +163,7 @@ def compile_decision_rules(
     scope: CompileScope,
 ) -> list[PolicyRule]:
     """Generate rules from ArchGraph decisions that match the scope."""
-    from drift.arch_graph._decisions import match_decisions
+    from drift_engine.arch_graph._decisions import match_decisions
 
     rules: list[PolicyRule] = []
     seen_ids: set[str] = set()

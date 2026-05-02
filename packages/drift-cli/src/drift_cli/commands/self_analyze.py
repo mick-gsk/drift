@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
+from drift.errors import DriftSystemError
 from rich.console import Console
 
-from drift.errors import DriftSystemError
 from drift_cli.commands import console
 
 

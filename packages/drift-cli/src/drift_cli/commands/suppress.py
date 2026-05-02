@@ -6,11 +6,11 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import click
+from drift.models import Finding
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.table import Table
 
-from drift.models import Finding
 from drift_cli.commands import console
 
 

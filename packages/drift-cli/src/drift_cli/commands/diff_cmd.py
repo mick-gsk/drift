@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 import click
-
 from drift.api import diff as api_diff
 from drift.api import to_json
 

@@ -73,7 +73,6 @@ def mark(
 ) -> None:
     """Record a single feedback verdict for a finding."""
     from drift.calibration.feedback import FeedbackEvent, record_feedback, resolve_feedback_paths
-
     from drift.config import SIGNAL_ABBREV, DriftConfig
 
     cfg = DriftConfig.load(repo, config)
@@ -122,7 +121,6 @@ def summary(repo: Path, config: Path | None) -> None:
         resolve_feedback_paths,
     )
     from drift.calibration.status import load_calibration_status
-
     from drift.config import SIGNAL_ABBREV, DriftConfig, SignalWeights
 
     cfg = DriftConfig.load(repo, config)
@@ -275,7 +273,6 @@ def _format_feedback_source(tp: int, fp: int, fn: int) -> str:
 def import_feedback(repo: Path, config: Path | None, source_file: Path) -> None:
     """Import feedback events from an external JSONL file."""
     from drift.calibration.feedback import load_feedback, record_feedback, resolve_feedback_paths
-
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
@@ -316,7 +313,6 @@ def import_feedback(repo: Path, config: Path | None, source_file: Path) -> None:
 def push(repo: Path, config: Path | None, to_shared: bool) -> None:
     """Merge local feedback events into the configured shared feedback file."""
     from drift.calibration.feedback import load_feedback, record_feedback, resolve_feedback_paths
-
     from drift.config import DriftConfig
 
     if not to_shared:

@@ -13,7 +13,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-import drift_engine.signals
 from drift.config import DriftConfig
 from drift.models import FileInfo, RepoAnalysis, TrendContext
 from drift.models._enums import AnalysisStatus
@@ -38,6 +37,8 @@ from drift.trend_history import (
 from drift.trend_history import (
     snapshot_scope as trend_snapshot_scope,
 )
+
+import drift_engine.signals
 from drift_engine.ingestion.file_discovery import discover_files
 from drift_engine.pipeline import (
     DEFAULT_WORKERS,

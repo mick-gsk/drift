@@ -11,9 +11,8 @@ from rich.panel import Panel
 from rich.text import Text
 
 if TYPE_CHECKING:
-    from rich.console import Console
-
     from drift.models import Finding
+    from rich.console import Console
 
 # Number of accumulated feedback entries that triggers the calibration hint.
 _CALIBRATION_HINT_THRESHOLD: int = 10

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from drift.negative_context import findings_to_negative_context, negative_context_to_dict
 from drift_config import DriftConfig
 from drift_engine.baseline import finding_fingerprint
 from drift_sdk.models import (
@@ -16,7 +17,6 @@ from drift_sdk.models import (
 )
 
 from drift import __version__
-from drift.negative_context import findings_to_negative_context, negative_context_to_dict
 from drift_output.api_helpers import (
     build_drift_score_scope,
     finding_base_payload,
@@ -212,7 +212,7 @@ def _agent_telemetry_to_dict(telemetry: object | None) -> dict[str, object] | No
     if telemetry is None:
         return None
     # Import here to avoid circular imports at module level
-    from drift.models._findings import AgentTelemetry
+    from drift_sdk.models._findings import AgentTelemetry
 
     if not isinstance(telemetry, AgentTelemetry):
         return None

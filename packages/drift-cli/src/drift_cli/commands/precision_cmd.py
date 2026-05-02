@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import click
-
 from drift.models import SignalType
+
 from drift_cli.commands import fail_glyph, warn_glyph
 
 # Common 3-letter abbreviations used in docs and CLI
@@ -90,12 +90,11 @@ def precision(
     threshold: float,
 ) -> None:
     """Run ground-truth fixtures and report per-signal precision/recall/F1."""
-    from tests.fixtures.ground_truth import ALL_FIXTURES, FixtureKind
-
     from drift.precision import (
         ensure_signals_registered,
         evaluate_fixtures,
     )
+    from tests.fixtures.ground_truth import ALL_FIXTURES, FixtureKind
 
     ensure_signals_registered()
 

@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Any
 
 import click
-
 from drift.signal_mapping import signal_abbrev
+
 from drift_cli.commands import console, ok_glyph, warn_glyph
 
 

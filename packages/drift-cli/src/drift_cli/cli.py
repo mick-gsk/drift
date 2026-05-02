@@ -16,8 +16,6 @@ import sys
 import warnings
 
 import click
-
-from drift import __version__
 from drift.commands import console
 from drift.errors import (
     ERROR_REGISTRY,
@@ -25,6 +23,14 @@ from drift.errors import (
     EXIT_INTERRUPTED,
     EXIT_SYSTEM_ERROR,
     DriftError,
+)
+
+from drift import __version__
+from drift_cli.help_nav import (
+    build_help_sections,
+    ensure_additive_behavior,
+    legacy_command_names,
+    render_help_section_rows,
 )
 
 __all__ = ["console"]
@@ -135,46 +141,6 @@ def _configure_logging(verbose: bool = False) -> None:
 class SuggestingGroup(click.Group):
     """Click Group that adds did-you-mean hints for unknown subcommands."""
 
-    _CORE_COMMANDS = ("status", "setup", "analyze", "fix-plan", "check")
-
-    _COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
-        ("Investigation", ("explain", "patterns", "timeline", "trend", "visualize", "watch")),
-        (
-            "Agent & MCP",
-            (
-                "scan",
-                "diff",
-                "brief",
-                "mcp",
-                "serve",
-                "copilot-context",
-                "export-context",
-                "session-report",
-                "context",
-                "generate-skills",
-                "patch",
-            ),
-        ),
-        (
-            "CI & Automation",
-            ("ci", "badge", "baseline", "validate", "verify", "import", "adr", "gate"),
-        ),
-        (
-            "Configuration",
-            (
-                "init",
-                "config",
-                "preset",
-                "calibrate",
-                "feedback",
-                "suppress",
-                "completions",
-                "intent",
-            ),
-        ),
-        ("Measurement", ("self", "precision", "roi-estimate", "start")),
-    )
-
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         command = super().get_command(ctx, cmd_name)
         if command is not None:
@@ -231,47 +197,22 @@ class SuggestingGroup(click.Group):
             return
 
         limit = formatter.width - 6 - max(len(name) for name, _ in commands)
-        command_map = {name: cmd for name, cmd in commands}
+        command_help_map = {name: cmd.get_short_help_str(limit) for name, cmd in commands}
+        sections = build_help_sections(command_help_map, formatter.width)
 
-        # Core commands
-        core_rows = [
-            (name, command_map[name].get_short_help_str(limit))
-            for name in self._CORE_COMMANDS
-            if name in command_map
-        ]
-        if core_rows:
-            with formatter.section("Start Here (80% Path)"):
-                formatter.write_dl(core_rows)
-
-        # Grouped advanced commands
-        grouped_names: set[str] = set(self._CORE_COMMANDS)
-        for section_name, cmd_names in self._COMMAND_GROUPS:
-            rows = [
-                (name, command_map[name].get_short_help_str(limit))
-                for name in cmd_names
-                if name in command_map
-            ]
-            if rows:
-                with formatter.section(section_name):
-                    formatter.write_dl(rows)
-                grouped_names.update(cmd_names)
-
-        # Catch any ungrouped commands
-        ungrouped = [
-            (name, cmd.get_short_help_str(limit))
-            for name, cmd in commands
-            if name not in grouped_names
-        ]
-        if ungrouped:
-            with formatter.section("Other"):
-                formatter.write_dl(ungrouped)
+        for section in sections:
+            rows = render_help_section_rows(section, formatter.width)
+            if not rows:
+                continue
+            with formatter.section(f"{section.heading}"):
+                formatter.write_dl(rows)
 
 
 @click.group(cls=SuggestingGroup)
 @click.version_option(version=__version__, prog_name="drift")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Enable debug logging.")
 def main(verbose: bool = False) -> None:
-    """Drift — Detect architectural erosion from AI-generated code.
+    """Drift - Detect architectural erosion from AI-generated code.
 
     Guided first run:
       1) drift setup              # interactive config wizard
@@ -281,6 +222,39 @@ def main(verbose: bool = False) -> None:
     Tip: bare 'drift' (no subcommand) runs 'drift status' automatically.
     """
     _configure_logging(verbose)
+
+
+@click.command("help-nav", short_help="Show grouped help navigation with optional area filter.")
+@click.option("--area", default="", help="Optional area id filter, e.g. investigation")
+def help_nav(area: str) -> None:
+    """Render help navigation details as an additive, stable command surface."""
+    command_help_map = {
+        name: command.get_short_help_str(88)
+        for name, command in main.commands.items()
+        if name and not command.hidden and name != "help-nav"
+    }
+    ensure_additive_behavior(command_help_map.keys(), legacy_command_names())
+    sections = build_help_sections(command_help_map, 96)
+
+    filtered = [
+        section
+        for section in sections
+        if not area
+        or section.key == area.strip().lower()
+        or section.heading.lower() == area.strip().lower()
+    ]
+
+    if area and not filtered:
+        raise click.UsageError(
+            f"Unknown area '{area}'. Use one of: {', '.join(section.key for section in sections)}"
+        )
+
+    for section in filtered:
+        click.echo(section.heading + ":")
+        for _, line in render_help_section_rows(section, 96):
+            if line:
+                click.echo(f"  {line}")
+        click.echo("")
 
 
 # --- Register subcommands -------------------------------------------------
@@ -378,6 +352,7 @@ main.add_command(completions)
 main.add_command(visualize)
 main.add_command(watch)
 main.add_command(synthesize)
+main.add_command(help_nav)
 
 # PR review loop subcommand
 from drift.pr_loop._cmd import pr_loop_cmd  # noqa: E402

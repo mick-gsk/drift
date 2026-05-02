@@ -9,8 +9,9 @@ from __future__ import annotations
 
 
 def test_meta_package_version_and_cli_imports() -> None:
-    import drift
     import drift.cli
+
+    import drift
 
     assert isinstance(drift.__version__, str)
     assert drift.__version__

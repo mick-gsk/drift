@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 
 import click
-
 from drift.errors import DriftConfigError
 
 

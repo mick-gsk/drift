@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-
 from drift.models import Severity, severity_for_score
+
 from drift_cli.commands import console
 
 

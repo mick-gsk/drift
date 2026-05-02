@@ -1,53 +1,53 @@
 {
   "schema_version": "1.0",
   "repo_path": "C:/Users/mickg/PWBS/drift",
-  "analyzed_at": "2026-05-01T10:00:24Z",
-  "drift_score": 0.477,
+  "analyzed_at": "2026-05-02T18:36:43Z",
+  "drift_score": 0.529,
   "grade": "C",
   "grade_label": "Moderate Drift",
   "top_findings": [
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "playground/dist/assets",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/benchmarks",
       "line_range": null,
-      "reason": "12 error_handling variants in playground/dist/assets/ (25/66 use canonical pattern).\n  - playground/dist/assets/index-XpTPg8_6.js:17 (t)\n  - playground/dist/assets/index-XpTPg8_6.js:17 (t)\n  - playground/dist/assets/index-XpTPg8_6.js:17 (t)",
-      "finding_id": "bd22924eeb8412ee"
+      "reason": "20 test functions with 42 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "0f8a1c7c056ec8cf"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "src/drift",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_body",
       "line_range": null,
-      "reason": "7 return_pattern variants in src/drift/ (65/93 use canonical pattern).\n  - src/drift/adr_scanner.py:43 (_parse_frontmatter)\n  - src/drift/session_handover.py:416 (_parse_frontmatter)\n  - src/drift/baseline.py:181 (load_baseline)",
-      "finding_id": "deeb9e777d6b70b7"
+      "reason": "80 test functions with 144 positive / 0 negative assertions (negative ratio 0.0%). 8 boundary-named tests.",
+      "finding_id": "6deab54ca5964d56"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "third_party_skills/teammate-skill/tools",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_cookie",
       "line_range": null,
-      "reason": "7 error_handling variants in third_party_skills/teammate-skill/tools/ (4/17 use canonical pattern).\n  - third_party_skills/teammate-skill/tools/email_parser.py:35 (extract_text)\n  - third_party_skills/teammate-skill/tools/slack_collector.py:167 (collect)\n  - third_party_skills/teammate-skill/tools/email_parser.py:28 (extract_text)",
-      "finding_id": "e043fbfa0a6346d3"
+      "reason": "32 test functions with 56 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "63247adbf3baa69a"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "third_party_skills/skill-conductor/skills/skill-conductor/scripts",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_file",
       "line_range": null,
-      "reason": "9 error_handling variants in third_party_skills/skill-conductor/skills/skill-conductor/scripts/ (4/14 use canonical pattern).\n  - third_party_skills/skill-conductor/skills/skill-conductor/scripts/aggregate_benchmark.py:141 (load_run_results)\n  - third_party_skills/skill-conductor/skills/skill-conductor/scripts/aggregate_benchmark.py:119 (load_run_results)\n  - third_party_skills/skill-conductor/skills/skill-conductor/scripts/aggregate_benchmark.py:95 (load_run_results)",
-      "finding_id": "84cd4b25617f51ce"
+      "reason": "64 test functions with 112 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "0b8d4ce0fc2efb2c"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_form",
       "line_range": null,
-      "reason": "7 error_handling variants in third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/ (7/16 use canonical pattern).\n  - third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/generate_review.py:200 (embed_file)\n  - third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/generate_review.py:188 (embed_file)\n  - third_party_skills/skill-conductor/skills/skill-conductor/eval-viewer/generate_review.py:177 (embed_file)",
-      "finding_id": "e00d4d463bbbd149"
+      "reason": "64 test functions with 112 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "3385cfab847ef14c"
     }
   ],
-  "findings_total": 1169,
+  "findings_total": 198,
   "critical_count": 0,
-  "high_count": 232
+  "high_count": 113
 }

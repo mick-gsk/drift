@@ -18,10 +18,10 @@ import sys
 from pathlib import Path
 
 import click
+from drift.api.synthesize import synthesize as _api_synthesize
 from rich.panel import Panel
 from rich.table import Table
 
-from drift.api.synthesize import synthesize as _api_synthesize
 from drift_cli.commands import console
 from drift_cli.commands._io import _emit_machine_output
 

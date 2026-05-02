@@ -14,9 +14,9 @@ from pathlib import Path
 
 import click
 import yaml  # type: ignore[import-untyped]
+from drift.profiles import PROFILES, get_profile
 from rich.panel import Panel
 
-from drift.profiles import PROFILES, get_profile
 from drift_cli.commands import console
 
 # ---------------------------------------------------------------------------

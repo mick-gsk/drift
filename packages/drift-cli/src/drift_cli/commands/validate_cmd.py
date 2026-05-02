@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-
 from drift.api import to_json
 from drift.api import validate as api_validate
 from drift.errors import EXIT_CONFIG_ERROR

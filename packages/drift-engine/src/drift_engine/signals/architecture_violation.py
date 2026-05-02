@@ -23,7 +23,6 @@ from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import networkx as nx
-
 from drift.config import DriftConfig
 from drift.models import (
     FileHistory,
@@ -33,6 +32,7 @@ from drift.models import (
     Severity,
     SignalType,
 )
+
 from drift_engine.ingestion.git_history import build_co_change_pairs
 from drift_engine.ingestion.test_detection import is_generated_file
 from drift_engine.signals._utils import is_test_file

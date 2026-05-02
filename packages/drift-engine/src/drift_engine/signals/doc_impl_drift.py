@@ -19,6 +19,7 @@ from typing import Any
 
 from drift.config import DriftConfig
 from drift.models import FileHistory, Finding, ParseResult, Severity, SignalType
+
 from drift_engine.signals._utils import is_library_finding_path, is_likely_library_repo
 from drift_engine.signals.base import BaseSignal, register_signal
 

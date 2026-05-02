@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-
 from drift.trend_history import load_history, snapshot_scope
+
 from drift_cli.commands import console
 
 
@@ -24,10 +24,9 @@ def trend(repo: Path, days: int, config: Path | None, as_json: bool) -> None:
     """Show drift score trend over time; optional machine-readable JSON output."""
     import json as json_mod
 
-    from rich.table import Table
-
     from drift.analyzer import analyze_repo
     from drift.config import DriftConfig
+    from rich.table import Table
 
     cfg = DriftConfig.load(repo, config)
     history_file = repo / cfg.cache_dir / "history.json"

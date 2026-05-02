@@ -5,14 +5,14 @@ from __future__ import annotations
 import linecache
 from typing import TYPE_CHECKING
 
+from drift.commands import make_console
+from drift.models import Finding, ModuleScore, RepoAnalysis, Severity, SignalType
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from drift.commands import make_console
-from drift.models import Finding, ModuleScore, RepoAnalysis, Severity, SignalType
 from drift_output.finding_rendering import build_first_run_summary
 
 # Brand accent: Deep Teal (slate/teal palette)

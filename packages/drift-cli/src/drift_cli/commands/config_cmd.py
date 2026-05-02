@@ -7,11 +7,11 @@ from pathlib import Path
 from typing import Any
 
 import click
-from pydantic import ValidationError
-
 from drift.config import DriftConfig, build_config_json_schema
 from drift.errors import DriftError
 from drift.profiles import PROFILES
+from pydantic import ValidationError
+
 from drift_cli.commands import console, fail_glyph, ok_glyph, warn_glyph
 
 

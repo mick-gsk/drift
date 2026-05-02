@@ -9,9 +9,9 @@ from collections.abc import Callable
 from typing import Any, NoReturn
 
 import click
+from drift.errors import DriftSystemError
 
 from drift import __version__
-from drift.errors import DriftSystemError
 from drift_cli.commands import console
 
 

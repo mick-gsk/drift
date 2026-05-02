@@ -10,6 +10,29 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+# --- Re-exports: next-step contracts ---
+from drift.next_step_contract import (  # noqa: F401
+    DONE_ACCEPT_CHANGE,
+    DONE_DIFF_ACCEPT,
+    DONE_NO_FINDINGS,
+    DONE_NUDGE_SAFE,
+    DONE_SAFE_TO_COMMIT,
+    DONE_STAGED_EXISTS,
+    DONE_TASK_AND_NUDGE,
+    DONE_TASKS_COMPLETE,
+    _error_response,
+    _next_step_contract,
+    _tool_call,
+)
+
+# --- Re-exports: response shaping ---
+from drift.response_shaping import (  # noqa: F401
+    _ALWAYS_KEEP,
+    _PROFILE_KEEP,
+    apply_output_mode,
+    build_drift_score_scope,
+    shape_for_profile,
+)
 from drift_config import DriftConfig
 
 # --- Re-exports: signal mapping ---
@@ -44,29 +67,6 @@ from drift_session.task_graph import (  # noqa: F401
     validate_plan,
 )
 
-# --- Re-exports: next-step contracts ---
-from drift.next_step_contract import (  # noqa: F401
-    DONE_ACCEPT_CHANGE,
-    DONE_DIFF_ACCEPT,
-    DONE_NO_FINDINGS,
-    DONE_NUDGE_SAFE,
-    DONE_SAFE_TO_COMMIT,
-    DONE_STAGED_EXISTS,
-    DONE_TASK_AND_NUDGE,
-    DONE_TASKS_COMPLETE,
-    _error_response,
-    _next_step_contract,
-    _tool_call,
-)
-
-# --- Re-exports: response shaping ---
-from drift.response_shaping import (  # noqa: F401
-    _ALWAYS_KEEP,
-    _PROFILE_KEEP,
-    apply_output_mode,
-    build_drift_score_scope,
-    shape_for_profile,
-)
 from drift_output.finding_context import classify_finding_context
 from drift_output.finding_priority import (
     _composite_sort_key,

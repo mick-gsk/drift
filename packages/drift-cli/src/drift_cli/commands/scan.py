@@ -8,9 +8,9 @@ import time
 from pathlib import Path
 
 import click
-
 from drift.api import scan as api_scan
 from drift.api import to_json
+
 from drift_cli.commands._io import _is_non_tty_stdout, _write_output_file
 
 _progress_start: float = 0.0

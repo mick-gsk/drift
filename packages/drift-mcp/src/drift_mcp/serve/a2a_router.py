@@ -376,9 +376,8 @@ def _handle_blast_radius(params: dict[str, Any]) -> dict[str, Any]:
 
     Schreibt **nie** Maintainer-Ack-Dateien.
     """
-    from drift.blast_radius._change_detector import resolve_repo_path
-
     from drift.blast_radius import compute_blast_report, save_blast_report
+    from drift.blast_radius._change_detector import resolve_repo_path
 
     path = _validate_repo_path(params.get("path", "."))
     changed_files_raw = params.get("changed_files")

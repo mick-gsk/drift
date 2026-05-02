@@ -5,6 +5,7 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 ### Changed
 - merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
 - add script categories to catalog.py + agent-facing scripts/README.md
+- snapshot all current workspace changes
 
 ### Fixed
 - install workspace packages before root in all CI workflows (ADR-100 monorepo)

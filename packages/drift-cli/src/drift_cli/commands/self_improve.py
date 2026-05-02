@@ -7,9 +7,8 @@ import re
 from pathlib import Path
 
 import click
-from drift.self_improvement.engine import DEFAULT_CLOSED_LOG, ImprovementReport
-
 from drift.self_improvement import close_proposal, run_cycle
+from drift.self_improvement.engine import DEFAULT_CLOSED_LOG, ImprovementReport
 
 
 @click.group(name="self-improve", hidden=True)

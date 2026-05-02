@@ -1195,6 +1195,7 @@ async def drift_guard_contract(
     forbidden imports, related tests, and active architectural decisions.
     """
     from drift.api.guard_contract import guard_contract
+
     from drift_mcp.mcp_utils import _run_api_tool
 
     session = _resolve_session(session_id)

@@ -7,9 +7,9 @@ import warnings
 from pathlib import Path
 
 import click
+from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 from rich.console import Console
 
-from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
 from drift_cli.commands._io import _emit_machine_output
 
 

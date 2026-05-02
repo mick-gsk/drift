@@ -64,6 +64,7 @@ async def run_session_start(
     from drift.api_helpers import _error_response
     from drift.session import SessionManager
     from drift.session_queue_log import reduce_events, replay_events
+
     from drift_mcp.mcp_enrichment import _enrich_response_with_session
 
     payload_mode = str(autopilot_payload).strip().lower()
@@ -826,6 +827,7 @@ async def run_map(
     session_id: str | None,
 ) -> str:
     from drift.api import drift_map as api_drift_map
+
     from drift_mcp.mcp_enrichment import _enrich_response_with_session
     from drift_mcp.mcp_orchestration import _resolve_session, _session_defaults
 

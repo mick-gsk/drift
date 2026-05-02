@@ -964,10 +964,9 @@ def _print_signal_detail(info: dict[str, Any]) -> None:
 
 def _print_error_code_detail(code: str) -> None:
     """Print detailed explanation of a Drift error code (DRIFT-XXXX)."""
+    from drift.errors import ERROR_REGISTRY, format_error_info_for_explain
     from rich.panel import Panel
     from rich.text import Text
-
-    from drift.errors import ERROR_REGISTRY, format_error_info_for_explain
 
     info = ERROR_REGISTRY.get(code)
     if info is None:

@@ -242,6 +242,7 @@ def loop_until_approved(
     Side effects are isolated to _gh and _state modules.
     """
     from drift.pr_loop import _gh as gh
+
     from drift_mcp.pr_loop._state import load_loop_state, save_loop_state
 
     state = load_loop_state(pr_number, artifacts_dir)

@@ -11,7 +11,7 @@ PYTEST   ?= pytest
 RUFF     ?= ruff
 MYPY     ?= $(PYTHON) -m mypy
 
-SRC      := src/
+SRC      := packages/
 TESTS    := tests/
 
 .PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check task-card feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check repro-bundle markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
@@ -31,7 +31,7 @@ lint-fix:  ## Run ruff with auto-fix
 	$(RUFF) check --fix $(SRC) $(TESTS)
 
 typecheck:  ## Run mypy type checker
-	$(MYPY) src/drift
+	$(MYPY) packages/drift/src/drift packages/drift-engine/src/drift_engine packages/drift-sdk/src/drift_sdk packages/drift-output/src/drift_output packages/drift-cli/src/drift_cli packages/drift-mcp/src/drift_mcp packages/drift-session/src/drift_session packages/drift-config/src/drift_config
 
 test:  ## Run tests in parallel (skip slow smoke tests)
 	$(PYTEST) -v --tb=short --ignore=tests/test_smoke_real_repos.py -n auto --dist=loadscope

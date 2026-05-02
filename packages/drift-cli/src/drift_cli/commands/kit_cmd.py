@@ -13,8 +13,8 @@ import sys
 from pathlib import Path
 
 import click
-
 from drift.drift_kit._init import init_kit
+
 from drift_cli.commands import console
 
 

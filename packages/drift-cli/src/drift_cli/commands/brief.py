@@ -8,10 +8,10 @@ import time
 from pathlib import Path
 
 import click
-
 from drift.api import brief as api_brief
 from drift.api import to_json
 from drift.errors import EXIT_FINDINGS_ABOVE_THRESHOLD
+
 from drift_cli.commands import make_console, ok_glyph
 from drift_cli.commands._io import _is_non_tty_stdout, _write_output_file
 

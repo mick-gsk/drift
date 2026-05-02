@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Literal, cast
 
 import click
-
 from drift.api_helpers import build_drift_score_scope
+
 from drift_cli.commands import console, fail_glyph, ok_glyph
 
 DEFAULT_BASELINE_PATH = Path(".drift-baseline.json")

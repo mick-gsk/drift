@@ -162,11 +162,11 @@ drift = "drift.cli:safe_main"
 drift-analyzer = "drift.cli:safe_main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/drift"]
+packages = ["packages/drift/src/drift"]
 
 [tool.uv.workspace]
 members = ["packages/*"]
-exclude = ["packages/drift"]
+exclude = ["packages/drift", "packages/cockpit-ui", "packages/drift-analyzer-sdk"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -222,7 +222,7 @@ exclude_lines = [
 
 [tool.vulture]
 min_confidence = 80
-paths = ["src/drift"]
+paths = ["packages/drift/src/drift"]
 ignore_names = [
     # Click-Handler und Pydantic-Felder sind nicht tot — werden dynamisch aufgerufen
     "model_config",
@@ -230,13 +230,13 @@ ignore_names = [
 ]
 
 [tool.mutmut]
-paths_to_mutate = "src/drift/scoring/,src/drift/signals/"
+paths_to_mutate = "packages/drift-engine/src/drift_engine/scoring/,packages/drift-engine/src/drift_engine/signals/"
 runner = "python -m pytest tests/ -x -q --timeout=30 -m 'not slow'"
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = ["src", "tests"]
+src = ["packages", "tests"]
 exclude = ["benchmarks/corpus"]
 
 [tool.ruff.lint]
@@ -250,6 +250,8 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 # Pre-existing: long lines and bare pytest.raises in new test sub-packages
 "tests/verify/**" = ["E501", "B017"]
 "tests/decision_cockpit/**" = ["E501", "B017"]
+# ADR-102 re-export stubs: long sys.modules aliasing lines are structural, not fixable
+"packages/drift/src/drift/analyzers/**" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"

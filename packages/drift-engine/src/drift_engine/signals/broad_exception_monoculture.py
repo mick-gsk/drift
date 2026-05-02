@@ -24,6 +24,7 @@ from drift.models import (
     Severity,
     SignalType,
 )
+
 from drift_engine.signals.base import BaseSignal, register_signal
 
 _BROAD_TYPES: frozenset[str] = frozenset({

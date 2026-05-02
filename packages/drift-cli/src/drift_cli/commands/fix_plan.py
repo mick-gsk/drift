@@ -8,7 +8,6 @@ import time
 from pathlib import Path
 
 import click
-
 from drift.api import fix_plan as api_fix_plan
 from drift.api import to_json
 from drift.api.fix_apply import fix_apply as api_fix_apply
@@ -19,6 +18,7 @@ from drift.fix_plan_dismissals import (
     get_active_dismissals,
     reset_dismissals,
 )
+
 from drift_cli.commands._io import _is_non_tty_stdout
 
 _progress_start: float = 0.0
@@ -148,6 +148,7 @@ def _emit_fix_plan_result(result: dict, output: Path | None, output_format: str)
         click.echo(to_json(result))
     else:
         from drift.output.fix_plan_rich import render_fix_plan
+
         from drift_cli.commands import console
 
         render_fix_plan(result, console)
