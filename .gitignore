@@ -41,7 +41,10 @@ benchmark_results/*
 !benchmark_results/drift_self.json
 !benchmark_results/kpi_trend.jsonl
 drift_score.json
-work_artifacts/
+work_artifacts/*
+!work_artifacts/vsa_migration_inventory.md
+!work_artifacts/vsa_import_mapping.csv
+!work_artifacts/last_gate_status.json
 master-backlog/*
 # Tracked exceptions: Phase-B/C strategy items linked from ADR-084
 !master-backlog/04-audience-validation-experiment.md
@@ -91,6 +94,13 @@ tmplw89iq73.json
 .gate_check_cache
 pip-audit-requirements.txt
 tmp*.json
+tmp_*.py
+tmp_*.ps1
+tmp_*.txt
+_patch_stubs*.py
+result_line.txt
+td_parsed.json
+test_results.txt
 
 # Root-level temp/log artifacts
 *.log
