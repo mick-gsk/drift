@@ -7,10 +7,10 @@
     "script": "scripts/generate_feature_evidence.py",
     "git_sha": "9d536fa1e5aee99eb7f4876585cc184da35da77e",
     "drift_version": "2.50.0",
-    "timestamp": "2026-05-02T18:34:53.032010+00:00"
+    "timestamp": "2026-05-02T18:36:37.924865+00:00"
   },
   "self_analysis": {
-    "error": "JSON parse error: Extra data: line 14180 column 1 (char 540697)"
+    "error": "JSON parse error: Extra data: line 14180 column 1 (char 540696)"
   },
   "tests": {
     "total_passing": 6867,
