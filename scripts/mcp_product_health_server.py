@@ -28,9 +28,10 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 try:
+    from typing import Annotated
+
     from mcp.server.fastmcp import FastMCP
     from pydantic import Field
-    from typing import Annotated
 except ImportError:
     print(
         "Missing dependency: pip install 'drift-analyzer[mcp]'",
