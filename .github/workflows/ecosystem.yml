@@ -69,6 +69,14 @@ jobs:
         shell: bash
         run: |
           git checkout ${{ github.event.pull_request.base.sha || 'HEAD~1' }} -- src/ pyproject.toml
+          pip install `\
+            -e packages/drift-config `\
+            -e packages/drift-engine `\
+            -e packages/drift-sdk `\
+            -e packages/drift-output `\
+            -e packages/drift-session `\
+            -e packages/drift-mcp `\
+            -e packages/drift-cli\
           pip install -e ".[dev]" --quiet
 
       - name: Analyze repos with baseline drift
@@ -123,6 +131,14 @@ jobs:
       - name: Install drift from PR ref
         shell: bash
         run: |
+          pip install `\
+            -e packages/drift-config `\
+            -e packages/drift-engine `\
+            -e packages/drift-sdk `\
+            -e packages/drift-output `\
+            -e packages/drift-session `\
+            -e packages/drift-mcp `\
+            -e packages/drift-cli\
           pip install -e ".[dev]" --quiet
 
       - name: Analyze repos with PR drift
