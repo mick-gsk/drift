@@ -24,10 +24,14 @@ from drift.blast_radius._skill_analyzer import analyze_skill_impacts
 
 @pytest.fixture
 def repo_root() -> Path:
-    """Drift-Repository-Root (Eltern von ``src/drift``)."""
+    """Drift-Repository-Root (Eltern von ``packages/drift/src/drift``)."""
 
     path = Path(__file__).resolve().parents[1]
-    assert (path / "src" / "drift").is_dir(), "Repo-Root falsch aufgelöst."
+    # After ADR-100 monorepo migration, the canonical drift source lives under
+    # packages/drift/src/drift (compat stub) and packages/drift-engine/src/drift_engine.
+    assert (path / "packages" / "drift" / "src" / "drift").is_dir(), (
+        "Repo-Root falsch aufgelöst."
+    )
     return path
 
 
