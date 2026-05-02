@@ -91,9 +91,11 @@ jobs:
       - name: Audit Python dependencies (pip-audit)
         shell: pwsh
         run: |
-          # Audit only resolved, non-editable packages to avoid false failures
-          # for local workspace projects that are intentionally not on PyPI.
-          python -m pip freeze | Where-Object { $_ -notmatch "^-e\s" } | Set-Content pip-audit-requirements.txt -Encoding utf8
+          # Audit only strict version pins (name==version).
+          # Excludes editable and URL/path requirements from workspace installs.
+          python -m pip freeze |
+            Where-Object { $_ -match '^[A-Za-z0-9_.-]+==[^=]+$' } |
+            Set-Content pip-audit-requirements.txt -Encoding utf8
           python -m pip_audit --strict --desc --no-deps --disable-pip -r pip-audit-requirements.txt
 
       - name: SAST scan (bandit)
