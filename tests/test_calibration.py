@@ -133,6 +133,7 @@ class TestProfileBuilder:
     def test_cold_start_returns_defaults(self) -> None:
         """No events → calibrated weights identical to defaults."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         defaults = SignalWeights()
@@ -146,6 +147,7 @@ class TestProfileBuilder:
     def test_pure_tp_keeps_weight(self) -> None:
         """All TP → weight stays close to default (precision=1.0)."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "pattern_fragmentation"
@@ -160,6 +162,7 @@ class TestProfileBuilder:
     def test_pure_fp_reduces_weight(self) -> None:
         """All FP → weight reduced significantly."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "pattern_fragmentation"
@@ -175,6 +178,7 @@ class TestProfileBuilder:
     def test_mixed_feedback(self) -> None:
         """Mixed TP/FP → weight is between default and zero."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "pattern_fragmentation"
@@ -192,6 +196,7 @@ class TestProfileBuilder:
     def test_low_confidence_stays_near_default(self) -> None:
         """Few observations → weight barely changes from default."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "pattern_fragmentation"
@@ -208,6 +213,7 @@ class TestProfileBuilder:
 
     def test_weight_diff(self) -> None:
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "pattern_fragmentation"
@@ -222,6 +228,7 @@ class TestProfileBuilder:
     def test_fn_boost(self) -> None:
         """Signals with many FN get a weight boost."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "architecture_violation"
@@ -239,6 +246,7 @@ class TestProfileBuilder:
     def test_unattributed_fn_is_distributed_for_fn_boost(self) -> None:
         """Unattributed FN events should still influence FN boosting."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "architecture_violation"
@@ -267,6 +275,7 @@ class TestProfileBuilder:
     def test_sc003_signal_without_data_not_in_weight_diff(self) -> None:
         """SC-003: a signal with 0 observations must not appear in weight_diff."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig_with_data = "pattern_fragmentation"
@@ -283,6 +292,7 @@ class TestProfileBuilder:
     def test_sc004_build_profile_is_idempotent(self) -> None:
         """SC-004: running build_profile twice on identical events yields identical weights."""
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         sig = "pattern_fragmentation"
@@ -446,6 +456,7 @@ class TestCalibrationIntegration:
         """Full pipeline: record feedback → build profile → verify."""
         from drift.calibration.feedback import load_feedback, record_feedback
         from drift.calibration.profile_builder import build_profile
+
         from drift.config import SignalWeights
 
         feedback_path = tmp_path / ".drift" / "feedback.jsonl"

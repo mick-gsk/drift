@@ -40,6 +40,7 @@ def run(repo: Path, dry_run: bool, config: Path | None, fmt: str) -> None:
     )
     from drift.calibration.profile_builder import build_profile
     from drift.calibration.status import write_calibration_status
+
     from drift.config import DriftConfig, SignalWeights
 
     cfg = DriftConfig.load(repo, config)
@@ -157,6 +158,7 @@ def explain(repo: Path, config: Path | None) -> None:
     """Show detailed evidence per signal."""
     from drift.calibration.feedback import load_feedback, resolve_feedback_paths
     from drift.calibration.profile_builder import build_profile
+
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
@@ -194,6 +196,7 @@ def explain(repo: Path, config: Path | None) -> None:
 def status(repo: Path, config: Path | None) -> None:
     """Show calibration profile status and freshness."""
     from drift.calibration.feedback import load_feedback, resolve_feedback_paths
+
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)
@@ -396,6 +399,7 @@ def effort_run(repo: Path, config: Path | None, fmt: str) -> None:
         calibrate_efforts,
         save_calibration,
     )
+
     from drift.config import DriftConfig
     from drift.outcome_tracker import OutcomeTracker
 
@@ -474,6 +478,7 @@ def effort_run(repo: Path, config: Path | None, fmt: str) -> None:
 def effort_report(repo: Path, config: Path | None, fmt: str) -> None:
     """Show current effort calibration status."""
     from drift.calibration.recommendation_calibrator import load_calibration
+
     from drift.config import DriftConfig
 
     cfg = DriftConfig.load(repo, config)

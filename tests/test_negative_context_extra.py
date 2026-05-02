@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from drift.negative_context.core import _scope_from_finding
+
 from drift.models import (
     Finding,
     NegativeContextScope,
@@ -12,7 +14,6 @@ from drift.models import (
 from drift.negative_context import (
     findings_to_negative_context,
 )
-from drift.negative_context.core import _scope_from_finding
 
 
 def _make_finding(

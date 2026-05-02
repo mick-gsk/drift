@@ -1309,9 +1309,10 @@ class ScoringPhase:
             # Optionally blend with feedback-informed weights (scoring.feedback_blend_alpha).
             alpha = config.scoring.feedback_blend_alpha
             if alpha > 0.0 and config.calibration.enabled:
-                from drift.calibration import load_feedback
                 from drift.calibration.feedback import resolve_feedback_paths
                 from drift.calibration.profile_builder import build_profile
+
+                from drift.calibration import load_feedback
 
                 feedback_path, _local, _shared = resolve_feedback_paths(repo_path, config)
                 events = load_feedback(feedback_path)

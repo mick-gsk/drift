@@ -183,6 +183,7 @@ def _render_analysis_details(
 
     if output_format == "rich":
         from drift.calibration.feedback import resolve_feedback_paths
+
         from drift.output.rich_output import render_feedback_calibration_hint
 
         _feedback_path, _, _ = resolve_feedback_paths(repo, cfg)
@@ -227,6 +228,7 @@ def _refine_recommendations_with_are(
     from datetime import datetime as _datetime
 
     from drift.calibration.recommendation_calibrator import load_calibration
+
     from drift.outcome_tracker import Outcome, OutcomeTracker, compute_fingerprint
     from drift.recommendation_refiner import refine
     from drift.reward_chain import (
@@ -312,6 +314,7 @@ def _run_interactive_review(
     if not (review_mode and output_format == "rich" and not quiet):
         return
     from drift.calibration.feedback import resolve_feedback_paths
+
     from drift.output.interactive_review import review_findings
 
     feedback_path, _, _ = resolve_feedback_paths(repo, cfg)

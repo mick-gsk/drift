@@ -34,6 +34,7 @@ class TestFeedbackResponseEnrichment:
     def test_feedback_response_includes_pending_fp_count(self, tmp_path: Path) -> None:
         """After recording an FP, response shows how many FPs are pending for that signal."""
         from drift.calibration.feedback import record_feedback, resolve_feedback_paths
+
         from drift.config import DriftConfig
 
         cfg = DriftConfig()
@@ -62,6 +63,7 @@ class TestFeedbackResponseEnrichment:
     def test_feedback_response_includes_next_tool_call(self, tmp_path: Path) -> None:
         """Feedback response suggests drift_calibrate as next tool."""
         from drift.calibration.feedback import resolve_feedback_paths
+
         from drift.config import DriftConfig
         from drift.mcp_router_calibration import _build_feedback_response
 
@@ -83,6 +85,7 @@ class TestFeedbackResponseEnrichment:
     def test_feedback_response_tp_has_zero_fp_count(self, tmp_path: Path) -> None:
         """TP verdicts still get pending_fp_count (which is 0 when no FPs exist)."""
         from drift.calibration.feedback import resolve_feedback_paths
+
         from drift.config import DriftConfig
         from drift.mcp_router_calibration import _build_feedback_response
 
@@ -104,6 +107,7 @@ class TestFeedbackResponseEnrichment:
     def test_feedback_response_includes_agent_instruction(self, tmp_path: Path) -> None:
         """Feedback response includes actionable agent_instruction."""
         from drift.calibration.feedback import resolve_feedback_paths
+
         from drift.config import DriftConfig
         from drift.mcp_router_calibration import _build_feedback_response
 

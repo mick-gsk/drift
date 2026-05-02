@@ -1,4 +1,4 @@
----
+﻿---
 name: "drift-harness-followup"
 agent: agent
 description: "Schaerft einen vorhandenen Harness-Lauf zu einer direkten Folgeumsetzung: liest bestehende Artefakte, waehlt den naechsten offenen Hebeldefekt und setzt genau eine eng validierte Harness-Verbesserung ohne neue Folge-Artefakte um."

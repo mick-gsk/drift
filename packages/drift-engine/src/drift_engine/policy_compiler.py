@@ -27,6 +27,7 @@ if TYPE_CHECKING:
         ArchAbstraction,
         ArchGraph,
     )
+
     from drift.task_spec import TaskSpec
 
 _log = logging.getLogger("drift")

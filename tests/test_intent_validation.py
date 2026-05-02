@@ -16,6 +16,7 @@ from drift.intent.models import (
     IntentContract,
     Requirement,
 )
+
 from drift.models import Finding, Severity
 
 # ---------------------------------------------------------------------------

@@ -21,13 +21,13 @@ from pathlib import Path
 from typing import Any
 
 import click
+from drift.arch_graph._models import SkillBriefing
+from drift.arch_graph._skill_writer import render_skill_md
 from rich.table import Table
 
 from drift.api.generate_skills import (
     generate_skills as _api_generate_skills,  # noqa: F401 (patched in tests)
 )
-from drift.arch_graph._models import SkillBriefing
-from drift.arch_graph._skill_writer import render_skill_md
 from drift_cli.commands import console
 from drift_cli.commands._io import _emit_machine_output
 
