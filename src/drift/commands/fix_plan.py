@@ -6,6 +6,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Any, cast
 
 import click
 
@@ -111,14 +112,17 @@ def _execute_fix_plan_operation(
             "cache_file": f"{cache_dir}/fix-plan-dismissed.json",
         }
     if do_apply or dry_run:
-        return api_fix_apply(
-            path,
-            signal=signal,
-            max_tasks=max_tasks,
-            dry_run=dry_run or not do_apply,
-            target_path=target_path,
-            exclude_paths=list(exclude_paths) or None,
-            require_clean_git=not yes,
+        return cast(
+            dict[Any, Any],
+            api_fix_apply(
+                path,
+                signal=signal,
+                max_tasks=max_tasks,
+                dry_run=dry_run or not do_apply,
+                target_path=target_path,
+                exclude_paths=list(exclude_paths) or None,
+                require_clean_git=not yes,
+            ),
         )
     return api_fix_plan(
         path,

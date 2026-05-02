@@ -5,7 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from drift.api._config import _emit_api_telemetry, _load_config_cached
+from drift_sdk.api._config import _emit_api_telemetry, _load_config_cached
+
 from drift.api_helpers import (
     _base_response,
     _error_response,
@@ -121,48 +122,61 @@ def _compute_baseline_progress(
 ) -> dict[str, Any]:
     """Compute progress dict by comparing current scan against the given baseline."""
     try:
+        import json as _json
+
+        import drift_sdk.api as _api_pkg
+
         from drift.baseline import load_baseline
 
         bl_fingerprints = load_baseline(Path(baseline_file))
-
-        import drift.api as _api_pkg
-
         scan_result = _api_pkg.scan(repo_path, max_findings=9999, response_detail="concise")
         score_after = scan_result.get("drift_score", 0.0)
 
-        import json as _json
-
         bl_data = _json.loads(Path(baseline_file).read_text(encoding="utf-8"))
         score_before = bl_data.get("drift_score", 0.0)
-
-        from drift.analyzer import analyze_repo
-        from drift.baseline import baseline_diff as _bl_diff
-
-        _cfg = _load_config_cached(repo_path)
-        _analysis = analyze_repo(repo_path, config=_cfg)
-        new_findings, known_findings = _bl_diff(_analysis.findings, bl_fingerprints)
 
         delta = round(score_after - score_before, 4)
         direction = (
             "improved" if delta < -0.01 else ("degraded" if delta > 0.01 else "stable")
         )
-        resolved_count = max(0, len(bl_fingerprints) - len(known_findings))
-        return {
+
+        new_count = 0
+        known_count = 0
+        resolved_count = 0
+        warning: str | None = None
+
+        try:
+            from drift.analyzer import analyze_repo
+            from drift.baseline import baseline_diff as _bl_diff
+
+            _cfg = _load_config_cached(repo_path)
+            _analysis = analyze_repo(repo_path, config=_cfg)
+            new_findings, known_findings = _bl_diff(_analysis.findings, bl_fingerprints)
+            new_count = len(new_findings)
+            known_count = len(known_findings)
+            resolved_count = max(0, len(bl_fingerprints) - known_count)
+        except Exception as exc_counts:
+            warning = f"Baseline finding-diff unavailable: {exc_counts}"
+
+        result = {
             "baseline_file": str(baseline_file),
             "score_before": round(score_before, 4),
             "score_after": round(score_after, 4),
             "delta": delta,
             "direction": direction,
             "resolved_count": resolved_count,
-            "known_count": len(known_findings),
-            "new_count": len(new_findings),
+            "known_count": known_count,
+            "new_count": new_count,
             "progress_summary": (
                 f"{resolved_count} finding(s) resolved, "
-                f"{len(new_findings)} new, "
+                f"{new_count} new, "
                 f"score {'improved' if delta < 0 else 'worsened'} by "
                 f"{abs(delta):.4f}"
             ),
         }
+        if warning:
+            result["warning"] = warning
+        return result
     except Exception as exc_bl:
         return {"error": f"Baseline comparison failed: {exc_bl}"}
 
