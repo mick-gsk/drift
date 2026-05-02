@@ -39,12 +39,23 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Make `src/` importable when this script is run standalone (without an
-# installed drift package). The signal_registry is the authoritative
-# source for signals, so we import it rather than re-declaring data.
-sys.path.insert(0, str(_REPO_ROOT / "src"))
+# Make signal_registry importable when this script is run standalone.
+# ADR-100: canonical implementation moved to drift_engine.signal_registry.
+# Search order: installed package first, then monorepo workspace paths.
+for _p in [
+    _REPO_ROOT / "packages" / "drift" / "src",       # compat re-export stub
+    _REPO_ROOT / "packages" / "drift-engine" / "src", # canonical implementation
+    _REPO_ROOT / "src",                               # legacy layout (pre-ADR-100)
+]:
+    if _p.exists():
+        _ps = str(_p)
+        if _ps not in sys.path:
+            sys.path.insert(0, _ps)
 
-from drift.signal_registry import SignalMeta, get_all_meta  # noqa: E402
+try:
+    from drift.signal_registry import SignalMeta, get_all_meta  # noqa: E402
+except (ImportError, ModuleNotFoundError):
+    from drift_engine.signal_registry import SignalMeta, get_all_meta  # noqa: E402
 
 LLMS_TXT = _REPO_ROOT / "llms.txt"
 PYPROJECT = _REPO_ROOT / "pyproject.toml"
