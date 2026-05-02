@@ -6,6 +6,9 @@ Short version: merge main into feat/adr100-phase7a-cleanup (resolve README badge
 - merge main into feat/adr100-phase7a-cleanup (resolve README badge conflict)
 - add script categories to catalog.py + agent-facing scripts/README.md
 
+### Fixed
+- install workspace packages before root in all CI workflows (ADR-100 monorepo)
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle. New: `@drift-analyzer/sdk` npm package for Node.js/TypeScript programmatic access.
