@@ -32,8 +32,6 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-
       - name: Find eligible fast-lane PRs and automerge
         uses: actions/github-script@v7
         with:
@@ -55,6 +53,10 @@ jobs:
               const matching = associated.filter(p => p.state === 'open');
               if (matching.length === 0) {
                 core.info('No open PR found for this check_suite SHA — skipping.');
+                return;
+              }
+              if (matching.length > 1) {
+                core.info(`Multiple open PRs (${matching.map(p => p.number).join(', ')}) share this SHA — skipping to avoid acting on the wrong PR.`);
                 return;
               }
               prNumber = matching[0].number;
@@ -105,8 +107,9 @@ jobs:
             }
 
             // ---- Condition 4: at least one approved review ----------------
-            const { data: reviews } = await github.rest.pulls.listReviews({
-              owner, repo, pull_number: prNumber
+            // Paginate all reviews so a later CHANGES_REQUESTED is not missed.
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner, repo, pull_number: prNumber, per_page: 100
             });
             // Latest review state per reviewer
             const latestByUser = {};
@@ -120,12 +123,13 @@ jobs:
             }
 
             // ---- Condition 3: all required checks green -------------------
-            const { data: checkRuns } = await github.rest.checks.listForRef({
+            // Paginate all check runs so failed runs beyond the first 100 are not missed.
+            const allCheckRuns = await github.paginate(github.rest.checks.listForRef, {
               owner, repo, ref: pr.head.sha, per_page: 100
             });
 
             // Only consider completed check runs
-            const incomplete = checkRuns.check_runs.filter(
+            const incomplete = allCheckRuns.filter(
               c => c.status !== 'completed'
             );
             if (incomplete.length > 0) {
@@ -133,7 +137,7 @@ jobs:
               return;
             }
 
-            const failed = checkRuns.check_runs.filter(
+            const failed = allCheckRuns.filter(
               c => c.conclusion !== 'success' && c.conclusion !== 'skipped' && c.conclusion !== 'neutral'
             );
             if (failed.length > 0) {
@@ -154,14 +158,19 @@ jobs:
               });
               core.info(`PR #${prNumber} merged successfully.`);
 
-              // Delete the branch
-              try {
-                await github.rest.git.deleteRef({
-                  owner, repo, ref: `heads/${pr.head.ref}`
-                });
-                core.info(`Branch ${pr.head.ref} deleted.`);
-              } catch (e) {
-                core.warning(`Could not delete branch: ${e.message}`);
+              // Delete the branch — skip for fork PRs to avoid touching a
+              // branch in a repository the token has no write access to.
+              if (pr.head.repo && pr.head.repo.full_name === `${owner}/${repo}`) {
+                try {
+                  await github.rest.git.deleteRef({
+                    owner, repo, ref: `heads/${pr.head.ref}`
+                  });
+                  core.info(`Branch ${pr.head.ref} deleted.`);
+                } catch (e) {
+                  core.warning(`Could not delete branch: ${e.message}`);
+                }
+              } else {
+                core.info(`PR #${prNumber} is from a fork (or head repo is unavailable) — skipping branch deletion.`);
               }
             } catch (err) {
               core.warning(`Automerge failed: ${err.message}. Will retry on next trigger.`);

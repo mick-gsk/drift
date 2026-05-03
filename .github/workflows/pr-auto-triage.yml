@@ -98,6 +98,15 @@ jobs:
                   owner, repo, issue_number: number, labels: ['auto-triaged']
                 });
               }
+            } else {
+              // All triage labels were cleared — remove auto-triaged so KPI
+              // counts are not inflated by resolved PRs.
+              if (existingNames.has('auto-triaged') && labelsToRm.length > 0) {
+                await github.rest.issues.removeLabel({
+                  owner, repo, issue_number: number, name: 'auto-triaged'
+                });
+                core.info('Removed auto-triaged label (all triage conditions resolved).');
+              }
             }
 
             core.info(`PR #${number}: triage complete.`);

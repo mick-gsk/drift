@@ -109,8 +109,9 @@ jobs:
 
               // Time to first review + review rounds
               try {
-                const { data: reviews } = await github.rest.pulls.listReviews({
-                  owner, repo, pull_number: pr.number
+                // Paginate all reviews so metrics are not computed from truncated data.
+                const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                  owner, repo, pull_number: pr.number, per_page: 100
                 });
                 if (reviews.length > 0) {
                   const firstReview = reviews.reduce((a, b) =>
@@ -119,7 +120,9 @@ jobs:
                   timesToFirstReview.push(
                     (new Date(firstReview.submitted_at) - created) / 3_600_000
                   );
-                  // Review rounds: number of review-request/re-request cycles
+                  // review_rounds: number of review submissions as a proxy for
+                  // review-round effort. True request/re-request cycle counting
+                  // would require the timeline API and is omitted for scale reasons.
                   reviewRounds.push(reviews.length);
                 }
               } catch (_) {
@@ -175,4 +178,6 @@ jobs:
           git add benchmark_results/kpi_snapshot.json benchmark_results/kpi_trend.jsonl
           git diff --cached --quiet && echo "No changes" || \
             git commit -m "chore: weekly PR throughput KPI snapshot [skip ci]"
+          # Rebase on any commits that landed during the run to avoid push rejection.
+          git pull --rebase --autostash origin "${{ github.ref_name }}"
           git push

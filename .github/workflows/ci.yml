@@ -55,6 +55,7 @@ jobs:
               - 'pyproject.toml'
               - 'uv.lock'
               - 'scripts/**'
+              - '.pre-commit-config.yaml'
               - '.github/workflows/ci.yml'
 
   pre-commit:

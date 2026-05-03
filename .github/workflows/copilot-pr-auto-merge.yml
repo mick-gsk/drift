@@ -6,8 +6,10 @@ name: Copilot PR Auto-Merge
 # Copilot PRs still require human review — this workflow only removes the
 # manual "click merge" step after approval + CI pass.
 #
-# Actor detection: GitHub Copilot agent PRs are opened by 'Copilot' (User type)
-# or branch names starting with 'copilot/'.
+# Actor detection: GitHub Copilot agent PRs are opened by the verified
+# 'Copilot' actor or 'copilot[bot]' app account only.
+# Branch names are NOT used as an authentication signal because any
+# contributor can choose an arbitrary branch name.
 
 on:
   pull_request:
@@ -26,8 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.actor == 'Copilot' ||
-      github.actor == 'copilot[bot]' ||
-      startsWith(github.head_ref, 'copilot/')
+      github.actor == 'copilot[bot]'
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -40,9 +41,3 @@ jobs:
             --auto \
             --squash \
             --delete-branch
-
-      - name: Add lane/fast-lane label
-        run: |
-          gh pr edit "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
-            --add-label "lane/fast-lane" || true

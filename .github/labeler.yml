@@ -88,4 +88,11 @@ lane/high-risk:
 
 lane/standard:
   - changed-files:
-      - any-glob-to-any-file: "src/drift/**"
+      - any-glob-to-any-file:
+          - "src/drift/**"
+          - "packages/**"
+          - "tests/**"
+          - "scripts/**"
+          - ".github/workflows/**"
+          - "pyproject.toml"
+          - "uv.lock"

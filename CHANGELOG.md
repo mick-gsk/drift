@@ -1,10 +1,20 @@
 ## [2.50.0] - 2026-05-03
 
-Short version: Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs.
+Short version: Add PR automation suite — lane labels, size labels, fast-lane automerge, auto-triage, Copilot PR auto-merge, weekly KPI workflow, and CI path filters for non-Python PRs.
+
+### Added
+- Add PR lane labels (`lane/fast-lane`, `lane/standard`, `lane/high-risk`) via `actions/labeler` with collision rules (high-risk > standard > fast-lane)
+- Add `pr-size-labels.yml`: assigns `size/XS`–`size/XL` to every PR based on changed lines, excluding generated/fixture/lockfile paths; binary files handled correctly
+- Add `pr-fast-lane-automerge.yml`: squash-merges `lane/fast-lane` + `size/XS|S` PRs automatically after approval + CI pass; paginated reviews and check runs; fork-safe branch deletion
+- Add `copilot-pr-auto-merge.yml`: enables GitHub auto-merge on verified Copilot-authored PRs (actor-based detection only, no branch-name auth signal)
+- Add `pr-auto-triage.yml`: labels PRs missing description or bug link; removes `auto-triaged` label when all triage conditions are resolved
+- Add `pr-throughput-kpi.yml`: weekly scheduled KPI snapshot (8 metrics, 30-day window); paginated reviews; rebases before push to avoid rejection on concurrent commits
+- Add paths filters to `proactive-qa.yml`, `security-hygiene.yml`, `score-gate.yml`, `dependency-review.yml` to skip non-Python PRs
+- Add `.pre-commit-config.yaml` to `ci.yml` `code` path filter so hook-config changes are always validated
 
 ### Changed
-- Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
-- Add PR throughput lanes, size labels, and KPI workflow
+- `labeler.yml` `lane/standard` expanded to cover `packages/`, `tests/`, `scripts/`, `.github/workflows/**`, `pyproject.toml`, `uv.lock` — every PR now receives a lane label
+- `ci.yml` internal `code` filter extended with `.pre-commit-config.yaml`
 
 ### Fixed
 - address PR review — cleanup on label removal, consistent section names, direct yaml import
