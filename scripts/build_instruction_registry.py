@@ -9,10 +9,53 @@ Exit code: 0 always (generator, not validator).
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 
-import yaml
+
+def _parse_simple_frontmatter(frontmatter_str: str) -> dict:
+    """Parse simple YAML frontmatter using stdlib only.
+
+    Handles the two patterns used in .instructions.md files:
+      - Scalar: key: "value" or key: value
+      - Sequence: key:\\n  - item1\\n  - item2
+    """
+    result: dict = {}
+    lines = frontmatter_str.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        # Skip blank lines and comments
+        if not line.strip() or line.lstrip().startswith("#"):
+            i += 1
+            continue
+        # Match a top-level key (no leading whitespace)
+        key_match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)', line)
+        if not key_match:
+            i += 1
+            continue
+        key = key_match.group(1)
+        raw_value = key_match.group(2).strip()
+        if raw_value == "":
+            # Possibly a block sequence follows
+            items = []
+            j = i + 1
+            while j < len(lines) and re.match(r'^\s+-\s+', lines[j]):
+                item = re.sub(r'^\s+-\s+', '', lines[j]).strip().strip('"\'')
+                items.append(item)
+                j += 1
+            if items:
+                result[key] = items
+                i = j
+            else:
+                result[key] = None
+                i += 1
+        else:
+            # Strip surrounding quotes if present
+            result[key] = raw_value.strip('"\'')
+            i += 1
+    return result
 
 
 def extract_frontmatter(file_path: Path) -> dict:
@@ -36,7 +79,7 @@ def extract_frontmatter(file_path: Path) -> dict:
             return {"applyTo": None, "description": None}
 
         frontmatter_str = content[4:end_marker]
-        frontmatter = yaml.safe_load(frontmatter_str) or {}
+        frontmatter = _parse_simple_frontmatter(frontmatter_str)
     except Exception as e:
         print(f"Warning: Could not parse frontmatter in {file_path}: {e}", file=sys.stderr)
         return {"applyTo": None, "description": None}
