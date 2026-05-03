@@ -449,6 +449,30 @@ Team convention:
 2. If scope changes, update the release label before merge.
 3. Maintainers confirm the final release label during review.
 
+## PR Lanes
+
+Every PR is automatically assigned a `lane/*` label based on the files it touches.
+The lane determines which check path applies and whether automerge is eligible.
+
+| Lane | Files | Check Path | Automerge |
+|---|---|---|---|
+| `lane/fast-lane` | docs, prompts, instructions, fixtures, benchmark_results | Reduced (CI must pass) | Yes — if size/XS or size/S + 1 review |
+| `lane/standard` | src/drift (excl. signals/scoring/ingestion) | Standard path | No |
+| `lane/high-risk` | signals, scoring, ingestion, POLICY.md, ADRs, audit artifacts | Full gates + audit (POLICY §18) | No |
+
+**Collision rule:** `lane/high-risk` > `lane/standard` > `lane/fast-lane`. If any file in a PR
+touches a high-risk path, the entire PR is treated as high-risk.
+
+**Automerge conditions (fast-lane only — all must be true):**
+1. Label `lane/fast-lane` is present
+2. Label `size/XS` or `size/S` is present
+3. All required CI checks are green
+4. At least one approved review
+5. None of these labels present: `blocked`, `needs-description`, `needs-buglink`
+
+**XL override:** PRs with `size/XL` must be split or include an explicit override comment
+`<!-- large-pr: justified because <reason> -->` in the PR body.
+
 ## Feature Evidence Gate (Required)
 
 For every PR that introduces a new feature (`feat:` commits), empirical evidence is mandatory.

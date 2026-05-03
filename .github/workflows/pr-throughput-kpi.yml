@@ -1,0 +1,171 @@
+name: PR Throughput KPI
+
+# Weekly KPI report for PR throughput metrics.
+# Computes 6 metrics from the last 30 days of merged/open PRs via GitHub API.
+# Appends to benchmark_results/kpi_trend.jsonl and overwrites kpi_snapshot.json.
+#
+# Metrics:
+#   time_to_first_review_median_hours
+#   time_to_first_review_p90_hours
+#   time_to_merge_median_hours
+#   time_to_merge_p90_hours
+#   review_rounds_median
+#   reopen_rate_pct
+#   pct_fast_lane
+#   pct_auto_triaged
+
+on:
+  schedule:
+    - cron: "0 7 * * 0"  # Every Sunday 07:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  kpi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute PR throughput KPIs
+        id: kpi
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            const now      = new Date();
+            const cutoff   = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const cutoffISO = cutoff.toISOString();
+
+            // Fetch last 100 merged PRs (GitHub search: merged:>cutoff)
+            let mergedPRs = [];
+            let page = 1;
+            while (mergedPRs.length < 200) {
+              const { data } = await github.rest.pulls.list({
+                owner, repo,
+                state: 'closed',
+                sort: 'updated',
+                direction: 'desc',
+                per_page: 100,
+                page
+              });
+              if (data.length === 0) break;
+              const inWindow = data.filter(
+                p => p.merged_at && new Date(p.merged_at) >= cutoff
+              );
+              mergedPRs.push(...inWindow);
+              // If the last PR is older than cutoff, stop paginating
+              if (new Date(data[data.length - 1].updated_at) < cutoff) break;
+              page++;
+            }
+            core.info(`Merged PRs in window: ${mergedPRs.length}`);
+
+            // Helper: median
+            function median(arr) {
+              if (arr.length === 0) return null;
+              const s = [...arr].sort((a, b) => a - b);
+              const mid = Math.floor(s.length / 2);
+              return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid];
+            }
+            // Helper: p90
+            function p90(arr) {
+              if (arr.length === 0) return null;
+              const s = [...arr].sort((a, b) => a - b);
+              const idx = Math.ceil(0.9 * s.length) - 1;
+              return s[Math.max(0, idx)];
+            }
+
+            // Per-PR metrics
+            const timesToMerge = [];
+            const timesToFirstReview = [];
+            const reviewRounds = [];
+            let reopened = 0;
+            let fastLaneCount = 0;
+            let autoTriagedCount = 0;
+
+            for (const pr of mergedPRs) {
+              // Time to merge (hours)
+              const created = new Date(pr.created_at);
+              const merged  = new Date(pr.merged_at);
+              timesToMerge.push((merged - created) / 3_600_000);
+
+              // Labels
+              const lbls = pr.labels.map(l => l.name);
+              if (lbls.includes('lane/fast-lane')) fastLaneCount++;
+              if (lbls.includes('auto-triaged'))   autoTriagedCount++;
+
+              // Time to first review + review rounds
+              try {
+                const { data: reviews } = await github.rest.pulls.listReviews({
+                  owner, repo, pull_number: pr.number
+                });
+                if (reviews.length > 0) {
+                  const firstReview = reviews.reduce((a, b) =>
+                    new Date(a.submitted_at) < new Date(b.submitted_at) ? a : b
+                  );
+                  timesToFirstReview.push(
+                    (new Date(firstReview.submitted_at) - created) / 3_600_000
+                  );
+                  // Review rounds: number of review-request/re-request cycles
+                  reviewRounds.push(reviews.length);
+                }
+              } catch (_) {
+                // Ignore individual PR failures
+              }
+            }
+
+            // Reopen rate: PRs that were reopened at some point
+            // Approximate: check timeline events for "reopened" — too expensive at scale.
+            // Use 0 as placeholder; can be improved with per-PR timeline API calls.
+            const reopenRate = 0;
+
+            const metrics = {
+              schema_version:                    "1",
+              computed_at:                       now.toISOString(),
+              data_window_days:                  30,
+              merged_prs_in_window:              mergedPRs.length,
+              merged_prs_per_day:                parseFloat((mergedPRs.length / 30).toFixed(2)),
+              time_to_merge_median_hours:        parseFloat((median(timesToMerge) ?? 0).toFixed(2)),
+              time_to_merge_p90_hours:           parseFloat((p90(timesToMerge) ?? 0).toFixed(2)),
+              time_to_first_review_median_hours: parseFloat((median(timesToFirstReview) ?? 0).toFixed(2)),
+              time_to_first_review_p90_hours:    parseFloat((p90(timesToFirstReview) ?? 0).toFixed(2)),
+              review_rounds_median:              parseFloat((median(reviewRounds) ?? 0).toFixed(2)),
+              reopen_rate_pct:                   reopenRate,
+              pct_fast_lane:                     mergedPRs.length > 0
+                                                   ? parseFloat((fastLaneCount / mergedPRs.length * 100).toFixed(1))
+                                                   : 0,
+              pct_auto_triaged:                  mergedPRs.length > 0
+                                                   ? parseFloat((autoTriagedCount / mergedPRs.length * 100).toFixed(1))
+                                                   : 0
+            };
+
+            core.setOutput('metrics_json', JSON.stringify(metrics, null, 2));
+            core.info(JSON.stringify(metrics, null, 2));
+
+      - name: Write kpi_snapshot.json and append kpi_trend.jsonl
+        run: |
+          echo '${{ steps.kpi.outputs.metrics_json }}' > benchmark_results/kpi_snapshot.json
+
+          # Append single-line entry to kpi_trend.jsonl
+          ENTRY=$(echo '${{ steps.kpi.outputs.metrics_json }}' | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin)))")
+          echo "$ENTRY" >> benchmark_results/kpi_trend.jsonl
+
+      - name: Commit KPI results
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add benchmark_results/kpi_snapshot.json benchmark_results/kpi_trend.jsonl
+          git diff --cached --quiet && echo "No changes" || \
+            git commit -m "chore: weekly PR throughput KPI snapshot [skip ci]"
+          git push

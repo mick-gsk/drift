@@ -51,3 +51,41 @@ security:
           - ".github/workflows/security-hygiene.yml"
           - ".github/workflows/codeql.yml"
           - ".pre-commit-config.yaml"
+
+# ---------------------------------------------------------------------------
+# PR Lane Labels
+# Collision rule: high-risk > standard > fast-lane
+# (actions/labeler applies all matching labels; fast-lane is overridden
+#  by the automerge workflow which checks absence of high-risk/standard)
+# ---------------------------------------------------------------------------
+
+lane/fast-lane:
+  - changed-files:
+      - all-globs-to-all-files:
+          - "docs/**"
+          - "docs-site/**"
+          - "README.md"
+          - "CONTRIBUTING.md"
+          - "DEVELOPER.md"
+          - ".github/prompts/**"
+          - ".github/instructions/**"
+          - "tests/fixtures/**"
+          - "benchmark_results/**"
+          - "benchmarks/corpus/**"
+          - "benchmarks/defect_corpus/**"
+
+lane/high-risk:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/drift/signals/**"
+          - "src/drift/scoring/**"
+          - "src/drift/ingestion/**"
+          - "POLICY.md"
+          - ".github/copilot-instructions.md"
+          - "docs/decisions/**"
+          - "audit_results/**"
+          - "audit/**"
+
+lane/standard:
+  - changed-files:
+      - any-glob-to-any-file: "src/drift/**"

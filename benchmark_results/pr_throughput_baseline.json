@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-05-03",
+  "data_window_days": 30,
+  "note": "Baseline from PR-Throughput analysis (2026-05-03). See docs for methodology.",
+  "metrics": {
+    "merged_prs_per_day": 0.6,
+    "merged_prs_30d": 18,
+    "open_prs": 27,
+    "median_time_to_merge_hours": 6.08,
+    "p90_time_to_merge_hours": 730.6,
+    "author_concentration_top1_pct": 88.9,
+    "prs_with_size_label_pct": 0.0,
+    "pct_fast_lane": null,
+    "pct_auto_triaged": null,
+    "time_to_first_review_median_hours": null,
+    "review_rounds_median": null,
+    "reopen_rate_pct": null
+  },
+  "targets": {
+    "merged_prs_per_day": 3.0,
+    "median_time_to_merge_hours": 3.0,
+    "prs_with_size_label_pct": 100.0,
+    "pct_fast_lane_at_steady_state": 30.0
+  }
+}

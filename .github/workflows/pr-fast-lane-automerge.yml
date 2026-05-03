@@ -1,0 +1,158 @@
+name: Fast-Lane Automerge
+
+# Automatically merges fast-lane PRs when all safety conditions are met.
+# Conditions (ALL required):
+#   1. Label lane/fast-lane is present
+#   2. Label size/XS or size/S is present
+#   3. All required CI checks are green
+#   4. At least one approved review
+#   5. No blocking labels: blocked, needs-description, needs-buglink
+#
+# Triggered on: review submitted (approved) and check_suite completed.
+# Uses squash-merge with branch deletion.
+
+on:
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only act on the default branch target
+    if: |
+      github.event_name == 'pull_request_review' ||
+      (github.event_name == 'check_suite' && github.event.check_suite.conclusion == 'success')
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find eligible fast-lane PRs and automerge
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            // Determine which PR to inspect
+            let prNumber;
+            if (context.eventName === 'pull_request_review') {
+              prNumber = context.payload.pull_request.number;
+            } else {
+              // check_suite: find open PRs associated with the head SHA
+              const sha = context.payload.check_suite.head_sha;
+              const { data: pulls } = await github.rest.pulls.list({
+                owner, repo, state: 'open', per_page: 100
+              });
+              const matching = pulls.filter(p => p.head.sha === sha);
+              if (matching.length === 0) {
+                core.info('No open PR found for this check_suite SHA — skipping.');
+                return;
+              }
+              prNumber = matching[0].number;
+            }
+
+            // Fetch full PR data
+            const { data: pr } = await github.rest.pulls.get({
+              owner, repo, pull_number: prNumber
+            });
+
+            if (pr.state !== 'open') {
+              core.info(`PR #${prNumber} is not open — skipping.`);
+              return;
+            }
+
+            const labelNames = pr.labels.map(l => l.name);
+            core.info(`PR #${prNumber} labels: ${labelNames.join(', ')}`);
+
+            // ---- Condition 1: lane/fast-lane present ----------------------
+            if (!labelNames.includes('lane/fast-lane')) {
+              core.info('Not a fast-lane PR — skipping.');
+              return;
+            }
+
+            // ---- Condition 5: no blocking labels --------------------------
+            const blockers = ['blocked', 'needs-description', 'needs-buglink', 'lane/high-risk'];
+            const hasBlocker = blockers.some(b => labelNames.includes(b));
+            if (hasBlocker) {
+              core.info(`PR has blocking label — skipping.`);
+              return;
+            }
+
+            // ---- Condition 2: size/XS or size/S ---------------------------
+            const smallSize = labelNames.includes('size/XS') || labelNames.includes('size/S');
+            if (!smallSize) {
+              core.info('PR is not XS or S size — skipping fast-lane automerge.');
+              return;
+            }
+
+            // ---- Condition 4: at least one approved review ----------------
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner, repo, pull_number: prNumber
+            });
+            // Latest review state per reviewer
+            const latestByUser = {};
+            for (const review of reviews) {
+              latestByUser[review.user.login] = review.state;
+            }
+            const hasApproval = Object.values(latestByUser).includes('APPROVED');
+            if (!hasApproval) {
+              core.info('No approved review yet — skipping.');
+              return;
+            }
+
+            // ---- Condition 3: all required checks green -------------------
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner, repo, ref: pr.head.sha, per_page: 100
+            });
+
+            // Only consider completed check runs
+            const incomplete = checkRuns.check_runs.filter(
+              c => c.status !== 'completed'
+            );
+            if (incomplete.length > 0) {
+              core.info(`${incomplete.length} check(s) still running — skipping.`);
+              return;
+            }
+
+            const failed = checkRuns.check_runs.filter(
+              c => c.conclusion !== 'success' && c.conclusion !== 'skipped' && c.conclusion !== 'neutral'
+            );
+            if (failed.length > 0) {
+              core.info(`Failed checks: ${failed.map(c => c.name).join(', ')} — skipping.`);
+              return;
+            }
+
+            // ---- All conditions met: enable automerge ---------------------
+            core.info(`All conditions met — enabling automerge for PR #${prNumber}.`);
+            try {
+              await github.rest.pulls.merge({
+                owner,
+                repo,
+                pull_number: prNumber,
+                merge_method: 'squash',
+                commit_title: `${pr.title} (#${prNumber})`,
+                commit_message: `Auto-merged via fast-lane-automerge.yml.\n\nLabels: ${labelNames.join(', ')}`
+              });
+              core.info(`PR #${prNumber} merged successfully.`);
+
+              // Delete the branch
+              try {
+                await github.rest.git.deleteRef({
+                  owner, repo, ref: `heads/${pr.head.ref}`
+                });
+                core.info(`Branch ${pr.head.ref} deleted.`);
+              } catch (e) {
+                core.warning(`Could not delete branch: ${e.message}`);
+              }
+            } catch (err) {
+              core.warning(`Automerge failed: ${err.message}. Will retry on next trigger.`);
+            }
