@@ -58,6 +58,7 @@ master-backlog
 mkdocs.yml
 overrides
 package.json
+packages
 pyproject.toml
 scripts
 src
