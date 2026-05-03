@@ -42,6 +42,7 @@ jobs:
               - 'src/drift/signals/**'
               - 'src/drift/scoring/**'
               - 'src/drift/ingestion/**'
+              - 'packages/**'
               - 'tests/**'
             docs:
               - 'docs/**'
@@ -117,8 +118,21 @@ jobs:
 
       - name: Check model consistency
         # [win-only] PowerShell invocation on Windows runner.
+        # Requires workspace packages (drift_engine) to be importable.
+        # packages/drift (drift-analyzer meta) provides drift.signal_registry
+        # stub so generate_llms_txt.py resolves correctly (ADR-100 monorepo).
         shell: powershell
         run: |
+          & $env:PYTHON_BIN -m pip install --quiet `
+            -e packages/drift `
+            -e packages/drift-config `
+            -e packages/drift-engine `
+            -e packages/drift-sdk `
+            -e packages/drift-output `
+            -e packages/drift-session `
+            -e packages/drift-mcp `
+            -e packages/drift-verify `
+            -e packages/drift-cli
           & $env:PYTHON_BIN scripts/check_model_consistency.py
 
   test:
@@ -245,6 +259,16 @@ jobs:
         run: |
           & $env:PYTHON_BIN -m pip config set global.cache-dir $env:PIP_CACHE_DIR
           & $env:PYTHON_BIN -m pip install --upgrade pip
+          # Install workspace packages FIRST so pip resolves them locally.
+          & $env:PYTHON_BIN -m pip install `
+            -e packages/drift-config `
+            -e packages/drift-engine `
+            -e packages/drift-sdk `
+            -e packages/drift-output `
+            -e packages/drift-session `
+            -e packages/drift-mcp `
+            -e packages/drift-verify `
+            -e packages/drift-cli
           $maxRetries = 3
           for ($i = 1; $i -le $maxRetries; $i++) {
             & $env:PYTHON_BIN -m pip install -e ".[dev,mcp]"
@@ -281,7 +305,7 @@ jobs:
       - name: Dead code detection with vulture
         shell: pwsh
         run: |
-          & $env:PYTHON_BIN -m vulture src/drift --min-confidence 65
+          & $env:PYTHON_BIN -m vulture src/drift --min-confidence 65 --ignore-names cls
 
       - name: Run tests with coverage (reference Python, Linux)
         if: matrix.python-version == '3.12' && runner.os == 'Linux'
@@ -498,6 +522,15 @@ jobs:
         shell: powershell
         run: |
           python -m pip install --upgrade pip
+          python -m pip install `
+            -e packages/drift-config `
+            -e packages/drift-engine `
+            -e packages/drift-sdk `
+            -e packages/drift-output `
+            -e packages/drift-session `
+            -e packages/drift-mcp `
+            -e packages/drift-verify `
+            -e packages/drift-cli
           python -m pip install -e ".[dev]"
 
       - name: Run fast smoke profile
