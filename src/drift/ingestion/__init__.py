@@ -1,8 +1,8 @@
 """Ingestion layer for Drift — file discovery, AST parsing, git history."""
 
-from drift.ingestion.ast_parser import parse_file
-from drift.ingestion.file_discovery import discover_files
-from drift.ingestion.git_history import (
+from drift_engine.ingestion.ast_parser import parse_file
+from drift_engine.ingestion.file_discovery import discover_files
+from drift_engine.ingestion.git_history import (
     build_file_histories,
     detect_ai_tool_indicators,
     indicator_boost_for_tools,

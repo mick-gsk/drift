@@ -1,73 +1,20 @@
-"""Centralized detection of test and generated files for finding triage."""
+"""Re-export stub -- drift_engine.ingestion.test_detection (ADR-100 Phase 3)."""
 
-from __future__ import annotations
-
-import re
-from pathlib import Path, PurePath
-
-_TEST_FILE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"(?:^|/)extensions/qa-lab/src/mock-openai-server\.ts$"),
-    re.compile(r"(?:^|/)__tests__/(?:|.*)$"),
-    re.compile(r"(?:^|/)__mocks__/(?:|.*)$"),
-    re.compile(r"(?:^|/)__fixtures__/(?:|.*)$"),
-    re.compile(r"(?:^|/)test-(?:support|helpers|utils)/(?:|.*)$"),
-    re.compile(r"(^|/)conftest\.py$"),
-    re.compile(r"(^|/)test_[^/]+\.py$"),
-    re.compile(r"(^|/)[^/]+_test\.py$"),
-    re.compile(r"\.(?:test|spec)\.[tj]sx?$"),
-    re.compile(r"\.mock-harness\.[tj]sx?$"),
-    re.compile(r"\.test-(?:harness|helpers|support|utils)\.[tj]sx?$"),
-    re.compile(r"-(?:test-harness|test-helpers|test-support|test-utils)\.[tj]sx?$"),
-    re.compile(r"\.fixture-test-(?:helpers|support)\.[tj]sx?$"),
-    re.compile(r"(^|/)test-support\.[tj]sx?$"),
-    re.compile(r"(^|/)test-helpers\.[tj]sx?$"),
-    re.compile(r"(^|/)test-[^/]+\.[tj]sx?$"),
-    re.compile(r"\.stories\.[tj]sx?$"),
+from drift_engine.ingestion.test_detection import (
+    _GENERATED_FILE_PATTERNS as _GENERATED_FILE_PATTERNS,
 )
-
-_GENERATED_FILE_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"(?:^|/)generated/(?:|.*)$"),
-    re.compile(r"(?:^|/)gen/(?:|.*)$"),
-    re.compile(r"\.generated\.[tj]sx?$"),
+from drift_engine.ingestion.test_detection import (
+    _TEST_FILE_PATTERNS as _TEST_FILE_PATTERNS,
 )
-
-
-def _to_posix_lower(path: Path | PurePath | str) -> str:
-    if isinstance(path, PurePath):
-        return path.as_posix().lower()
-    return str(path).replace("\\", "/").lower()
-
-
-def is_test_file(path: Path | str) -> bool:
-    """Return ``True`` when path matches common test/spec/fixture layouts."""
-    value = _to_posix_lower(path)
-    if (
-        ("/tests/" in value or value.startswith("tests/"))
-        and "/tests/fixtures/" not in value
-        and not value.startswith("tests/fixtures/")
-    ):
-        return True
-    if (
-        ("/test/" in value or value.startswith("test/"))
-        and "/test/fixtures/" not in value
-        and not value.startswith("test/fixtures/")
-    ):
-        return True
-    if "/testdata/" in value or value.startswith("testdata/"):
-        return True
-    return any(pattern.search(value) for pattern in _TEST_FILE_PATTERNS)
-
-
-def is_generated_file(path: Path | str) -> bool:
-    """Return ``True`` when path indicates generated source code."""
-    value = _to_posix_lower(path)
-    return any(pattern.search(value) for pattern in _GENERATED_FILE_PATTERNS)
-
-
-def classify_file_context(path: Path | str) -> str:
-    """Classify path as ``test``, ``generated`` or ``production``."""
-    if is_test_file(path):
-        return "test"
-    if is_generated_file(path):
-        return "generated"
-    return "production"
+from drift_engine.ingestion.test_detection import (
+    _to_posix_lower as _to_posix_lower,
+)
+from drift_engine.ingestion.test_detection import (
+    classify_file_context as classify_file_context,
+)
+from drift_engine.ingestion.test_detection import (
+    is_generated_file as is_generated_file,
+)
+from drift_engine.ingestion.test_detection import (
+    is_test_file as is_test_file,
+)
