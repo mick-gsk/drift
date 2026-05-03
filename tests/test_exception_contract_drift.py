@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import drift_engine.signals.exception_contract_drift as ecm_mod  # ADR-100 Phase 3
 import pytest
 
 from drift.config import DriftConfig
 from drift.ingestion.ast_parser import PythonFileParser
 from drift.models import FileHistory, ParseResult, SignalType
-from drift.signals import exception_contract_drift as ecm_mod
 from drift.signals.exception_contract_drift import ExceptionContractDriftSignal
 
 
