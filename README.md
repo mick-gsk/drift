@@ -161,7 +161,11 @@ Every finding includes a human-readable `reason` and a concrete `next_action`. F
 |:---:|:---:|:---:|:---:|:---:|
 | `/drift-fix-plan` · `/drift-export-report` · `/drift-auto-fix-loop` | GitHub Actions · SARIF | pre-commit · pre-push | pip · pipx · uvx · Homebrew · Docker | Cursor · Claude Code · Copilot |
 
-Start without MCP: `drift kit init` → `/drift-fix-plan` in VS Code Copilot Chat. For full CI + MCP setup, use `drift init --mcp --ci --hooks`. Language support: Python (full) and TypeScript/TSX (17/24 signals) via `pip install 'drift-analyzer[typescript]'` — [language matrix](docs/language-support-matrix.md).
+For GitHub Copilot coding agent (issue-assigned autonomous PRs), use the
+`Copilot Coding Agent Task` issue template and keep required task-brief
+sections complete. See [CONTRIBUTING.md](CONTRIBUTING.md#assigning-tasks-to-copilot-coding-agent).
+
+`Start here (no MCP needed):` `drift kit init` → `/drift-fix-plan` in VS Code Copilot Chat. `Full CI + MCP:` `drift init --mcp --ci --hooks`. Language support: Python (full) · TypeScript/TSX 17/24 via `pip install 'drift-analyzer[typescript]'` · [language matrix](docs/language-support-matrix.md)
 
 ### GitHub Actions
 

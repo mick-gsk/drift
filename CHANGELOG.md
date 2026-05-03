@@ -1,13 +1,12 @@
-## [2.50.0] - 2026-05-01
+## [2.50.0] - 2026-05-03
 
-Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script catalog improvements.
+Short version: Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs.
 
 ### Changed
-- merge main into feat/adr100-phase7a-cleanup; add script categories to catalog.py and scripts/README.md; VSA migration Phase 1 (T001-T005)
+- Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
 
 ### Fixed
-- stabilize full-suite CI tests: fix-plan monkeypatch via importlib, finding_context stable cache key, signal-label __globals__ patch, Windows NTFS mtime flakiness in dismissal cache
-- resolve monorepo CI regressions, suppress MAZ false positive, align static-analysis paths to packages/drift/src/drift (ADR-100)
+- address PR review — cleanup on label removal, consistent section names, direct yaml import
 
 ## [2.49.0] - 2026-04-30
 
