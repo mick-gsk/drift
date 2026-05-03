@@ -1,30 +1,13 @@
-"""JSONL-Reader/Writer fuer den Outcome-Feedback-Ledger (ADR-088)."""
+"""Re-export stub -- drift_session.outcome_ledger.ledger_io (ADR-100 Phase 4b)."""
 
-from __future__ import annotations
+import importlib as _importlib
+import sys as _sys
 
-from pathlib import Path
+from drift_session.outcome_ledger.ledger_io import (  # noqa: F401
+    append_trajectory as append_trajectory,
+)
+from drift_session.outcome_ledger.ledger_io import (
+    load_trajectories as load_trajectories,
+)
 
-from drift.outcome_ledger._models import MergeTrajectory
-
-
-def append_trajectory(ledger_path: Path, trajectory: MergeTrajectory) -> None:
-    ledger_path.parent.mkdir(parents=True, exist_ok=True)
-    line = trajectory.model_dump_json()
-    with ledger_path.open("a", encoding="utf-8", newline="\n") as fh:
-        fh.write(line)
-        fh.write("\n")
-
-
-def load_trajectories(ledger_path: Path) -> list[MergeTrajectory]:
-    if not ledger_path.exists():
-        return []
-    out: list[MergeTrajectory] = []
-    for raw in ledger_path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        out.append(MergeTrajectory.model_validate_json(line))
-    return out
-
-
-__all__ = ["append_trajectory", "load_trajectories"]
+_sys.modules[__name__] = _importlib.import_module("drift_session.outcome_ledger.ledger_io")
