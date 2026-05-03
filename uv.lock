@@ -7,6 +7,18 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
+[manifest]
+members = [
+    "drift-analyzer",
+    "drift-cli",
+    "drift-config",
+    "drift-engine",
+    "drift-mcp",
+    "drift-output",
+    "drift-sdk",
+    "drift-session",
+]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -638,10 +650,17 @@ wheels = [
 
 [[package]]
 name = "drift-analyzer"
-version = "2.48.5"
+version = "2.49.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "drift-cli" },
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-mcp" },
+    { name = "drift-output" },
+    { name = "drift-sdk" },
+    { name = "drift-session" },
     { name = "gitpython" },
     { name = "networkx" },
     { name = "pydantic" },
@@ -730,6 +749,13 @@ watch = [
 requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "drift-analyzer", extras = ["typescript", "embeddings", "markdown", "mcp", "llm", "dev"], marker = "extra == 'all'" },
+    { name = "drift-cli", editable = "packages/drift-cli" },
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-mcp", editable = "packages/drift-mcp" },
+    { name = "drift-output", editable = "packages/drift-output" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "drift-session", editable = "packages/drift-session" },
     { name = "faiss-cpu", marker = "extra == 'embeddings'", specifier = ">=1.7" },
     { name = "gitpython", specifier = ">=3.1" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
@@ -768,6 +794,153 @@ requires-dist = [
     { name = "watchfiles", marker = "extra == 'watch'", specifier = ">=1.0" },
 ]
 provides-extras = ["typescript", "embeddings", "markdown", "mcp", "autopatch", "watch", "fast-json", "llm", "dev", "all"]
+
+[[package]]
+name = "drift-cli"
+version = "2.49.0"
+source = { editable = "packages/drift-cli" }
+dependencies = [
+    { name = "click" },
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-mcp" },
+    { name = "drift-output" },
+    { name = "drift-sdk" },
+    { name = "drift-session" },
+    { name = "rich" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1" },
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-mcp", editable = "packages/drift-mcp" },
+    { name = "drift-output", editable = "packages/drift-output" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "drift-session", editable = "packages/drift-session" },
+    { name = "rich", specifier = ">=13.0" },
+]
+
+[[package]]
+name = "drift-config"
+version = "2.49.0"
+source = { editable = "packages/drift-config" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
+
+[[package]]
+name = "drift-engine"
+version = "2.49.0"
+source = { editable = "packages/drift-engine" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-sdk" },
+    { name = "gitpython" },
+    { name = "mistune" },
+    { name = "networkx" },
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "pygments" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-typescript" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "gitpython", specifier = ">=3.1" },
+    { name = "mistune", specifier = ">=3.0" },
+    { name = "networkx", specifier = ">=3.0" },
+    { name = "numpy", specifier = ">=1.24" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pygments", specifier = ">=2.0" },
+    { name = "tree-sitter", specifier = ">=0.21" },
+    { name = "tree-sitter-typescript", specifier = ">=0.21" },
+]
+
+[[package]]
+name = "drift-mcp"
+version = "2.49.0"
+source = { editable = "packages/drift-mcp" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-output" },
+    { name = "drift-sdk" },
+    { name = "drift-session" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-output", editable = "packages/drift-output" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "drift-session", editable = "packages/drift-session" },
+]
+
+[[package]]
+name = "drift-output"
+version = "2.49.0"
+source = { editable = "packages/drift-output" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-sdk" },
+    { name = "rich" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+    { name = "rich", specifier = ">=13.0" },
+]
+
+[[package]]
+name = "drift-sdk"
+version = "2.49.0"
+source = { editable = "packages/drift-sdk" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "pydantic", specifier = ">=2.0" },
+]
+
+[[package]]
+name = "drift-session"
+version = "2.49.0"
+source = { editable = "packages/drift-session" }
+dependencies = [
+    { name = "drift-config" },
+    { name = "drift-engine" },
+    { name = "drift-output" },
+    { name = "drift-sdk" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "drift-config", editable = "packages/drift-config" },
+    { name = "drift-engine", editable = "packages/drift-engine" },
+    { name = "drift-output", editable = "packages/drift-output" },
+    { name = "drift-sdk", editable = "packages/drift-sdk" },
+]
 
 [[package]]
 name = "execnet"
