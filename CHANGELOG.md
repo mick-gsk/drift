@@ -5,6 +5,9 @@ Short version: add self-healing workflow for failed CI runs
 ### Added
 - add self-healing workflow for failed CI runs
 
+### Fixed
+- address all self-healing workflow review comments
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
