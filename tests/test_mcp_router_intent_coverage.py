@@ -24,7 +24,14 @@ def _run(coro):
 
 
 def _patch_api_fn(monkeypatch, module_name: str, fn_name: str, replacement):
-    """Patch a function on an actual submodule, bypassing drift.api re-export shadowing."""
+    """Patch a function on an actual submodule, bypassing drift.api re-export shadowing.
+
+    ``drift.api`` re-exports many functions so ``drift.api.capture_intent``
+    resolves as a *function* when accessed as an attribute of the ``drift.api``
+    package.  ``importlib.import_module("drift.api.capture_intent")`` always
+    reaches the *submodule* (not the re-exported function), giving us the real
+    module object on which we can set the patched function.
+    """
     mod = importlib.import_module(module_name)
     monkeypatch.setattr(mod, fn_name, replacement)
 
