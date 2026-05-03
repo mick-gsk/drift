@@ -33,6 +33,12 @@ repos:
           - "(^|[\\\\/])benchmarks[\\\\/]corpus[\\\\/]\\.drift-cache-golden[\\\\/]parse([\\\\/]|$)"
           - --exclude-files
           - "(^|[\\\\/])(benchmark_results|audit_results|site|docs-site|\\.hypothesis|\\.venv|dist|build|\\.mypy_cache|\\.pytest_cache|\\.ruff_cache|\\.drift-cache|work_artifacts|master-backlog|tagesplanung)([\\\\/]|$)"
+          - --exclude-files
+          - "(^|[\\\\/])packages[\\\\/]cockpit-ui[\\\\/]\\.next([\\\\/]|$)"
+          - --exclude-files
+          - "(^|[\\\\/])(last_nudge|last_scan|output)\\.json$|(^|[\\\\/])nudge_baselines[\\\\/]"
+          - --exclude-files
+          - "(^|[\\\\/])td_parsed\\.json$"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.1
