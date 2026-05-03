@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import contextlib as _contextlib
 import importlib as _importlib
 import pkgutil as _pkgutil
 import sys as _sys
@@ -23,10 +24,8 @@ for _info in _pkgutil.iter_modules(_target.__path__):
     _full = f"{__name__}.{_info.name}"
     _src = f"drift_output.{_info.name}"
     if _full not in _sys.modules:
-        try:
+        with _contextlib.suppress(ImportError):
             _sys.modules[_full] = _importlib.import_module(_src)
-        except ImportError:
-            pass
     if _full in _sys.modules:
         globals().setdefault(_info.name, _sys.modules[_full])
 
