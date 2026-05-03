@@ -5,9 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
-yaml = pytest.importorskip("yaml")
+import yaml
 
 REPO = Path(__file__).resolve().parent.parent
 TEMPLATE = REPO / ".github" / "ISSUE_TEMPLATE" / "copilot_agent_task.yml"
@@ -25,11 +23,11 @@ REQUIRED_LABELS = (
 SECTION_PATTERNS = {
     "Goal": re.compile(r"^#{2,3}\s*Goal\b", re.IGNORECASE | re.MULTILINE),
     "Scope": re.compile(r"^#{2,3}\s*Scope\b", re.IGNORECASE | re.MULTILINE),
-    "Acceptance Criteria": re.compile(
+    "Acceptance criteria": re.compile(
         r"^#{2,3}\s*Acceptance\s+Criteria\b", re.IGNORECASE | re.MULTILINE
     ),
     "Verification": re.compile(r"^#{2,3}\s*Verification\b", re.IGNORECASE | re.MULTILINE),
-    "Constraints": re.compile(
+    "Constraints and guardrails": re.compile(
         r"^#{2,3}\s*(Constraints|Constraints and guardrails)\b",
         re.IGNORECASE | re.MULTILINE,
     ),
@@ -115,7 +113,7 @@ Workflow file only.
 python -m pytest tests/test_copilot_agent_issue_brief_contract.py -q
 """
         assert _missing_sections(incomplete) == [
-            "Acceptance Criteria",
-            "Constraints",
+            "Acceptance criteria",
+            "Constraints and guardrails",
             "Non-goals",
         ]

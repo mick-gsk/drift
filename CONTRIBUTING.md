@@ -105,8 +105,8 @@ structured issue and explicit verification commands.
 Recommended flow:
 
 1. Open a new issue with the **Copilot Coding Agent Task** template.
-2. Keep the sections complete: `Goal`, `Scope`, `Acceptance Criteria`,
-    `Verification`, `Constraints`, `Non-goals`.
+2. Keep the sections complete: `Goal`, `Scope`, `Acceptance criteria`,
+    `Verification`, `Constraints and guardrails`, `Non-goals`.
 3. Apply (or keep) the `copilot-agent` label.
 4. Assign the issue to Copilot in GitHub.
 5. Review the generated PR with normal CI gates and request changes where needed.
