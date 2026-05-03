@@ -192,7 +192,7 @@ Die detaillierte Referenz liegt in `.github/instructions/drift-agent-quickref.in
 | CHANGELOG-Snippet erzeugen | `make changelog-entry COMMIT_TYPE=<typ> MSG='<text>'` |
 | Session-Handover anlegen | `make handover TASK='<beschreibung>'` |
 | Unbekanntes Skript suchen | `make catalog` oder `make catalog ARGS='--search <stichwort>'` |
-| Vollstaendiger CI-Check | `make check` |
+| Vollstaendiger CI-Check | `make preflight` |
 
 **Verwendungsregel:** Ein Agent DARF `CHANGELOG.md` nicht manuell formattieren —
 er MUSS stattdessen `make changelog-entry` aufrufen und den Output einfuegen.
@@ -236,15 +236,37 @@ Nach **jeder** Dateiänderung MUSS ein Coding-Agent `drift_nudge` als schnellen 
 
 ## Pre-PR-Pflicht (für alle Coding-Agenten)
 
-Vor jedem PR-Push und vor jedem "fertig"-Claim MUSS ein Agent folgende drei Kommandos ausführen und deren Output vollständig lesen:
+Vor jedem PR-Push und vor jedem "fertig"-Claim MUSS ein Agent **einen** Befehl ausführen:
 
 ```bash
-pre-commit run --all-files             # Secrets, Typos, Whitespace, Shellcheck (ci.yml/pre-commit + security-hygiene.yml)
-make check                             # lint + typecheck + pytest + self-analysis (ci.yml/test)
-make gate-check COMMIT_TYPE=<typ>      # CHANGELOG, Evidence, Audit-Artefakte, Versions-Konsistenz (pre-push Gates)
+make preflight
 ```
 
-Schlägt eines der drei Kommandos fehl → **kein PR, keine Done-Meldung**. Erst beheben, dann erneut prüfen.
+Dieses Kommando führt alle PR-blockierenden CI-Checks lokal aus und zeigt für jeden Check den zugehörigen GitHub Actions Job. Exit 0 = sicher zu pushen. Nicht-null = beheben, dann erneut ausführen.
+
+**Was der Agent damit kann:**
+- `make preflight --list` — alle Checks und ihre CI-Job-Zuordnung anzeigen, ohne sie auszuführen
+- `make preflight --only mypy` — einzelnen Check isoliert ausführen
+- `make preflight --skip pre-commit` — bestimmten Check überspringen
+- `python scripts/agent_preflight.py --list` — direkter Blick auf die vollständige CI-Surface
+
+**Zusätzlich für Repo-spezifische Gates:**
+```bash
+make gate-check COMMIT_TYPE=<feat|fix|chore>   # CHANGELOG, Evidence, Audit, Versions-Konsistenz
+```
+
+Schlägt `make preflight` oder `make gate-check` fehl → **kein PR, keine Done-Meldung**. Erst beheben, dann erneut prüfen.
+
+### Was `make preflight` genau prüft
+
+`scripts/agent_preflight.py` ist die Single Source of Truth für die lokale CI-Surface.
+Um jederzeit den aktuellen Stand zu sehen:
+
+```bash
+make preflight --list
+```
+
+Das Script ist bewusst nicht als statische Tabelle in dieser Datei gepflegt — es liest die aktuelle CI-Konfiguration und bleibt dadurch automatisch aktuell.
 
 ---
 
