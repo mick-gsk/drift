@@ -10,6 +10,13 @@ name: Drift Score Gate
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'packages/**'
+      - 'pyproject.toml'
+      - 'drift.yaml'
+      - 'drift.strict.yaml'
+      - '.github/workflows/score-gate.yml'
   push:
     branches: [main]
   workflow_dispatch:
