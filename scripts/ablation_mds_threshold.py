@@ -19,12 +19,13 @@ from pathlib import Path
 # Ensure src is on path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from tests.fixtures.ground_truth import ALL_FIXTURES, GroundTruthFixture  # noqa: E402
+
 from drift.config import DriftConfig, ThresholdsConfig  # noqa: E402
 from drift.ingestion.ast_parser import parse_file  # noqa: E402
 from drift.ingestion.file_discovery import discover_files  # noqa: E402
 from drift.models import FileHistory, Finding, ParseResult, SignalType  # noqa: E402
 from drift.signals.base import AnalysisContext, create_signals  # noqa: E402
-from tests.fixtures.ground_truth import ALL_FIXTURES, GroundTruthFixture  # noqa: E402
 
 
 def _run_mds_at_threshold(
