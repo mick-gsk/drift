@@ -65,7 +65,11 @@ dependencies = [
     "pydantic>=2.0",
     "gitpython>=3.1",
     "networkx>=3.0",
+    "drift-config",
 ]
+
+[tool.uv.sources]
+drift-config = { workspace = true }
 
 [project.urls]
 Homepage = "https://mick-gsk.github.io/drift/"
@@ -147,6 +151,9 @@ drift-analyzer = "drift.cli:safe_main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/drift"]
+
+[tool.uv.workspace]
+members = ["packages/*"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [

@@ -7,6 +7,12 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
+[manifest]
+members = [
+    "drift-analyzer",
+    "drift-config",
+]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -638,10 +644,11 @@ wheels = [
 
 [[package]]
 name = "drift-analyzer"
-version = "2.48.5"
+version = "2.49.0"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
+    { name = "drift-config" },
     { name = "gitpython" },
     { name = "networkx" },
     { name = "pydantic" },
@@ -730,6 +737,7 @@ watch = [
 requires-dist = [
     { name = "click", specifier = ">=8.1" },
     { name = "drift-analyzer", extras = ["typescript", "embeddings", "markdown", "mcp", "llm", "dev"], marker = "extra == 'all'" },
+    { name = "drift-config", editable = "packages/drift-config" },
     { name = "faiss-cpu", marker = "extra == 'embeddings'", specifier = ">=1.7" },
     { name = "gitpython", specifier = ">=3.1" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.100" },
@@ -768,6 +776,21 @@ requires-dist = [
     { name = "watchfiles", marker = "extra == 'watch'", specifier = ">=1.0" },
 ]
 provides-extras = ["typescript", "embeddings", "markdown", "mcp", "autopatch", "watch", "fast-json", "llm", "dev", "all"]
+
+[[package]]
+name = "drift-config"
+version = "2.49.0"
+source = { editable = "packages/drift-config" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
 
 [[package]]
 name = "execnet"
