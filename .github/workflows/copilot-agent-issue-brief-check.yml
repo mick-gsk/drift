@@ -29,33 +29,52 @@ jobs:
 
             const labels = new Set((issue.labels || []).map((l) => (l.name || "").toLowerCase()));
             const requiresValidation = labels.has("copilot-agent");
-            if (!requiresValidation) {
-              core.info("Issue has no copilot-agent label; skipping.");
-              return;
-            }
-
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const issueNumber = issue.number;
+            const needsLabel = "needs-agent-brief";
+            const marker = "<!-- copilot-agent-brief-check -->";
+
+            if (!requiresValidation) {
+              // copilot-agent label was removed — clean up any stale state
+              if (labels.has(needsLabel)) {
+                try {
+                  await github.rest.issues.removeLabel({ owner, repo, issue_number: issueNumber, name: needsLabel });
+                } catch (error) {
+                  if (error.status !== 404) throw error;
+                }
+              }
+              const allComments = await github.paginate(
+                github.rest.issues.listComments,
+                { owner, repo, issue_number: issueNumber, per_page: 100 },
+              );
+              const staleComment = allComments.find(
+                (c) => c.user?.type === "Bot" && typeof c.body === "string" && c.body.includes(marker),
+              );
+              if (staleComment) {
+                await github.rest.issues.deleteComment({ owner, repo, comment_id: staleComment.id });
+              }
+              core.info("Issue has no copilot-agent label; cleaned up stale state.");
+              return;
+            }
+
             const body = issue.body || "";
 
             const requiredSections = [
               { label: "Goal", pattern: /^#{2,3}\s*Goal\b/im },
               { label: "Scope", pattern: /^#{2,3}\s*Scope\b/im },
               {
-                label: "Acceptance Criteria",
+                label: "Acceptance criteria",
                 pattern: /^#{2,3}\s*Acceptance\s+Criteria\b/im,
               },
               { label: "Verification", pattern: /^#{2,3}\s*Verification\b/im },
-              { label: "Constraints", pattern: /^#{2,3}\s*(Constraints|Constraints and guardrails)\b/im },
+              { label: "Constraints and guardrails", pattern: /^#{2,3}\s*(Constraints|Constraints and guardrails)\b/im },
               { label: "Non-goals", pattern: /^#{2,3}\s*Non-goals\b/im },
             ];
 
             const missingSections = requiredSections
               .filter((section) => !section.pattern.test(body))
               .map((section) => section.label);
-            const needsLabel = "needs-agent-brief";
-            const marker = "<!-- copilot-agent-brief-check -->";
 
             async function ensureLabel(name, color, description) {
               try {
