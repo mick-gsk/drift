@@ -75,7 +75,7 @@ def _preview_patterns(patterns: list[str], *, limit: int = 4) -> str:
 def _infer_profile_name(cfg: DriftConfig) -> str | None:
     """Best-effort detection of the built-in profile that matches the config."""
     if cfg.extends:
-        return cfg.extends
+        return str(cfg.extends)
 
     current_weights = cfg.weights.as_dict()
     current_thresholds = cfg.thresholds.model_dump(mode="json")
