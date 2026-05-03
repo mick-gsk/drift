@@ -28,8 +28,8 @@ runs:
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        # Install workspace capability packages FIRST so pip can resolve them
-        # as local editable installs instead of searching PyPI.
+        # Install all workspace capability packages and root in a single pip call
+        # so pip resolves the full cross-package dependency graph at once.
         python -m pip install \
           -e packages/drift-config \
           -e packages/drift-engine \
@@ -38,5 +38,5 @@ runs:
           -e packages/drift-session \
           -e packages/drift-mcp \
           -e packages/drift-verify \
-          -e packages/drift-cli
-        python -m pip install -e ".[dev]"
+          -e packages/drift-cli \
+          -e ".[dev]"
