@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://drift-analyzer.dev/schemas/intent.schema.json",
+  "title": "Drift Intent Contract Set",
+  "description": "Schema for drift.intent.json — the machine-readable contract set produced by the intent capture phase.",
+  "type": "object",
+  "required": ["schema_version", "prompt", "category", "contracts"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version for forward compatibility."
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Original user prompt that was analyzed."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["persistence", "security", "error_handling", "communication", "automation", "utility"],
+      "description": "Detected application category."
+    },
+    "contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Contract"
+      },
+      "description": "Complete set of contracts (baseline + extracted)."
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ClarificationQuestion"
+      },
+      "description": "Optional clarification questions for implicit contracts."
+    }
+  },
+  "$defs": {
+    "Contract": {
+      "type": "object",
+      "required": ["id", "description_technical", "description_human", "category", "severity", "auto_repair_eligible", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique contract identifier."
+        },
+        "description_technical": {
+          "type": "string",
+          "description": "Technical description for developers."
+        },
+        "description_human": {
+          "type": "string",
+          "description": "Plain-language description for end users."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["persistence", "security", "error_handling", "communication", "automation", "utility"],
+          "description": "Contract category."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium"],
+          "description": "How critical this contract is."
+        },
+        "auto_repair_eligible": {
+          "type": "boolean",
+          "description": "Whether the repair loop may attempt automatic fixes."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["baseline", "extracted", "clarification"],
+          "description": "Origin of this contract."
+        },
+        "verification_signal": {
+          "type": "string",
+          "description": "Drift signal ID used to verify this contract, or 'manual' if no signal applies."
+        }
+      }
+    },
+    "ClarificationQuestion": {
+      "type": "object",
+      "required": ["question", "default_contract_id"],
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "string",
+          "description": "Plain-language clarification question."
+        },
+        "default_contract_id": {
+          "type": "string",
+          "description": "Contract ID to use if no answer is given."
+        }
+      }
+    }
+  }
+}
