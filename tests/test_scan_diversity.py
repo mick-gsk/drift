@@ -1893,6 +1893,10 @@ class TestFixPlanFindingIdDiagnostics:
             "drift.output.agent_tasks.analysis_to_agent_tasks",
             lambda *a, **kw: tasks,
         )
+        import importlib
+
+        fix_plan_module = importlib.import_module("drift_sdk.api.fix_plan")
+        monkeypatch.setattr(fix_plan_module, "get_active_dismissal_ids", lambda *a, **kw: set())
         monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kw: None)
 
         result = fix_plan(Path("."), max_tasks=5)
@@ -1936,6 +1940,10 @@ class TestFixPlanFindingIdDiagnostics:
             "drift.output.agent_tasks.analysis_to_agent_tasks",
             lambda *a, **kw: tasks,
         )
+        import importlib
+
+        fix_plan_module = importlib.import_module("drift_sdk.api.fix_plan")
+        monkeypatch.setattr(fix_plan_module, "get_active_dismissal_ids", lambda *a, **kw: set())
         monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kw: None)
 
         result = fix_plan(Path("."), finding_id="explainability_deficit", max_tasks=5)
@@ -1978,6 +1986,10 @@ class TestFixPlanFindingIdDiagnostics:
             "drift.output.agent_tasks.analysis_to_agent_tasks",
             lambda *a, **kw: tasks,
         )
+        import importlib
+
+        fix_plan_module = importlib.import_module("drift_sdk.api.fix_plan")
+        monkeypatch.setattr(fix_plan_module, "get_active_dismissal_ids", lambda *a, **kw: set())
         monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kw: None)
 
         result = fix_plan(Path("."), finding_id="not-a-real-id", max_tasks=5)

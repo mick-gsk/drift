@@ -6,9 +6,9 @@ Short version: ADR-100 monorepo CI fixes, VSA migration Phase 1, and script cata
 - merge main into feat/adr100-phase7a-cleanup; add script categories to catalog.py and scripts/README.md
 
 ### Fixed
-- resolve monorepo CI regressions across install, lint, and quality checks (ADR-100), including local workspace package bootstrap and model-consistency environment setup
-- reduce workflow friction by suppressing the fallback MAZ false positive and stopping hooks from mutating commit history during commit and push
-- align CI static-analysis paths to packages/drift/src/drift after ADR-100 path migration
+- stabilize fix-plan test isolation by mocking get_active_dismissal_ids via importlib to bypass re-export aliasing (test_scan_diversity.py)
+- replace id()-based finding_context cache key with stable content-hash to prevent cross-test cache collisions (finding_context.py)
+- resolve monorepo CI regressions, suppress MAZ false positive, align static-analysis paths to packages/drift/src/drift (ADR-100)
 
 ### Added
 - Phase 1 complete — VSA migration infrastructure setup (T001-T005)

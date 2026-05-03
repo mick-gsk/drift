@@ -64,14 +64,23 @@ def _ordered_rules(config: DriftConfig) -> list:
     )
 
 
-# Module-level caches keyed by id(config.finding_context) — stable within a run.
-_ordered_rules_cache: dict[int, list] = {}
-_path_context_cache: dict[tuple[int, str], str] = {}
+def _finding_context_signature(config: DriftConfig) -> tuple[str, tuple[tuple[str, str, int], ...]]:
+    """Return a stable signature for finding-context rules and default context."""
+    rules = tuple(
+        (rule.pattern, _normalise_context(rule.context), int(rule.precedence))
+        for rule in config.finding_context.rules
+    )
+    return (_normalise_context(config.finding_context.default_context), rules)
+
+
+# Module-level caches keyed by a stable finding-context signature.
+_ordered_rules_cache: dict[tuple[str, tuple[tuple[str, str, int], ...]], list] = {}
+_path_context_cache: dict[tuple[tuple[str, tuple[tuple[str, str, int], ...]], str], str] = {}
 
 
 def _ordered_rules_for(config: DriftConfig) -> list:
-    """Return sorted rules, reusing a module-level cache per config identity."""
-    key = id(config.finding_context)
+    """Return sorted rules, reusing a module-level cache per finding-context signature."""
+    key = _finding_context_signature(config)
     cached = _ordered_rules_cache.get(key)
     if cached is None:
         cached = _ordered_rules(config)
@@ -104,7 +113,7 @@ def classify_path_context(path: Path | None, config: DriftConfig) -> str:
         return config.finding_context.default_context
 
     posix = path.as_posix()
-    cache_key = (id(config.finding_context), posix)
+    cache_key = (_finding_context_signature(config), posix)
     cached = _path_context_cache.get(cache_key)
     if cached is not None:
         return cached
