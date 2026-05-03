@@ -234,6 +234,22 @@ Nach **jeder** Dateiänderung MUSS ein Coding-Agent `drift_nudge` als schnellen 
 
 ---
 
+## Kontext-Komprimierung (Pflicht fuer alle Coding-Agenten)
+
+Sobald ein Coding-Agent eine verlässliche Anzeige hat, dass der verfuegbare Kontext zu
+mindestens **50 %** verbraucht ist, MUSS er den aktiven Kontext **automatisch komprimieren**.
+
+Verbindliche Mindestform der Komprimierung:
+
+1. Den bisherigen Stand in 5 bis 10 praezisen Punkten zusammenfassen (Ziel, offene
+  Entscheidungen, relevante Befunde, naechste Schritte).
+2. Redundante Verlaufsdetails nicht fortschreiben; nur entscheidungsrelevante Fakten behalten.
+3. Vor weiterem Tool- oder Edit-Loop mit dem komprimierten Stand weiterarbeiten.
+
+Diese Pflicht dient der Stabilitaet laengerer Sessions und ist kein optionaler Stilhinweis.
+
+---
+
 ## Pre-PR-Pflicht (für alle Coding-Agenten)
 
 Vor jedem PR-Push und vor jedem "fertig"-Claim MUSS ein Agent folgende drei Kommandos ausführen und deren Output vollständig lesen:
