@@ -281,7 +281,7 @@ jobs:
       - name: Dead code detection with vulture
         shell: pwsh
         run: |
-          & $env:PYTHON_BIN -m vulture src/drift --min-confidence 65
+          & $env:PYTHON_BIN -m vulture src/drift --min-confidence 65 --ignore-names cls
 
       - name: Run tests with coverage (reference Python, Linux)
         if: matrix.python-version == '3.12' && runner.os == 'Linux'
