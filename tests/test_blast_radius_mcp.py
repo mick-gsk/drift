@@ -12,7 +12,10 @@ from drift.serve.a2a_router import _ensure_dispatch_table
 @pytest.fixture
 def repo_root() -> Path:
     path = Path(__file__).resolve().parents[1]
-    assert (path / "src" / "drift").is_dir()
+    # After ADR-100 monorepo migration, src/drift was removed.  The meta-package
+    # at packages/drift/src/drift (re-export stubs) serves as a stable marker
+    # that the repo root was resolved correctly.
+    assert (path / "packages" / "drift" / "src" / "drift").is_dir()
     return path
 
 
