@@ -1,6 +1,6 @@
 """Scoring engine for Drift."""
 
-from drift.scoring.engine import (
+from drift_engine.scoring.engine import (
     calibrate_weights,
     composite_score,
     compute_module_scores,
