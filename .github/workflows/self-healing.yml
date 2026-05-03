@@ -1,0 +1,238 @@
+name: Self Healing
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: self-healing-${{ github.event.workflow_run.id }}
+  cancel-in-progress: true
+
+jobs:
+  self-healing:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Find open PR for failed branch
+        id: find_pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const headBranch = context.payload.workflow_run.head_branch;
+
+            // List open PRs and filter by failed run branch (head_branch).
+            let openPrs = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: "open",
+              head: `${owner}:${headBranch}`,
+              per_page: 100,
+            });
+
+            // Fallback for fork-based PRs where owner:branch head filter may not match.
+            if (openPrs.length === 0) {
+              openPrs = await github.paginate(github.rest.pulls.list, {
+                owner,
+                repo,
+                state: "open",
+                per_page: 100,
+              });
+            }
+
+            const matches = openPrs.filter((pr) => pr.head && pr.head.ref === headBranch);
+
+            if (matches.length === 0) {
+              core.notice(`No open PR found for branch '${headBranch}'. Exiting early.`);
+              core.setOutput("has_pr", "false");
+              return;
+            }
+
+            const pr = matches[0];
+            core.info(`Found PR #${pr.number} for branch '${headBranch}'.`);
+            core.setOutput("has_pr", "true");
+            core.setOutput("pr_number", String(pr.number));
+            core.setOutput("branch", headBranch);
+            core.setOutput("head_sha", context.payload.workflow_run.head_sha);
+            core.setOutput("run_id", String(context.payload.workflow_run.id));
+            core.setOutput("run_url", context.payload.workflow_run.html_url);
+
+      - name: Download and extract failed logs
+        if: steps.find_pr.outputs.has_pr == 'true'
+        id: extract_logs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import tempfile
+          import urllib.request
+          import zipfile
+          from pathlib import Path
+
+          owner = os.environ["OWNER"]
+          repo = os.environ["REPO"]
+          run_id = os.environ["RUN_ID"]
+          token = os.environ["GH_TOKEN"]
+
+          logs_url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/logs"
+          req = urllib.request.Request(
+              logs_url,
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "drift-self-healing-workflow",
+              },
+          )
+
+          with urllib.request.urlopen(req) as response:
+              payload = response.read()
+
+          with tempfile.TemporaryDirectory() as tmp_dir:
+              tmp_path = Path(tmp_dir)
+              zip_path = tmp_path / "logs.zip"
+              zip_path.write_bytes(payload)
+
+              with zipfile.ZipFile(zip_path) as zf:
+                  zf.extractall(tmp_path / "logs")
+
+              logs_root = tmp_path / "logs"
+              files = [p for p in logs_root.rglob("*") if p.is_file()]
+
+              def score(path: Path) -> int:
+                  low = str(path).lower()
+                  value = 0
+                  if "pytest" in low:
+                      value += 50
+                  if "test" in low:
+                      value += 30
+                  if "unit" in low or "integration" in low:
+                      value += 20
+                  if "runner" in low:
+                      value -= 20
+                  return value
+
+              files.sort(key=lambda p: (score(p), str(p).lower()), reverse=True)
+
+              pattern = re.compile(r"FAILED|Error|assert", re.IGNORECASE)
+              snippets = []
+
+              for file_path in files:
+                  try:
+                      text = file_path.read_text(encoding="utf-8", errors="ignore")
+                  except Exception:
+                      continue
+
+                  matched_lines = [line.rstrip() for line in text.splitlines() if pattern.search(line)]
+                  if not matched_lines:
+                      continue
+
+                  tail = matched_lines[-25:]
+                  block = [f"# {file_path.relative_to(logs_root)}", *tail]
+                  snippets.append("\n".join(block))
+
+              if snippets:
+                  combined = "\n\n".join(snippets)
+              else:
+                  combined = "No matching lines containing FAILED, Error, or assert were found in downloaded logs."
+
+              max_chars = 4000
+              if len(combined) > max_chars:
+                  combined = "...\n" + combined[-(max_chars - 4):]
+
+              output_file = os.environ["GITHUB_OUTPUT"]
+              with open(output_file, "a", encoding="utf-8") as fh:
+                  fh.write("truncated_logs<<EOF\n")
+                  fh.write(combined)
+                  fh.write("\nEOF\n")
+          PY
+
+      - name: Post @copilot comment on PR
+        if: steps.find_pr.outputs.has_pr == 'true'
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ steps.find_pr.outputs.pr_number }}
+          BRANCH: ${{ steps.find_pr.outputs.branch }}
+          HEAD_SHA: ${{ steps.find_pr.outputs.head_sha }}
+          RUN_ID: ${{ steps.find_pr.outputs.run_id }}
+          RUN_URL: ${{ steps.find_pr.outputs.run_url }}
+          TRUNCATED_LOGS: ${{ steps.extract_logs.outputs.truncated_logs }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const prNumber = Number(process.env.PR_NUMBER);
+            const branch = process.env.BRANCH || "unknown";
+            const headSha = process.env.HEAD_SHA || "unknown";
+            const runId = process.env.RUN_ID || "unknown";
+            const runUrl = process.env.RUN_URL || "";
+            const truncatedLogs = (process.env.TRUNCATED_LOGS || "No logs available.").trim();
+
+            const body = [
+              `@copilot The CI pipeline failed on branch \`${branch}\`. Please fix only the failing tests or code causing the failures listed below. Do not refactor unrelated code and do not change test logic unless the test itself is broken.`,
+              "",
+              "---",
+              "",
+              "## Failure Context",
+              "",
+              "| Field | Value |",
+              "|---|---|",
+              `| **Branch** | \`${branch}\` |`,
+              `| **Commit** | \`${headSha}\` |`,
+              `| **Failed run** | [${runId}](${runUrl}) |`,
+              "| **Matrix** | Python 3.11, 3.12, 3.13 x ubuntu-latest, windows-latest |",
+              "",
+              "---",
+              "",
+              "## Diagnostic Hypothesis",
+              "",
+              "All matrix jobs failed simultaneously. Before assuming a logic bug, check in this order:",
+              "",
+              "1. **Import errors** - a missing or renamed module, broken `__init__.py`, or circular import",
+              "2. **Dependency changes** - a newly pinned or unpinned package in `pyproject.toml` / `uv.lock` that introduced a breaking API change",
+              "3. **Path or OS incompatibility** - a hardcoded `/` path that breaks on `windows-latest`",
+              "4. **Fixture or conftest issue** - a shared pytest fixture that is broken for all test runs",
+              "",
+              "Only investigate logic bugs if none of the above apply.",
+              "",
+              "---",
+              "",
+              "## Error Summary",
+              "",
+              truncatedLogs,
+              "",
+              "---",
+              "",
+              "## Instructions",
+              "",
+              "- Fix the root cause, not symptoms",
+              "- Run the full test matrix mentally before proposing a fix: Python 3.11, 3.12, 3.13 x ubuntu-latest, windows-latest",
+              "- If the fix requires a dependency change, update both `pyproject.toml` and `uv.lock`",
+              "- If you are not confident in a fix, leave a comment explaining what additional context you need",
+              `- Do not open a new PR - push your fix directly to branch \`${branch}\``,
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body,
+            });
+
+            core.info(`Posted @copilot comment on PR #${prNumber}.`);
