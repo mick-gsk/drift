@@ -99,7 +99,7 @@ class TestResolveWorkerCount:
             for i in range(3)
         ]
 
-        with patch("drift.pipeline.os.cpu_count", return_value=8):
+        with patch("drift_engine.pipeline.os.cpu_count", return_value=8):
             got = resolve_worker_count(config=cfg, files=files, requested_workers=None)
 
         # cpu fallback 8 -> small repo conservative downscale -> 4
@@ -124,7 +124,7 @@ class TestResolveWorkerCount:
             FileInfo(path=Path("d.py"), language="python", size_bytes=100, line_count=1),
         ]
 
-        with patch("drift.pipeline.os.cpu_count", return_value=8):
+        with patch("drift_engine.pipeline.os.cpu_count", return_value=8):
             got = resolve_worker_count(config=cfg, files=files, requested_workers=None)
 
         # base 8, non-parser ratio 0.5 -> -1, large file ratio 0.5 -> -1 => 6
@@ -156,24 +156,30 @@ class TestMakeDegradationEvent:
 
 class TestPruneGitHistoryCache:
     def test_removes_stale_entries(self):
-        import drift.pipeline as pipeline_mod
         from drift.pipeline import (
             _GIT_HISTORY_CACHE_TTL_SECONDS,
             _prune_git_history_cache,
         )
 
-        now = 1000.0
-        stale_time = now - _GIT_HISTORY_CACHE_TTL_SECONDS - 1
-        pipeline_mod._GIT_HISTORY_CACHE["stale_key"] = (stale_time, [], {})
-        pipeline_mod._GIT_HISTORY_CACHE["fresh_key"] = (now, [], {})
+        # Use the function's own globals to get the authoritative cache dict,
+        # bypassing any re-export stub name-binding difference. Save/restore to
+        # keep the test isolated from real cache entries added by other tests.
+        cache = _prune_git_history_cache.__globals__["_GIT_HISTORY_CACHE"]
+        saved = dict(cache)
+        cache.clear()
+        try:
+            now = 1000.0
+            stale_time = now - _GIT_HISTORY_CACHE_TTL_SECONDS - 1
+            cache["stale_key"] = (stale_time, [], {})
+            cache["fresh_key"] = (now, [], {})
 
-        _prune_git_history_cache(now)
+            _prune_git_history_cache(now)
 
-        assert "stale_key" not in pipeline_mod._GIT_HISTORY_CACHE
-        assert "fresh_key" in pipeline_mod._GIT_HISTORY_CACHE
-
-        # Cleanup
-        pipeline_mod._GIT_HISTORY_CACHE.pop("fresh_key", None)
+            assert "stale_key" not in cache
+            assert "fresh_key" in cache
+        finally:
+            cache.clear()
+            cache.update(saved)
 
 
 # ===========================================================================

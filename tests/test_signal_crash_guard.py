@@ -18,8 +18,6 @@ from __future__ import annotations
 import datetime
 from pathlib import Path
 
-import pytest
-
 import drift.signals  # noqa: F401 – triggers subpackage traversal
 
 # ---------------------------------------------------------------------------
@@ -48,6 +46,7 @@ import drift.signals.system_misalignment  # noqa: F401  # noqa: F401
 import drift.signals.temporal_volatility  # noqa: F401  # noqa: F401
 import drift.signals.test_polarity_deficit  # noqa: F401  # noqa: F401
 import drift.signals.ts_architecture  # noqa: F401  # noqa: F401
+import pytest
 from drift.config import DriftConfig
 from drift.models import (
     ClassInfo,

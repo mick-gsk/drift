@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - "src/drift/**"
+      - "packages/**"
   workflow_dispatch:
     inputs:
       budget:
@@ -90,7 +91,16 @@ jobs:
         shell: powershell
         run: |
           & $env:PYTHON_BIN -m pip install --upgrade pip
-          & $env:PYTHON_BIN -m pip install -e ".[dev]"
+          & $env:PYTHON_BIN -m pip install `
+            -e packages/drift-config `
+            -e packages/drift-engine `
+            -e packages/drift-sdk `
+            -e packages/drift-output `
+            -e packages/drift-session `
+            -e packages/drift-mcp `
+            -e packages/drift-verify `
+            -e packages/drift-cli
+          pip install -e ".[dev]"
 
       - name: Determine iteration
         id: iter

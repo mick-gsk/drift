@@ -79,7 +79,8 @@ def _repo_root() -> Path:
 
 def _extract_config_weights() -> dict[str, float]:
     """Parse SignalWeights defaults from src/drift/config/_schema.py using AST."""
-    config_path = _repo_root() / "src" / "drift" / "config" / "_schema.py"
+    # ADR-100 Phase 3: SignalWeights lives in drift-config package, not stub
+    config_path = _repo_root() / "packages" / "drift-config" / "src" / "drift_config" / "_schema.py"
     tree = ast.parse(config_path.read_text(encoding="utf-8"))
 
     for node in ast.walk(tree):

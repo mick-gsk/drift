@@ -15,7 +15,7 @@ argument-hint: "Beschreibe welches Ausgabeformat (rich/json/markdown/llm/badge) 
 - Du aenderst wie Findings angezeigt, formatiert oder gerendert werden
 - Du fuegest ein neues Ausgabeformat hinzu
 - Du aenderst `rich_output.py`, `json_output.py`, `markdown_report.py` oder `guided_output.py`
-- Drift meldet EDS fuer eine Datei in `src/drift/output/`
+- Drift meldet EDS fuer eine Datei in `packages/drift-output/src/drift_output/`
 
 ## Warum dieses Modul kritisch ist
 
@@ -53,7 +53,7 @@ Jede neue Berechnung in einem Formatter verstaerkt diese Verschraenkung.
 
 ## References
 
-- [src/drift/output/grouping.py](../../../src/drift/output/grouping.py) — Gemeinsame Gruppierungs-Logik
-- [src/drift/output/json_output.py](../../../src/drift/output/json_output.py) — Kanonisches JSON-Format
+- [packages/drift-output/src/drift_output/grouping.py](../../../packages/drift-output/src/drift_output/grouping.py) — Gemeinsame Gruppierungs-Logik
+- [packages/drift-output/src/drift_output/json_output.py](../../../packages/drift-output/src/drift_output/json_output.py) — Kanonisches JSON-Format
 - [drift.output.schema.json](../../../drift.output.schema.json) — JSON-Output-Schema
-- [src/drift/models/_findings.py](../../../src/drift/models/_findings.py) — `RepoAnalysis`-Modell
+- [packages/drift-sdk/src/drift_sdk/models/_findings.py](../../../packages/drift-sdk/src/drift_sdk/models/_findings.py) — `RepoAnalysis`-Modell

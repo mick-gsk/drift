@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-session"
+version = "2.49.0"
+description = "Session orchestration and outcome tracking for drift-analyzer"
+requires-python = ">=3.11"
+dependencies = [
+    "drift-engine",
+    "drift-output",
+    "drift-sdk",
+    "drift-config",
+]
+
+[tool.uv.sources]
+drift-engine = { workspace = true }
+drift-output = { workspace = true }
+drift-sdk = { workspace = true }
+drift-config = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_session"]

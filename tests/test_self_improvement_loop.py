@@ -8,7 +8,6 @@ import time
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.self_improvement import (
     ClosedProposalEntry,

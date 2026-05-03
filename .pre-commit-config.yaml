@@ -7,7 +7,7 @@ repos:
       - id: trailing-whitespace
         exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.)"
       - id: end-of-file-fixer
-        exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.|\\.vscode/drift-session\\.json$|playground/.*\\.tsbuildinfo$)"
+        exclude: "^(\\.specify/|specs/|\\.github/agents/speckit\\.|\\.vscode/drift-session\\.json$|playground/.*\\.tsbuildinfo$|packages/cockpit-ui/\\.next/|packages/cockpit-ui/playwright-report/|packages/cockpit-ui/test-results/|td_parsed\\.json$|result_line\\.txt$|_bisect_tests\\.txt$|last_nudge\\.json$|last_scan\\.json$|output\\.json$|(^|[\\/])nudge_baselines[\\/])"
       - id: check-yaml
         args: [--allow-multiple-documents, --unsafe]
         exclude: "^conda\\.recipe/"
@@ -33,15 +33,21 @@ repos:
           - "(^|[\\\\/])benchmarks[\\\\/]corpus[\\\\/]\\.drift-cache-golden[\\\\/]parse([\\\\/]|$)"
           - --exclude-files
           - "(^|[\\\\/])(benchmark_results|audit_results|site|docs-site|\\.hypothesis|\\.venv|dist|build|\\.mypy_cache|\\.pytest_cache|\\.ruff_cache|\\.drift-cache|work_artifacts|master-backlog|tagesplanung)([\\\\/]|$)"
+          - --exclude-files
+          - "(^|[\\\\/])packages[\\\\/]cockpit-ui[\\\\/]\\.next([\\\\/]|$)"
+          - --exclude-files
+          - "(^|[\\\\/])(last_nudge|last_scan|output)\\.json$|(^|[\\\\/])nudge_baselines[\\\\/]"
+          - --exclude-files
+          - "(^|[\\\\/])td_parsed\\.json$"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.1
     hooks:
       - id: ruff
-        files: "^(src/|tests/)"
+        files: "^(packages/|tests/)"
         stages: [pre-commit]
       - id: ruff-format
-        files: "^(src/|tests/)"
+        files: "^(packages/|tests/)"
         stages: [pre-commit]
         args: [--check]
 
@@ -99,4 +105,14 @@ repos:
         entry: python scripts/check_agent_harness_contract.py --root .
         language: system
         pass_filenames: false
+        stages: [pre-commit]
+      - id: mypy
+        name: mypy type check (packages)
+        description: >-
+          Run mypy on all workspace packages - same target as CI. Catches type
+          errors before they reach GitHub Actions. Set SKIP=mypy to bypass temporarily.
+        entry: python -m mypy packages/drift/src/drift packages/drift-engine/src/drift_engine packages/drift-sdk/src/drift_sdk packages/drift-output/src/drift_output packages/drift-cli/src/drift_cli packages/drift-mcp/src/drift_mcp packages/drift-session/src/drift_session packages/drift-config/src/drift_config
+        language: system
+        pass_filenames: false
+        files: "^packages/"
         stages: [pre-commit]

@@ -7,7 +7,6 @@ from io import StringIO
 from pathlib import Path
 
 import pytest
-
 from drift.models._enums import Severity
 from drift.models._findings import Finding, RepoAnalysis
 
@@ -203,13 +202,12 @@ class TestHandoffBlock:
         assert "findings_total" in d
 
     def test_render_handoff_rich_no_exception(self) -> None:
-        from rich.console import Console
-
         from drift.drift_kit import (
             build_handoff_block,
             build_session_data,
             render_handoff_rich,
         )
+        from rich.console import Console
 
         findings = [_make_finding(severity="high", title=f"f{i}") for i in range(3)]
         analysis = _make_analysis(findings=findings)
@@ -221,13 +219,12 @@ class TestHandoffBlock:
         render_handoff_rich(block, console)  # must not raise
 
     def test_render_handoff_rich_empty_findings_no_exception(self) -> None:
-        from rich.console import Console
-
         from drift.drift_kit import (
             build_handoff_block,
             build_session_data,
             render_handoff_rich,
         )
+        from rich.console import Console
 
         analysis = _make_analysis(findings=[])
         session = build_session_data(analysis)

@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from click.testing import CliRunner
-
 from drift.api.explain import (
     _FINGERPRINT_RE,
     _explain_finding_from_analysis_file,

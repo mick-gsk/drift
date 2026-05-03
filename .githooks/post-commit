@@ -1,12 +1,16 @@
 #!/usr/bin/env sh
 # post-commit hook — auto-insert CHANGELOG entry and amend the commit.
 #
-# After every commit that follows Conventional Commits (feat|fix|chore),
-# this hook inserts the corresponding bullet into CHANGELOG.md and silently
-# amends the commit to include the updated file.
+# Historical note: this hook used to insert a CHANGELOG bullet and silently
+# amend the commit. That made commit identity unstable for both humans and
+# agents, and it invalidated the pre-push CI cache. The hook is now advisory
+# only: it reminds the user to update CHANGELOG.md explicitly.
 #
 # Skip conditions:
-#   DRIFT_SKIP_CHANGELOG=1   bypass entirely (set internally to prevent loops)
+#   DRIFT_SKIP_CHANGELOG=1   bypass entirely (set internally to prevent loops
+#                            or when amending with --no-verify is insufficient)
+#   Amend commits            detected via ORIG_HEAD parent comparison; skipped
+#                            automatically so existing bullets are not re-inserted
 #   Merge / fixup / squash   commits are skipped automatically
 #   Non-conventional commits silently skipped by the Python script
 
@@ -15,6 +19,17 @@ set -e
 # Loop guard: the amend triggers another post-commit run; skip it.
 if [ "${DRIFT_SKIP_CHANGELOG:-0}" = "1" ]; then
     exit 0
+fi
+
+# Amend guard: if ORIG_HEAD exists and shares the same parent as HEAD, this
+# post-commit was triggered by `git commit --amend`.  Re-inserting the bullet
+# would cause the CHANGELOG bullet-count gate to fail on the next push.
+if git rev-parse --verify ORIG_HEAD >/dev/null 2>&1; then
+    _head_parent="$(git rev-parse HEAD^ 2>/dev/null)" || _head_parent=""
+    _orig_parent="$(git rev-parse ORIG_HEAD^ 2>/dev/null)" || _orig_parent=""
+    if [ -n "$_head_parent" ] && [ "$_head_parent" = "$_orig_parent" ]; then
+        exit 0
+    fi
 fi
 
 # Git sets GIT_DIR; resolve COMMIT_EDITMSG portably.
@@ -41,15 +56,21 @@ else
     PYTHON="python"
 fi
 
-# Run the integration script.  A non-zero exit means a real error.
-if ! "$PYTHON" scripts/integrate_changelog_entry.py \
-        --from-commit-msg "$commit_msg_file"; then
-    echo ">>> [post-commit] Warning: changelog integration failed (non-fatal)." >&2
-    exit 0
-fi
+# Check whether this commit type normally requires a changelog update.
+parsed=$(
+    "$PYTHON" - <<'PY' "$commit_msg_file"
+from pathlib import Path
+import re
+import sys
 
-# Amend the commit to include CHANGELOG.md if it was modified.
-if ! git diff --quiet CHANGELOG.md; then
-    git add CHANGELOG.md
-    DRIFT_SKIP_CHANGELOG=1 git commit --amend --no-edit --no-verify
+first = Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()[0].strip()
+match = re.match(r"^(feat|fix|chore)(?:\([^)]*\))?!?:\s+(.+)", first, re.IGNORECASE)
+if not match:
+    raise SystemExit(0)
+print(match.group(1).lower())
+PY
+)
+
+if [ -n "$parsed" ]; then
+    echo ">>> [post-commit] Reminder: update CHANGELOG.md explicitly (for example: make changelog-insert COMMIT_TYPE=$parsed MSG='<summary>')." >&2
 fi

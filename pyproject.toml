@@ -65,7 +65,23 @@ dependencies = [
     "pydantic>=2.0",
     "gitpython>=3.1",
     "networkx>=3.0",
+    "drift-config",
+    "drift-sdk",
+    "drift-engine",
+    "drift-output",
+    "drift-session",
+    "drift-mcp",
+    "drift-cli",
 ]
+
+[tool.uv.sources]
+drift-config = { workspace = true }
+drift-sdk = { workspace = true }
+drift-engine = { workspace = true }
+drift-output = { workspace = true }
+drift-session = { workspace = true }
+drift-mcp = { workspace = true }
+drift-cli = { workspace = true }
 
 [project.urls]
 Homepage = "https://mick-gsk.github.io/drift/"
@@ -146,7 +162,11 @@ drift = "drift.cli:safe_main"
 drift-analyzer = "drift.cli:safe_main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/drift"]
+packages = ["packages/drift/src/drift"]
+
+[tool.uv.workspace]
+members = ["packages/*"]
+exclude = ["packages/drift", "packages/cockpit-ui", "packages/drift-analyzer-sdk"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -202,7 +222,7 @@ exclude_lines = [
 
 [tool.vulture]
 min_confidence = 80
-paths = ["src/drift"]
+paths = ["packages/drift/src/drift"]
 ignore_names = [
     # Click-Handler und Pydantic-Felder sind nicht tot — werden dynamisch aufgerufen
     "model_config",
@@ -210,13 +230,13 @@ ignore_names = [
 ]
 
 [tool.mutmut]
-paths_to_mutate = "src/drift/scoring/,src/drift/signals/"
+paths_to_mutate = "packages/drift-engine/src/drift_engine/scoring/,packages/drift-engine/src/drift_engine/signals/"
 runner = "python -m pytest tests/ -x -q --timeout=30 -m 'not slow'"
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-src = ["src", "tests"]
+src = ["packages", "tests"]
 exclude = ["benchmarks/corpus"]
 
 [tool.ruff.lint]
@@ -227,6 +247,11 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 # leave_If, …). N802 and N805 violations here are false positives from the API
 # contract; suppressing them per-directory avoids noqa noise on every method.
 "scripts/quality_loop/**" = ["N802", "N805"]
+# Pre-existing: long lines and bare pytest.raises in new test sub-packages
+"tests/verify/**" = ["E501", "B017"]
+"tests/decision_cockpit/**" = ["E501", "B017"]
+# ADR-102 re-export stubs: long sys.modules aliasing lines are structural, not fixable
+"packages/drift/src/drift/analyzers/**" = ["E501"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -237,7 +262,7 @@ no_implicit_optional = true
 strict_equality = true
 ignore_missing_imports = true
 check_untyped_defs = true
-# CI and pre-push run mypy on src/drift directly; keep type checks clean.
+# CI and pre-commit run mypy on all workspace packages; keep type checks clean.
 
 # --- python-semantic-release (PSR) ---
 # Replaces the manual `chore: Release` commit convention.

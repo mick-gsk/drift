@@ -33,7 +33,7 @@ Wenn mehrere Instructions geladen sind, gilt:
 1. **drift-policy** hat immer Vorrang (PFLICHT-GATE zuerst)
 2. **drift-push-gates** nur relevant bei Commit/Push-Vorbereitung
 3. **drift-quality-workflow** nur relevant bei nicht-trivialen Änderungen
-4. **Release-Instructions** nur relevant bei `src/drift/**`-Änderungen
+4. **Release-Instructions** nur relevant bei `packages/drift-*/**`-Änderungen (oder `src/drift/**`-Compat-Änderungen)
 
 ## Kontextreduktion
 
@@ -41,3 +41,7 @@ Bei einfachen Aufgaben (Doku-Fix, Typo, triviales Refactoring) reicht:
 - Policy-Gate im Kompaktformat ausgeben
 - Relevante Gates prüfen (meist nur Gate 8: `make check`)
 - Kein vollständiger Quality-Workflow nötig
+
+Ergaenzend gilt fuer alle Coding-Agenten die zentrale Pflicht aus
+`.github/copilot-instructions.md`: Ab **50 %** Kontextverbrauch ist der aktive Kontext
+automatisch zu komprimieren.

@@ -6,7 +6,6 @@ import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from drift.pr_loop._gh import (
     GhCliError,
     get_pr_comments,

@@ -7,8 +7,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
-
 from drift.outcome_ledger import (
     LEDGER_SCHEMA_VERSION,
     AuthorType,
@@ -16,6 +14,7 @@ from drift.outcome_ledger import (
     RecommendationOutcome,
     TrajectoryDirection,
 )
+from pydantic import ValidationError
 
 # ---------------------------------------------------------------------------
 # _models.py

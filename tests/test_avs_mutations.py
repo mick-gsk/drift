@@ -10,7 +10,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig, PolicyConfig
 from drift.models import ImportInfo, ParseResult, Severity
 from drift.signals.architecture_violation import ArchitectureViolationSignal

@@ -75,7 +75,7 @@ Wenn du diese Beispiele verwendest, uebersetze sie immer in die konkrete Frage: 
 - **Developer-Workflow:** `DEVELOPER.md`
 - **Harness-Skripte:** `scripts/ab_harness.py`, `scripts/check_agent_harness_contract.py`
 - **Harness-Tests:** `tests/test_agent_harness_contract.py`
-- **Verwandte Prompts:** `drift-agent-workflow-test.prompt.md`, `drift-agent-ux.prompt.md`, `drift-ci-gate.prompt.md`
+- **Verwandte Prompts:** `drift-context-engineering.prompt.md`, `drift-agent-workflow-test.prompt.md`, `drift-agent-ux.prompt.md`, `drift-ci-gate.prompt.md`
 
 ## Arbeitsvertrag
 
@@ -132,6 +132,8 @@ Priorisiere Findings mit dem groessten Hebel in diesen Klassen:
 11. opake externe Abhaengigkeiten
 12. fehlende aktuelle oder vertrauliche Evidenz
 13. schwache oder veraltete Quellenbasis
+
+Wenn der groesste Engpass nicht allgemeine Harness-Qualitaet, sondern die Sichtbarkeit, Frische oder Repo-Lokalitaet von Kontext ist, route in den spezialisierten Prompt `drift-context-engineering.prompt.md` statt denselben Gap nur breit zu umschreiben.
 
 ## Artefakte
 

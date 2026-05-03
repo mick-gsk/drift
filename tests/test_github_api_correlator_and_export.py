@@ -6,7 +6,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from drift.calibration.history import FindingSnapshot, ScanSnapshot
 from drift.models import (
     NegativeContext,

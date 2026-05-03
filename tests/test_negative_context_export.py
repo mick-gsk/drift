@@ -495,7 +495,6 @@ class TestExportContextCLI:
     def test_command_registered(self) -> None:
         """export-context is accessible through the CLI group."""
         from click import Context
-
         from drift.cli import main
 
         ctx = Context(main)
@@ -505,7 +504,6 @@ class TestExportContextCLI:
     def test_help_text(self) -> None:
         """Command has proper help text."""
         from click.testing import CliRunner
-
         from drift.cli import main
 
         runner = CliRunner()
@@ -520,7 +518,6 @@ class TestExportContextCLI:
     ) -> None:
         """Progress banner must not corrupt parsable stdout payloads."""
         from click.testing import CliRunner
-
         from drift.cli import main
 
         monkeypatch.setattr(
@@ -561,7 +558,6 @@ class TestExportContextCLI:
     ) -> None:
         """Write-mode confirmation must be emitted on stderr, not stdout."""
         from click.testing import CliRunner
-
         from drift.cli import main
 
         monkeypatch.setattr(

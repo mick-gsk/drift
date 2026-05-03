@@ -12,5 +12,39 @@
   "task.allowAutomaticTasks": "on",
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
   "python-envs.defaultEnvManager": "ms-python.python:system",
-  "drift.driftCommand": "C:\\Users\\mickg\\PWBS\\drift\\.venv\\Scripts\\drift.exe"
+  "drift.driftCommand": "C:\\Users\\mickg\\PWBS\\drift\\.venv\\Scripts\\drift.exe",
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/*.egg-info": true,
+    ".venv": true,
+    ".venv-*": true,
+    "dist": true,
+    "build": true,
+    "site": true,
+    ".mypy_cache": true,
+    ".pytest_cache": true,
+    ".ruff_cache": true,
+    ".hypothesis": true,
+    ".benchmarks": true,
+    ".drift-cache": true,
+    ".tmp": true,
+    ".tmp_ci_artifacts": true,
+    ".tmp_smoke_repo_cache": true,
+    "tmp-coverage-artifact": true,
+    "nudge_baselines": true,
+    "blast_reports": true,
+    "community_flywheel_output": true
+  },
+
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "pyproject.toml": "uv.lock, Makefile, Dockerfile, .dockerignore, .editorconfig, .importlinter, codecov.yml, action.yml, vulture_whitelist.py, conda.recipe",
+    "README.md": "CHANGELOG.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md, SUPPORT.md, CITATION.cff, BREAKING_CHANGES.md, RESEARCH.md, ROADMAP.md, AGENTS.md, CLAUDE.md, POLICY.md, DEVELOPER.md, CONTEXT.md, llms.txt",
+    ".gitignore": ".gitattributes, .git-blame-ignore-revs, .pre-commit-config.yaml, .pre-commit-hooks.yaml, .secrets.baseline, .detect-secrets.cfg, .shellcheckrc, .markdownlint.yaml, .markdownlint-cli2.jsonc, _typos.toml",
+    "drift.yaml": "drift.strict.yaml, drift.example.yaml, drift.schema.json, drift.output.schema.json, drift.evidence.schema.json, drift.intent.json, live_schema.json, .drift-baseline.json, .drift-intent.yaml",
+    "mkdocs.yml": "overrides"
+  }
 }

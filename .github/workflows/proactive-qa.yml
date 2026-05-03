@@ -29,7 +29,17 @@ jobs:
           cache: pip
 
       - name: Install drift + import-linter
-        run: pip install -e ".[dev]" import-linter --quiet
+        run: |
+          pip install \
+            -e packages/drift-config \
+            -e packages/drift-engine \
+            -e packages/drift-sdk \
+            -e packages/drift-output \
+            -e packages/drift-session \
+            -e packages/drift-mcp \
+            -e packages/drift-verify \
+            -e packages/drift-cli
+          pip install -e ".[dev]" import-linter --quiet
 
       - name: Enforce module boundaries
         # continue-on-error: true  ← remove once lint-imports passes locally
@@ -150,7 +160,17 @@ jobs:
           cache: pip
 
       - name: Install drift + pip-audit
-        run: pip install -e ".[dev]" pip-audit --quiet
+        run: |
+          pip install \
+            -e packages/drift-config \
+            -e packages/drift-engine \
+            -e packages/drift-sdk \
+            -e packages/drift-output \
+            -e packages/drift-session \
+            -e packages/drift-mcp \
+            -e packages/drift-verify \
+            -e packages/drift-cli
+          pip install -e ".[dev]" pip-audit --quiet
 
       - name: Audit dependencies (OSV database)
         run: |
