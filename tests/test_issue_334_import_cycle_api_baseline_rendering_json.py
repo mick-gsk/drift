@@ -12,8 +12,33 @@ TARGET_MODULES = {
 
 
 def _module_to_file(module: str) -> Path:
+    """Resolve a drift module name to its actual source file.
+
+    Handles ADR-102 monorepo layout where implementation files may live in
+    capability packages (drift_output, drift_engine, …) rather than src/drift.
+    """
+    import importlib
+    import importlib.util
+
+    spec = importlib.util.find_spec(module)
+    if spec and spec.origin and spec.origin != "built-in":
+        return Path(spec.origin)
+
+    try:
+        mod = importlib.import_module(module)
+        # When sys.modules aliasing is used (ADR-100/102), __file__ points at
+        # the canonical implementation file.
+        if mod.__file__:
+            return Path(mod.__file__)
+    except ImportError:
+        pass
+
+    # Fallback: legacy layout for any module still living under src/drift
     rel = Path(*module.split("."))
-    return Path(__file__).resolve().parent.parent / "src" / f"{rel}.py"
+    candidate = Path(__file__).resolve().parent.parent / "src" / f"{rel}.py"
+    if candidate.exists():
+        return candidate
+    raise FileNotFoundError(f"Cannot resolve module file for {module!r}")
 
 
 def _extract_target_edges(module: str) -> set[str]:
