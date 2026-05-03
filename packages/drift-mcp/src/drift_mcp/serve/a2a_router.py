@@ -1,4 +1,4 @@
-"""A2A JSON-RPC 2.0 skill dispatcher for drift."""
+﻿"""A2A JSON-RPC 2.0 skill dispatcher for drift."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import logging
 import os
 from typing import Any
 
-from drift.serve.models import (
+from drift_mcp.serve.models import (
     INTERNAL_ERROR,
     INVALID_PARAMS,
     METHOD_NOT_FOUND,
@@ -376,8 +376,9 @@ def _handle_blast_radius(params: dict[str, Any]) -> dict[str, Any]:
 
     Schreibt **nie** Maintainer-Ack-Dateien.
     """
-    from drift.blast_radius import compute_blast_report, save_blast_report
     from drift.blast_radius._change_detector import resolve_repo_path
+
+    from drift.blast_radius import compute_blast_report, save_blast_report
 
     path = _validate_repo_path(params.get("path", "."))
     changed_files_raw = params.get("changed_files")
