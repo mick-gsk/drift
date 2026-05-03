@@ -104,16 +104,16 @@ class TestWriteOnExpiredPrune:
         ]
         _write_raw(tmp_path, entries)
         cache = _cache_path(tmp_path)
-        mtime_before = cache.stat().st_mtime_ns
 
         active = get_active_dismissals(tmp_path)
 
-        assert cache.stat().st_mtime_ns != mtime_before, (
-            "Cache file was NOT rewritten after expired entry pruning"
-        )
+        # Verify the file was rewritten by checking content (mtime-based checks
+        # are unreliable on Windows NTFS due to 100 ns timestamp granularity).
         assert [e["task_id"] for e in active] == ["active-task"]
         payload = json.loads(cache.read_text(encoding="utf-8"))
-        assert len(payload["dismissed"]) == 1
+        assert len(payload["dismissed"]) == 1, (
+            "Cache file was NOT rewritten after expired entry pruning"
+        )
         assert payload["dismissed"][0]["task_id"] == "active-task"
 
 

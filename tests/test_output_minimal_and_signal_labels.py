@@ -75,9 +75,11 @@ def test_check_quiet_emits_minimal_line(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_signal_label_fallback_returns_real_signal_id(monkeypatch) -> None:
-    import drift.output.rich_output as rich_output
-
-    monkeypatch.delitem(rich_output._SIGNAL_LABELS, SignalType.COHESION_DEFICIT, raising=False)
+    # Use _signal_label.__globals__ to reach the exact _SIGNAL_LABELS dict
+    # the function uses at runtime, bypassing drift.output re-export stub
+    # module-identity differences caused by drift.output.__path__ override.
+    labels = _signal_label.__globals__["_SIGNAL_LABELS"]
+    monkeypatch.delitem(labels, SignalType.COHESION_DEFICIT, raising=False)
 
     assert _signal_label(SignalType.COHESION_DEFICIT) == SignalType.COHESION_DEFICIT.value
 
