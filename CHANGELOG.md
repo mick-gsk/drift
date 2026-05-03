@@ -5,6 +5,9 @@ Short version: Add Copilot coding agent setup — issue template, brief-check wo
 ### Changed
 - Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
 
+### Fixed
+- address PR review — cleanup on label removal, consistent section names, direct yaml import
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
