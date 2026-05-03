@@ -1,0 +1,294 @@
+name: Self Healing
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: read
+  issues: write
+
+concurrency:
+  group: self-healing-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  self-healing:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Find open PR for failed branch
+        id: find_pr
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        with:
+          script: |
+            const workflowRun = context.payload.workflow_run;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const headBranch = workflowRun.head_branch;
+            const headSha = workflowRun.head_sha;
+
+            // Prefer PRs already associated with this workflow_run (most accurate, avoids
+            // branch-name collisions across forks and direct pushes to main).
+            // Note: the pull_requests objects in the workflow_run payload include head.sha,
+            // but guard defensively in case the field is absent on a future API change.
+            let candidate = null;
+            if (workflowRun.pull_requests && workflowRun.pull_requests.length > 0) {
+              candidate = workflowRun.pull_requests.find(
+                pr => pr.head && pr.head.sha === headSha
+              );
+            }
+
+            // Fallback: search open PRs and validate both branch name and head SHA.
+            if (!candidate) {
+              const openPrs = await github.paginate(github.rest.pulls.list, {
+                owner,
+                repo,
+                state: "open",
+                per_page: 100,
+              });
+              candidate = openPrs.find(
+                pr => pr.head.ref === headBranch && pr.head.sha === headSha
+              );
+            }
+
+            if (!candidate) {
+              core.notice(`No open PR found for branch '${headBranch}' at sha '${headSha}'. Exiting early.`);
+              core.setOutput("has_pr", "false");
+              return;
+            }
+
+            core.info(`Found PR #${candidate.number} for branch '${headBranch}'.`);
+            core.setOutput("has_pr", "true");
+            core.setOutput("pr_number", String(candidate.number));
+            core.setOutput("branch", headBranch);
+            core.setOutput("head_sha", headSha);
+            core.setOutput("run_id", String(workflowRun.id));
+            core.setOutput("run_url", workflowRun.html_url);
+
+      - name: Download and extract failed logs
+        if: steps.find_pr.outputs.has_pr == 'true'
+        id: extract_logs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          python - <<'PY'
+          import os
+          import hashlib
+          import re
+          import tempfile
+          import urllib.request
+          import urllib.error
+          import zipfile
+          from pathlib import Path
+
+          owner = os.environ["OWNER"]
+          repo = os.environ["REPO"]
+          run_id = os.environ["RUN_ID"]
+          token = os.environ["GH_TOKEN"]
+
+          logs_url = f"https://api.github.com/repos/{owner}/{repo}/actions/runs/{run_id}/logs"
+          req = urllib.request.Request(
+              logs_url,
+              headers={
+                  "Authorization": f"Bearer {token}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "drift-self-healing-workflow",
+              },
+          )
+
+          combined = "No logs available."
+          try:
+              with tempfile.TemporaryDirectory() as tmp_dir:
+                  tmp_path = Path(tmp_dir)
+                  zip_path = tmp_path / "logs.zip"
+
+                  # Stream the response to disk to avoid large in-memory payloads.
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      with zip_path.open("wb") as fh:
+                          while True:
+                              chunk = response.read(65536)
+                              if not chunk:
+                                  break
+                              fh.write(chunk)
+
+                  with zipfile.ZipFile(zip_path) as zf:
+                      zf.extractall(tmp_path / "logs")
+
+                  logs_root = tmp_path / "logs"
+                  files = [p for p in logs_root.rglob("*") if p.is_file()]
+
+                  def score(path: Path) -> int:
+                      low = str(path).lower()
+                      value = 0
+                      if "pytest" in low:
+                          value += 50
+                      if "test" in low:
+                          value += 30
+                      if "unit" in low or "integration" in low:
+                          value += 20
+                      if "runner" in low:
+                          value -= 20
+                      return value
+
+                  files.sort(key=lambda p: (score(p), str(p).lower()), reverse=True)
+
+                  pattern = re.compile(r"FAILED|Error|assert", re.IGNORECASE)
+                  snippets = []
+
+                  for file_path in files:
+                      try:
+                          text = file_path.read_text(encoding="utf-8", errors="ignore")
+                      except Exception:
+                          continue
+
+                      matched_lines = [line.rstrip() for line in text.splitlines() if pattern.search(line)]
+                      if not matched_lines:
+                          continue
+
+                      tail = matched_lines[-25:]
+                      block = [f"# {file_path.relative_to(logs_root)}", *tail]
+                      snippets.append("\n".join(block))
+
+                  if snippets:
+                      combined = "\n\n".join(snippets)
+                  else:
+                      combined = "No matching lines containing FAILED, Error, or assert were found in downloaded logs."
+
+                  max_chars = 4000
+                  if len(combined) > max_chars:
+                      combined = "...\n" + combined[-(max_chars - 4):]
+
+          except urllib.error.HTTPError as e:
+              combined = f"Could not download logs: HTTP {e.code} {e.reason}."
+          except (urllib.error.URLError, TimeoutError) as e:
+              combined = f"Could not download logs: network error ({e})."
+
+          output_file = os.environ["GITHUB_OUTPUT"]
+          # Use a content-derived delimiter: collision-proof and deterministic for the same logs.
+          delimiter = "DRIFT_SELF_HEALING_EOF_" + hashlib.sha256(combined.encode()).hexdigest()[:16]
+          with open(output_file, "a", encoding="utf-8") as fh:
+              fh.write(f"truncated_logs<<{delimiter}\n")
+              fh.write(combined)
+              fh.write(f"\n{delimiter}\n")
+          PY
+
+      - name: Post @copilot comment on PR
+        if: steps.find_pr.outputs.has_pr == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+        env:
+          PR_NUMBER: ${{ steps.find_pr.outputs.pr_number }}
+          BRANCH: ${{ steps.find_pr.outputs.branch }}
+          HEAD_SHA: ${{ steps.find_pr.outputs.head_sha }}
+          RUN_ID: ${{ steps.find_pr.outputs.run_id }}
+          RUN_URL: ${{ steps.find_pr.outputs.run_url }}
+          TRUNCATED_LOGS: ${{ steps.extract_logs.outputs.truncated_logs }}
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const prNumber = Number(process.env.PR_NUMBER);
+            const branch = process.env.BRANCH || "unknown";
+            const headSha = process.env.HEAD_SHA || "unknown";
+            const runId = process.env.RUN_ID || "unknown";
+            const runUrl = process.env.RUN_URL || "";
+
+            // Sanitize log excerpt: neutralize @ sequences to prevent unintended mention spam.
+            const rawLogs = (process.env.TRUNCATED_LOGS || "No logs available.").trim();
+            const sanitizedLogs = rawLogs.replace(/@/g, "\uFF20");  // replace @ with ＠ (fullwidth)
+
+            // Choose a code fence that is one backtick longer than any run of backticks in the
+            // log content, so no line in the excerpt can accidentally close the outer code fence.
+            // Cap at 10 to keep the comment readable regardless of log content.
+            const maxBackticks = Math.max(0, ...[...sanitizedLogs.matchAll(/`+/g)].map(m => m[0].length));
+            const fence = "`".repeat(Math.min(10, Math.max(3, maxBackticks + 1)));
+
+            // Hidden marker used to find and update an existing self-healing comment rather
+            // than posting a new one on every rerun (prevents PR thread spam).
+            const marker = "<!-- drift-self-healing -->";
+
+            const body = [
+              marker,
+              `@copilot The CI pipeline failed on branch \`${branch}\`. Please fix only the failing tests or code causing the failures listed below. Do not refactor unrelated code and do not change test logic unless the test itself is broken.`,
+              "",
+              "---",
+              "",
+              "## Failure Context",
+              "",
+              "| Field | Value |",
+              "|---|---|",
+              `| **Branch** | \`${branch}\` |`,
+              `| **Commit** | \`${headSha}\` |`,
+              `| **Failed run** | [${runId}](${runUrl}) |`,
+              "| **Matrix** | Python 3.11, 3.12, 3.13 x ubuntu-latest, windows-latest |",
+              "",
+              "---",
+              "",
+              "## Diagnostic Hypothesis",
+              "",
+              "All matrix jobs failed simultaneously. Before assuming a logic bug, check in this order:",
+              "",
+              "1. **Import errors** - a missing or renamed module, broken `__init__.py`, or circular import",
+              "2. **Dependency changes** - a newly pinned or unpinned package in `pyproject.toml` / `uv.lock` that introduced a breaking API change",
+              "3. **Path or OS incompatibility** - a hardcoded `/` path that breaks on `windows-latest`",
+              "4. **Fixture or conftest issue** - a shared pytest fixture that is broken for all test runs",
+              "",
+              "Only investigate logic bugs if none of the above apply.",
+              "",
+              "---",
+              "",
+              "## Error Summary",
+              "",
+              fence,
+              sanitizedLogs,
+              fence,
+              "",
+              "---",
+              "",
+              "## Instructions",
+              "",
+              "- Fix the root cause, not symptoms",
+              "- Run the full test matrix mentally before proposing a fix: Python 3.11, 3.12, 3.13 x ubuntu-latest, windows-latest",
+              "- If the fix requires a dependency change, update both `pyproject.toml` and `uv.lock`",
+              "- If you are not confident in a fix, leave a comment explaining what additional context you need",
+              `- Do not open a new PR - push your fix directly to branch \`${branch}\``,
+            ].join("\n");
+
+            // Update an existing self-healing comment to avoid spamming the PR on reruns;
+            // only create a new comment when none exists yet. Paginate to handle PRs with
+            // more than 100 comments.
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+
+            const existing = comments.find(c => (c.body || "").includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated existing self-healing comment (id: ${existing.id}) on PR #${prNumber}.`);
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body,
+              });
+              core.info(`Posted @copilot comment on PR #${prNumber}.`);
+            }
