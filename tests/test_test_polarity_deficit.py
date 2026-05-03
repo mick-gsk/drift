@@ -170,7 +170,7 @@ def test_tpd_ignores_unexpected_source_segment_exception(tmp_path: Path, monkeyp
         raise RuntimeError("synthetic source-segment failure")
 
     monkeypatch.setattr(
-        "drift.signals.test_polarity_deficit.ast.get_source_segment",
+        "drift_engine.signals.test_polarity_deficit.ast.get_source_segment",
         _raise_runtime_error,
     )
 
