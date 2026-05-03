@@ -27,7 +27,7 @@ def test_initial_index_build_creates_manifest_and_commits(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("drift.ingestion.git_history._git_head_sha", lambda _p: "HEAD1")
+    monkeypatch.setattr("drift_engine.ingestion.git_history._git_head_sha", lambda _p: "HEAD1")
 
     calls: list[str | None] = []
 
@@ -35,7 +35,7 @@ def test_initial_index_build_creates_manifest_and_commits(
         calls.append(kwargs.get("rev_range"))
         return [_commit("c1", 2)]
 
-    monkeypatch.setattr("drift.ingestion.git_history.parse_git_history", _fake_parse)
+    monkeypatch.setattr("drift_engine.ingestion.git_history.parse_git_history", _fake_parse)
 
     commits = load_or_update_git_history_index(
         tmp_path,
@@ -54,8 +54,8 @@ def test_index_appends_delta_on_descendant_head(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     heads = iter(["HEAD1", "HEAD2"])
-    monkeypatch.setattr("drift.ingestion.git_history._git_head_sha", lambda _p: next(heads))
-    monkeypatch.setattr("drift.ingestion.git_history._is_ancestor", lambda *_a: True)
+    monkeypatch.setattr("drift_engine.ingestion.git_history._git_head_sha", lambda _p: next(heads))
+    monkeypatch.setattr("drift_engine.ingestion.git_history._is_ancestor", lambda *_a: True)
 
     calls: list[str | None] = []
 
@@ -66,7 +66,7 @@ def test_index_appends_delta_on_descendant_head(
             return [_commit("c1", 3)]
         return [_commit("c2", 1)]
 
-    monkeypatch.setattr("drift.ingestion.git_history.parse_git_history", _fake_parse)
+    monkeypatch.setattr("drift_engine.ingestion.git_history.parse_git_history", _fake_parse)
 
     first = load_or_update_git_history_index(
         tmp_path,
@@ -89,8 +89,8 @@ def test_index_rebuilds_when_history_is_rewritten(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     heads = iter(["HEAD1", "HEAD3"])
-    monkeypatch.setattr("drift.ingestion.git_history._git_head_sha", lambda _p: next(heads))
-    monkeypatch.setattr("drift.ingestion.git_history._is_ancestor", lambda *_a: False)
+    monkeypatch.setattr("drift_engine.ingestion.git_history._git_head_sha", lambda _p: next(heads))
+    monkeypatch.setattr("drift_engine.ingestion.git_history._is_ancestor", lambda *_a: False)
 
     calls: list[str | None] = []
 
@@ -101,7 +101,7 @@ def test_index_rebuilds_when_history_is_rewritten(
             return [_commit("old", 5)]
         return [_commit("new", 1)]
 
-    monkeypatch.setattr("drift.ingestion.git_history.parse_git_history", _fake_parse)
+    monkeypatch.setattr("drift_engine.ingestion.git_history.parse_git_history", _fake_parse)
 
     _ = load_or_update_git_history_index(
         tmp_path,

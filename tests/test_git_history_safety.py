@@ -27,7 +27,7 @@ def test_parse_git_history_uses_arg_list_not_shell(
         calls.append((cmd, kwargs))
         return _Completed()
 
-    monkeypatch.setattr("drift.ingestion.git_history.subprocess.run", _fake_run)
+    monkeypatch.setattr("drift_engine.ingestion.git_history.subprocess.run", _fake_run)
 
     parse_git_history(tmp_path, since_days=30)
 
@@ -62,7 +62,7 @@ def test_repo_path_with_shell_chars_is_never_injected_into_command(
         captured["kwargs"] = kwargs
         return _Completed()
 
-    monkeypatch.setattr("drift.ingestion.git_history.subprocess.run", _fake_run)
+    monkeypatch.setattr("drift_engine.ingestion.git_history.subprocess.run", _fake_run)
 
     parse_git_history(malicious_repo, since_days=7)
 
