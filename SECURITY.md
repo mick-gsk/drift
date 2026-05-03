@@ -4,6 +4,8 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 2.50.x  | :white_check_mark: |
+| 2.50.x  | :white_check_mark: |
 | 2.49.x  | :white_check_mark: |
 | 2.48.x  | :white_check_mark: |
 | 2.47.x  | :white_check_mark: |

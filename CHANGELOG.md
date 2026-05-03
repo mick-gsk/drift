@@ -1,3 +1,10 @@
+## [2.50.0] - 2026-05-03
+
+Short version: Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs.
+
+### Changed
+- Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).

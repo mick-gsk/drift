@@ -97,6 +97,31 @@ Not sure where to go? Use this routing table:
 | Submit a small docs/typo improvement | Open a PR directly — no issue needed |
 | Report a security vulnerability | [SECURITY.md](SECURITY.md) — do not open a public issue |
 
+## Assigning tasks to Copilot coding agent
+
+If you want GitHub Copilot coding agent to open a PR autonomously, use a
+structured issue and explicit verification commands.
+
+Recommended flow:
+
+1. Open a new issue with the **Copilot Coding Agent Task** template.
+2. Keep the sections complete: `Goal`, `Scope`, `Acceptance Criteria`,
+    `Verification`, `Constraints`, `Non-goals`.
+3. Apply (or keep) the `copilot-agent` label.
+4. Assign the issue to Copilot in GitHub.
+5. Review the generated PR with normal CI gates and request changes where needed.
+
+Automation in this repository:
+
+- Workflow: `.github/workflows/copilot-agent-issue-brief-check.yml`
+- Behavior: if a `copilot-agent` issue misses required sections, Drift adds
+    `needs-agent-brief` and posts a checklist comment.
+
+Best-practice references:
+
+- https://docs.github.com/en/copilot/using-github-copilot/using-copilot-coding-agent-to-work-on-tasks/about-assigning-tasks-to-copilot
+- https://docs.github.com/en/copilot/tutorials/best-practices-for-using-github-copilot-coding-agent
+
 ## Contributor ladder
 
 Drift contributions range from 15-minute improvements to multi-day signal work. Pick the level that fits your time and familiarity:
