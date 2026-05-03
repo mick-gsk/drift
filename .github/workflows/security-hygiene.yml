@@ -5,6 +5,14 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - '.github/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '*.toml'
   merge_group:
     branches: [main]
   workflow_dispatch:

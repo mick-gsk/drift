@@ -21,8 +21,8 @@ jobs:
     steps:
       - uses: actions/first-interaction@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          issue-message: |
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          issue_message: |
             Thanks for opening your first issue! 👋
 
             We'll get back to you within 72 hours. In the meantime:
@@ -30,7 +30,7 @@ jobs:
             - Search existing [issues](https://github.com/mick-gsk/drift/issues) and [discussions](https://github.com/mick-gsk/drift/discussions)
 
             If this is a false-positive report, please include the drift version, signal name, and a minimal code example.
-          pr-message: |
+          pr_message: |
             Thanks for your first pull request! 👋
 
             A maintainer will review this within a few days. Please make sure:

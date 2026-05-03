@@ -1,0 +1,112 @@
+name: PR Auto-Triage
+
+# Labels PRs that are likely low-quality or missing context.
+# NEVER auto-closes — only adds labels for human review.
+#
+# Rules applied:
+#   needs-description  — body is empty or contains the placeholder comment
+#   needs-buglink      — only tests/* changed AND no "fix #" / "closes #" in body
+#   auto-triaged       — set whenever at least one triage label is added
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: "pr-triage-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr     = context.payload.pull_request;
+            const owner  = context.repo.owner;
+            const repo   = context.repo.repo;
+            const number = pr.number;
+            const body   = (pr.body || '').trim();
+
+            const toAdd    = new Set();
+            const toRemove = new Set();
+
+            // ---- Rule 1: needs-description --------------------------------
+            const isEmptyBody = body.length === 0;
+            // Detect template placeholder: body contains only HTML comment(s) and no
+            // meaningful text outside them. Explicitly exempt the XL-override marker
+            // (<!-- large-pr: …) since that IS the intended description.
+            const isXLOverride = body.startsWith('<!-- large-pr:');
+            const bodyWithoutComments = body.replace(/<!--[\s\S]*?-->/g, '').trim();
+            const isPlaceholder = !isXLOverride && body.length > 0 && bodyWithoutComments.length === 0;
+            if (isEmptyBody || isPlaceholder) {
+              toAdd.add('needs-description');
+            } else {
+              toRemove.add('needs-description');
+            }
+
+            // ---- Rule 2: needs-buglink ------------------------------------
+            // Fetch all changed files (paginated — listFiles caps at 100 per page)
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner, repo, pull_number: number, per_page: 100
+            });
+            const nonTestFiles = files.filter(f =>
+              !f.filename.startsWith('tests/') &&
+              !f.filename.startsWith('benchmarks/') &&
+              !f.filename.startsWith('benchmark_results/')
+            );
+            const hasFixRef = /(?:fix(?:es|ed)?|close[sd]?|resolve[sd]?)\s+#\d+/i.test(body);
+            if (nonTestFiles.length === 0 && !hasFixRef) {
+              toAdd.add('needs-buglink');
+            } else {
+              toRemove.add('needs-buglink');
+            }
+
+            // ---- Apply changes -------------------------------------------
+            // Fetch existing labels
+            const { data: existing } = await github.rest.issues.listLabelsOnIssue({
+              owner, repo, issue_number: number
+            });
+            const existingNames = new Set(existing.map(l => l.name));
+
+            const labelsToAdd = [...toAdd].filter(l => !existingNames.has(l));
+            const labelsToRm  = [...toRemove].filter(l => existingNames.has(l));
+
+            for (const lbl of labelsToRm) {
+              await github.rest.issues.removeLabel({
+                owner, repo, issue_number: number, name: lbl
+              });
+              core.info(`Removed triage label: ${lbl}`);
+            }
+
+            if (labelsToAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: number, labels: labelsToAdd
+              });
+              core.info(`Added triage labels: ${labelsToAdd.join(', ')}`);
+
+              // Mark as auto-triaged if not already set
+              if (!existingNames.has('auto-triaged')) {
+                await github.rest.issues.addLabels({
+                  owner, repo, issue_number: number, labels: ['auto-triaged']
+                });
+              }
+            } else {
+              // All triage labels were cleared — remove auto-triaged so KPI
+              // counts are not inflated by resolved PRs.
+              if (existingNames.has('auto-triaged') && labelsToRm.length > 0) {
+                await github.rest.issues.removeLabel({
+                  owner, repo, issue_number: number, name: 'auto-triaged'
+                });
+                core.info('Removed auto-triaged label (all triage conditions resolved).');
+              }
+            }
+
+            core.info(`PR #${number}: triage complete.`);

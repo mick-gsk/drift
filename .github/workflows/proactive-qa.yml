@@ -3,6 +3,13 @@ name: Proactive QA
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'packages/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'drift.output.schema.json'
+      - '.github/workflows/proactive-qa.yml'
   push:
     branches: [main]
   workflow_dispatch:

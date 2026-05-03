@@ -1,0 +1,94 @@
+name: PR Size Labels
+
+# Automatically assigns a size/* label to every PR based on the number of
+# changed lines, excluding generated/fixture/lockfile paths.
+#
+# Thresholds:
+#   size/XS   <  10  lines
+#   size/S    <  50  lines
+#   size/M    < 150  lines
+#   size/L    < 500  lines
+#   size/XL   >= 500 lines
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: "pr-size-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  size-label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute diff size (excluding generated/fixture/lockfile paths)
+        id: diff
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          # Use --numstat (tab-separated added/deleted per file) to avoid
+          # singular/plural parsing issues with --stat summary lines.
+          TOTAL=$(git diff --numstat "$BASE"..."$HEAD" -- \
+            ':!uv.lock' \
+            ':!*.lock' \
+            ':!tests/fixtures/**' \
+            ':!benchmark_results/**' \
+            ':!benchmarks/corpus/**' \
+            ':!benchmarks/defect_corpus/**' \
+            ':!site/**' \
+            ':!docs-site/**' \
+            | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ {a+=$1; d+=$2} END {print a+d+0}')
+          echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
+          echo "Diff size (excl. generated): $TOTAL lines"
+
+      - name: Assign size label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const total = parseInt('${{ steps.diff.outputs.total }}', 10);
+            const pr    = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            let newLabel;
+            if      (total <  10)  newLabel = 'size/XS';
+            else if (total <  50)  newLabel = 'size/S';
+            else if (total < 150)  newLabel = 'size/M';
+            else if (total < 500)  newLabel = 'size/L';
+            else                   newLabel = 'size/XL';
+
+            // Remove any existing size/* labels before adding the new one
+            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+              owner, repo, issue_number: pr
+            });
+            const sizeLabels = labels
+              .map(l => l.name)
+              .filter(n => n.startsWith('size/'));
+
+            for (const old of sizeLabels) {
+              if (old !== newLabel) {
+                await github.rest.issues.removeLabel({
+                  owner, repo, issue_number: pr, name: old
+                });
+              }
+            }
+
+            if (!sizeLabels.includes(newLabel)) {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: pr, labels: [newLabel]
+              });
+            }
+            core.info(`PR #${pr} assigned ${newLabel} (${total} lines)`);

@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "packages/**"
+      - "pyproject.toml"
+      - ".github/workflows/codeql.yml"
   schedule:
     - cron: "17 3 * * 2"
   workflow_dispatch:

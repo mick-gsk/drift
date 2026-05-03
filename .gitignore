@@ -37,9 +37,10 @@ audit_results/*
 !audit_results/fault_trees.md
 benchmark_results/*
 !benchmark_results/kpi_snapshot.json
+!benchmark_results/kpi_trend.jsonl
 !benchmark_results/mutation_benchmark.json
 !benchmark_results/drift_self.json
-!benchmark_results/kpi_trend.jsonl
+!benchmark_results/pr_throughput_baseline.json
 drift_score.json
 work_artifacts/
 master-backlog/*

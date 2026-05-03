@@ -81,3 +81,59 @@
 - name: release:skip
   color: "cfd3d7"
   description: Exclude this PR from release notes
+
+# ---------------------------------------------------------------------------
+# PR Size Labels
+# ---------------------------------------------------------------------------
+
+- name: size/XS
+  color: "3cbf00"
+  description: "Diff < 10 lines (excl. fixtures/lockfiles)"
+
+- name: size/S
+  color: "5d9e28"
+  description: "Diff 10–49 lines (excl. fixtures/lockfiles)"
+
+- name: size/M
+  color: "f0c000"
+  description: "Diff 50–149 lines (excl. fixtures/lockfiles)"
+
+- name: size/L
+  color: "e87c00"
+  description: "Diff 150–499 lines (excl. fixtures/lockfiles)"
+
+- name: size/XL
+  color: "d93f0b"
+  description: "Diff ≥ 500 lines — consider splitting"
+
+# ---------------------------------------------------------------------------
+# PR Lane Labels
+# ---------------------------------------------------------------------------
+
+- name: lane/fast-lane
+  color: "0e8a16"
+  description: "Docs/chore/fixture — reduced check path, eligible for automerge"
+
+- name: lane/standard
+  color: "fbca04"
+  description: "Fixes and features — standard review path"
+
+- name: lane/high-risk
+  color: "b60205"
+  description: "Signals/scoring/architecture — full gates + audit required"
+
+# ---------------------------------------------------------------------------
+# Triage Labels
+# ---------------------------------------------------------------------------
+
+- name: needs-description
+  color: "e4e4e4"
+  description: "PR body is empty or uses placeholder template"
+
+- name: needs-buglink
+  color: "e4e4e4"
+  description: "Test-only PR without a linked issue or fix reference"
+
+- name: auto-triaged
+  color: "c5def5"
+  description: "PR was automatically triaged for triage labels"
