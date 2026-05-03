@@ -7,12 +7,11 @@ on:
 
 permissions:
   actions: read
-  contents: read
-  pull-requests: write
+  pull-requests: read
   issues: write
 
 concurrency:
-  group: self-healing-${{ github.event.workflow_run.id }}
+  group: self-healing-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 jobs:
@@ -23,48 +22,52 @@ jobs:
     steps:
       - name: Find open PR for failed branch
         id: find_pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         with:
           script: |
+            const workflowRun = context.payload.workflow_run;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const headBranch = context.payload.workflow_run.head_branch;
+            const headBranch = workflowRun.head_branch;
+            const headSha = workflowRun.head_sha;
 
-            // List open PRs and filter by failed run branch (head_branch).
-            let openPrs = await github.paginate(github.rest.pulls.list, {
-              owner,
-              repo,
-              state: "open",
-              head: `${owner}:${headBranch}`,
-              per_page: 100,
-            });
+            // Prefer PRs already associated with this workflow_run (most accurate, avoids
+            // branch-name collisions across forks and direct pushes to main).
+            // Note: the pull_requests objects in the workflow_run payload include head.sha,
+            // but guard defensively in case the field is absent on a future API change.
+            let candidate = null;
+            if (workflowRun.pull_requests && workflowRun.pull_requests.length > 0) {
+              candidate = workflowRun.pull_requests.find(
+                pr => pr.head && pr.head.sha === headSha
+              );
+            }
 
-            // Fallback for fork-based PRs where owner:branch head filter may not match.
-            if (openPrs.length === 0) {
-              openPrs = await github.paginate(github.rest.pulls.list, {
+            // Fallback: search open PRs and validate both branch name and head SHA.
+            if (!candidate) {
+              const openPrs = await github.paginate(github.rest.pulls.list, {
                 owner,
                 repo,
                 state: "open",
                 per_page: 100,
               });
+              candidate = openPrs.find(
+                pr => pr.head.ref === headBranch && pr.head.sha === headSha
+              );
             }
 
-            const matches = openPrs.filter((pr) => pr.head && pr.head.ref === headBranch);
-
-            if (matches.length === 0) {
-              core.notice(`No open PR found for branch '${headBranch}'. Exiting early.`);
+            if (!candidate) {
+              core.notice(`No open PR found for branch '${headBranch}' at sha '${headSha}'. Exiting early.`);
               core.setOutput("has_pr", "false");
               return;
             }
 
-            const pr = matches[0];
-            core.info(`Found PR #${pr.number} for branch '${headBranch}'.`);
+            core.info(`Found PR #${candidate.number} for branch '${headBranch}'.`);
             core.setOutput("has_pr", "true");
-            core.setOutput("pr_number", String(pr.number));
+            core.setOutput("pr_number", String(candidate.number));
             core.setOutput("branch", headBranch);
-            core.setOutput("head_sha", context.payload.workflow_run.head_sha);
-            core.setOutput("run_id", String(context.payload.workflow_run.id));
-            core.setOutput("run_url", context.payload.workflow_run.html_url);
+            core.setOutput("head_sha", headSha);
+            core.setOutput("run_id", String(workflowRun.id));
+            core.setOutput("run_url", workflowRun.html_url);
 
       - name: Download and extract failed logs
         if: steps.find_pr.outputs.has_pr == 'true'
@@ -78,9 +81,11 @@ jobs:
         run: |
           python - <<'PY'
           import os
+          import hashlib
           import re
           import tempfile
           import urllib.request
+          import urllib.error
           import zipfile
           from pathlib import Path
 
@@ -100,71 +105,85 @@ jobs:
               },
           )
 
-          with urllib.request.urlopen(req) as response:
-              payload = response.read()
+          combined = "No logs available."
+          try:
+              with tempfile.TemporaryDirectory() as tmp_dir:
+                  tmp_path = Path(tmp_dir)
+                  zip_path = tmp_path / "logs.zip"
 
-          with tempfile.TemporaryDirectory() as tmp_dir:
-              tmp_path = Path(tmp_dir)
-              zip_path = tmp_path / "logs.zip"
-              zip_path.write_bytes(payload)
+                  # Stream the response to disk to avoid large in-memory payloads.
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      with zip_path.open("wb") as fh:
+                          while True:
+                              chunk = response.read(65536)
+                              if not chunk:
+                                  break
+                              fh.write(chunk)
 
-              with zipfile.ZipFile(zip_path) as zf:
-                  zf.extractall(tmp_path / "logs")
+                  with zipfile.ZipFile(zip_path) as zf:
+                      zf.extractall(tmp_path / "logs")
 
-              logs_root = tmp_path / "logs"
-              files = [p for p in logs_root.rglob("*") if p.is_file()]
+                  logs_root = tmp_path / "logs"
+                  files = [p for p in logs_root.rglob("*") if p.is_file()]
 
-              def score(path: Path) -> int:
-                  low = str(path).lower()
-                  value = 0
-                  if "pytest" in low:
-                      value += 50
-                  if "test" in low:
-                      value += 30
-                  if "unit" in low or "integration" in low:
-                      value += 20
-                  if "runner" in low:
-                      value -= 20
-                  return value
+                  def score(path: Path) -> int:
+                      low = str(path).lower()
+                      value = 0
+                      if "pytest" in low:
+                          value += 50
+                      if "test" in low:
+                          value += 30
+                      if "unit" in low or "integration" in low:
+                          value += 20
+                      if "runner" in low:
+                          value -= 20
+                      return value
 
-              files.sort(key=lambda p: (score(p), str(p).lower()), reverse=True)
+                  files.sort(key=lambda p: (score(p), str(p).lower()), reverse=True)
 
-              pattern = re.compile(r"FAILED|Error|assert", re.IGNORECASE)
-              snippets = []
+                  pattern = re.compile(r"FAILED|Error|assert", re.IGNORECASE)
+                  snippets = []
 
-              for file_path in files:
-                  try:
-                      text = file_path.read_text(encoding="utf-8", errors="ignore")
-                  except Exception:
-                      continue
+                  for file_path in files:
+                      try:
+                          text = file_path.read_text(encoding="utf-8", errors="ignore")
+                      except Exception:
+                          continue
 
-                  matched_lines = [line.rstrip() for line in text.splitlines() if pattern.search(line)]
-                  if not matched_lines:
-                      continue
+                      matched_lines = [line.rstrip() for line in text.splitlines() if pattern.search(line)]
+                      if not matched_lines:
+                          continue
 
-                  tail = matched_lines[-25:]
-                  block = [f"# {file_path.relative_to(logs_root)}", *tail]
-                  snippets.append("\n".join(block))
+                      tail = matched_lines[-25:]
+                      block = [f"# {file_path.relative_to(logs_root)}", *tail]
+                      snippets.append("\n".join(block))
 
-              if snippets:
-                  combined = "\n\n".join(snippets)
-              else:
-                  combined = "No matching lines containing FAILED, Error, or assert were found in downloaded logs."
+                  if snippets:
+                      combined = "\n\n".join(snippets)
+                  else:
+                      combined = "No matching lines containing FAILED, Error, or assert were found in downloaded logs."
 
-              max_chars = 4000
-              if len(combined) > max_chars:
-                  combined = "...\n" + combined[-(max_chars - 4):]
+                  max_chars = 4000
+                  if len(combined) > max_chars:
+                      combined = "...\n" + combined[-(max_chars - 4):]
 
-              output_file = os.environ["GITHUB_OUTPUT"]
-              with open(output_file, "a", encoding="utf-8") as fh:
-                  fh.write("truncated_logs<<EOF\n")
-                  fh.write(combined)
-                  fh.write("\nEOF\n")
+          except urllib.error.HTTPError as e:
+              combined = f"Could not download logs: HTTP {e.code} {e.reason}."
+          except (urllib.error.URLError, TimeoutError) as e:
+              combined = f"Could not download logs: network error ({e})."
+
+          output_file = os.environ["GITHUB_OUTPUT"]
+          # Use a content-derived delimiter: collision-proof and deterministic for the same logs.
+          delimiter = "DRIFT_SELF_HEALING_EOF_" + hashlib.sha256(combined.encode()).hexdigest()[:16]
+          with open(output_file, "a", encoding="utf-8") as fh:
+              fh.write(f"truncated_logs<<{delimiter}\n")
+              fh.write(combined)
+              fh.write(f"\n{delimiter}\n")
           PY
 
       - name: Post @copilot comment on PR
         if: steps.find_pr.outputs.has_pr == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
         env:
           PR_NUMBER: ${{ steps.find_pr.outputs.pr_number }}
           BRANCH: ${{ steps.find_pr.outputs.branch }}
@@ -182,9 +201,23 @@ jobs:
             const headSha = process.env.HEAD_SHA || "unknown";
             const runId = process.env.RUN_ID || "unknown";
             const runUrl = process.env.RUN_URL || "";
-            const truncatedLogs = (process.env.TRUNCATED_LOGS || "No logs available.").trim();
+
+            // Sanitize log excerpt: neutralize @ sequences to prevent unintended mention spam.
+            const rawLogs = (process.env.TRUNCATED_LOGS || "No logs available.").trim();
+            const sanitizedLogs = rawLogs.replace(/@/g, "\uFF20");  // replace @ with ＠ (fullwidth)
+
+            // Choose a code fence that is one backtick longer than any run of backticks in the
+            // log content, so no line in the excerpt can accidentally close the outer code fence.
+            // Cap at 10 to keep the comment readable regardless of log content.
+            const maxBackticks = Math.max(0, ...[...sanitizedLogs.matchAll(/`+/g)].map(m => m[0].length));
+            const fence = "`".repeat(Math.min(10, Math.max(3, maxBackticks + 1)));
+
+            // Hidden marker used to find and update an existing self-healing comment rather
+            // than posting a new one on every rerun (prevents PR thread spam).
+            const marker = "<!-- drift-self-healing -->";
 
             const body = [
+              marker,
               `@copilot The CI pipeline failed on branch \`${branch}\`. Please fix only the failing tests or code causing the failures listed below. Do not refactor unrelated code and do not change test logic unless the test itself is broken.`,
               "",
               "---",
@@ -215,7 +248,9 @@ jobs:
               "",
               "## Error Summary",
               "",
-              truncatedLogs,
+              fence,
+              sanitizedLogs,
+              fence,
               "",
               "---",
               "",
@@ -228,11 +263,32 @@ jobs:
               `- Do not open a new PR - push your fix directly to branch \`${branch}\``,
             ].join("\n");
 
-            await github.rest.issues.createComment({
+            // Update an existing self-healing comment to avoid spamming the PR on reruns;
+            // only create a new comment when none exists yet. Paginate to handle PRs with
+            // more than 100 comments.
+            const comments = await github.paginate(github.rest.issues.listComments, {
               owner,
               repo,
               issue_number: prNumber,
-              body,
+              per_page: 100,
             });
 
-            core.info(`Posted @copilot comment on PR #${prNumber}.`);
+            const existing = comments.find(c => (c.body || "").includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated existing self-healing comment (id: ${existing.id}) on PR #${prNumber}.`);
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body,
+              });
+              core.info(`Posted @copilot comment on PR #${prNumber}.`);
+            }
