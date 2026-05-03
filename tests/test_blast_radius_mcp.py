@@ -12,7 +12,9 @@ from drift.serve.a2a_router import _ensure_dispatch_table
 @pytest.fixture
 def repo_root() -> Path:
     path = Path(__file__).resolve().parents[1]
-    assert (path / "src" / "drift").is_dir()
+    # After ADR-100 monorepo migration, the canonical drift source lives under
+    # packages/drift/src/drift (compat stub) instead of src/drift.
+    assert (path / "packages" / "drift" / "src" / "drift").is_dir()
     return path
 
 
