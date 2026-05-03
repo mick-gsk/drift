@@ -247,6 +247,7 @@ jobs:
           & $env:PYTHON_BIN -m pip install --upgrade pip
           $maxRetries = 3
           for ($i = 1; $i -le $maxRetries; $i++) {
+            & $env:PYTHON_BIN -m pip install -e packages/drift -e packages/drift-config
             & $env:PYTHON_BIN -m pip install -e ".[dev,mcp]"
             if ($LASTEXITCODE -eq 0) { break }
             if ($i -lt $maxRetries) {
