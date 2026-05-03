@@ -38,7 +38,9 @@ jobs:
         run: |
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
-          LINES=$(git diff --stat "$BASE"..."$HEAD" -- \
+          # Use --numstat (tab-separated added/deleted per file) to avoid
+          # singular/plural parsing issues with --stat summary lines.
+          TOTAL=$(git diff --numstat "$BASE"..."$HEAD" -- \
             ':!uv.lock' \
             ':!*.lock' \
             ':!tests/fixtures/**' \
@@ -47,20 +49,7 @@ jobs:
             ':!benchmarks/defect_corpus/**' \
             ':!site/**' \
             ':!docs-site/**' \
-            | tail -1 \
-            | grep -oP '\d+(?= insertions)' || echo 0)
-          DELS=$(git diff --stat "$BASE"..."$HEAD" -- \
-            ':!uv.lock' \
-            ':!*.lock' \
-            ':!tests/fixtures/**' \
-            ':!benchmark_results/**' \
-            ':!benchmarks/corpus/**' \
-            ':!benchmarks/defect_corpus/**' \
-            ':!site/**' \
-            ':!docs-site/**' \
-            | tail -1 \
-            | grep -oP '\d+(?= deletions)' || echo 0)
-          TOTAL=$(( LINES + DELS ))
+            | awk '{a+=$1; d+=$2} END {print a+d+0}')
           echo "total=$TOTAL" >> "$GITHUB_OUTPUT"
           echo "Diff size (excl. generated): $TOTAL lines"
 

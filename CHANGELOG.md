@@ -4,7 +4,7 @@ Short version: Add Copilot coding agent setup — issue template, brief-check wo
 
 ### Changed
 - Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
-- add PR throughput lanes, size labels, and KPI workflow
+- Add PR throughput lanes, size labels, and KPI workflow
 
 ### Fixed
 - address PR review — cleanup on label removal, consistent section names, direct yaml import

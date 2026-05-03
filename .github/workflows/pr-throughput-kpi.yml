@@ -1,7 +1,7 @@
 name: PR Throughput KPI
 
 # Weekly KPI report for PR throughput metrics.
-# Computes 6 metrics from the last 30 days of merged/open PRs via GitHub API.
+# Computes 8 metrics from the last 30 days of merged/open PRs via GitHub API.
 # Appends to benchmark_results/kpi_trend.jsonl and overwrites kpi_snapshot.json.
 #
 # Metrics:
@@ -48,10 +48,12 @@ jobs:
             const cutoff   = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             const cutoffISO = cutoff.toISOString();
 
-            // Fetch last 100 merged PRs (GitHub search: merged:>cutoff)
+            // Fetch all merged PRs in the 30-day window.
+            // Paginate until the page's last item is older than cutoff —
+            // no arbitrary count cap so metrics are not skewed on busier repos.
             let mergedPRs = [];
             let page = 1;
-            while (mergedPRs.length < 200) {
+            while (true) {
               const { data } = await github.rest.pulls.list({
                 owner, repo,
                 state: 'closed',
@@ -65,7 +67,7 @@ jobs:
                 p => p.merged_at && new Date(p.merged_at) >= cutoff
               );
               mergedPRs.push(...inWindow);
-              // If the last PR is older than cutoff, stop paginating
+              // Stop when the oldest item on this page is beyond the window
               if (new Date(data[data.length - 1].updated_at) < cutoff) break;
               page++;
             }
@@ -127,8 +129,13 @@ jobs:
 
             // Reopen rate: PRs that were reopened at some point
             // Approximate: check timeline events for "reopened" — too expensive at scale.
-            // Use 0 as placeholder; can be improved with per-PR timeline API calls.
-            const reopenRate = 0;
+            // Emitted as null (placeholder) to avoid misleading dashboards.
+
+            const mTtm = median(timesToMerge);
+            const pTtm = p90(timesToMerge);
+            const mTfr = median(timesToFirstReview);
+            const pTfr = p90(timesToFirstReview);
+            const mRr  = median(reviewRounds);
 
             const metrics = {
               schema_version:                    "1",
@@ -136,18 +143,18 @@ jobs:
               data_window_days:                  30,
               merged_prs_in_window:              mergedPRs.length,
               merged_prs_per_day:                parseFloat((mergedPRs.length / 30).toFixed(2)),
-              time_to_merge_median_hours:        parseFloat((median(timesToMerge) ?? 0).toFixed(2)),
-              time_to_merge_p90_hours:           parseFloat((p90(timesToMerge) ?? 0).toFixed(2)),
-              time_to_first_review_median_hours: parseFloat((median(timesToFirstReview) ?? 0).toFixed(2)),
-              time_to_first_review_p90_hours:    parseFloat((p90(timesToFirstReview) ?? 0).toFixed(2)),
-              review_rounds_median:              parseFloat((median(reviewRounds) ?? 0).toFixed(2)),
-              reopen_rate_pct:                   reopenRate,
+              time_to_merge_median_hours:        mTtm !== null ? parseFloat(mTtm.toFixed(2)) : null,
+              time_to_merge_p90_hours:           pTtm !== null ? parseFloat(pTtm.toFixed(2)) : null,
+              time_to_first_review_median_hours: mTfr !== null ? parseFloat(mTfr.toFixed(2)) : null,
+              time_to_first_review_p90_hours:    pTfr !== null ? parseFloat(pTfr.toFixed(2)) : null,
+              review_rounds_median:              mRr  !== null ? parseFloat(mRr.toFixed(2))  : null,
+              reopen_rate_pct:                   null,  // Placeholder: requires per-PR timeline API calls
               pct_fast_lane:                     mergedPRs.length > 0
                                                    ? parseFloat((fastLaneCount / mergedPRs.length * 100).toFixed(1))
-                                                   : 0,
+                                                   : null,
               pct_auto_triaged:                  mergedPRs.length > 0
                                                    ? parseFloat((autoTriagedCount / mergedPRs.length * 100).toFixed(1))
-                                                   : 0
+                                                   : null
             };
 
             core.setOutput('metrics_json', JSON.stringify(metrics, null, 2));

@@ -47,12 +47,12 @@ jobs:
             if (context.eventName === 'pull_request_review') {
               prNumber = context.payload.pull_request.number;
             } else {
-              // check_suite: find open PRs associated with the head SHA
+              // check_suite: use the dedicated API to find open PRs for this SHA
               const sha = context.payload.check_suite.head_sha;
-              const { data: pulls } = await github.rest.pulls.list({
-                owner, repo, state: 'open', per_page: 100
+              const { data: associated } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner, repo, commit_sha: sha
               });
-              const matching = pulls.filter(p => p.head.sha === sha);
+              const matching = associated.filter(p => p.state === 'open');
               if (matching.length === 0) {
                 core.info('No open PR found for this check_suite SHA — skipping.');
                 return;
@@ -70,6 +70,14 @@ jobs:
               return;
             }
 
+            // Guard: only merge into the default branch to avoid unintended
+            // merges into release/hotfix branches.
+            const defaultBranch = context.payload.repository.default_branch;
+            if (pr.base.ref !== defaultBranch) {
+              core.info(`PR #${prNumber} targets '${pr.base.ref}', not default branch '${defaultBranch}' — skipping.`);
+              return;
+            }
+
             const labelNames = pr.labels.map(l => l.name);
             core.info(`PR #${prNumber} labels: ${labelNames.join(', ')}`);
 
@@ -80,7 +88,9 @@ jobs:
             }
 
             // ---- Condition 5: no blocking labels --------------------------
-            const blockers = ['blocked', 'needs-description', 'needs-buglink', 'lane/high-risk'];
+            // lane/standard and lane/high-risk override lane/fast-lane per collision rule:
+            //   lane/high-risk > lane/standard > lane/fast-lane
+            const blockers = ['blocked', 'needs-description', 'needs-buglink', 'lane/high-risk', 'lane/standard'];
             const hasBlocker = blockers.some(b => labelNames.includes(b));
             if (hasBlocker) {
               core.info(`PR has blocking label — skipping.`);

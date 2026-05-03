@@ -39,8 +39,13 @@ jobs:
             const toRemove = new Set();
 
             // ---- Rule 1: needs-description --------------------------------
-            const isEmptyBody   = body.length === 0;
-            const isPlaceholder = body.startsWith('<!--');
+            const isEmptyBody = body.length === 0;
+            // Detect template placeholder: body contains only HTML comment(s) and no
+            // meaningful text outside them. Explicitly exempt the XL-override marker
+            // (<!-- large-pr: …) since that IS the intended description.
+            const isXLOverride = body.startsWith('<!-- large-pr:');
+            const bodyWithoutComments = body.replace(/<!--[\s\S]*?-->/g, '').trim();
+            const isPlaceholder = !isXLOverride && body.length > 0 && bodyWithoutComments.length === 0;
             if (isEmptyBody || isPlaceholder) {
               toAdd.add('needs-description');
             } else {
@@ -48,8 +53,8 @@ jobs:
             }
 
             // ---- Rule 2: needs-buglink ------------------------------------
-            // Fetch changed files to check if it's test-only
-            const { data: files } = await github.rest.pulls.listFiles({
+            // Fetch all changed files (paginated — listFiles caps at 100 per page)
+            const files = await github.paginate(github.rest.pulls.listFiles, {
               owner, repo, pull_number: number, per_page: 100
             });
             const nonTestFiles = files.filter(f =>
