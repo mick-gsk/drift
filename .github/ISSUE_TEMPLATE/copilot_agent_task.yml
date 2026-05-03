@@ -1,0 +1,105 @@
+name: Copilot Coding Agent Task
+description: Structured task brief for assigning an issue to GitHub Copilot coding agent
+title: "[Agent Task] "
+labels: ["copilot-agent", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when you plan to assign the issue to GitHub Copilot coding agent.
+
+        Keep the issue machine-actionable: clear scope, explicit acceptance criteria,
+        deterministic verification commands, and strict non-goals.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One concise outcome sentence. What should be true when this task is done?
+      placeholder: "Example: Add XYZ validation so invalid profile names are rejected before analysis starts."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What files/modules are in scope, and what is explicitly excluded?
+      placeholder: |
+        In scope:
+        - src/drift/commands/config_cmd.py
+        - tests/test_config_validate.py
+
+        Out of scope:
+        - unrelated CLI refactors
+        - docs-site restructuring
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Provide measurable criteria as a checklist.
+      placeholder: |
+        - [ ] Invalid config key returns a user-facing error
+        - [ ] Existing valid configs are unchanged
+        - [ ] New regression test covers the failing case
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Exact commands that prove the task is complete.
+      placeholder: |
+        make test-fast
+        .venv\Scripts\python.exe -m pytest tests/test_config_validate.py -q --tb=short
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and guardrails
+      description: Policy, safety, compatibility, or architecture boundaries the agent must respect.
+      placeholder: |
+        - Keep changes minimal and task-focused
+        - Do not change public API names
+        - Follow POLICY.md gates
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-goals
+      description: List changes that must not happen in this task.
+      placeholder: |
+        - No dependency upgrades
+        - No unrelated formatting-only edits
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context links
+      description: Add links to PRs/issues/docs relevant for the agent.
+      placeholder: |
+        - Related issue: #123
+        - Related PR: #456
+        - Docs: docs-site/reference/commands.md
+    validations:
+      required: false
+
+  - type: dropdown
+    id: agent_assignment
+    attributes:
+      label: Ready to assign to Copilot coding agent?
+      options:
+        - "Yes"
+        - "No, still refining"
+    validations:
+      required: true

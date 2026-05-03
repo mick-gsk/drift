@@ -1,12 +1,16 @@
 ## [2.50.0] - 2026-05-03
 
-Short version: add self-healing workflow for failed CI runs
+Short version: Add Copilot coding agent setup and self-healing workflow for failed CI runs.
 
 ### Added
 - add self-healing workflow for failed CI runs
 
+### Changed
+- Add Copilot coding agent setup: issue template, brief-check workflow, labels, and contract test
+
 ### Fixed
 - address all self-healing workflow review comments
+- address PR review — cleanup on label removal, consistent section names, direct yaml import
 
 ## [2.49.0] - 2026-04-30
 

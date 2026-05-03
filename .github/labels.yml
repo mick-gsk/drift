@@ -46,6 +46,14 @@
   color: "a2eeef"
   description: New feature or improvement
 
+- name: copilot-agent
+  color: "0052CC"
+  description: Issue is prepared for GitHub Copilot coding agent assignment
+
+- name: needs-agent-brief
+  color: "B60205"
+  description: Copilot-agent issue is missing required task brief sections
+
 - name: not-prioritized
   color: "e4e4e4"
   description: Acknowledged but not currently prioritized
