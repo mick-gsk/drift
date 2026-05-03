@@ -18,6 +18,7 @@ on:
     branches: [main]
     paths:
       - "src/drift/**"
+      - "packages/**"
   workflow_dispatch:
 
 concurrency:
