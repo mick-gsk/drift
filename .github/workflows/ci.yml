@@ -42,6 +42,7 @@ jobs:
               - 'src/drift/signals/**'
               - 'src/drift/scoring/**'
               - 'src/drift/ingestion/**'
+              - 'packages/**'
               - 'tests/**'
             docs:
               - 'docs/**'
