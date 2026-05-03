@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.pr_loop._models import LoopExitStatus, LoopState
 from drift.pr_loop._state import LoopStateError, load_loop_state, save_loop_state
 

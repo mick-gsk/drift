@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
 from drift.intent.handoff import (
     REQUIRED_SECTIONS,
     SECTION_APPROVAL_GATE,
