@@ -67,7 +67,7 @@ Klare Prioritätsreihenfolge für den Agenten:
 4. Polish und Quick Wins
 5. Refactors
 
-Pflicht vor Commit: `npm run test` + `npm run typecheck`  
+Pflicht vor Commit: `npm run test` + `npm run typecheck`
 Pflicht nach Commit: Issue nach `issues/done/` verschieben oder Note anhängen
 
 ---
