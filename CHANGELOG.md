@@ -1,4 +1,3 @@
-<!-- markdownlint-disable MD024 -->
 ## [2.50.0] - 2026-05-03
 
 Short version: Add PR automation suite — lane labels, size labels, fast-lane automerge, auto-triage, Copilot PR auto-merge, weekly KPI workflow, and CI path filters for non-Python PRs.

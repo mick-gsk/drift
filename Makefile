@@ -33,8 +33,8 @@ lint-fix:  ## Run ruff with auto-fix
 autofix:  ## Auto-fix all pre-commit auto-repairable issues (trailing-whitespace, EOF, ruff-format, markdownlint)
 	pre-commit run trailing-whitespace --all-files || true
 	pre-commit run end-of-file-fixer --all-files || true
-	pre-commit run ruff-format --all-files || true
-	pre-commit run markdownlint-cli2 --all-files || true
+	$(RUFF) format $(SRC) $(TESTS)
+	npx markdownlint-cli2 --fix --config .markdownlint-cli2.jsonc "docs-site/**/*.md" README.md CONTRIBUTING.md DEVELOPER.md SECURITY.md SUPPORT.md CHANGELOG.md || true
 	@echo ">>> [autofix] Done. Re-run 'pre-commit run --all-files' to verify."
 
 typecheck:  ## Run mypy type checker

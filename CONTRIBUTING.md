@@ -491,10 +491,10 @@ Minimum acceptance criteria:
 2. At least one empirical artifact added or updated under `benchmark_results/` or `audit_results/`.
 3. A short evidence summary in the PR:
 
-- dataset/repo scope
-- baseline vs. new result
-- interpretation of impact (precision/noise/runtime)
-- exact command used for reproduction
+   - dataset/repo scope
+   - baseline vs. new result
+   - interpretation of impact (precision/noise/runtime)
+   - exact command used for reproduction
 
 Without these three elements, feature work is considered unverified and must not be merged.
 

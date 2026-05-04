@@ -500,7 +500,7 @@ auto-format files differently — leading to CI failures that don't reproduce lo
 | Tool | Pin (`.pre-commit-config.yaml`) | Check locally |
 |------|--------------------------------|---------------|
 | `ruff` | see `rev:` under `astral-sh/ruff-pre-commit` | `ruff --version` |
-| `markdownlint-cli2` | see `rev:` under `DavidAnson/markdownlint-cli2-action` | `npx markdownlint-cli2 --version` |
+| `markdownlint-cli2` | see `rev:` under `DavidAnson/markdownlint-cli2` | `npx markdownlint-cli2 --version` |
 | `detect-secrets` | see `rev:` under `Yelp/detect-secrets` | `detect-secrets --version` |
 
 **Rule**: Keep your local `ruff` version equal to the pinned `rev`. If you upgrade `ruff` locally,
@@ -514,8 +514,12 @@ update the pin in `.pre-commit-config.yaml` in the same commit.
 **When adding intentional secret-like fixtures (test keys, example tokens):**
 
 ```bash
-# After adding # pragma: allowlist secret to every occurrence of the literal:
-.venv\Scripts\python.exe -m detect_secrets scan --baseline .secrets.baseline
+# Use the same exclude flags as the pre-commit hook to avoid baseline churn:
+python -m detect_secrets scan \
+  --exclude-files "(^|[\\/])uv\\.lock$" \
+  --exclude-files "(^|[\\/])(benchmark_results|audit_results|site|docs-site|\\.venv|dist|build|\\.mypy_cache|\\.pytest_cache|\\.ruff_cache|work_artifacts)([\\/]|$)" \
+  --exclude-files "(^|/)(tests/test_hardcoded_secret\\.py|tests/test_insecure_default\\.py|\\.specify/integrations/(speckit|copilot)\\.manifest\\.json)$" \
+  --baseline .secrets.baseline
 git add .secrets.baseline
 ```
 

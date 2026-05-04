@@ -128,16 +128,24 @@ def _run_repo_guard() -> tuple[bool, str]:
     )
     if result.returncode == 0:
         return True, "Repo-Guard: no blocked paths"
-    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    lines += [line.strip() for line in result.stderr.splitlines() if line.strip()]
+    combined = result.stdout + result.stderr
+    if "Blocked tracked files" in combined:
+        advice = "remove or rename/move the file out of the tracked tree"
+    elif "Unexpected tracked root entries" in combined:
+        advice = "move to a subdirectory or add an entry to .github/repo-root-allowlist"
+    else:
+        advice = "run 'python scripts/check_repo_hygiene.py' for details"
+    lines = [line.strip() for line in combined.splitlines() if line.strip()]
     summary = "; ".join(lines[:3]) or "blocked path detected"
-    return False, f"Repo-Guard FAIL: {summary} — add entry to .github/repo-root-allowlist"
+    return False, f"Repo-Guard FAIL: {summary} — {advice}"
 
 
 def evaluate_gates(
     changed_files: set[str],
     commit_type: str,
     *,
+    gate1_ok: bool,
+    gate1_reason: str = "",
     gate6_ok: bool,
     gate6_reason: str = "",
     head_sha: str | None,
@@ -145,8 +153,7 @@ def evaluate_gates(
 ) -> list[GateResult]:
     results: list[GateResult] = []
 
-    # Gate 1 — Repo-Guard (blocked paths)
-    gate1_ok, gate1_reason = _run_repo_guard()
+    # Gate 1 — Repo-Guard (blocked paths) — result injected by caller
     results.append(GateResult(1, True, "OK" if gate1_ok else "MISSING", gate1_reason))
 
     gate2_active = commit_type == "feat"
@@ -254,6 +261,7 @@ def main() -> int:
     commit_type = args.commit_type or _detect_commit_type()
     changed_files = collect_changed_files()
 
+    gate1_ok, gate1_reason = _run_repo_guard()
     gate6_ok, gate6_reason = _compute_gate6_ok(changed_files)
     head_sha_lines = _git_lines("rev-parse", "HEAD")
     head_sha = head_sha_lines[0] if head_sha_lines else None
@@ -262,6 +270,8 @@ def main() -> int:
     results = evaluate_gates(
         changed_files,
         commit_type,
+        gate1_ok=gate1_ok,
+        gate1_reason=gate1_reason,
         gate6_ok=gate6_ok,
         gate6_reason=gate6_reason,
         head_sha=head_sha,
