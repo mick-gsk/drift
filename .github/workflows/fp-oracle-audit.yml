@@ -42,7 +42,15 @@ jobs:
         run: |
           pip install --upgrade pip
           if [ "${{ inputs.use_dev_version || 'false' }}" = "true" ]; then
-            pip install -e ".[dev]"
+            pip install \
+            -e packages/drift-config \
+            -e packages/drift-engine \
+            -e packages/drift-sdk \
+            -e packages/drift-output \
+            -e packages/drift-session \
+            -e packages/drift-mcp \
+            -e packages/drift-cli
+          pip install -e ".[dev]"
           else
             pip install drift-analyzer
           fi

@@ -39,7 +39,15 @@ jobs:
           cache: pip
 
       - name: Install dev dependencies
-        run: pip install -e ".[dev]" --quiet
+        run: pip install `\
+   -e packages/drift-config `\
+   -e packages/drift-engine `\
+   -e packages/drift-sdk `\
+   -e packages/drift-output `\
+   -e packages/drift-session `\
+   -e packages/drift-mcp `\
+   -e packages/drift-cli\
+ pip install -e ".[dev]" --quiet
 
       # Download the oracle report artifact from the triggering workflow run
       - name: Download fp-oracle-report artifact (workflow_run)

@@ -42,7 +42,15 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies (dev + autopatch)
-        run: pip install -e '.[dev,autopatch]'
+        run: pip install \
+            -e packages/drift-config \
+            -e packages/drift-engine \
+            -e packages/drift-sdk \
+            -e packages/drift-output \
+            -e packages/drift-session \
+            -e packages/drift-mcp \
+            -e packages/drift-cli
+          pip install -e '.[dev,autopatch]'
 
       - name: Run MCTS quality loop
         id: mcts_run
