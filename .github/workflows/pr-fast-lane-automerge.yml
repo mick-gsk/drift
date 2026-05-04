@@ -25,9 +25,11 @@ jobs:
   automerge:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Only act on the default branch target
+    # Only act on the default branch target.
+    # Skip bot-submitted reviews (e.g. Copilot review) to avoid action_required
+    # blocks from GitHub's outside-collaborator approval policy.
     if: |
-      github.event_name == 'pull_request_review' ||
+      (github.event_name == 'pull_request_review' && !endsWith(github.actor, '[bot]')) ||
       (github.event_name == 'check_suite' && github.event.check_suite.conclusion == 'success')
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
