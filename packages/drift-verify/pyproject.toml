@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-verify"
+version = "2.49.0"
+description = "Evidence-based drift verification for drift-analyzer"
+requires-python = ">=3.11"
+dependencies = [
+    "drift-sdk",
+    "drift-config",
+    "drift-engine",
+    "pydantic>=2.0",
+    "rich>=13.0",
+]
+
+[tool.uv.sources]
+drift-sdk = { workspace = true }
+drift-config = { workspace = true }
+drift-engine = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_verify"]
