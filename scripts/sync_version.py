@@ -128,12 +128,8 @@ def _check_llms_txt(version: str, *, apply: bool) -> list[VersionFix]:
 # Check + repair: SECURITY.md
 # ---------------------------------------------------------------------------
 
-_SECURITY_RELEASE_LINE_RE = re.compile(
-    r"(Current release line:\s*\*\*)(v[\d.]+)(\*\*\.)"
-)
-_SECURITY_TABLE_HEADER_RE = re.compile(
-    r"(\| Version \| Supported\s*\n\| [-]+ \| [-]+.*?\n)", re.DOTALL
-)
+_SECURITY_RELEASE_LINE_RE = re.compile(r"(Current release line:\s*\*\*)(v[\d.]+)(\*\*\.)")
+_SECURITY_TABLE_HEADER_RE = re.compile(r"(\| Version \| Supported[^\n]*\n\| [-]+ \| [-]+[^\n]*\n)")
 
 
 def _check_security_md(version: str, *, apply: bool) -> list[VersionFix]:
@@ -224,8 +220,7 @@ def _git_commit(message: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Sync version references in llms.txt and SECURITY.md "
-            "to match pyproject.toml."
+            "Sync version references in llms.txt and SECURITY.md to match pyproject.toml."
         ),
     )
     parser.add_argument(
