@@ -1,0 +1,101 @@
+name: PR Cap
+
+# Closes PRs from contributors who exceed the per-author open-PR limit.
+# This keeps the review queue manageable and encourages focused contributions.
+#
+# Limit: 10 open PRs per author (excluding bots and the maintainer).
+# Action: adds label 'r: too-many-prs', posts a comment, closes the PR.
+#
+# Exemptions:
+#   - mick-gsk (maintainer)
+#   - *[bot] accounts (Dependabot, Copilot, etc.)
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: "pr-cap-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  cap-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PR_CAP: 10
+      MAINTAINER: mick-gsk
+    steps:
+      - name: Check per-author PR count
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr     = context.payload.pull_request;
+            const owner  = context.repo.owner;
+            const repo   = context.repo.repo;
+            const author = pr.user.login;
+            const cap    = parseInt(process.env.PR_CAP, 10);
+            const maintainer = process.env.MAINTAINER;
+
+            // Skip bots and the maintainer
+            if (author === maintainer || author.endsWith('[bot]')) {
+              core.info(`Author '${author}' is exempt — skipping.`);
+              return;
+            }
+
+            // Count all open PRs by this author (excluding the one just opened)
+            const allOpen = await github.paginate(github.rest.pulls.list, {
+              owner, repo, state: 'open', per_page: 100
+            });
+            const authorPRs = allOpen.filter(p => p.user.login === author);
+
+            core.info(`${author} has ${authorPRs.length} open PR(s) (cap: ${cap}).`);
+
+            if (authorPRs.length <= cap) return;
+
+            // Cap exceeded — label + comment + close
+            const LABEL = 'r: too-many-prs';
+
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: LABEL });
+            } catch (e) {
+              if (e.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner, repo, name: LABEL,
+                  color: 'e11d48',
+                  description: `Author has more than ${cap} open PRs`
+                });
+              }
+            }
+
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number: pr.number, labels: [LABEL]
+            });
+
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: pr.number,
+              body: [
+                `👋 Thanks for the contribution, @${author}!`,
+                ``,
+                `This PR was automatically closed because you currently have **${authorPRs.length} open PRs**,`,
+                `which exceeds the per-author limit of **${cap}**. This keeps the review queue`,
+                `manageable for the maintainer.`,
+                ``,
+                `**What to do:**`,
+                `1. Get some of your existing PRs merged or close ones you no longer intend to pursue.`,
+                `2. Once you're below the limit, feel free to re-open this PR.`,
+                ``,
+                `Your existing open PRs: ${authorPRs.filter(p => p.number !== pr.number).map(p => `#${p.number}`).join(', ')}`,
+              ].join('\n')
+            });
+
+            await github.rest.pulls.update({
+              owner, repo, pull_number: pr.number, state: 'closed'
+            });
+
+            core.info(`Closed PR #${pr.number} — ${author} exceeded the ${cap}-PR cap.`);
