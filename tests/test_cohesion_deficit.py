@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import ClassInfo, FunctionInfo, ParseResult, SignalType
 from drift.precision import (
@@ -12,6 +11,7 @@ from drift.precision import (
     run_fixture,
 )
 from drift.signals.cohesion_deficit import CohesionDeficitSignal
+
 from tests.fixtures.ground_truth import FIXTURES_BY_SIGNAL, GroundTruthFixture
 
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from drift.quality_gate import TrendGateDecision, evaluate_trend_gate
 from drift.remediation_activity import (
     finding_fingerprints,

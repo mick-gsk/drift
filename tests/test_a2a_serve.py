@@ -14,9 +14,8 @@ import pytest
 fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
 httpx = pytest.importorskip("httpx", reason="httpx not installed")
 
-from starlette.testclient import TestClient  # noqa: E402
-
 from drift.serve.app import create_app  # noqa: E402
+from starlette.testclient import TestClient  # noqa: E402
 
 BASE_URL = "http://testserver"
 
@@ -240,7 +239,6 @@ class TestServeCommand:
 
     def test_serve_missing_deps_shows_hint(self) -> None:
         from click.testing import CliRunner
-
         from drift.commands.serve import serve
 
         with patch.dict("sys.modules", {"uvicorn": None, "fastapi": None}):

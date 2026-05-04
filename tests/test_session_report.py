@@ -148,9 +148,8 @@ class TestSessionRenderer:
     def test_render_minimal_session(self) -> None:
         from io import StringIO
 
-        from rich.console import Console
-
         from drift.output.session_renderer import render_session_report
+        from rich.console import Console
 
         data = {
             "session_id": "test-1234",
@@ -168,9 +167,8 @@ class TestSessionRenderer:
     def test_render_with_score_delta(self) -> None:
         from io import StringIO
 
-        from rich.console import Console
-
         from drift.output.session_renderer import render_session_report
+        from rich.console import Console
 
         data = {
             "session_id": "test-5678",

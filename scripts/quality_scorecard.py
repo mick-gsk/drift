@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from xml.etree import ElementTree
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_PATH = REPO_ROOT / "benchmark_results" / "quality_scorecard.json"
@@ -54,12 +54,13 @@ def _read_coverage_ratio(path: Path) -> float | None:
     if not path.exists():
         return None
     try:
-        root = ElementTree.fromstring(path.read_text(encoding="utf-8"))
-        line_rate = root.attrib.get("line-rate")
-        if line_rate is None:
+        xml_text = path.read_text(encoding="utf-8")
+        # Avoid XML parser attack surface: coverage.xml is simple and line-rate sits on root.
+        match = re.search(r"<coverage\b[^>]*\bline-rate=\"([^\"]+)\"", xml_text)
+        if match is None:
             return None
-        return _clamp(float(line_rate))
-    except (ElementTree.ParseError, OSError, ValueError):
+        return _clamp(float(match.group(1)))
+    except (OSError, ValueError):
         return None
 
 

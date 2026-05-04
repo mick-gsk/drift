@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.calibration.history import ScanSnapshot, save_snapshot
 from drift.calibration.recommendation_calibrator import EffortCalibration, save_calibration
 from drift.calibration.status import write_calibration_status

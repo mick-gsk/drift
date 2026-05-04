@@ -11,6 +11,7 @@ They ensure that every signal has coverage and that data models stay consistent.
 from __future__ import annotations
 
 from drift.models import SignalType
+
 from tests.fixtures.ground_truth import (
     ALL_FIXTURES,
     FIXTURES_BY_KIND,

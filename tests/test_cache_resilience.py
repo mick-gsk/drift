@@ -9,7 +9,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 from drift.cache import _PARSE_CACHE_VERSION, CACHE_SCHEMA_VERSION, ParseCache
 from drift.embeddings import EmbeddingCache
 from drift.models import ParseResult

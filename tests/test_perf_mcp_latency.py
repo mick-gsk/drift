@@ -219,9 +219,10 @@ class TestTopoSortCache:
 
 class TestSignalClassSplitCache:
     def test_cache_populated_on_first_call(self) -> None:
-        from drift import incremental
         from drift.signals.base import registered_signals
         from drift.signals.dependency_dag import order_signal_classes_topologically
+
+        from drift import incremental
 
         _reset_signal_split_cache()
         incremental._get_incremental_signal_class_split(
@@ -230,9 +231,10 @@ class TestSignalClassSplitCache:
         assert len(incremental._SIGNAL_CLASS_SPLIT_CACHE) == 1
 
     def test_cache_returns_same_object_on_second_call(self) -> None:
-        from drift import incremental
         from drift.signals.base import registered_signals
         from drift.signals.dependency_dag import order_signal_classes_topologically
+
+        from drift import incremental
 
         _reset_signal_split_cache()
         r1 = incremental._get_incremental_signal_class_split(
@@ -244,9 +246,10 @@ class TestSignalClassSplitCache:
         assert r1 is r2
 
     def test_warm_path_faster_than_cold(self) -> None:
-        from drift import incremental
         from drift.signals.base import registered_signals
         from drift.signals.dependency_dag import order_signal_classes_topologically
+
+        from drift import incremental
 
         _reset_signal_split_cache()
 
@@ -267,9 +270,10 @@ class TestSignalClassSplitCache:
         )
 
     def test_result_contains_file_local_and_other(self) -> None:
-        from drift import incremental
         from drift.signals.base import registered_signals
         from drift.signals.dependency_dag import order_signal_classes_topologically
+
+        from drift import incremental
 
         _reset_signal_split_cache()
         file_local, other = incremental._get_incremental_signal_class_split(
@@ -282,9 +286,10 @@ class TestSignalClassSplitCache:
             assert getattr(cls, "incremental_scope", None) != "file_local"
 
     def test_different_registry_produces_different_cache_entry(self) -> None:
-        from drift import incremental
         from drift.signals.base import BaseSignal, registered_signals
         from drift.signals.dependency_dag import order_signal_classes_topologically
+
+        from drift import incremental
 
         _reset_signal_split_cache()
 
@@ -304,9 +309,10 @@ class TestSignalClassSplitCache:
         assert len(incremental._SIGNAL_CLASS_SPLIT_CACHE) == 2
 
     def test_thread_safety(self) -> None:
-        from drift import incremental
         from drift.signals.base import registered_signals
         from drift.signals.dependency_dag import order_signal_classes_topologically
+
+        from drift import incremental
 
         _reset_signal_split_cache()
         results: list[tuple] = []
@@ -336,9 +342,10 @@ class TestSignalClassSplitCache:
     def test_cache_survives_monkeypatch_via_key_change(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from drift import incremental
         from drift.signals.base import BaseSignal, registered_signals
         from drift.signals.dependency_dag import order_signal_classes_topologically
+
+        from drift import incremental
 
         _reset_signal_split_cache()
 
@@ -370,10 +377,11 @@ class TestSignalClassSplitCache:
 
 class TestIncrementalRunnerUsesCache:
     def test_runner_run_populates_split_cache(self, tmp_path: Path) -> None:
-        from drift import incremental
         from drift.config import DriftConfig
         from drift.incremental import BaselineSnapshot, IncrementalSignalRunner
         from drift.models import ParseResult
+
+        from drift import incremental
 
         _reset_signal_split_cache()
         config = DriftConfig()

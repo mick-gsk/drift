@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.errors import DriftConfigError
 

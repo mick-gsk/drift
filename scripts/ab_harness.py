@@ -49,6 +49,14 @@ ALPHA = 0.05
 TASK_PASS_RATE_REQUIRED = 0.60  # 60% of tasks must show effect
 
 
+def _mock_mode_interpretation(mock_mode: object) -> str:
+    if mock_mode == "neutral":
+        return "brief_effect_with_structurally_equivalent_edits"
+    if mock_mode == "biased":
+        return "structural_fixture_bias"
+    return "unknown_mock_mode"
+
+
 # ---------------------------------------------------------------------------
 # Statistics
 # ---------------------------------------------------------------------------
@@ -68,7 +76,7 @@ def _wilcoxon_signed_rank(x: list[float], y: list[float]) -> tuple[float, float]
         pass
 
     # Manual approximation for small samples
-    diffs = [a - b for a, b in zip(x, y) if a != b]
+    diffs = [a - b for a, b in zip(x, y, strict=False) if a != b]
     n = len(diffs)
     if n < 5:
         return (0.0, 1.0)
@@ -84,12 +92,12 @@ def _wilcoxon_signed_rank(x: list[float], y: list[float]) -> tuple[float, float]
         while j < n - 1 and abs_diffs[j + 1][0] == abs_diffs[j][0]:
             j += 1
         avg_rank = (i + j) / 2.0 + 1
-        for k in range(i, j + 1):
+        for _ in range(i, j + 1):
             ranks.append(avg_rank)
         i = j + 1
 
-    w_plus = sum(r for r, (_, d) in zip(ranks, abs_diffs) if d > 0)
-    w_minus = sum(r for r, (_, d) in zip(ranks, abs_diffs) if d < 0)
+    w_plus = sum(r for r, (_, d) in zip(ranks, abs_diffs, strict=True) if d > 0)
+    w_minus = sum(r for r, (_, d) in zip(ranks, abs_diffs, strict=True) if d < 0)
     w = min(w_plus, w_minus)
 
     # Normal approximation for p-value
@@ -104,7 +112,7 @@ def _wilcoxon_signed_rank(x: list[float], y: list[float]) -> tuple[float, float]
 
 def _cohens_d(x: list[float], y: list[float]) -> float:
     """Compute Cohen's d for paired samples."""
-    diffs = [a - b for a, b in zip(x, y)]
+    diffs = [a - b for a, b in zip(x, y, strict=False)]
     n = len(diffs)
     if n < 2:
         return 0.0
@@ -431,9 +439,15 @@ def cmd_stats(args: argparse.Namespace) -> None:
     d_cost = _cohens_d(control_costs, treatment_costs)
 
     # Per-task effect direction
-    tasks_improved = sum(1 for cs, ts in zip(control_scores, treatment_scores) if ts < cs)
-    tasks_same = sum(1 for cs, ts in zip(control_scores, treatment_scores) if ts == cs)
-    tasks_degraded = sum(1 for cs, ts in zip(control_scores, treatment_scores) if ts > cs)
+    tasks_improved = sum(
+        1 for cs, ts in zip(control_scores, treatment_scores, strict=True) if ts < cs
+    )
+    tasks_same = sum(
+        1 for cs, ts in zip(control_scores, treatment_scores, strict=True) if ts == cs
+    )
+    tasks_degraded = sum(
+        1 for cs, ts in zip(control_scores, treatment_scores, strict=True) if ts > cs
+    )
     improvement_rate = tasks_improved / n if n > 0 else 0
 
     # Gate assessment
@@ -455,7 +469,8 @@ def cmd_stats(args: argparse.Namespace) -> None:
             "mean_control": round(sum(control_scores) / n, 4),
             "mean_treatment": round(sum(treatment_scores) / n, 4),
             "mean_delta": round(
-                sum(c - t for c, t in zip(control_scores, treatment_scores)) / n, 4
+                sum(c - t for c, t in zip(control_scores, treatment_scores, strict=True)) / n,
+                4,
             ),
         },
         "cost_analysis": {
@@ -504,6 +519,7 @@ def cmd_report(args: argparse.Namespace) -> None:
 
     outcomes = json.loads(OUTCOMES_FILE.read_text(encoding="utf-8"))
     stats = json.loads(stats_path.read_text(encoding="utf-8"))
+    mock_mode = str(outcomes.get("mock_mode", "unknown"))
 
     report = {
         "version": "1.0.0",
@@ -511,6 +527,8 @@ def cmd_report(args: argparse.Namespace) -> None:
         "building_block": "Baustein 3: Agentischer A/B-Harness",
         "hypothesis": "H4: drift brief reduces agent-introduced drift (Cohen's d ≥ 0.5)",
         "corpus": str(CORPUS_FILE),
+        "mock_mode": mock_mode,
+        "mock_mode_interpretation": _mock_mode_interpretation(mock_mode),
         "stats": stats,
         "outcome_count": len(outcomes.get("outcomes", [])),
         "assessment": stats.get("gates", {}),

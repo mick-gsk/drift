@@ -6,7 +6,6 @@ from collections import defaultdict
 from typing import Any
 
 import pytest
-
 from drift.api_helpers import (
     TaskGraph,
     build_task_graph,

@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from drift.session import DriftSession, SessionManager
 
 # ---------------------------------------------------------------------------

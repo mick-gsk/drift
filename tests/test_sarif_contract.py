@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity, SignalType
 from drift.output.json_output import findings_to_sarif
 

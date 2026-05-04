@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.ingestion.test_detection import classify_file_context, is_test_file
 from drift.ingestion.ts_parser import tree_sitter_available
 

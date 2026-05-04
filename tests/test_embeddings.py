@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-
 from drift.embeddings import (  # noqa: E501
     _EMBEDDINGS_AVAILABLE,
     EmbeddingService,

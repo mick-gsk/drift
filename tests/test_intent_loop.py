@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-
 from drift.intent.models import Contract, ContractResult, ContractStatus
 
 # ---------------------------------------------------------------------------

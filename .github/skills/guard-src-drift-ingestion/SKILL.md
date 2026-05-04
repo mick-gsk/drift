@@ -16,7 +16,7 @@ argument-hint: "Beschreibe die geplante Aenderung in `src/drift/ingestion` — w
 - Du erweiterst den AST-Parser fuer neue Python-Konstrukte oder Tree-sitter-Nodes
 - Du veraenderst wie Git-Commits oder Blame-Daten eingelesen werden
 - Du fuegest Unterstuetzung fuer ein neues Sprachformat hinzu
-- Drift meldet AVS, EDS oder PFS fuer Dateien in `src/drift/ingestion/`
+- Drift meldet AVS, EDS oder PFS fuer Dateien in `packages/drift-engine/src/drift_engine/ingestion/`
 
 ## Warum dieses Modul kritisch ist
 
@@ -54,7 +54,7 @@ argument-hint: "Beschreibe die geplante Aenderung in `src/drift/ingestion` — w
 
 ## References
 
-- [src/drift/ingestion/file_discovery.py](../../../src/drift/ingestion/file_discovery.py) — Discovery-Pipeline
-- [src/drift/ingestion/ast_parser.py](../../../src/drift/ingestion/ast_parser.py) — Python-AST-Parser
-- [src/drift/ingestion/git_history.py](../../../src/drift/ingestion/git_history.py) — Git-History-Reader
+- [packages/drift-engine/src/drift_engine/ingestion/file_discovery.py](../../../packages/drift-engine/src/drift_engine/ingestion/file_discovery.py) — Discovery-Pipeline
+- [packages/drift-engine/src/drift_engine/ingestion/ast_parser.py](../../../packages/drift-engine/src/drift_engine/ingestion/ast_parser.py) — Python-AST-Parser
+- [packages/drift-engine/src/drift_engine/ingestion/git_history.py](../../../packages/drift-engine/src/drift_engine/ingestion/git_history.py) — Git-History-Reader
 - [tests/test_file_discovery.py](../../../tests/test_file_discovery.py) — Discovery-Tests

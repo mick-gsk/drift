@@ -7,7 +7,6 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from drift.config import DriftConfig, PluginConfig
 from drift.config._schema import SignalWeights
 from drift.signal_registry import (

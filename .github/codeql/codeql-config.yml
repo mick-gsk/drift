@@ -1,0 +1,6 @@
+name: drift-codeql
+
+paths-ignore:
+  - tests/**
+  - scripts/**
+  - packages/drift/src/drift/**

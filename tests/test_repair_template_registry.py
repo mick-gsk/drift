@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from drift.models import RegressionPattern, RegressionReasonCode
 from drift.repair_template_registry import (
     MIN_OUTCOMES_FOR_CONFIDENCE,

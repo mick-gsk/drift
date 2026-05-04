@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-mcp"
+version = "2.49.0"
+description = "MCP server and tool routing for drift-analyzer"
+requires-python = ">=3.11"
+dependencies = [
+    "drift-engine",
+    "drift-session",
+    "drift-output",
+    "drift-sdk",
+    "drift-config",
+]
+
+[tool.uv.sources]
+drift-engine = { workspace = true }
+drift-session = { workspace = true }
+drift-output = { workspace = true }
+drift-sdk = { workspace = true }
+drift-config = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_mcp"]

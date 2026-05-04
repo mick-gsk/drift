@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from drift.baseline import (
     BASELINE_STALE_DAYS,
     baseline_age_days,
@@ -778,7 +777,6 @@ class TestCorruptBaselineCallers:
     ) -> None:
         """drift ci --baseline on a corrupt file must exit 1 with a friendly message."""
         from click.testing import CliRunner
-
         from drift.cli import main
 
         repo = tmp_path / "repo"
@@ -826,7 +824,6 @@ class TestCorruptBaselineCallers:
     ) -> None:
         """drift baseline diff on a corrupt file must exit 1 with a friendly message."""
         from click.testing import CliRunner
-
         from drift.cli import main
 
         repo = tmp_path / "repo"

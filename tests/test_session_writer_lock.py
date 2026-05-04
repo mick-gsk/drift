@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 
 import pytest
-
 from drift.session_writer_lock import (
     WriterAdvisory,
     _lock_path,

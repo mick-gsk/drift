@@ -18,13 +18,12 @@ import contextlib
 import tempfile
 from pathlib import Path
 
-from hypothesis import HealthCheck, given, settings
-from hypothesis import strategies as st
-from pydantic import ValidationError
-
 from drift.config import DriftConfig
 from drift.errors import DriftConfigError
 from drift.ingestion.file_discovery import _matches_any, discover_files
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
+from pydantic import ValidationError
 
 # ---------------------------------------------------------------------------
 # Strategy helpers

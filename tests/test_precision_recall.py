@@ -15,7 +15,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.models import SignalType
 from drift.precision import (
     PrecisionRecallReport,
@@ -24,6 +23,7 @@ from drift.precision import (
     has_matching_finding,
     run_fixture,
 )
+
 from tests.fixtures.ground_truth import (
     ALL_FIXTURES,
     GroundTruthFixture,

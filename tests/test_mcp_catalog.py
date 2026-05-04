@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
 from drift.mcp_server import (
     _EXPORTED_MCP_TOOLS,
     _MCP_AVAILABLE,

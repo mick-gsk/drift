@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 import pytest
-
 from drift.calibration.feedback import FeedbackEvent
 from drift.calibration.history import FindingSnapshot, ScanSnapshot
 from drift.synthesizer._cluster import (

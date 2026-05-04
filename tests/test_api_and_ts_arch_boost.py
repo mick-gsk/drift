@@ -6,7 +6,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from drift.models import Finding, ParseResult, RepoAnalysis, Severity, SignalType
 
 

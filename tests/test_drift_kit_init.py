@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.drift_kit._init import (
     AGENTS_FILE,

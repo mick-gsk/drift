@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.models import CommitInfo, FileHistory, ImportInfo, ParseResult
 from drift.signals.architecture_violation import ArchitectureViolationSignal

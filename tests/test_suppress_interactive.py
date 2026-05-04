@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.models import Finding, FindingStatus, Severity, SignalType
 

@@ -340,7 +340,6 @@ class TestVerifyCommand:
     @patch("drift.api.verify.verify")
     def test_cli_pass_exits_zero(self, mock_verify: Any) -> None:
         from click.testing import CliRunner
-
         from drift.commands.verify import verify as verify_cmd
 
         mock_verify.return_value = {
@@ -368,7 +367,6 @@ class TestVerifyCommand:
     @patch("drift.api.verify.verify")
     def test_cli_fail_exits_one(self, mock_verify: Any) -> None:
         from click.testing import CliRunner
-
         from drift.commands.verify import verify as verify_cmd
 
         mock_verify.return_value = {
@@ -394,7 +392,6 @@ class TestVerifyCommand:
     @patch("drift.api.verify.verify")
     def test_cli_exit_zero_flag(self, mock_verify: Any) -> None:
         from click.testing import CliRunner
-
         from drift.commands.verify import verify as verify_cmd
 
         mock_verify.return_value = {

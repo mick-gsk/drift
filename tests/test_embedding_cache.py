@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-
 from drift.embeddings import (
     EmbeddingCache,
     EmbeddingService,

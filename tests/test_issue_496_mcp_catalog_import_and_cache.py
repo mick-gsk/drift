@@ -44,7 +44,7 @@ class TestIssue496McpCatalog:
             fromlist: tuple[str, ...] = (),
             level: int = 0,
         ) -> Any:
-            if name == "drift.mcp_server":
+            if name in ("drift.mcp_server", "drift_mcp.mcp_server"):
                 msg = "mcp optional dependency missing"
                 raise ImportError(msg)
             return real_import(name, globals_, locals_, fromlist, level)

@@ -13,9 +13,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from hypothesis import given
-from hypothesis import strategies as st
-
 from drift.config._schema import SignalWeights
 from drift.models import Severity
 from drift.models._enums import SignalType
@@ -26,6 +23,8 @@ from drift.scoring.engine import (
     compute_signal_scores,
     score_to_grade,
 )
+from hypothesis import given
+from hypothesis import strategies as st
 
 # ---------------------------------------------------------------------------
 # Strategies

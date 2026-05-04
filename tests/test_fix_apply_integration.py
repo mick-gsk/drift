@@ -16,11 +16,11 @@ from typing import Any
 from unittest.mock import patch
 
 from click.testing import CliRunner
-
 from drift.api.fix_apply import _is_auto_applicable, fix_apply
 from drift.cli import main
 from drift.fix_intent import EDIT_KIND_ADD_DOCSTRING, EDIT_KIND_ADD_GUARD_CLAUSE
 from drift.models._enums import AutomationFit, ChangeScope, ReviewRisk, Severity
+
 from tests.fixtures.patch_writer import (
     EDS_EXPECTED_WITH_DOCSTRING,
     EDS_MISSING_DOCSTRING_SOURCE,

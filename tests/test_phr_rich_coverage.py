@@ -7,14 +7,13 @@ import textwrap
 from pathlib import Path
 
 import pytest
-from rich.text import Text
-
 from drift.output.rich_output import _score_bar, _sparkline
 from drift.signals.phantom_reference import (
     _collect_type_checking_import_ids,
     _is_in_try_except_import_error,
     _path_to_module,
 )
+from rich.text import Text
 
 # ── _is_in_try_except_import_error ───────────────────────────────
 

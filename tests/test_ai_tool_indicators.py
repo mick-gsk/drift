@@ -15,7 +15,6 @@ import datetime
 from pathlib import Path
 
 import pytest
-
 from drift.ingestion.git_history import (
     _detect_ai_attribution,
     detect_ai_tool_indicators,
@@ -322,7 +321,6 @@ class TestManualRatioConfig:
 
     def test_manual_ratio_in_full_config(self) -> None:
         import yaml
-
         from drift.config import DriftConfig
 
         raw = yaml.safe_load("""

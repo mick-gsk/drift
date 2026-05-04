@@ -9,7 +9,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.ingestion.ts_parser import tree_sitter_available
 
 needs_tree_sitter = pytest.mark.skipif(

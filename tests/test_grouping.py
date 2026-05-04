@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.models import Finding, Severity
 from drift.output.grouping import group_findings
 

@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.config import build_config_json_schema
 

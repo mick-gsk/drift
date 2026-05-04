@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from drift.context_tags import apply_context_tags, scan_context_tags
 from drift.models import FileInfo, Finding, Severity, SignalType
 

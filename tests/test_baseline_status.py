@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from drift.baseline import save_baseline
 from drift.cli import main
 from drift.models import Finding, RepoAnalysis, Severity, SignalType

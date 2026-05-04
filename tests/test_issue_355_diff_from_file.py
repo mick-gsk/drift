@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from drift.api.diff import diff
 from drift.commands.diff_cmd import diff as diff_cmd
 

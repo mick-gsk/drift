@@ -28,8 +28,9 @@ def _reset_sessions() -> None:
 
 def _start_fix_context_session(tmp_path: Path) -> str:
     """Start a session and force it into batch-fix context."""
-    from drift import mcp_server
     from drift.session import SessionManager
+
+    from drift import mcp_server
 
     start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
     session_id = start["session_id"]
@@ -52,8 +53,9 @@ class TestDiagnosticHypothesisBlocking:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
-        from drift import mcp_server
         from drift.session import SessionManager
+
+        from drift import mcp_server
 
         start = json.loads(_run_tool(mcp_server.drift_session_start(path=str(tmp_path))))
         session_id = start["session_id"]

@@ -20,12 +20,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from hypothesis import given
-from hypothesis import strategies as st
-
 from drift.config import DriftConfig
 from drift.models import FunctionInfo, ParseResult, Severity
 from drift.models._git import FileHistory
+from hypothesis import given
+from hypothesis import strategies as st
 
 # ---------------------------------------------------------------------------
 # Hypothesis strategies for ParseResult and FileHistory

@@ -1,0 +1,58 @@
+{
+  "description": "SC-006 benchmark fixtures: spec deviations invisible to deterministic check but detectable by reviewer agent (+15pp lift target)",
+  "version": "1",
+  "fixtures": [
+    {
+      "id": "SC006-F001",
+      "label": "Implicit cross-layer coupling via string eval",
+      "diff": "--- a/src/drift/commands/analyze.py\n+++ b/src/drift/commands/analyze.py\n@@ -10 +10 @@\n-from drift_engine.pipeline import AnalysisPipeline\n+pipeline_cls = eval('drift_engine.pipeline.AnalysisPipeline')",
+      "deterministic_detects": false,
+      "reviewer_should_detect": true,
+      "expected_finding_keywords": ["eval", "string import", "dynamic import"],
+      "spec_criteria_violated": ["no-dynamic-imports"]
+    },
+    {
+      "id": "SC006-F002",
+      "label": "Missing frozen=True on new Pydantic model",
+      "diff": "--- a/src/drift/models/new_model.py\n+++ b/src/drift/models/new_model.py\n@@ -1 +1,4 @@\n+from pydantic import BaseModel\n+class NewModel(BaseModel):\n+    value: int",
+      "deterministic_detects": false,
+      "reviewer_should_detect": true,
+      "expected_finding_keywords": ["frozen", "immutable", "pydantic"],
+      "spec_criteria_violated": ["constitution-III-frozen-models"]
+    },
+    {
+      "id": "SC006-F003",
+      "label": "Direct sys.modules manipulation outside stub pattern",
+      "diff": "--- a/src/drift/signals/new_signal.py\n+++ b/src/drift/signals/new_signal.py\n@@ -1 +1,3 @@\n+import sys\n+sys.modules['drift.signals.custom'] = type(sys)('drift.signals.custom')",
+      "deterministic_detects": false,
+      "reviewer_should_detect": true,
+      "expected_finding_keywords": ["sys.modules", "stub pattern", "ADR-100"],
+      "spec_criteria_violated": ["adr-100-stub-only"]
+    },
+    {
+      "id": "SC006-F004",
+      "label": "Hardcoded path separator (Windows incompatibility)",
+      "diff": "--- a/src/drift/verify/_promoter.py\n+++ b/src/drift/verify/_promoter.py\n@@ -5 +5 @@\n-_DEFAULT_HISTORY_PATH = Path('.drift') / 'pattern_history.jsonl'\n+_DEFAULT_HISTORY_PATH = Path('.drift/pattern_history.jsonl')",
+      "deterministic_detects": false,
+      "reviewer_should_detect": true,
+      "expected_finding_keywords": ["path separator", "cross-platform", "Windows"],
+      "spec_criteria_violated": ["cross-platform-paths"]
+    },
+    {
+      "id": "SC006-F005",
+      "label": "Public API function without docstring (gate violation)",
+      "diff": "--- a/src/drift/verify/__init__.py\n+++ b/src/drift/verify/__init__.py\n@@ -1 +1,3 @@\n+def new_public_function(x: int) -> int:\n+    return x * 2",
+      "deterministic_detects": false,
+      "reviewer_should_detect": true,
+      "expected_finding_keywords": ["docstring", "public API", "pre-push gate"],
+      "spec_criteria_violated": ["public-api-docstring-gate"]
+    }
+  ],
+  "measurement_protocol": {
+    "baseline": "deterministic_only (use_reviewer=False)",
+    "experiment": "with_reviewer (use_reviewer=True, DriftMcpReviewerAgent)",
+    "metric": "detection_rate = detected_by_reviewer / reviewer_should_detect_count",
+    "target_lift": 0.15,
+    "notes": "SC-006 requires reviewer to detect >= 15pp more cases than deterministic check alone"
+  }
+}

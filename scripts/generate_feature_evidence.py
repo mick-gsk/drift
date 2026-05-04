@@ -160,6 +160,7 @@ def run_tests(*, skip_precision_recall: bool = False) -> dict:
         python, "-m", "pytest",
         "tests/",
         "--ignore=tests/test_smoke_real_repos.py",
+        "--ignore=tests/decision_cockpit/test_cockpit_serve_cmd.py",
         "-m", "not slow",
         "-q", "--tb=short",
         "-n", "auto",

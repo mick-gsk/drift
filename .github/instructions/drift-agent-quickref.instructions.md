@@ -20,7 +20,7 @@ Diese Datei ist eine kompakte Einstiegshilfe. Sie ersetzt nicht die autoritative
 | Prompt/Instruction/Skill | Policy-Gate, ggf. 8 | Nur relevante Prompt-/Instruction-Dateien, keine Parallel-Policy | zuerst Policy-Gate, dann gezielter Edit |
 | Review/Fix-Loop | Quality-Workflow + 8 | Review-Evidenz, konkrete Findings, anschliessende Re-Verification | `make test-fast` oder `make check` |
 
-`*` Gate 6 gilt nur wenn `src/drift/**` betroffen ist. Gate 7 gilt nur bei Aenderungen an `src/drift/signals/**`, `src/drift/ingestion/**` oder `src/drift/output/**`.
+`*` Gate 6 gilt bei Aenderungen an `packages/drift-*/**` oder `src/drift/**` (Compat-Layer). Gate 7 gilt nur bei Aenderungen an `packages/drift-engine/src/drift_engine/signals/**`, `packages/drift-engine/src/drift_engine/ingestion/**`, `packages/drift-output/src/drift_output/**` oder den entsprechenden `src/drift/**`-Compat-Pfaden.
 
 ## Schnellregeln
 

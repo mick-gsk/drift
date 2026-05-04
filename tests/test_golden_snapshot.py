@@ -21,7 +21,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from drift.analyzer import analyze_repo
 from drift.config import DriftConfig
 from drift.output.json_output import analysis_to_json, findings_to_sarif

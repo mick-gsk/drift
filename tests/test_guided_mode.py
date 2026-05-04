@@ -7,7 +7,6 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 import pytest
-
 from drift.config._schema import SignalWeights
 from drift.output.guided_output import (
     SCORING_ACTIVE_SIGNALS,
@@ -405,7 +404,6 @@ class TestFirstRunSummary:
 class TestStatusCommand:
     def test_status_help(self) -> None:
         from click.testing import CliRunner
-
         from drift.commands.status import status
 
         runner = CliRunner()
@@ -416,7 +414,6 @@ class TestStatusCommand:
     def test_status_always_exit_zero(self, tmp_path: Any) -> None:
         """PRD NF-08: exit code is always 0."""
         from click.testing import CliRunner
-
         from drift.commands.status import status
 
         # Create minimal repo structure
@@ -454,7 +451,6 @@ class TestStatusCommand:
 class TestSetupCommand:
     def test_setup_help(self) -> None:
         from click.testing import CliRunner
-
         from drift.commands.setup import setup
 
         runner = CliRunner()
@@ -464,7 +460,6 @@ class TestSetupCommand:
 
     def test_setup_non_interactive(self, tmp_path: Any) -> None:
         from click.testing import CliRunner
-
         from drift.commands.setup import setup
 
         runner = CliRunner()
@@ -479,7 +474,6 @@ class TestSetupCommand:
         import json
 
         from click.testing import CliRunner
-
         from drift.commands.setup import setup
 
         runner = CliRunner()
@@ -526,10 +520,9 @@ class TestFirstRunRenderMode:
     def test_first_run_skips_module_table_and_shows_next_steps(self) -> None:
         from io import StringIO
 
-        from rich.console import Console
-
         from drift.models import Severity
         from drift.output.rich_output import render_full_report
+        from rich.console import Console
 
         finding = _FakeFinding(
             signal_type="pattern_fragmentation",

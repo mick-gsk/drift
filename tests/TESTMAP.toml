@@ -187,6 +187,13 @@
     "tests/test_analyze_cmd_extended.py",
     "tests/test_integration.py",
 ]
+"packages/drift-cli/src/drift_cli/cli.py" = [
+    "tests/test_cli_runtime.py",
+    "tests/help_nav/test_help_nav_contract.py",
+    "tests/help_nav/test_help_nav_integration.py",
+    "tests/help_nav/test_help_nav_unit.py",
+    "packages/drift-cli/tests/test_drift_cli_smoke.py",
+]
 
 # ---------------------------------------------------------------------------
 # Arch graph

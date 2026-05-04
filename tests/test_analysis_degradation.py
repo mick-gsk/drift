@@ -8,7 +8,6 @@ import subprocess
 from pathlib import Path
 
 import pytest
-
 from drift.analyzer import analyze_diff, analyze_repo
 from drift.config import DriftConfig
 from drift.models import RepoAnalysis
@@ -52,7 +51,7 @@ def test_signal_failure_marks_analysis_degraded(
             raise RuntimeError("boom")
 
     monkeypatch.setattr(
-        "drift.analyzer.create_signals",
+        "drift_engine.analyzer.create_signals",  # ADR-100 Phase 3
         lambda _ctx: [_FailingSignal()],
     )
 
@@ -189,7 +188,7 @@ def test_analyze_diff_fallback_preserves_since_days(
             drift_score=0.0,
         )
 
-    monkeypatch.setattr("drift.analyzer.analyze_repo", _fake_analyze_repo)
+    monkeypatch.setattr("drift_engine.analyzer.analyze_repo", _fake_analyze_repo)  # ADR-100 Phase 3
 
     analyze_diff(
         repo,

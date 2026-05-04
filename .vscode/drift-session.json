@@ -1,53 +1,53 @@
 {
   "schema_version": "1.0",
   "repo_path": "C:/Users/mickg/PWBS/drift",
-  "analyzed_at": "2026-04-30T18:51:46Z",
-  "drift_score": 0.377,
-  "grade": "B",
-  "grade_label": "Low Drift",
+  "analyzed_at": "2026-05-02T22:22:40Z",
+  "drift_score": 0.529,
+  "grade": "C",
+  "grade_label": "Moderate Drift",
   "top_findings": [
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "src/drift",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/benchmarks",
       "line_range": null,
-      "reason": "7 return_pattern variants in src/drift/ (65/93 use canonical pattern).\n  - src/drift/adr_scanner.py:43 (_parse_frontmatter)\n  - src/drift/session_handover.py:416 (_parse_frontmatter)\n  - src/drift/baseline.py:181 (load_baseline)",
-      "finding_id": "deeb9e777d6b70b7"
+      "reason": "20 test functions with 42 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "0f8a1c7c056ec8cf"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "src/drift/blast_radius",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_body",
       "line_range": null,
-      "reason": "4 error_handling variants in src/drift/blast_radius/ (5/13 use canonical pattern).\n  - src/drift/blast_radius/_adr_frontmatter.py:137 (parse_adr_file)\n  - src/drift/blast_radius/_skill_analyzer.py:49 (_parse_skill)\n  - src/drift/blast_radius/engine.py:39 (_drift_version)",
-      "finding_id": "fbebbfffb13d854b"
+      "reason": "80 test functions with 144 positive / 0 negative assertions (negative ratio 0.0%). 8 boundary-named tests.",
+      "finding_id": "6deab54ca5964d56"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "src/drift/commands",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_cookie",
       "line_range": null,
-      "reason": "4 return_pattern variants in src/drift/commands/ (12/19 use canonical pattern).\n  - src/drift/commands/config_cmd.py:75 (_infer_profile_name)\n  - src/drift/commands/feedback.py:228 (_parse_iso_ts)\n  - src/drift/commands/precision_cmd.py:43 (_resolve_signal_type)",
-      "finding_id": "63d610efb316c72f"
+      "reason": "32 test functions with 56 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "63247adbf3baa69a"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "src/drift/blast_radius",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_file",
       "line_range": null,
-      "reason": "4 return_pattern variants in src/drift/blast_radius/ (6/11 use canonical pattern).\n  - src/drift/blast_radius/_adr_frontmatter.py:70 (_parse_inline_list)\n  - src/drift/blast_radius/_adr_frontmatter.py:180 (validate_adr_frontmatter)\n  - src/drift/blast_radius/_change_detector.py:130 (resolve_repo_path)",
-      "finding_id": "297e78fb82ca0fcc"
+      "reason": "64 test functions with 112 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "0b8d4ce0fc2efb2c"
     },
     {
-      "signal_type": "pattern_fragmentation",
+      "signal_type": "test_polarity_deficit",
       "severity": "high",
-      "file_path": "src/drift/pr_loop",
+      "file_path": ".tmp_smoke_repo_cache/fastapi/tests/test_request_params/test_form",
       "line_range": null,
-      "reason": "3 return_pattern variants in src/drift/pr_loop/ (7/12 use canonical pattern).\n  - src/drift/pr_loop/_gh.py:55 (post_self_review)\n  - src/drift/pr_loop/_gh.py:149 (push_fix_commits)\n  - src/drift/pr_loop/_gh.py:175 (post_escalation_summary)",
-      "finding_id": "944c888e8107e97c"
+      "reason": "64 test functions with 112 positive / 0 negative assertions (negative ratio 0.0%). 0 boundary-named tests.",
+      "finding_id": "3385cfab847ef14c"
     }
   ],
-  "findings_total": 552,
+  "findings_total": 198,
   "critical_count": 0,
-  "high_count": 146
+  "high_count": 113
 }

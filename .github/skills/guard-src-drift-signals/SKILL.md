@@ -1,12 +1,15 @@
 ---
 name: guard-src-drift-signals
-description: "Drift-generierter Guard fuer `src/drift/signals`. Aktiv bei Signalen: AVS, EDS, PFS. Konfidenz: 0.95. Verwende diesen Skill wenn du Aenderungen an `src/drift/signals` planst oder wiederholte Drift-Findings (AVS, EDS, PFS) fuer dieses Modul bearbeitest."
+description: "Drift-generierter Guard fuer `packages/drift-engine` Signals. Aktiv bei Signalen: AVS, EDS, PFS. Konfidenz: 0.95. Verwende diesen Skill wenn du Aenderungen an `packages/drift-engine/src/drift_engine/signals` planst oder wiederholte Drift-Findings (AVS, EDS, PFS) fuer dieses Modul bearbeitest."
 argument-hint: "Beschreibe das neue oder zu aendernde Signal — Name, Typ, was es erkennen soll."
 ---
 
-# Guard: `src/drift/signals`
+# Guard: `packages/drift-engine/src/drift_engine/signals`
 
-`src/drift/signals` enthaelt alle 25+ `BaseSignal`-Implementierungen. Jede Datei hier ist eine eigenstaendige Erkennungseinheit. AVS, EDS und PFS entstehen wenn Signals zu viel tun, intern verwoben sind oder voneinander abweichende Muster verwenden.
+> **ADR-100 Phase 7a:** Kanonischer Code liegt in `packages/drift-engine/src/drift_engine/signals/`.
+> `src/drift/signals/` ist ein Re-export-Stub und darf nicht direkt editiert werden.
+
+`packages/drift-engine/src/drift_engine/signals` enthaelt alle 25+ `BaseSignal`-Implementierungen. Jede Datei hier ist eine eigenstaendige Erkennungseinheit. AVS, EDS und PFS entstehen wenn Signals zu viel tun, intern verwoben sind oder voneinander abweichende Muster verwenden.
 
 **Konfidenz: 0.95** — dieses Modul ist der Kern der Erkennungsqualitaet; Fehler hier beeinflussen direkt Precision und Recall.
 
@@ -16,7 +19,7 @@ argument-hint: "Beschreibe das neue oder zu aendernde Signal — Name, Typ, was 
 - Du veraenderst die Erkennungslogik eines bestehenden Signals
 - Du aenderst `base.py`, `_utils.py`, `__init__.py` oder `register_signal`
 - Du bearbeitest `incremental_scope` fuer ein Signal
-- Drift meldet AVS, EDS oder PFS fuer eine Datei in `src/drift/signals/`
+- Drift meldet AVS, EDS oder PFS fuer Dateien in `packages/drift-engine/src/drift_engine/signals/`
 
 **Fuer ein vollstaendiges neues Signal** verwende stattdessen `drift-signal-development-full-lifecycle` — der Skill dort enthaelt den vollstaendigen ADR-, Fixture- und Audit-Workflow.
 
@@ -69,7 +72,7 @@ drift analyze --repo . --exit-zero
 
 ## References
 
-- [src/drift/signals/base.py](../../../src/drift/signals/base.py) — `BaseSignal`, `AnalysisContext`, `register_signal`
-- [src/drift/signals/_utils.py](../../../src/drift/signals/_utils.py) — Gemeinsame Signal-Helfer
+- [packages/drift-engine/src/drift_engine/signals/base.py](../../../packages/drift-engine/src/drift_engine/signals/base.py) — `BaseSignal`, `AnalysisContext`, `register_signal`
+- [packages/drift-engine/src/drift_engine/signals/_utils.py](../../../packages/drift-engine/src/drift_engine/signals/_utils.py) — Gemeinsame Signal-Helfer
 - [tests/fixtures/ground_truth.py](../../../tests/fixtures/ground_truth.py) — Precision/Recall-Fixtures
 - [.github/skills/drift-signal-development-full-lifecycle/SKILL.md](../drift-signal-development-full-lifecycle/SKILL.md) — Vollstaendiger Signal-Lifecycle

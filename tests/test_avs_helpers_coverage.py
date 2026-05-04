@@ -7,7 +7,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import networkx as nx
-
 from drift.models import ImportInfo
 from drift.signals.architecture_violation import (
     _compute_hub_nodes,

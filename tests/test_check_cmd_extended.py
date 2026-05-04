@@ -5,8 +5,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from rich.console import Console
-
 from drift.commands._shared import (
     apply_baseline_filtering as _apply_baseline_filtering,
 )
@@ -16,6 +14,7 @@ from drift.commands._shared import (
 from drift.commands._shared import (
     render_or_emit_output as _render_or_emit_output,
 )
+from rich.console import Console
 
 
 def _make_analysis(findings=None):

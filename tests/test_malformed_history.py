@@ -9,7 +9,6 @@ crashing with unhandled KeyError / TypeError.
 from __future__ import annotations
 
 import pytest
-
 from drift.trend_history import build_trend_context
 
 # ── build_trend_context ───────────────────────────────────────────────────

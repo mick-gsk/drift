@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from drift.cli import main
 from drift.ingestion.external_report import SUPPORTED_FORMATS, load_external_report
 from drift.models import Severity

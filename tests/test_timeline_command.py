@@ -5,9 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from click.testing import CliRunner
-
 import drift.output.rich_output as _rich_output_mod
+from click.testing import CliRunner
 from drift.cli import main
 
 

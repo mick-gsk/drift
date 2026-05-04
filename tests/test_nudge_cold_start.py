@@ -15,7 +15,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from drift.api import _baseline_store, nudge
 from drift.incremental import BaselineManager, BaselineSnapshot
 

@@ -13,7 +13,6 @@ produce inflated drift scores, false negatives miss actual AI debt.
 import datetime
 
 import pytest
-
 from drift.ingestion.git_history import (
     _detect_ai_attribution,
     _is_defect_correlated,

@@ -35,6 +35,14 @@ jobs:
       - name: Install drift
         run: |
           pip install --upgrade pip
+          pip install \
+            -e packages/drift-config \
+            -e packages/drift-engine \
+            -e packages/drift-sdk \
+            -e packages/drift-output \
+            -e packages/drift-session \
+            -e packages/drift-mcp \
+            -e packages/drift-cli
           pip install -e ".[dev]"
 
       - name: Run calibration dry-run

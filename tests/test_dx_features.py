@@ -6,10 +6,10 @@ import logging
 from pathlib import Path
 
 import pytest
-
-from drift import cli
 from drift.commands.explain import _LOOKUP, _SIGNAL_INFO, explain
 from drift.output.rich_output import _read_code_snippet
+
+from drift import cli
 
 # ---------------------------------------------------------------------------
 # drift explain

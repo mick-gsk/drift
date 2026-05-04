@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.models import Finding, Severity, SignalType
 from drift.precision import PrecisionRecallReport, has_matching_finding
 

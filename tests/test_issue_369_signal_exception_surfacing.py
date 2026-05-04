@@ -12,8 +12,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from drift.precision import ensure_signals_registered, run_fixture
+
 from tests.fixtures.ground_truth import ALL_FIXTURES
 
 ensure_signals_registered()

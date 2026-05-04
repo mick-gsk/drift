@@ -11,7 +11,6 @@ from __future__ import annotations
 import time
 
 import pytest
-
 from drift.session import DriftSession, SessionManager
 
 # -- Fixtures ----------------------------------------------------------------

@@ -4,9 +4,8 @@ import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
-from rich.console import Console
-
 from drift.models import Finding, ModuleScore, RepoAnalysis, Severity
+from rich.console import Console
 
 
 def _analysis() -> RepoAnalysis:

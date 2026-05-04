@@ -157,7 +157,6 @@ class TestPathOverrideConfig:
 class TestConfigValidatePathOverrides:
     def test_unknown_signal_in_exclude_warns(self, tmp_path: Path) -> None:
         from click.testing import CliRunner
-
         from drift.cli import main
 
         cfg_file = tmp_path / "drift.yaml"

@@ -25,12 +25,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.precision import (
     ensure_signals_registered,
     has_matching_finding,
     run_fixture,
 )
+
 from tests.fixtures.defect_corpus import (
     ALL_DEFECT_CORPUS,
     DefectCorpusEntry,

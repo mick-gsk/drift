@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-cockpit"
+version = "2.50.0"
+description = "Human Decision Cockpit for drift-analyzer — merge governance with audit trail"
+requires-python = ">=3.11"
+dependencies = [
+    "drift-sdk",
+    "pydantic>=2.0",
+    "rich>=13.0",
+    "click>=8.1",
+    "fastapi>=0.111.0",
+    "httpx>=0.27.0",
+    "uvicorn>=0.30.0",
+]
+
+[tool.uv.sources]
+drift-sdk = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_cockpit"]
+artifacts = ["src/drift_cockpit/static/**"]

@@ -9,12 +9,9 @@ name: changelog-auto-insert
 
 on:
   push:
-    # Restrict to integration branches to avoid bot commits on every feature branch.
+    # Only run on main so PR branch heads are never rewritten by bot commits.
     branches:
       - "main"
-      - "feat/**"
-      - "fix/**"
-      - "chore/**"
 
 jobs:
   insert:

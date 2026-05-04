@@ -26,6 +26,17 @@ Exceptions: bugfixes that block installation or first-run experience.
 
 Vollständige Gate-Kriterien und vorbereitete PR-Texte: [`docs/distribution/awesome-submissions.md`](docs/distribution/awesome-submissions.md)
 
+### Outcome-Mehrwert-Validierung (agent productivity)
+
+Parallel zur Distribution-Arbeit wird der reale Nutzen von Drift fuer
+Agenten-Workflows ueber einen separaten Outcome-First-Rahmen validiert.
+
+- Rahmen: [`docs/concepts/outcome-first-validation.md`](docs/concepts/outcome-first-validation.md)
+- Fokus: weniger Schritte, weniger Rework, hoehere First-pass-Erfolgsquote,
+  stabile Defect-Rate
+- Zweck: Produktentscheidung auf Basis messbarer Workflow-Effekte statt nur
+  Proxy-Metriken (Score/Findings)
+
 ## Strategische Epochen (additiv zu POLICY §14-Phasen)
 
 > **Status:** ADR-084 Option C akzeptiert (2026-04-21, Maintainer-Freigabe) —

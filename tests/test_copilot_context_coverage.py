@@ -12,8 +12,6 @@ import tempfile
 from collections import defaultdict
 from pathlib import Path
 
-import pytest
-
 import drift.signals.architecture_violation  # noqa: F401
 import drift.signals.broad_exception_monoculture  # noqa: F401
 import drift.signals.cohesion_deficit  # noqa: F401
@@ -25,6 +23,7 @@ import drift.signals.pattern_fragmentation  # noqa: F401
 import drift.signals.system_misalignment  # noqa: F401
 import drift.signals.temporal_volatility  # noqa: F401
 import drift.signals.test_polarity_deficit  # noqa: F401
+import pytest
 from drift.api_helpers import signal_abbrev
 from drift.config import DriftConfig
 from drift.copilot_context import generate_instructions
@@ -38,6 +37,7 @@ from drift.models import (
     SignalType,
 )
 from drift.signals.base import AnalysisContext, create_signals
+
 from tests.fixtures.ground_truth import (
     FIXTURES_BY_SIGNAL,
     GroundTruthFixture,

@@ -14,6 +14,10 @@
 - Q: Copilot Review auslösen (wie wird der Cloud-Reviewer angefordert?) → A: `gh` CLI / GitHub API — `github-copilot[bot]` als Reviewer explizit per Skript anfordern
 - Q: Loop-Zustand persistieren (wo wird der Zustand zwischen Runden gespeichert?) → A: Temporäre JSON-Datei `work_artifacts/pr-loop-<PR-Nummer>.json`, gitignored
 - Q: Konfigurationsort (wo leben Reviewer-Liste und max. Runden?) → A: Neuer Abschnitt `pr_loop:` in `drift.yaml`
+- Q: Reviewer-Timeout-Verhalten (keine Antwort bis Polling-Timeout) → A: Runde als `timeout/escalated` markieren, in Exit-Summary aufnehmen, kein `ready for human review` ohne explizite Policy
+- Q: Wer darf den Timeout-Policy-Override setzen? → A: Nur Maintainer über statische Repo-Konfiguration (`drift.yaml`), kein Laufzeit-Override per CLI-Flag
+- Q: Wie werden widersprüchliche Reviewer-Entscheidungen aufgelöst? → A: Deterministische Prioritätsmatrix in `drift.yaml`, nur bei Patt eskalieren
+- Q: Welche Feedback-Typen werden in v1 automatisiert verarbeitet? → A: Review-Status plus PR-Thread-Kommentare, keine Inline-Code-Kommentare
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -59,7 +63,7 @@ When any agent reviewer requests changes, the agent reads every unresolved comme
 
 **Acceptance Scenarios**:
 
-1. **Given** at least one reviewer has "Changes Requested", **When** the agent starts the next iteration, **Then** it reads every unresolved comment, produces commits that address each one, and pushes to the PR branch.
+1. **Given** at least one reviewer has "Changes Requested", **When** the agent starts the next iteration, **Then** it reads every unresolved in-scope comment (PR-thread in v1), produces commits that address each one, and pushes to the PR branch.
 2. **Given** the agent has pushed fixes, **When** all previously requesting reviewers have now approved, **Then** the loop exits with a "ready for human review" status.
 3. **Given** the maximum loop rounds are reached and agent reviewers still request changes, **When** the loop exits with unresolved feedback, **Then** the agent posts a summary comment listing all unresolved items and marks the PR for human escalation.
 
@@ -82,9 +86,9 @@ A human reviewer leaves a comment on the open PR. The agent reads it, responds w
 
 ### Edge Cases
 
-- What happens when an agent reviewer becomes unavailable mid-loop (timeout, API error)? → Loop marks that reviewer as skipped for this round and proceeds; the skip is noted in the self-review comment.
+- What happens when an agent reviewer becomes unavailable mid-loop (timeout, API error)? → Loop marks the round as `timeout/escalated`, records the reviewer in the exit summary, and does not set `ready for human review` unless an explicit policy override is configured.
 - What happens when the agent's fix introduces a new CI failure? → The agent detects the new failure, reverts or fixes it, and re-runs all local gates before re-requesting reviews.
-- What happens when two agent reviewers contradict each other? → The agent flags the contradiction in a PR comment, pauses the loop, and escalates to the human maintainer for resolution.
+- What happens when two agent reviewers contradict each other? → The loop resolves outcomes through a deterministic priority matrix configured in `drift.yaml`; only unresolved ties are escalated to the human maintainer.
 - What happens when the PR branch has merge conflicts? → The agent resolves merge conflicts (if straightforward) or posts a conflict report and pauses the loop pending human guidance.
 - What happens when max rounds are reached but the PR is almost approved (1 minor comment)? → The loop still exits, posts the escalation summary, and does not force-merge.
 
@@ -97,7 +101,10 @@ A human reviewer leaves a comment on the open PR. The agent reads it, responds w
 - **FR-003**: After opening the PR, the agent MUST post a structured self-review comment that covers: files changed, drift signals triggered, identified risks, and a preliminary verdict.
 - **FR-004**: After the self-review, the agent MUST request `github-copilot[bot]` and any other configured reviewers via the GitHub API (`gh pr edit --add-reviewer` or equivalent REST call).
 - **FR-005**: The loop engine MUST poll PR review state via `gh pr view --json reviews` at a configurable interval until all requested agent reviewers have responded or the polling timeout is reached.
+- **FR-005a**: If polling timeout is reached for any configured reviewer, the loop MUST mark the current round as `timeout/escalated`, include that reviewer in the exit summary, and MUST NOT transition the PR to `ready for human review` unless an explicit policy override is configured.
+- **FR-005b**: Timeout policy overrides MUST be maintainers-only and configured statically in repository config (`drift.yaml`); runtime overrides via CLI flags, PR comments, or reviewer actions MUST NOT be accepted.
 - **FR-006**: When any agent reviewer requests changes, the agent MUST read all unresolved comments, produce commits addressing each one, push to the PR branch, and re-request reviews.
+- **FR-006a**: In v1, automated feedback ingestion MUST include only reviewer decision states (Approved / Changes Requested) and unresolved PR-thread comments; inline code comments are explicitly out of scope for automated handling.
 - **FR-007**: The loop MUST exit when all configured agent reviewers have approved the PR.
 - **FR-008**: The loop MUST also exit when a configurable maximum number of review rounds (configured under `pr_loop.max_rounds` in `drift.yaml`) is reached; in that case the agent MUST post an escalation summary listing all unresolved items.
 - **FR-009**: When a human comment is detected, the agent MUST respond to or explicitly defer it before the next push.
@@ -106,12 +113,13 @@ A human reviewer leaves a comment on the open PR. The agent reads it, responds w
 - **FR-012**: The loop engine MUST persist its state to `work_artifacts/pr-loop-<PR-number>.json` (gitignored) after each round so the loop can be resumed if the process is interrupted.
 - **FR-013**: The feature MUST be implemented as: (a) a `scripts/pr_review_loop.py` thin entry-point (`sys.exit(main())`) that delegates all logic to `src/drift/pr_loop/`; the engine MUST reside in the library, NOT in the script; and (b) a `.github/skills/drift-pr-review-loop/SKILL.md` orchestration layer that the Copilot agent uses to invoke the engine and interpret results.
 - **FR-014**: When the PR branch has merge conflicts, the agent MUST detect them before each gate run. For purely mechanical conflicts (whitespace, adjacent non-overlapping hunks), the agent MAY attempt auto-resolution via `git merge`; for semantic conflicts, the agent MUST post a conflict-report comment on the PR, set `LoopState.status = ESCALATED`, and pause the loop without pushing further commits.
+- **FR-015**: Contradictory reviewer outcomes MUST be resolved using a deterministic priority matrix configured under `pr_loop` in `drift.yaml`; if the matrix yields a tie or no rule, the loop MUST escalate and post a contradiction summary comment.
 
 ### Key Entities
 
 - **PR Review Round**: One complete pass of self-review → agent-review request → polling wait → feedback collection → fix commits. Each round has a sequence number, a list of reviewers, and a verdict per reviewer.
 - **Agent Reviewer**: A configurable participant in the review loop defined under `pr_loop.reviewers` in `drift.yaml`. Primary reviewer: `github-copilot[bot]`, triggered via GitHub API. Has a name, trigger method, and response type (Approved / Changes Requested / No Response).
-- **Review Comment**: A single unit of feedback attached to a specific file/line or the PR thread. Has an author (human or agent), a resolution status, and — after the agent responds — a linked commit or reply.
+- **Review Comment**: A single unit of feedback in the PR thread for v1 (not inline code comments). Has an author (human or agent), a resolution status, and — after the agent responds — a linked commit or reply.
 - **Loop Exit Condition**: Either "all configured agent reviewers approved" or "`pr_loop.max_rounds` reached". Determines whether the PR exits into "ready for human review" or "escalated" state.
 - **Self-Review Artefact**: The structured comment the agent posts after each push. Contains the drift analysis result, gate outcomes, comment resolution list, and loop state.
 - **Loop State File**: `work_artifacts/pr-loop-<PR-number>.json` — gitignored JSON file written by `scripts/pr_review_loop.py` after each round. Contains: PR number, current round index, reviewer verdicts, list of addressed comment IDs, and loop exit status.
@@ -133,8 +141,11 @@ A human reviewer leaves a comment on the open PR. The agent reads it, responds w
 - "Cloud agent reviews" means requesting `github-copilot[bot]` (and any other reviewer listed under `pr_loop.reviewers` in `drift.yaml`) via the GitHub API; these are triggered by the script calling `gh pr edit --add-reviewer`, not by separate manual steps.
 - "Local agent reviews" means automated gate scripts (`pre-commit`, `make check`, `make gate-check`, `drift analyze`) that run on the agent's local machine before and after each push.
 - Reviewer list and maximum loop rounds are configured under a new `pr_loop:` section in `drift.yaml`; sensible defaults (1 reviewer: `github-copilot[bot]`, max 5 rounds, poll interval 60 s) are provided so the feature works out-of-the-box.
+- Any timeout-policy override is a maintainer-managed repository setting in `drift.yaml`; the agent cannot alter it at runtime.
 - Loop state is persisted to `work_artifacts/pr-loop-<PR-number>.json` (gitignored); this file is created by `scripts/pr_review_loop.py` and read by the SKILL orchestration layer.
 - Human approval is the final merge gate and is explicitly outside the automated loop — the loop only drives the PR to a "ready for human review" state.
 - The agent has read/write access to the GitHub PR (can post comments, request reviewers, push commits) via an authenticated `gh` CLI session (no additional token setup required beyond existing repo auth).
 - Merge conflicts that require semantic understanding are escalated to the human rather than auto-resolved.
+- Reviewer-decision conflict handling follows a deterministic matrix in `drift.yaml`; unresolved ties are escalated to humans.
+- v1 feedback automation scope is limited to reviewer decisions and PR-thread comments; inline code comments are deferred to a later version.
 - The workflow applies to all PRs created by agents in this repo; manually created PRs are out of scope for v1.

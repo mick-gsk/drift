@@ -6,7 +6,6 @@ import textwrap
 from pathlib import Path
 
 import pytest
-
 from drift.config import DriftConfig
 from drift.ingestion.ts_parser import tree_sitter_available
 from drift.models import FunctionInfo, ParseResult, Severity, SignalType
@@ -20,6 +19,7 @@ from drift.signals.cognitive_complexity import (
     _cognitive_complexity_of_body,
     _is_inherent_ts_complexity_context,
 )
+
 from tests.fixtures.ground_truth import FIXTURES_BY_SIGNAL, GroundTruthFixture
 
 

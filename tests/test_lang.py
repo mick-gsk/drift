@@ -14,7 +14,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.models._enums import Severity
 from drift.models._findings import Finding
 from drift.signal_registry import get_all_meta

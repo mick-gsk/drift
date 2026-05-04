@@ -190,7 +190,6 @@ def test_scan_agent_instruction_small_count() -> None:
 def test_validate_cmd_output_to_file(tmp_path: Path) -> None:
     """Lines 57-58: --output writes JSON to file and prints confirmation."""
     from click.testing import CliRunner
-
     from drift.commands.validate_cmd import validate
 
     result_payload = {
@@ -216,7 +215,6 @@ def test_validate_cmd_output_to_file(tmp_path: Path) -> None:
 def test_validate_cmd_stdout_output(tmp_path: Path) -> None:
     """Validate CLI renders result to stdout when no --output."""
     from click.testing import CliRunner
-
     from drift.commands.validate_cmd import validate
 
     result_payload = {

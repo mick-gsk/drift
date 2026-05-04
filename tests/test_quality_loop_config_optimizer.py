@@ -10,14 +10,13 @@ Covers:
 from __future__ import annotations
 
 import pytest
+from drift.config import DriftConfig
 from scripts.quality_loop.config_mcts import (
     ConfigMCTSSearch,
     ConfigSearchResult,
     _ArmStats,
 )
 from scripts.quality_loop.config_transforms import ALL_TRANSFORMS
-
-from drift.config import DriftConfig
 
 # ---------------------------------------------------------------------------
 # ConfigAction
