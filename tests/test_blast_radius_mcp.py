@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from drift.serve.a2a_router import _ensure_dispatch_table
 
 

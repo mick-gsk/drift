@@ -8,6 +8,11 @@ import time
 from pathlib import Path
 
 from click.testing import CliRunner
+from drift.self_improvement.engine import (
+    _check_scan_staleness,
+    _convergence_check,
+    _fp_oracle_proposals,
+)
 
 from drift.cli import main
 from drift.self_improvement import (
@@ -17,11 +22,6 @@ from drift.self_improvement import (
     SelfImprovementEngine,
     close_proposal,
     run_cycle,
-)
-from drift.self_improvement.engine import (
-    _check_scan_staleness,
-    _convergence_check,
-    _fp_oracle_proposals,
 )
 
 # ---------------------------------------------------------------------------

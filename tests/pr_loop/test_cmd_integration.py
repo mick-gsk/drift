@@ -6,7 +6,6 @@ import json
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-
 from drift.pr_loop._cmd import pr_loop_cmd
 from drift.pr_loop._models import LoopExitStatus, LoopState
 
