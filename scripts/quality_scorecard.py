@@ -54,7 +54,7 @@ def _read_coverage_ratio(path: Path) -> float | None:
     if not path.exists():
         return None
     try:
-        root = ElementTree.fromstring(path.read_text(encoding="utf-8"))
+        root = ElementTree.fromstring(path.read_text(encoding="utf-8"))  # nosec B314 - coverage.xml is trusted local output, not network input
         line_rate = root.attrib.get("line-rate")
         if line_rate is None:
             return None
