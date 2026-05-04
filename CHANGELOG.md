@@ -1,13 +1,16 @@
+<!-- markdownlint-disable MD024 -->
 ## [2.50.0] - 2026-05-03
 
 Short version: Add PR automation suite — lane labels, size labels, fast-lane automerge, auto-triage, Copilot PR auto-merge, weekly KPI workflow, and CI path filters for non-Python PRs.
 
 ### Added
+
 - Add PR lane labels, size labels (`size/XS`–`size/XL`), and fast-lane automerge workflow (squash-merge after approval + CI, paginated reviews/checks)
 - Add `copilot-pr-auto-merge.yml`, `pr-auto-triage.yml`, and `pr-throughput-kpi.yml` (weekly KPI snapshot, 8 metrics, 30-day window)
 - Add paths filters to `proactive-qa.yml`, `security-hygiene.yml`, `score-gate.yml`, `dependency-review.yml`, and `ci.yml` to skip non-Python PRs
 
 ### Fixed
+
 - Correct `actions/first-interaction@v3` input names; address PR review comments (label removal cleanup, consistent names)
 
 ## [2.49.0] - 2026-04-30
@@ -15,12 +18,15 @@ Short version: Add PR automation suite — lane labels, size labels, fast-lane a
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
 
 ### Added
+
 - add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
 
 ### Fixed
+
 - resolve PR #563 review issues — PollTimeoutError partial verdicts, gate_output keys, CHANGELOG Short version, evidence tests field, workflow branch scope
 
 ### Changed
+
 - update harness prompt and skill catalog
 
 ## [2.48.5] - 2026-04-29
@@ -28,10 +34,12 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-ownership enforcement.
 
 ### Added
+
 - `output_root` config field, `resolve_artifact_path()`, and `drift-repo-quickscan` skill.
 - HARNESS006/007 AST-based MCP tool→router-owner map, `--write-tool-map` flag, 5 new tests.
 
 ### Fixed
+
 - `commands/_last_scan.py` mypy cast; `commands/calibrate.py` SimpleNamespace guard.
 - PII: hash coauthor strings; `ab_harness.py --mode llm` operative exit (FU-001).
 
@@ -40,6 +48,7 @@ Short version: Quickscan skill, output_root config, and HARNESS006/007 MCP tool-
 Short version: CI/security/mutation workflow unblocking, artifact lean mode, product boundary sharpening.
 
 ### Fixed
+
 - Removed stray `artifact_dir` from committed config schema.
 - Sharpened product boundary: drift detects architectural erosion, not general quality.
 - Unblocked failing CI/security/mutation workflows.
@@ -49,9 +58,11 @@ Short version: CI/security/mutation workflow unblocking, artifact lean mode, pro
 Short version: pre-push hook hardening (5-phase plan), retrieval slice migration, README improvements.
 
 ### Fixed
+
 - Hardened pre-push hook with 5-phase plan for more reliable gate checks.
 
 ### Changed
+
 - Migrated retrieval to ADR-099 slice convention.
 
 ## [2.48.0] - 2026-04-28
@@ -59,6 +70,7 @@ Short version: pre-push hook hardening (5-phase plan), retrieval slice migration
 Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
 
 ### Fixed (pre-push hook hardening)
+
 - `DRIFT_SKIP_HOOKS=1` no longer falls through to the SHA-cache CI bypass; restructured to `exit 0` immediately after logging the skip to `.git/.drift-skip-log`.
 - Added `DRIFT_SKIP_STUDY_FRESHNESS=1` escape hatch for Study.md freshness gate; documented in header.
 - Added `DRIFT_SKIP_VERSION_SYNC=1` and SHA-cache-reset hint to escape-hatch header block.
@@ -68,12 +80,14 @@ Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analy
 - Improved actionable error messages for changelog, docstring, version-bump, and Python-not-found gates.
 
 ### Added
+
 - `drift kit init --and-analyze`: runs `drift analyze --repo . --exit-zero` immediately after scaffolding.
 - `drift kit init --agent [cursor|claude|codex|all]`: writes `.cursor/rules/drift.mdc`, appends to `CLAUDE.md`, or appends to `AGENTS.md`; idempotent via `<!-- drift-kit -->` marker.
 - `/drift-feature-guardrails` slash command: new prompt template for pre-coding risk assessment mapping features to drift signals.
 - Improved missing-session guidance in all drift-kit templates: exact `drift analyze` command + MCP `drift_scan` fallback.
 
 ### Fixed
+
 - `record_feedback()` now accepts `max_feedback_events` for FIFO capping (FR-011b); `subprocess.run()` in kit_cmd sets `stdin=DEVNULL` for MCP stdio safety.
 
 ## [2.47.1] - 2026-04-27
@@ -81,12 +95,14 @@ Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analy
 Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analyze` flag, `/drift-feature-guardrails` prompt, improved missing-session guidance, FIFO feedback cap, and MCP stdio safety fix.
 
 ### Added
+
 - `drift kit init --and-analyze`: runs `drift analyze --repo . --exit-zero` immediately after scaffolding.
 - `drift kit init --agent [cursor|claude|codex|all]`: writes `.cursor/rules/drift.mdc`, appends to `CLAUDE.md`, or appends to `AGENTS.md`; idempotent via `<!-- drift-kit -->` marker.
 - `/drift-feature-guardrails` slash command: new prompt template for pre-coding risk assessment mapping features to drift signals.
 - Improved missing-session guidance in all drift-kit templates: exact `drift analyze` command + MCP `drift_scan` fallback.
 
 ### Fixed
+
 - `record_feedback()` now accepts `max_feedback_events` for FIFO capping (FR-011b); `subprocess.run()` in kit_cmd sets `stdin=DEVNULL` for MCP stdio safety.
 
 ## [2.47.0] - 2026-04-27
@@ -94,10 +110,12 @@ Short version: drift-kit multi-agent support (cursor/claude/codex), `--and-analy
 Short version: Add `drift kit init` — one-command Copilot Chat bootstrap that scaffolds prompt files and VS Code settings; document in README and vibe-coding guide.
 
 ### Added
+
 - `drift kit init` command: scaffolds `.github/prompts/` (3 slash-command prompt files), merges `chat.promptFilesLocations` into `.vscode/settings.json`, appends `.vscode/drift-session.json` to `.gitignore`. Idempotent; `--force` flag to overwrite prompts.
 - Templates bundled as package data via `importlib.resources` — no external download needed.
 
 ### Docs
+
 - README "Works with" table: `drift kit init` callout; Copilot Chat setup section replaced manual `settings.json` snippet with single command.
 - `examples/vibe-coding` 30-day rollout table: added step 3b for `drift kit init`.
 
@@ -106,6 +124,7 @@ Short version: Add `drift kit init` — one-command Copilot Chat bootstrap that 
 Short version: Catch OSError in subprocess git calls for Pyodide/Emscripten compatibility.
 
 ### Fixed
+
 - Catch `OSError` in subprocess git calls so drift works inside Pyodide/Emscripten (browser WASM).
 
 ## [2.46.0] - 2026-04-27
@@ -113,6 +132,7 @@ Short version: Catch OSError in subprocess git calls for Pyodide/Emscripten comp
 Short version: Playground Pyodide runner uses direct scan import and pre-installs gitpython.
 
 ### Fixed
+
 - Use `from drift.api.scan import scan` in playground Pyodide smoke-test to bypass heavy `drift/api/__init__.py` import chain.
 - Pre-install `smmap` and `gitpython` via micropip before `drift-analyzer` to resolve dependencies correctly in Pyodide.
 
@@ -121,6 +141,7 @@ Short version: Playground Pyodide runner uses direct scan import and pre-install
 Short version: catch OSError in subprocess git calls for Pyodide/Emscripten compatibility
 
 ### Fixed
+
 - catch OSError in subprocess git calls for Pyodide/Emscripten compatibility
 
 ## [2.44.5] - 2026-04-27
@@ -128,6 +149,7 @@ Short version: catch OSError in subprocess git calls for Pyodide/Emscripten comp
 Short version: Fix playground Pyodide runner: use `from drift.api.scan import scan` instead of `from drift.api import scan` to avoid loading the full API init chain in the browser, and pre-install `gitpython`/`smmap` via micropip before drift-analyzer to prevent dependency resolution failures.
 
 ### Fixed
+
 - use `from drift.api.scan import scan` in playground Pyodide smoke-test and scan script instead of `from drift.api import scan` to bypass the heavy `drift/api/__init__.py` import chain
 - pre-install `smmap` and `gitpython` via micropip before `drift-analyzer` install to ensure the pure-Python git dependency resolves correctly in Pyodide
 
@@ -136,6 +158,7 @@ Short version: Fix playground Pyodide runner: use `from drift.api.scan import sc
 Short version: Coverage measurement is now reliable when running pytest with xdist (`-n N`): `parallel = true` in `[tool.coverage.run]` ensures each worker writes its own `.coverage.*` file so pytest-cov can combine them correctly instead of reporting only one worker's subset (~25%). RESEARCH.md H5 updated with three verified production adversarial scenarios (Issue #543) that partially confirm the hypothesis: `drift_brief` constraints can degrade agent decision quality when the target file is in a deferred pod, an intentionally isolated BIFL module, or a hot-path file with documented no-docstring conventions.
 
 ### Fixed
+
 - enable `parallel = true` in `[tool.coverage.run]` so pytest-xdist workers each produce separate `.coverage.*` files that pytest-cov combines; without this, xdist runs reported ~25% instead of the real ~79%
 - annotate deferred files in `drift_brief` guardrails (`deferred_files_involved`, `deferred_warning`), pre-warm nudge baseline in `session_start` autopilot (`nudge_ready` flag), and expose `deferred_context` block in `drift_diff` delta counts (#544)
 
@@ -148,6 +171,7 @@ Short version: Release housekeeping after DRIFT-3002 (Windows CP1252 ASCII-fallb
 Short version: The `--quiet` summary line now shows `max_severity` (highest finding severity) instead of `severity` (score-derived grade bucket), eliminating the misleading mismatch when `--fail-on high` exits 1 despite a MEDIUM score-grade. File discovery on post-commit nudge runs is now O(discovered files) instead of O(all repo files): `_enumerate_repo_files` uses `os.walk` with directory pruning, eliminating the 32s discover phase caused by traversing `.venv` and other excluded trees.
 
 ### Fixed
+
 - exclude deferred files (from `deferred:` config block) from PFS variant clustering so deferred-pod routers no longer inflate fragmentation counts or poison `drift_brief` guardrails (#542)
 - replace misleading `severity:` (score-derived bucket) with `max_severity:` (highest finding severity) in `--quiet` summary line for `drift analyze` and `drift check`
 - eliminate directory re-traversal in file discovery (os.walk pruning): replace `Path.glob` loop with `os.walk` + early `dirs[:] = pruned` so excluded trees (`.venv`, `node_modules`) are never descended into, reducing discover-phase latency from ~32s to <1s on repos with large virtual environments
@@ -157,13 +181,16 @@ Short version: The `--quiet` summary line now shows `max_severity` (highest find
 Short version: Automated agent routing for bug issues and PR reviews is now active, the v2.43.2 performance note was sharpened with explicit benchmark evidence, and explicit `drift check --diff <sha>` runs now write to a separate history slot to prevent false trend deltas.
 
 ### Added
+
 - automate agent routing for bug issues and PR reviews
 - switch PR agent review to silent mode
 
 ### Changed
+
 - clarified v2.43.2 release notes with concrete benchmark/test evidence for the warm-run optimization
 
 ### Fixed
+
 - isolate explicit `--diff <ref>` history entries (`scope="diff_ref"`) from regular check history (`scope="diff"`) to prevent false trend deltas on clean trees
 
 ## [2.43.2] - 2026-04-26
@@ -171,9 +198,11 @@ Short version: Automated agent routing for bug issues and PR reviews is now acti
 Short version: Warm-run latency down by about one third in steady state: batch L1 cache lookup removes per-file lock overhead, path-context classification is memoized, and cache eviction is throttled to once per 5 minutes.
 
 ### Fixed
+
 - optimize warm-run via batch L1 cache lookup, path-context memo, eviction throttle
 
 ### Evidence
+
 - Release tag benchmark replay (`v2.43.2`, commit `94fd0998b`): `.venv\Scripts\python.exe scripts\benchmark_perf.py . --runs 3 --warmup 1` -> median `3.807s`; steady-state warm runs `3.73s` and `3.81s` (one early outlier run at `15.75s` while caches/index stabilized).
 - Baseline recorded before these fixes in the same session: median `5.77s` with the same benchmark command. This places steady-state improvement at about `34%` (`5.77s -> 3.81s`), with earlier post-fix runs reaching `~36%` (`5.77s -> 3.71s`).
 - Regression-proof for the cache-eviction fix on the release tag: `.venv\Scripts\python.exe -m pytest tests/test_cache_mds_ecd.py -q --tb=short` -> `47 passed in 2.56s`.
@@ -183,6 +212,7 @@ Short version: Warm-run latency down by about one third in steady state: batch L
 Short version: Codecov coverage badge now shows real values after repo transfer — switched to OIDC tokenless upload, no token misconfiguration possible.
 
 ### Fixed
+
 - Coverage badge in README no longer shows 0% after repo transfer; upload now uses GitHub OIDC instead of a token that was scoped to the old repo
 - Removed hard dependency on `CODECOV_TOKEN` secret for public-repo coverage reporting
 
@@ -191,6 +221,7 @@ Short version: Codecov coverage badge now shows real values after repo transfer 
 Short version: Codecov badge URL updated to newer graph format; upload diagnostics and validation added for observability.
 
 ### Changed
+
 - Badge URL in README updated to the newer Codecov graph endpoint format
 - Coverage upload step now emits verbose diagnostics and validates the XML structure before upload
 - Upload no longer blocks the CI pipeline if Codecov is temporarily unavailable (`fail_ci_if_error=false`)
@@ -200,17 +231,20 @@ Short version: Codecov badge URL updated to newer graph format; upload diagnosti
 Short version: Warm-run latency down ~20s on large repos: git-history index enabled by default (eliminates full git-log subprocess), orjson for parse-cache reads (3-5x faster deserialization), TS import-graph precomputed once per run, TPD signal skips non-test files, SignalCacheDependencySpec for selective cache invalidation.
 
 ### Performance
+
 - config: `git_history_index_enabled` defaults to `true` — warm runs no longer re-run full `git log` (~12.8s saved); persistent incremental index under `.drift-cache/git_history/`
 - cache: use `orjson` for parse-cache deserialization when available (optional dep `fast-json` extra); stdlib fallback retained (~7.7s saved on 1900+ cached files)
 - ts_architecture: precompute TypeScript import graph once per `analyze()` call instead of 4x independently
 - test_polarity_deficit: `should_process_file()` skips non-test files early
 
 ### Added
+
 - signals: `SignalCacheDependencySpec` frozen dataclass — signals declare which languages/paths affect their cache key for selective invalidation
 - architecture_violation, circular_import, dead_code_accumulation, mutant_duplicates: declare `cache_dependency_spec` with language-scoped repo-wide dependencies
 - pyproject.toml: `fast-json` optional extra (`orjson>=3.9`)
 
 ### Fixed
+
 - .githooks/pre-push: block accidental push to `master` (default branch is `main`)
 
 ## [2.42.15] - 2026-04-26
@@ -218,6 +252,7 @@ Short version: Warm-run latency down ~20s on large repos: git-history index enab
 Short version: Add third_party_skills to .gitignore.
 
 ### Changed
+
 - gitignore: add third_party_skills to version control exclusions
 
 ## [2.42.14] - 2026-04-26
@@ -225,6 +260,7 @@ Short version: Add third_party_skills to .gitignore.
 Short version: Parse cache no longer evicts all entries on every drift version bump; hash loop is now parallelized - cold-start after upgrade drops from ~130s to ~15s on large repos.
 
 ### Fixed
+
 - cache: do not invalidate parse cache on version bump, parallelize hash loop
 - phr: avoid repeated AST reparse on warm runs via internal per-file artifact cache (changed-file-only rebuild)
 
@@ -233,6 +269,7 @@ Short version: Parse cache no longer evicts all entries on every drift version b
 Short version: Non-ASCII arrow character (`→`) in `check_version.py` error output replaced with ASCII `->` to fix `UnicodeEncodeError` on Windows GitHub Actions runners.
 
 ### Fixed
+
 - `scripts/check_version.py`: replaced `→` with `->` in version-mismatch error message to prevent `UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'` on Windows CP1252 runners.
 
 ## [2.42.12] - 2026-04-26
@@ -240,6 +277,7 @@ Short version: Non-ASCII arrow character (`→`) in `check_version.py` error out
 Short version: Publish workflow now explicitly fetches the release tag by refspec during `workflow_dispatch` so `check_release_discipline.py` can resolve the tag even with shallow checkouts.
 
 ### Fixed
+
 - `.github/workflows/publish.yml`: added explicit `git fetch origin "refs/tags/${tag}:refs/tags/${tag}"` step after checkout in the `validate-version` job so the tag is always present locally when `workflow_dispatch` is used.
 
 ## [2.42.11] - 2026-04-26
@@ -247,6 +285,7 @@ Short version: Publish workflow now explicitly fetches the release tag by refspe
 Short version: Publish workflow `validate-version` job now sets `fetch-tags: true` on checkout so SemVer tag lineage checks pass during `workflow_dispatch` runs.
 
 ### Fixed
+
 - `.github/workflows/publish.yml`: added `fetch-tags: true` to the `actions/checkout` step in `validate-version` to ensure git tags are available for `check_release_discipline.py`.
 
 ## [2.42.10] - 2026-04-26
@@ -254,6 +293,7 @@ Short version: Publish workflow `validate-version` job now sets `fetch-tags: tru
 Short version: ParseCache eviction is now rate-limited to once per hour (was on every construction); topological signal sort and signal-class split results are cached as process-level singletons, reducing MCP nudge warm-path overhead by ~900x.
 
 ### Fixed
+
 - rate-limit ParseCache eviction and cache signal-class split for MCP hot-path latency
 - `drift init`: added `--copilot` to scaffold `.github/copilot-instructions.md`, extended `--full` to include all AI editor/agent snippets (`--copilot`, `--cursor`, `--windsurf`, `--claude-code`), and corrected generated `CLAUDE.md` docs URL to `https://mick-gsk.github.io/drift/`.
 
@@ -262,6 +302,7 @@ Short version: ParseCache eviction is now rate-limited to once per hour (was on 
 Short version: Codecov badge fixed — coverage upload now runs exclusively on the Linux runner to avoid Windows absolute paths in `coverage.xml`, and `fail_ci_if_error` is set to `true` so upload failures are no longer silently ignored.
 
 ### Fixed
+
 - CI workflow (`ci.yml`): Restricted coverage collection (`pytest --cov`) and Codecov upload to `runner.os == 'Linux'` only. Windows absolute paths (`C:\...`) in `coverage.xml`'s `<source>` tag caused Codecov to mark all uploads as unusable (`state: ERROR`), resulting in the badge permanently showing 0%. The Linux-only upload produces correct relative/posix paths that Codecov can resolve.
 - CI workflow: Changed `fail_ci_if_error: false` → `fail_ci_if_error: true` for the Codecov upload step so errors surface immediately instead of being silently swallowed.
 
@@ -270,6 +311,7 @@ Short version: Codecov badge fixed — coverage upload now runs exclusively on t
 Short version: All platform-dependent path separators in signal descriptions fixed — nine signal files now use `.as_posix()` and the golden snapshot test normalizes path separators for permanent platform independence.
 
 ### Fixed
+
 - `signals/bypass_accumulation`, `cognitive_complexity`, `dead_code_accumulation`, `fan_out_explosion`, `guard_clause_deficit`, `hardcoded_secret`, `missing_authorization` (×2), `phantom_reference`, `type_safety_bypass`: Apply `.as_posix()` to all `file_path` / `pr.file_path` f-string usages in finding `description` fields so CI on Ubuntu no longer sees Windows backslash paths.
 - `tests/test_golden_snapshot`: Added `_normalize_path_seps()` helper that recursively replaces `\\` with `/` in all string values; called from `_canonical_json()` as a permanent prevention layer so golden comparisons are platform-independent regardless of future signal additions.
 - `tests/golden`: Regenerated `corpus_snapshot.json` and `corpus_snapshot.sarif` with normalized forward-slash paths.
@@ -281,6 +323,7 @@ Short version: All platform-dependent path separators in signal descriptions fix
 Short version: Golden snapshot mismatch resolved — near-duplicate and semantic-duplicate finding descriptions now use `.as_posix()` paths on all platforms.
 
 ### Fixed
+
 - `signals/mutant_duplicates`: Apply `.as_posix()` to `file_path` in near-duplicate and semantic-duplicate `description` f-strings so CI on Ubuntu no longer sees Windows backslash paths in golden snapshot comparisons.
 - `tests/golden`: Regenerated `corpus_snapshot.json` and `corpus_snapshot.sarif` with correct forward-slash paths.
 
@@ -289,6 +332,7 @@ Short version: Golden snapshot mismatch resolved — near-duplicate and semantic
 Short version: Three CI failures resolved: Windows mtime flakiness in dismissal cache, OS-specific path separators in mutant-duplicate descriptions, and missing tree-sitter dependency for TypeScript signal tests.
 
 ### Fixed
+
 - `fix_plan_dismissals._write_entries`: Added `os.utime()` after atomic `replace()` to ensure `st_mtime_ns` is reliably updated on Windows (NTFS timestamp granularity could cause flaky test assertions).
 - `signals/mutant_duplicates`: Use `.as_posix()` for file paths in finding `description` strings to produce consistent forward-slash output on all platforms (golden snapshot mismatch on Ubuntu CI).
 - `pyproject.toml`: Added `tree-sitter` and `tree-sitter-typescript` to the `dev` optional-dependency group so TypeScript signal ground-truth tests (`tsb_ts_tp`, etc.) run in all CI matrix jobs.
@@ -299,6 +343,7 @@ Short version: Three CI failures resolved: Windows mtime flakiness in dismissal 
 Short version: Parse cache no longer evicts all entries on every drift version bump; hash loop is now parallelized — cold-start after upgrade drops from ~130s to ~15s on large repos.
 
 ### Fixed
+
 - cache: do not invalidate parse cache on version bump, parallelize hash loop
 
 ## [2.42.13] - 2026-04-26
@@ -306,6 +351,7 @@ Short version: Parse cache no longer evicts all entries on every drift version b
 Short version: Non-ASCII arrow character (`→`) in `check_version.py` error output replaced with ASCII `->` to fix `UnicodeEncodeError` on Windows GitHub Actions runners.
 
 ### Fixed
+
 - `scripts/check_version.py`: replaced `→` with `->` in version-mismatch error message to prevent `UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'` on Windows CP1252 runners.
 - Replaced `ls` with `find` in `self-improvement-loop.yml` DSOL proposal steps (SC2012); quoted `$GITHUB_OUTPUT` in four workflow files (SC2086).
 - Replaced string-accumulation patterns with bash arrays for optional CLI args in `fp-oracle-audit.yml` and `package-kpis.yml` (SC2086).
@@ -316,12 +362,14 @@ Short version: Non-ASCII arrow character (`→`) in `check_version.py` error out
 Short version: Failing GitHub Actions repaired and CI guardrails hardened against recurring workflow, secrets, and hygiene regressions.
 
 ### Fixed
+
 - Unblocked failing Actions by tracking required badge benchmark artifacts (`kpi_snapshot.json`, `mutation_benchmark.json`, `drift_self.json`, `kpi_trend.jsonl`) and stabilizing detect-secrets baseline updates.
 - Repaired CI hygiene failures (YAML parsing edge cases, issue-template quoting, trailing-whitespace/EOF normalization in affected workflow/artifact files).
 - Hardened Action security checks by removing direct template expansion in shell `run` blocks flagged by zizmor (`action.yml`).
 - Stabilized `update-readme-badge` against concurrent pushes on `main` by adding fetch/rebase/retry logic to the workflow's commit-push step.
 
 ### Changed
+
 - CI guardrails hardened across pre-commit and workflow hygiene: reliable YAML parsing (`--unsafe`, `conda.recipe` exclusion), benchmark-size allowance for badge artifacts, shellcheck-safe snapshot/DSOL logic, and dependency auditing via pinned non-editable package lists in CI and Security Hygiene.
 
 ## [2.41.0] - 2026-04-24
@@ -329,14 +377,17 @@ Short version: Failing GitHub Actions repaired and CI guardrails hardened agains
 Short version: Signal dependency DAG scheduler, context-aware finding priority, scoring/suppression/incremental hardening.
 
 ### Added
+
 - Topological signal scheduler (`dependency_dag.py`) via `depends_on_signals`; stable fallback order for undeclared dependencies.
 - Context-aware finding priority (issue #370): priority from signal metadata, file change frequency, and suppression state.
 - `workspace-automation-orchestrator` skill; `.learnings/` self-improving-agent log; external skills collection.
 
 ### Changed
+
 - Scoring hardening (per-signal weight application, degradation-cause tracking), suppression context enrichment, incremental caching, embedding stability improvements, and agent instruction/prompt updates.
 
 ### Fixed
+
 - Codecov coverage reporting restored: switched to `CODECOV_TOKEN` secret and added `[tool.coverage.paths]` mapping to resolve 0% badge after repo transfer.
 
 ## [2.40.4] - 2026-04-24
@@ -344,11 +395,13 @@ Short version: Signal dependency DAG scheduler, context-aware finding priority, 
 Short version: MCTS config-space optimizer + GA/hybrid hardenings with empirical multi-seed evidence (gate_pass: true for MCTS and hybrid loops).
 
 ### Added
+
 - MCTS config-space optimizer: `ConfigMCTSSearch` (UCB1 bandit, 28 `ConfigAction` arms) maximizes aggregate F1 over precision fixtures; new `config-optimize` CLI command and `quality-config-optimize.yml` workflow.
 - `src/drift/precision.py`: `config_override` param for `run_fixture`/`evaluate_fixtures`; `summary_dict()` on `PrecisionRecallReport`.
 - Empirical evidence: MCTS gate_pass=true (5/5 seeds, median +0.243), hybrid gate_pass=true (2/3 seeds, median +0.122); config-optimize F1=1.0 baseline, zero regression.
 
 ### Fixed
+
 - `quality-mcts.yml` and `quality-genetic.yml` hardened (script-injection safety, concurrency groups, Draft PR, `GITHUB_STEP_SUMMARY`); quality loop evidence gate repaired.
 
 ## [2.40.1] – 2026-04-25
@@ -356,6 +409,7 @@ Short version: MCTS config-space optimizer + GA/hybrid hardenings with empirical
 Short version: MCP server performance improvements — L1 in-memory LRU cache, extended TTLs.
 
 ### Fixed
+
 - `ParseCache` and `SignalCache` now have a class-level `OrderedDict` LRU cache (L1) eliminating disk I/O and JSON deserialization on warm repeated MCP scans.
 - `_GIT_HISTORY_CACHE_TTL_SECONDS` extended from 600 s to 3600 s to cover full VS Code sessions.
 - Default `nudge_baseline_ttl_seconds` increased from 900 s to 3600 s; git-state invalidation still takes priority regardless of TTL.
@@ -365,6 +419,7 @@ Short version: MCP server performance improvements — L1 in-memory LRU cache, e
 Short version: Patch release — quality-loop src_path fix and working-tree normalization.
 
 ### Fixed
+
 - Fix `src_path` default and rebalance metric weights in quality-loop: `CompositeMetric.__post_init__` now defaults `src_path` to `repo_root` if not provided, preventing ruff from being invoked as `ruff check None`. Weights rebalanced from drift=0.6/ruff=0.3/mypy=0.1 to drift=0.1/ruff=0.7/mypy=0.2.
 - Normalize line endings, docs, skills, tests and source across working tree.
 - Reduce drift findings (546→538): extract `_atomic_replace()` in `trend_history.py`, `_resolve_signal_tokens()` in `suppression.py`, `_collect_changed_files()`/`_handle_changes()` in `commands/watch.py`; add `isinstance` guards in `blast_radius/_adr_frontmatter.py` and `intent/validate.py`. Resolves `naming_contract_violation` (2→0) and reduces `guard_clause_deficit` (7→4).
@@ -374,9 +429,11 @@ Short version: Patch release — quality-loop src_path fix and working-tree norm
 Short version: Hybrid MCTS+GA autonomous code quality loop in `scripts/quality_loop/`.
 
 ### Added
+
 - implement hybrid MCTS+GA autonomous code quality loop (`scripts/quality_loop/`): MCTS-based patch exploration with GA crossover/mutation, drift analysis as fitness function. Tests in `tests/test_quality_loop/`. Evidence: `benchmark_results/v2.38.0_quality-loop_feature_evidence.json`.
 
 ### Fixed
+
 - fix src_path default and rebalance metric weights in quality-loop: `CompositeMetric.__post_init__` now defaults `src_path` to `repo_root` if not provided, preventing ruff from being invoked as `ruff check None`. Weights rebalanced from drift=0.6/ruff=0.3/mypy=0.1 to drift=0.1/ruff=0.7/mypy=0.2 so AST-level style transforms can actually move the metric.
 
 ## [2.38.0] – 2026-04-23
@@ -838,13 +895,16 @@ Short version: Harden copilot-autopilot risky-edit completion with fix-intent co
 Short version: Introduce output format expansion (pr-comment, junit, llm, ci, gate, completions), signal clarity hardening, and actionability improvements across 24 signals.
 
 ### Added
+
 - Six new output formats: `--format pr-comment`, `--format junit`, `--format llm`, `drift ci`, `drift gate` alias, and `drift completions` for shell tab-completion.
 - Signal clarity improvements via ADR-048–ADR-052: EDS private-function recall guard, PFS canonical code snippet, AVS blast-radius churn guard, and CCC commit-context test template.
 
 ### Changed
+
 - SARIF rule `help` field populated from `generate_recommendation()`; CSV gains `signal_label` column (breaking: column indices ≥ 2 shift by 1).
 
 ### Fixed
+
 - Actionability hardening across CXS, TVS, AVS, DCA, MAZ, TSB, and PHR to reduce false positives on test files, passive definition modules, and published-package exports.
 - Convert all relative `docs-site/` and `docs/` links in README.md to absolute URLs so banner image, GIF, and documentation links render correctly on PyPI.
 
@@ -853,6 +913,7 @@ Short version: Introduce output format expansion (pr-comment, junit, llm, ci, ga
 Short version: Introduce calibration hardening and signal quality improvements for AVS, DIA, and MDS.
 
 ### Added
+
 - Consolidate AVS, DIA, and MDS quality hardening with updated thresholds and calibration support.
 - Extend feedback tooling and calibration workflow, including new automation script support.
 - Refresh golden snapshots and ground-truth fixtures for regression-safe behavior checks.
@@ -907,6 +968,7 @@ Short version: Align release metadata with current project version.
 ## [2.1.3] - 2026-04-02
 
 Short version: Keep release metadata aligned after CI runner hardening updates.
+
 ### Fixed
 
 - Align release bookkeeping so `pyproject.toml` and top changelog release stay in sync for pre-push release-discipline checks.
@@ -997,7 +1059,6 @@ Short version: Add deterministic baseline refresh reason in nudge.
 
 - Add deterministic baseline refresh reason in nudge.
 
-
 ## [1.3.6] - 2026-04-01
 
 Short version: Fix JSON error consistency across CLI commands.
@@ -1014,7 +1075,6 @@ Short version: Maintenance and dependency updates.
 
 - Maintenance and dependency updates.
 
-
 ## [1.3.4] - 2026-04-01
 
 Short version: Maintenance and dependency updates.
@@ -1022,7 +1082,6 @@ Short version: Maintenance and dependency updates.
 ### Changed
 
 - Maintenance and dependency updates.
-
 
 ## [1.3.3] - 2026-04-01
 
@@ -1032,7 +1091,6 @@ Short version: Maintenance and dependency updates.
 
 - Maintenance and dependency updates.
 
-
 ## [1.3.2] - 2026-04-01
 
 Short version: Release 1.3.2. (+8 more commits)
@@ -1040,7 +1098,6 @@ Short version: Release 1.3.2. (+8 more commits)
 ### Changed
 
 - Release 1.3.2. (+8 more commits)
-
 
 ## [1.3.1] - 2026-04-01
 
@@ -1050,7 +1107,6 @@ Short version: Mark Pages + Discussions active, trigger docs deployment. (+4 mor
 
 - Mark Pages + Discussions active, trigger docs deployment. (+4 more commits)
 
-
 ## [1.3.0] - 2026-04-01
 
 Short version: Fix SECURITY.md to include 1.3.x as supported. (+2 more commits)
@@ -1058,7 +1114,6 @@ Short version: Fix SECURITY.md to include 1.3.x as supported. (+2 more commits)
 ### Changed
 
 - Fix SECURITY.md to include 1.3.x as supported. (+2 more commits)
-
 
 ## [1.2.0] - 2026-04-01
 
@@ -1068,7 +1123,6 @@ Short version: Phase 3  project-specific constraint extraction for AVS/CCC/ECM/H
 
 - Phase 3  project-specific constraint extraction for AVS/CCC/ECM/HSC generators. (+5 more commits)
 
-
 ## [1.1.17] - 2026-03-31
 
 Short version: Refine v1.1.16 release notes. (+2 more commits)
@@ -1076,7 +1130,6 @@ Short version: Refine v1.1.16 release notes. (+2 more commits)
 ### Changed
 
 - Refine v1.1.16 release notes. (+2 more commits)
-
 
 ## [1.1.16] - 2026-03-31
 
@@ -1223,11 +1276,13 @@ Short version: Use remote tags for version tracking and clean up release state. 
 ## [1.1.2] - 2026-03-30
 
 ### Fixed
+
 - Reduce DCA false positives for framework entry-points: route-decorated handlers and schema-adjacent classes in router files are no longer prioritized as potentially unused exports.
 
 ## [1.1.1] - 2026-03-30
 
 ### Release
+
 - Version 1.1.1
 
 ## [0.10.10] - 2026-03-30

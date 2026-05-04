@@ -95,15 +95,43 @@ def _compute_gate6_ok(changed_files: set[str]) -> tuple[bool, str]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
-    if diff_output.returncode != 0:
+    if diff_output.returncode != 0 or diff_output.stdout is None:
         return False, "Unable to read src/drift diff"
 
     ok, missing = check_public_api_docstrings_diff(diff_output.stdout)
     if ok:
         return True, "Public API docstring check passed"
     return False, f"Missing added docstring for files: {', '.join(missing)}"
+
+
+def _run_repo_guard() -> tuple[bool, str]:
+    """Run repo-guard hygiene check and return (ok, reason)."""
+    result = subprocess.run(
+        [
+            "python",
+            "scripts/check_repo_hygiene.py",
+            "--config",
+            ".github/repo-guard.blocklist",
+            "--root-allowlist",
+            ".github/repo-root-allowlist",
+        ],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if result.returncode == 0:
+        return True, "Repo-Guard: no blocked paths"
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    lines += [line.strip() for line in result.stderr.splitlines() if line.strip()]
+    summary = "; ".join(lines[:3]) or "blocked path detected"
+    return False, f"Repo-Guard FAIL: {summary} — add entry to .github/repo-root-allowlist"
 
 
 def evaluate_gates(
@@ -116,6 +144,10 @@ def evaluate_gates(
     last_success_sha: str | None,
 ) -> list[GateResult]:
     results: list[GateResult] = []
+
+    # Gate 1 — Repo-Guard (blocked paths)
+    gate1_ok, gate1_reason = _run_repo_guard()
+    results.append(GateResult(1, True, "OK" if gate1_ok else "MISSING", gate1_reason))
 
     gate2_active = commit_type == "feat"
     if gate2_active:

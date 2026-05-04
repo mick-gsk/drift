@@ -8,157 +8,157 @@
     },
     {
       "name": "drift_diff",
-      "lineno": 239,
+      "lineno": 234,
       "owner": "drift.mcp_router_analysis"
     },
     {
       "name": "drift_explain",
-      "lineno": 340,
+      "lineno": 333,
       "owner": "drift.mcp_router_analysis"
     },
     {
       "name": "drift_fix_plan",
-      "lineno": 375,
+      "lineno": 368,
       "owner": "drift.mcp_router_repair"
     },
     {
       "name": "drift_validate",
-      "lineno": 452,
+      "lineno": 443,
       "owner": "drift.mcp_router_analysis"
     },
     {
       "name": "drift_nudge",
-      "lineno": 484,
+      "lineno": 475,
       "owner": "drift.mcp_router_analysis"
     },
     {
       "name": "drift_shadow_verify",
-      "lineno": 613,
+      "lineno": 604,
       "owner": "drift.mcp_router_analysis"
     },
     {
       "name": "drift_verify",
-      "lineno": 661,
+      "lineno": 652,
       "owner": "drift.mcp_router_repair"
     },
     {
       "name": "drift_brief",
-      "lineno": 726,
+      "lineno": 717,
       "owner": "drift.mcp_router_analysis"
     },
     {
       "name": "drift_negative_context",
-      "lineno": 788,
+      "lineno": 777,
       "owner": "drift.mcp_router_analysis"
     },
     {
       "name": "drift_session_start",
-      "lineno": 841,
+      "lineno": 829,
       "owner": "drift.mcp_router_session"
     },
     {
       "name": "drift_session_status",
-      "lineno": 919,
+      "lineno": 907,
       "owner": "drift.mcp_router_session"
     },
     {
       "name": "drift_session_update",
-      "lineno": 934,
+      "lineno": 922,
       "owner": "drift.mcp_router_session"
     },
     {
       "name": "drift_session_end",
-      "lineno": 978,
+      "lineno": 963,
       "owner": "drift.mcp_router_session"
     },
     {
       "name": "drift_session_trace",
-      "lineno": 1188,
+      "lineno": 1153,
       "owner": "drift.mcp_router_session"
     },
     {
       "name": "drift_guard_contract",
-      "lineno": 1207,
+      "lineno": 1170,
       "owner": "drift.mcp_utils"
     },
     {
       "name": "drift_map",
-      "lineno": 1253,
+      "lineno": 1216,
       "owner": "drift.mcp_router_session"
     },
     {
       "name": "drift_feedback",
-      "lineno": 1285,
+      "lineno": 1248,
       "owner": "drift.mcp_router_calibration"
     },
     {
       "name": "drift_calibrate",
-      "lineno": 1335,
+      "lineno": 1298,
       "owner": "drift.mcp_router_calibration"
     },
     {
       "name": "drift_capture_intent",
-      "lineno": 1365,
+      "lineno": 1328,
       "owner": "drift.mcp_router_intent"
     },
     {
       "name": "drift_verify_intent",
-      "lineno": 1390,
+      "lineno": 1353,
       "owner": "drift.mcp_router_intent"
     },
     {
       "name": "drift_feedback_for_agent",
-      "lineno": 1420,
+      "lineno": 1383,
       "owner": "drift.mcp_router_intent"
     },
     {
       "name": "drift_patch_begin",
-      "lineno": 1457,
+      "lineno": 1420,
       "owner": "drift.mcp_router_patch"
     },
     {
       "name": "drift_patch_check",
-      "lineno": 1522,
+      "lineno": 1483,
       "owner": "drift.mcp_router_patch"
     },
     {
       "name": "drift_patch_commit",
-      "lineno": 1561,
+      "lineno": 1522,
       "owner": "drift.mcp_router_patch"
     },
     {
       "name": "drift_fix_apply",
-      "lineno": 1600,
+      "lineno": 1561,
       "owner": "drift.mcp_router_repair"
     },
     {
       "name": "drift_steer",
-      "lineno": 1655,
+      "lineno": 1617,
       "owner": "drift.mcp_router_architecture"
     },
     {
       "name": "drift_compile_policy",
-      "lineno": 1710,
+      "lineno": 1672,
       "owner": "drift.mcp_router_architecture"
     },
     {
       "name": "drift_suggest_rules",
-      "lineno": 1776,
+      "lineno": 1739,
       "owner": "drift.mcp_router_architecture"
     },
     {
       "name": "drift_generate_skills",
-      "lineno": 1821,
+      "lineno": 1784,
       "owner": "drift.mcp_router_architecture"
     },
     {
       "name": "drift_retrieve",
-      "lineno": 1876,
+      "lineno": 1839,
       "owner": "drift.retrieval.mcp"
     },
     {
       "name": "drift_cite",
-      "lineno": 1936,
+      "lineno": 1897,
       "owner": "drift.retrieval.mcp"
     }
   ],
