@@ -249,7 +249,7 @@ class TestDiscoverFiles:
         (tmp_path / "app.ts").write_text("export const x = 1;")
 
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._detect_supported_languages",
+            "drift_engine.ingestion.file_discovery._detect_supported_languages",
             lambda: {"python", "typescript", "tsx", "javascript", "jsx"},
         )
 
@@ -266,7 +266,7 @@ class TestDiscoverFiles:
         (tmp_path / "app.cts").write_text("export const x: number = 1;")
 
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._detect_supported_languages",
+            "drift_engine.ingestion.file_discovery._detect_supported_languages",
             lambda: {"python", "typescript", "tsx", "javascript", "jsx"},
         )
 
@@ -283,7 +283,7 @@ class TestDiscoverFiles:
         (tmp_path / "app.ts").write_text("export const x = 1;")
 
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._detect_supported_languages",
+            "drift_engine.ingestion.file_discovery._detect_supported_languages",
             lambda: {"python"},
         )
 
@@ -300,7 +300,7 @@ class TestDiscoverFiles:
         (tmp_path / "app.ts").write_text("export const x = 1;")
 
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._detect_supported_languages",
+            "drift_engine.ingestion.file_discovery._detect_supported_languages",
             lambda: {"python"},
         )
 
@@ -337,7 +337,7 @@ class TestDiscoverFiles:
             return {"python"}
 
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._detect_supported_languages",
+            "drift_engine.ingestion.file_discovery._detect_supported_languages",
             _fake_supported,
         )
 
@@ -349,7 +349,7 @@ class TestDiscoverFiles:
     def test_discovery_cache_hit_skips_glob(self, tmp_path, monkeypatch):
         (tmp_path / "a.py").write_text("x = 1")
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
+            "drift_engine.ingestion.file_discovery._current_git_head",
             lambda _repo: "head-a",
         )
 
@@ -367,7 +367,7 @@ class TestDiscoverFiles:
         (tmp_path / "a.py").write_text("x = 1")
         heads = iter(["head-a", "head-b"])
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
+            "drift_engine.ingestion.file_discovery._current_git_head",
             lambda _repo: next(heads),
         )
 
@@ -386,7 +386,7 @@ class TestDiscoverFiles:
         manifest.write_text("{invalid json", encoding="utf-8")
 
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
+            "drift_engine.ingestion.file_discovery._current_git_head",
             lambda _repo: "head-a",
         )
 
@@ -398,7 +398,7 @@ class TestDiscoverFiles:
     def test_discovery_cache_uses_mtime_fallback_without_git(self, tmp_path, monkeypatch):
         (tmp_path / "a.py").write_text("x = 1")
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
+            "drift_engine.ingestion.file_discovery._current_git_head",
             lambda _repo: None,
         )
 
@@ -500,7 +500,7 @@ class TestEnumerateRepoPruning:
 
         monkeypatch.setattr(os, "stat", _recording_stat)
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
+            "drift_engine.ingestion.file_discovery._current_git_head",
             lambda _repo: None,  # force cache-miss
         )
 
@@ -533,9 +533,9 @@ class TestEnumerateRepoPruning:
                 visited_dirs.append(rel)
                 yield root, dirs, files
 
-        monkeypatch.setattr("drift.ingestion.file_discovery.os.walk", _recording_walk)
+        monkeypatch.setattr("drift_engine.ingestion.file_discovery.os.walk", _recording_walk)
         monkeypatch.setattr(
-            "drift.ingestion.file_discovery._current_git_head",
+            "drift_engine.ingestion.file_discovery._current_git_head",
             lambda _repo: None,
         )
 

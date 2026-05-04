@@ -99,7 +99,7 @@ class TestResolveWorkerCount:
             for i in range(3)
         ]
 
-        with patch("drift.pipeline.os.cpu_count", return_value=8):
+        with patch("drift_engine.pipeline.os.cpu_count", return_value=8):
             got = resolve_worker_count(config=cfg, files=files, requested_workers=None)
 
         # cpu fallback 8 -> small repo conservative downscale -> 4
@@ -124,7 +124,7 @@ class TestResolveWorkerCount:
             FileInfo(path=Path("d.py"), language="python", size_bytes=100, line_count=1),
         ]
 
-        with patch("drift.pipeline.os.cpu_count", return_value=8):
+        with patch("drift_engine.pipeline.os.cpu_count", return_value=8):
             got = resolve_worker_count(config=cfg, files=files, requested_workers=None)
 
         # base 8, non-parser ratio 0.5 -> -1, large file ratio 0.5 -> -1 => 6

@@ -105,33 +105,33 @@ class TestParsePorcelain:
 
 
 class TestBlameLines:
-    @patch("drift.ingestion.git_blame.subprocess.run")
+    @patch("drift_engine.ingestion.git_blame.subprocess.run")
     def test_blame_returns_parsed_lines(self, mock_run: object) -> None:
         mock_run.return_value = type("Result", (), {"returncode": 0, "stdout": PORCELAIN_SAMPLE})()
         result = blame_lines(Path("/repo"), "src/module.py", 42, 44)
         assert len(result) == 3
         assert result[0].author == "Jane Doe"
 
-    @patch("drift.ingestion.git_blame.subprocess.run")
+    @patch("drift_engine.ingestion.git_blame.subprocess.run")
     def test_blame_with_line_range_passes_l_flag(self, mock_run: object) -> None:
         mock_run.return_value = type("Result", (), {"returncode": 0, "stdout": ""})()
         blame_lines(Path("/repo"), "src/file.py", 10, 20)
         cmd = mock_run.call_args[0][0]
         assert "-L10,20" in cmd
 
-    @patch("drift.ingestion.git_blame.subprocess.run")
+    @patch("drift_engine.ingestion.git_blame.subprocess.run")
     def test_blame_without_range_no_l_flag(self, mock_run: object) -> None:
         mock_run.return_value = type("Result", (), {"returncode": 0, "stdout": ""})()
         blame_lines(Path("/repo"), "src/file.py")
         cmd = mock_run.call_args[0][0]
         assert not any(c.startswith("-L") for c in cmd)
 
-    @patch("drift.ingestion.git_blame.subprocess.run", side_effect=FileNotFoundError)
+    @patch("drift_engine.ingestion.git_blame.subprocess.run", side_effect=FileNotFoundError)
     def test_blame_git_not_found_returns_empty(self, _mock: object) -> None:
         result = blame_lines(Path("/repo"), "src/file.py")
         assert result == []
 
-    @patch("drift.ingestion.git_blame.subprocess.run")
+    @patch("drift_engine.ingestion.git_blame.subprocess.run")
     def test_blame_nonzero_return_code(self, mock_run: object) -> None:
         mock_run.return_value = type(
             "Result", (), {"returncode": 128, "stdout": "", "stderr": ""}
@@ -195,7 +195,7 @@ class TestBlameFilesParallel:
 
 
 class TestBranchHint:
-    @patch("drift.ingestion.git_blame.subprocess.run")
+    @patch("drift_engine.ingestion.git_blame.subprocess.run")
     def test_extracts_branch_from_merge_message(self, mock_run: object) -> None:
         mock_run.return_value = type(
             "Result",
@@ -208,7 +208,7 @@ class TestBranchHint:
         hint = extract_branch_hint(Path("/repo"), "abc123")
         assert hint == "feature/llm-refactor"
 
-    @patch("drift.ingestion.git_blame.subprocess.run")
+    @patch("drift_engine.ingestion.git_blame.subprocess.run")
     def test_extracts_branch_from_pr_message(self, mock_run: object) -> None:
         mock_run.return_value = type(
             "Result",
@@ -221,7 +221,7 @@ class TestBranchHint:
         hint = extract_branch_hint(Path("/repo"), "abc123")
         assert hint == "feature-auth"
 
-    @patch("drift.ingestion.git_blame.subprocess.run")
+    @patch("drift_engine.ingestion.git_blame.subprocess.run")
     def test_returns_none_on_no_merge(self, mock_run: object) -> None:
         mock_run.return_value = type(
             "Result", (), {"returncode": 0, "stdout": "feat: add thing\n"}

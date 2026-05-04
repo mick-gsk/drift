@@ -371,7 +371,7 @@ def test_parse_file_typescript_calls_ts_parser(
         from drift.models import ParseResult
         return ParseResult(file_path=file_path, language=language)
 
-    monkeypatch.setattr("drift.ingestion.ts_parser.parse_typescript_file", fake_ts_parse)
+    monkeypatch.setattr("drift_engine.ingestion.ts_parser.parse_typescript_file", fake_ts_parse)  # ADR-100 Phase 3
     f = tmp_path / "app.ts"
     f.write_text("const x = 1;", encoding="utf-8")
     parse_file(Path("app.ts"), tmp_path, "typescript")

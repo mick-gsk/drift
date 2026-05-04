@@ -60,11 +60,10 @@ def _make_blank_repo_analysis(repo_path: Path) -> RepoAnalysis:
 
 def test_prune_git_history_cache_stale_entries() -> None:
     """Line 268: pop stale entries from _GIT_HISTORY_CACHE."""
-    from drift.pipeline import (
-        _GIT_HISTORY_CACHE,
-        _GIT_HISTORY_CACHE_TTL_SECONDS,
-        _prune_git_history_cache,
-    )
+    import drift_engine.pipeline as _pe  # ADR-100 Phase 3: avoid stub/reload mismatch
+    _GIT_HISTORY_CACHE = _pe._GIT_HISTORY_CACHE
+    _GIT_HISTORY_CACHE_TTL_SECONDS = _pe._GIT_HISTORY_CACHE_TTL_SECONDS
+    _prune_git_history_cache = _pe._prune_git_history_cache
 
     _GIT_HISTORY_CACHE.clear()
     # Insert a stale entry (TTL + 100 seconds old) to ensure it is pruned.
@@ -79,11 +78,10 @@ def test_prune_git_history_cache_stale_entries() -> None:
 
 def test_prune_git_history_cache_max_entries() -> None:
     """Line 272: evict oldest when cache exceeds _GIT_HISTORY_CACHE_MAX_ENTRIES."""
-    from drift.pipeline import (
-        _GIT_HISTORY_CACHE,
-        _GIT_HISTORY_CACHE_MAX_ENTRIES,
-        _prune_git_history_cache,
-    )
+    import drift_engine.pipeline as _pe  # ADR-100 Phase 3: avoid stub/reload mismatch
+    _GIT_HISTORY_CACHE = _pe._GIT_HISTORY_CACHE
+    _GIT_HISTORY_CACHE_MAX_ENTRIES = _pe._GIT_HISTORY_CACHE_MAX_ENTRIES
+    _prune_git_history_cache = _pe._prune_git_history_cache
 
     _GIT_HISTORY_CACHE.clear()
     now = time.time()
@@ -209,7 +207,7 @@ def test_analyze_diff_subprocess_failure_fallback(tmp_path: Path) -> None:
 
     with (
         patch("subprocess.run", side_effect=subprocess.CalledProcessError(128, "git")),
-        patch("drift.analyzer.analyze_repo", return_value=fallback_analysis),
+        patch("drift_engine.analyzer.analyze_repo", return_value=fallback_analysis),  # ADR-100 Phase 3
     ):
         result = analyze_diff(tmp_path, config=DriftConfig(), diff_ref="HEAD~999")
 

@@ -215,7 +215,7 @@ def test_blame_files_parallel_with_cache_hit(tmp_path: Path) -> None:
     if chash:
         cache.put(chash, fake_blame)
 
-    with patch("drift.ingestion.git_blame.blame_lines") as mock_blame:
+    with patch("drift_engine.ingestion.git_blame.blame_lines") as mock_blame:  # ADR-100 Phase 3
         result = blame_files_parallel(tmp_path, [("cached.py", None, None)], cache=cache)
 
     # blame_lines should NOT have been called (cache hit)
@@ -226,7 +226,7 @@ def test_blame_files_parallel_with_cache_hit(tmp_path: Path) -> None:
 def test_blame_files_parallel_worker_exception(tmp_path: Path) -> None:
     """Exception in blame worker should result in empty list for that file."""
     with patch(
-        "drift.ingestion.git_blame.blame_lines",
+        "drift_engine.ingestion.git_blame.blame_lines",  # ADR-100 Phase 3
         side_effect=RuntimeError("unexpected failure"),
     ):
         result = blame_files_parallel(tmp_path, [("file.py", None, None)], cache=BlameCache())
@@ -241,7 +241,7 @@ def test_blame_files_parallel_deduplicates_ranges(tmp_path: Path) -> None:
         calls.append(fpath)
         return []
 
-    with patch("drift.ingestion.git_blame.blame_lines", side_effect=mock_blame):
+    with patch("drift_engine.ingestion.git_blame.blame_lines", side_effect=mock_blame):  # ADR-100 Phase 3
         blame_files_parallel(
             tmp_path,
             [("same.py", 1, 5), ("same.py", 3, 10), ("other.py", None, None)],
@@ -260,7 +260,7 @@ def test_blame_files_parallel_widens_range_when_none(tmp_path: Path) -> None:
         calls.append((fpath, start, end))
         return []
 
-    with patch("drift.ingestion.git_blame.blame_lines", side_effect=mock_blame):
+    with patch("drift_engine.ingestion.git_blame.blame_lines", side_effect=mock_blame):  # ADR-100 Phase 3
         blame_files_parallel(
             tmp_path,
             [("f.py", 1, 5), ("f.py", None, None)],
