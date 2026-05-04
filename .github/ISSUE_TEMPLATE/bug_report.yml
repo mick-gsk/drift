@@ -1,30 +1,63 @@
 name: Bug Report
-description: Something isn't working as expected
+description: Report a defect, regression, crash, or incorrect behavior.
 title: "[Bug] "
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug! Please fill in the details below so we can reproduce and fix it.
+        Thanks for filing this report. Keep every answer concise, reproducible, and
+        grounded in observed evidence. Do not speculate beyond the evidence.
+
+  - type: dropdown
+    id: bug-type
+    attributes:
+      label: Bug type
+      description: Choose the category that best matches this report.
+      options:
+        - Regression (worked before, broken now)
+        - Crash / unhandled exception
+        - Incorrect signal result (false positive / false negative)
+        - Wrong output format or schema violation
+        - Performance degradation
+        - Documentation mismatch
+        - Other
+    validations:
+      required: true
 
   - type: textarea
     id: description
     attributes:
-      label: Describe the bug
-      description: A clear description of what the bug is.
+      label: Summary
+      description: One-sentence statement of what is broken, based only on observed evidence.
     validations:
       required: true
 
   - type: textarea
     id: reproduce
     attributes:
-      label: To reproduce
-      description: Steps or command to reproduce the issue.
+      label: Steps to reproduce
+      description: Shortest deterministic repro path supported by direct observation.
       placeholder: |
         ```bash
         drift analyze --repo /path/to/project
         ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What you expected to happen (cite prior behavior, docs, or a known-good version).
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What actually happened. Include the full error output if applicable.
     validations:
       required: true
 
@@ -58,25 +91,40 @@ body:
       required: true
 
   - type: textarea
-    id: expected
+    id: root-cause
     attributes:
-      label: Expected behaviour
-      description: What you expected to happen.
+      label: Root cause (if known)
+      description: |
+        Why did this happen? What detection or guardrail is missing?
+        If unknown, write `Unknown`.
+      placeholder: |
+        - Root cause:
+        - Missing detection / guardrail:
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and severity
+      description: |
+        Explain who is affected, how severe, how often, and practical consequences.
+      placeholder: |
+        - Affected users/projects:
+        - Severity (annoying / blocks workflow / data integrity risk):
+        - Frequency (always / intermittent / edge case):
+        - Consequence:
     validations:
       required: true
 
   - type: textarea
-    id: actual
+    id: evidence
     attributes:
-      label: Actual behaviour
-      description: What actually happened. Include the full error output if applicable.
-    validations:
-      required: true
+      label: Logs, screenshots, and evidence
+      description: Include redacted logs, screenshots, or version comparisons that support the report.
 
   - type: textarea
     id: context
     attributes:
       label: Additional context
-      description: Stack trace, drift.yaml contents, anything else relevant.
+      description: Stack trace, `drift.yaml` contents, repo characteristics, or anything else relevant.
     validations:
       required: false
