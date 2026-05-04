@@ -38,3 +38,22 @@ jobs:
           stale-pr-label: "stale"
           exempt-issue-labels: "good first issue,help wanted,signal-quality"
           exempt-pr-labels: "help wanted"
+
+      # Fast-close PRs with needs-description: 3 days stale, 4 days to close.
+      - uses: actions/stale@v9
+        with:
+          stale-pr-message: >
+            This PR has been marked stale because the description is missing or
+            contains only the template placeholder. Please fill in the PR template
+            and remove the `needs-description` label to reactivate it.
+            It will be closed in 4 days if no update is made.
+          close-pr-message: >
+            Closing this PR because the description was not filled in within 7 days.
+            Feel free to re-open with a completed PR template.
+          days-before-stale: -1
+          days-before-close: -1
+          days-before-pr-stale: 3
+          days-before-pr-close: 4
+          stale-pr-label: "stale"
+          only-pr-labels: "needs-description"
+          exempt-pr-labels: "help wanted"
