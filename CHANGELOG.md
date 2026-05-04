@@ -13,6 +13,9 @@ Short version: Add PR automation suite — lane labels, size labels, fast-lane a
 
 - Correct `actions/first-interaction@v3` input names; address PR review comments (label removal cleanup, consistent names)
 
+### Changed
+- fix recurring CI failures -- pre-commit hooks, markdownlint, ruff pin, gate_check
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
