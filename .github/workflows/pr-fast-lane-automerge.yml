@@ -17,6 +17,10 @@ on:
   check_suite:
     types: [completed]
 
+concurrency:
+  group: "pr-fast-lane-automerge-${{ github.event.pull_request.number || github.event.check_suite.id || github.ref }}"
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write

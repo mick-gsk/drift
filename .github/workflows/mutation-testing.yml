@@ -24,8 +24,8 @@ on:
     - cron: "0 3 * * 0"
 
 concurrency:
-  group: "mutation-testing"
-  cancel-in-progress: false
+  group: "mutation-testing-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
 
 permissions:
   contents: read
