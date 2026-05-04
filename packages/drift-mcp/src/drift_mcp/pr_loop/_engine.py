@@ -1,4 +1,4 @@
-"""Pure functions for the review loop state machine: T013-T033."""
+﻿"""Pure functions for the review loop state machine: T013-T033."""
 
 from __future__ import annotations
 
@@ -7,8 +7,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from drift.config._loader import PrLoopConfig
-from drift.pr_loop._models import (
+from drift_config._loader import PrLoopConfig
+
+from drift_mcp.pr_loop._models import (
     LoopExitStatus,
     LoopState,
     ReviewComment,
@@ -241,7 +242,7 @@ def loop_until_approved(
     Side effects are isolated to _gh and _state modules.
     """
     from drift.pr_loop import _gh as gh
-    from drift.pr_loop._state import load_loop_state, save_loop_state
+    from drift_mcp.pr_loop._state import load_loop_state, save_loop_state
 
     state = load_loop_state(pr_number, artifacts_dir)
 

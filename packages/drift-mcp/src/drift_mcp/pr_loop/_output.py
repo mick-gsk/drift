@@ -1,10 +1,10 @@
-"""Rich and JSON output rendering for the PR review loop (T035, T036)."""
+﻿"""Rich and JSON output rendering for the PR review loop (T035, T036)."""
 
 from __future__ import annotations
 
 import json
 
-from drift.pr_loop._models import LoopExitStatus, LoopState, ReviewState
+from drift_mcp.pr_loop._models import LoopExitStatus, LoopState, ReviewState
 
 
 def render_rich(state: LoopState, pr_number: int) -> None:

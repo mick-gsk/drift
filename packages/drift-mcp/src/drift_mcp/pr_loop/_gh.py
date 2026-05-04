@@ -1,4 +1,4 @@
-"""Side-effect layer: all gh CLI calls live here (T012, T017, T019, T025–T027, T029, T032)."""
+﻿"""Side-effect layer: all gh CLI calls live here (T012, T017, T019, T025–T027, T029, T032)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 import subprocess
 from datetime import datetime
 
-from drift.pr_loop._models import ReviewComment, ReviewerVerdict, ReviewState
+from drift_mcp.pr_loop._models import ReviewComment, ReviewerVerdict, ReviewState
 
 
 class GhCliError(Exception):

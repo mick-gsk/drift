@@ -1,4 +1,4 @@
-"""FastAPI application for the drift A2A server."""
+﻿"""FastAPI application for the drift A2A server."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from drift.serve.agent_card import build_agent_card
-from drift.serve.models import (
+from drift_mcp.serve.agent_card import build_agent_card
+from drift_mcp.serve.models import (
     INVALID_REQUEST,
     PARSE_ERROR,
     A2AErrorDetail,
@@ -45,7 +45,7 @@ def create_app(base_url: str) -> FastAPI:
     @app.post("/a2a/v1")
     async def a2a_endpoint(request: Request) -> JSONResponse:
         """A2A JSON-RPC 2.0 entry point."""
-        from drift.serve.a2a_router import dispatch
+        from drift_mcp.serve.a2a_router import dispatch
 
         # Parse raw body
         try:
