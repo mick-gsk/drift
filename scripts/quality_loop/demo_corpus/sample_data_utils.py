@@ -5,12 +5,12 @@ imports) so that the RemoveUnusedImports transform can demonstrate measurable
 improvement on a known corpus.
 """
 
-import os
-import sys        # unused  (F401)
+import hashlib  # unused  (F401)
 import json
-import re         # unused  (F401)
-import hashlib    # unused  (F401)
-import logging    # unused  (F401)
+import logging  # unused  (F401)
+import os
+import re  # unused  (F401)
+import sys  # unused  (F401)
 from typing import Optional
 
 
