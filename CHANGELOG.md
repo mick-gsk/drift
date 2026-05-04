@@ -4,13 +4,11 @@
 Short version: Add PR automation suite — lane labels, size labels, fast-lane automerge, auto-triage, Copilot PR auto-merge, weekly KPI workflow, and CI path filters for non-Python PRs.
 
 ### Added
-
 - Add PR lane labels, size labels (`size/XS`–`size/XL`), and fast-lane automerge workflow (squash-merge after approval + CI, paginated reviews/checks)
 - Add `copilot-pr-auto-merge.yml`, `pr-auto-triage.yml`, and `pr-throughput-kpi.yml` (weekly KPI snapshot, 8 metrics, 30-day window)
 - Add paths filters to `proactive-qa.yml`, `security-hygiene.yml`, `score-gate.yml`, `dependency-review.yml`, and `ci.yml` to skip non-Python PRs
 
 ### Fixed
-
 - Correct `actions/first-interaction@v3` input names; address PR review comments (label removal cleanup, consistent names)
 
 ### Changed

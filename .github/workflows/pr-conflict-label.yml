@@ -1,0 +1,98 @@
+name: PR Conflict Label
+
+# Labels open PRs with 'has-conflicts' when they can no longer merge cleanly.
+# Removes the label as soon as the conflict is resolved.
+#
+# Triggers:
+#   push to main      — main just advanced; check all open PRs
+#   pull_request sync — the PR head was updated; re-check just that PR
+#
+# Note: GitHub's `mergeable` field is computed lazily and may be null on the
+# first API call. We retry once after a short delay to let GitHub catch up.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [synchronize, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: "pr-conflict-label-${{ github.event.pull_request.number || github.sha }}"
+  cancel-in-progress: true
+
+jobs:
+  conflict-label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Label / unlabel conflicting PRs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const LABEL = 'has-conflicts';
+
+            // Collect PRs to inspect
+            let prs = [];
+            if (context.eventName === 'pull_request') {
+              // Only the PR that was just updated
+              prs = [context.payload.pull_request];
+            } else {
+              // push to main: inspect all open PRs that target main
+              const allPRs = await github.paginate(github.rest.pulls.list, {
+                owner, repo, state: 'open', base: 'main', per_page: 100
+              });
+              prs = allPRs;
+            }
+
+            for (const pr of prs) {
+              if (pr.state !== 'open') continue;
+
+              // Fetch fresh PR data — the list endpoint may have stale mergeable
+              let prData;
+              try {
+                const { data } = await github.rest.pulls.get({
+                  owner, repo, pull_number: pr.number
+                });
+                prData = data;
+              } catch (e) {
+                core.warning(`Could not fetch PR #${pr.number}: ${e.message}`);
+                continue;
+              }
+
+              // mergeable is null when GitHub hasn't computed it yet — retry once
+              if (prData.mergeable === null) {
+                await new Promise(r => setTimeout(r, 5000));
+                try {
+                  const { data } = await github.rest.pulls.get({
+                    owner, repo, pull_number: pr.number
+                  });
+                  prData = data;
+                } catch (e) {
+                  core.warning(`Retry fetch failed for PR #${pr.number}: ${e.message}`);
+                  continue;
+                }
+              }
+
+              const hasConflict = prData.mergeable === false;
+              const existingLabels = prData.labels.map(l => l.name);
+              const isLabeled    = existingLabels.includes(LABEL);
+
+              if (hasConflict && !isLabeled) {
+                await github.rest.issues.addLabels({
+                  owner, repo, issue_number: pr.number, labels: [LABEL]
+                });
+                core.info(`PR #${pr.number}: added '${LABEL}'`);
+              } else if (!hasConflict && isLabeled) {
+                await github.rest.issues.removeLabel({
+                  owner, repo, issue_number: pr.number, name: LABEL
+                });
+                core.info(`PR #${pr.number}: removed '${LABEL}'`);
+              }
+            }

@@ -109,19 +109,26 @@ jobs:
             }
 
             // ---- Condition 4: at least one approved review ----------------
-            // Paginate all reviews so a later CHANGES_REQUESTED is not missed.
-            const reviews = await github.paginate(github.rest.pulls.listReviews, {
-              owner, repo, pull_number: prNumber, per_page: 100
-            });
-            // Latest review state per reviewer
-            const latestByUser = {};
-            for (const review of reviews) {
-              latestByUser[review.user.login] = review.state;
-            }
-            const hasApproval = Object.values(latestByUser).includes('APPROVED');
-            if (!hasApproval) {
-              core.info('No approved review yet — skipping.');
-              return;
+            // Exception: size/XS fast-lane PRs (trivial docs/fixture changes) skip
+            // the review requirement — CI green + no blockers is sufficient.
+            const isXS = labelNames.includes('size/XS');
+            if (!isXS) {
+              // Paginate all reviews so a later CHANGES_REQUESTED is not missed.
+              const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                owner, repo, pull_number: prNumber, per_page: 100
+              });
+              // Latest review state per reviewer
+              const latestByUser = {};
+              for (const review of reviews) {
+                latestByUser[review.user.login] = review.state;
+              }
+              const hasApproval = Object.values(latestByUser).includes('APPROVED');
+              if (!hasApproval) {
+                core.info('No approved review yet — skipping.');
+                return;
+              }
+            } else {
+              core.info('size/XS fast-lane PR — skipping review requirement.');
             }
 
             // ---- Condition 3: all required checks green -------------------
