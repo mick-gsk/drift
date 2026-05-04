@@ -129,7 +129,9 @@ def _check_llms_txt(version: str, *, apply: bool) -> list[VersionFix]:
 # ---------------------------------------------------------------------------
 
 _SECURITY_RELEASE_LINE_RE = re.compile(r"(Current release line:\s*\*\*)(v[\d.]+)(\*\*\.)")
-_SECURITY_TABLE_HEADER_RE = re.compile(r"(\| Version \| Supported[^\n]*\n\| [-]+ \| [-]+[^\n]*\n)")
+_SECURITY_TABLE_HEADER_RE = re.compile(
+    r"(\| Version \| Supported\s*\|\s*\n\| [-]+ \| [-]+\s*\|\s*\n)"
+)
 
 
 def _check_security_md(version: str, *, apply: bool) -> list[VersionFix]:
