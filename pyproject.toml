@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "drift-analyzer"
-version = "2.50.0"
+version = "2.49.0"
 description = "Catches structural erosion from AI-generated code — the bugs that pass all your tests"
 readme = "README.md"
 license = "MIT"
@@ -65,7 +65,21 @@ dependencies = [
     "pydantic>=2.0",
     "gitpython>=3.1",
     "networkx>=3.0",
+    "drift-config",
+    "drift-sdk",
+    "drift-engine",
+    "drift-output",
+    "drift-session",
+    "drift-mcp",
 ]
+
+[tool.uv.sources]
+drift-config = { workspace = true }
+drift-sdk = { workspace = true }
+drift-engine = { workspace = true }
+drift-output = { workspace = true }
+drift-session = { workspace = true }
+drift-mcp = { workspace = true }
 
 [project.urls]
 Homepage = "https://mick-gsk.github.io/drift/"
@@ -147,6 +161,10 @@ drift-analyzer = "drift.cli:safe_main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/drift"]
+
+[tool.uv.workspace]
+members = ["packages/*"]
+exclude = ["packages/drift", "packages/drift-cli"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
