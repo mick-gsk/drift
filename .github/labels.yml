@@ -173,3 +173,11 @@
 - name: auto-triaged
   color: "c5def5"
   description: "PR was automatically triaged for triage labels"
+
+- name: has-conflicts
+  color: "e11d48"
+  description: "PR has merge conflicts with the base branch"
+
+- name: "r: too-many-prs"
+  color: "e11d48"
+  description: "Author has exceeded the per-author open-PR limit (10)"
