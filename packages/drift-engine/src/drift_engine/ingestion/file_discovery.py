@@ -1,0 +1,635 @@
+"""File discovery and language detection."""
+
+from __future__ import annotations
+
+import fnmatch
+import hashlib
+import json
+import logging
+import os
+import re
+import subprocess
+import tempfile
+import time
+from functools import lru_cache
+from pathlib import Path, PurePosixPath
+from threading import Lock
+from typing import Any
+
+from drift.models import FileInfo
+
+
+def _glob_full_match(path_str: str, pattern: str) -> bool:
+    """Match path_str against a glob pattern where ** crosses directory separators.
+
+    Needed for Python < 3.12 where PurePath.match() does not support **.
+    """
+    i, n = 0, len(pattern)
+    parts: list[str] = ['^']
+    while i < n:
+        if pattern[i : i + 2] == '**':
+            # /**/  →  zero or more path components (e.g. src/**/*.py matches src/mod.py)
+            if (
+                i > 0
+                and pattern[i - 1] == '/'
+                and i + 2 < n
+                and pattern[i + 2] == '/'
+            ):
+                parts.append('(?:[^/]+/)*')
+                i += 3  # consume **/ as one token
+            else:
+                parts.append('.*')
+                i += 2
+        elif pattern[i] == '*':
+            parts.append('[^/]*')
+            i += 1
+        elif pattern[i] == '?':
+            parts.append('[^/]')
+            i += 1
+        else:
+            parts.append(re.escape(pattern[i]))
+            i += 1
+    parts.append('$')
+    return bool(re.match(''.join(parts), path_str))
+
+
+def _matches_include_patterns(path_str: str, include_patterns: list[str]) -> bool:
+    posix_path = PurePosixPath(path_str)
+    for pattern in include_patterns:
+        norm = pattern.replace("\\", "/")
+        if posix_path.match(norm):
+            return True
+        if norm.startswith("**/") and posix_path.match(norm[3:]):
+            return True
+        # Fallback for patterns containing ** (PurePath.match() lacks ** on Python < 3.12)
+        if "**" in norm and _glob_full_match(path_str, norm):
+            return True
+    return False
+
+
+logger = logging.getLogger("drift")
+
+LANGUAGE_MAP: dict[str, str] = {
+    ".py": "python",
+    ".pyi": "python",
+    ".ts": "typescript",
+    ".mts": "typescript",
+    ".cts": "typescript",
+    ".tsx": "tsx",
+    ".js": "javascript",
+    ".mjs": "javascript",
+    ".cjs": "javascript",
+    ".jsx": "jsx",
+}
+
+SUPPORTED_LANGUAGES = {"python"}
+_TYPESCRIPT_FAMILY_LANGUAGES = {"typescript", "tsx", "javascript", "jsx"}
+
+_DISCOVERY_MANIFEST_VERSION = 1
+_DISCOVERY_MANIFEST_FILE = "file_discovery_manifest.json"
+_DISCOVERY_MANIFEST_MAX_ENTRIES = 16
+_GIT_HEAD_TTL_SECONDS = 5.0
+_GIT_HEAD_CACHE_LOCK = Lock()
+_GIT_HEAD_CACHE: dict[str, tuple[float, str | None]] = {}
+
+
+def _detect_supported_languages() -> set[str]:
+    """Return the set of languages supported in this environment."""
+    langs = {"python"}
+    try:
+        from drift_engine.ingestion.ts_parser import tree_sitter_available
+
+        if tree_sitter_available():
+            langs |= {"typescript", "tsx", "javascript", "jsx"}
+    except ImportError:
+        pass
+    return langs
+
+
+def detect_language(path: Path) -> str | None:
+    return LANGUAGE_MAP.get(path.suffix.lower())
+
+
+PreparedPattern = tuple[str, str | None, bool]
+
+
+@lru_cache(maxsize=128)
+def _prepare_patterns(patterns_key: tuple[str, ...]) -> tuple[PreparedPattern, ...]:
+    """Normalize and precompute pattern metadata for repeated matching."""
+    prepared: list[PreparedPattern] = []
+    for pattern in patterns_key:
+        norm_pattern = pattern.replace("\\", "/")
+        top_level_only = "/" not in norm_pattern
+        dir_pattern: str | None = None
+        if norm_pattern.startswith("**/") and norm_pattern.endswith("/**"):
+            dir_pattern = norm_pattern[3:-3]
+        prepared.append((norm_pattern, dir_pattern, top_level_only))
+    return tuple(prepared)
+
+
+def _matches_any_prepared(path_str: str, prepared: tuple[PreparedPattern, ...]) -> bool:
+    """Fast-path matcher using precomputed pattern metadata."""
+    parts = path_str.split("/")
+    for norm_pattern, dir_pattern, top_level_only in prepared:
+        # Patterns without directory separators are filename globs.
+        # They only apply to top-level paths; nested paths never match.
+        if top_level_only:
+            if "/" not in path_str and fnmatch.fnmatch(path_str, norm_pattern):
+                return True
+            continue
+
+        if fnmatch.fnmatch(path_str, norm_pattern):
+            return True
+
+        # Recursive directory patterns: **/name/** or **/pattern/**
+        if dir_pattern is not None:
+            for part in parts:
+                if fnmatch.fnmatch(part, dir_pattern):
+                    return True
+    return False
+
+
+def _matches_any(path_str: str, patterns: list[str]) -> bool:
+    """Check if *path_str* matches any exclude pattern.
+
+    ``fnmatch`` treats ``*`` as "any characters except separator" but does
+    **not** support ``**`` for recursive directory matching.  The common
+    pattern ``**/dirname/**`` therefore never matches paths with multiple
+    directory levels.  We handle this by extracting the middle segment of
+    ``**/X/**`` patterns and testing it against each path component with
+    ``fnmatch`` (so ``**/*.egg-info/**`` still works).
+    """
+    prepared = _prepare_patterns(tuple(patterns))
+    return _matches_any_prepared(path_str, prepared)
+
+
+def _manifest_path(repo_path: Path, cache_dir: str) -> Path:
+    return repo_path / cache_dir / _DISCOVERY_MANIFEST_FILE
+
+
+def _load_discovery_manifest(path: Path) -> dict[str, Any]:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {
+            "version": _DISCOVERY_MANIFEST_VERSION,
+            "entries": {},
+        }
+    if not isinstance(raw, dict):
+        return {"version": _DISCOVERY_MANIFEST_VERSION, "entries": {}}
+    if raw.get("version") != _DISCOVERY_MANIFEST_VERSION:
+        return {"version": _DISCOVERY_MANIFEST_VERSION, "entries": {}}
+    entries = raw.get("entries")
+    if not isinstance(entries, dict):
+        return {"version": _DISCOVERY_MANIFEST_VERSION, "entries": {}}
+    return {
+        "version": _DISCOVERY_MANIFEST_VERSION,
+        "entries": entries,
+    }
+
+
+def _store_discovery_manifest(path: Path, manifest: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Atomic replace keeps manifest reads consistent across interrupted writes.
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=".discovery-manifest-",
+        suffix=".json",
+        dir=path.parent,
+        text=True,
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(manifest, handle, ensure_ascii=True, separators=(",", ":"))
+        Path(tmp_name).replace(path)
+    finally:
+        tmp_path = Path(tmp_name)
+        if tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+
+
+def _current_git_head(repo_path: Path) -> str | None:
+    posix_key = repo_path.resolve().as_posix()
+    now = time.monotonic()
+    with _GIT_HEAD_CACHE_LOCK:
+        cached = _GIT_HEAD_CACHE.get(posix_key)
+        if cached is not None and (now - cached[0]) < _GIT_HEAD_TTL_SECONDS:
+            return cached[1]
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_path), "rev-parse", "HEAD"],
+            capture_output=True,
+            check=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            stdin=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (
+        FileNotFoundError,
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        OSError,
+    ):
+        head = None
+    else:
+        head = result.stdout.strip() or None
+
+    with _GIT_HEAD_CACHE_LOCK:
+        _GIT_HEAD_CACHE[posix_key] = (now, head)
+    return head
+
+
+def _mtime_fingerprint(
+    repo_path: Path,
+    include_patterns: list[str],
+    prepared_exclude: tuple[PreparedPattern, ...],
+    supported_languages: set[str],
+) -> str:
+    max_mtime_ns = 0
+    candidate_count = 0
+    for root, dirs, files in os.walk(repo_path):
+        root_path = Path(root)
+        rel_root = root_path.relative_to(repo_path).as_posix()
+        pruned_dirs: list[str] = []
+        for d in dirs:
+            rel_dir = f"{rel_root}/{d}" if rel_root != "." else d
+            if _matches_any_prepared(rel_dir, prepared_exclude):
+                continue
+            pruned_dirs.append(d)
+        dirs[:] = pruned_dirs
+
+        for file_name in files:
+            file_path = root_path / file_name
+            if file_path.is_symlink():
+                continue
+            rel = file_path.relative_to(repo_path).as_posix()
+            if _matches_any_prepared(rel, prepared_exclude):
+                continue
+            if not _matches_include_patterns(rel, include_patterns):
+                continue
+            lang = detect_language(file_path)
+            if lang is None or lang not in supported_languages:
+                continue
+            try:
+                mtime_ns = os.stat(file_path, follow_symlinks=False).st_mtime_ns
+            except OSError:
+                continue
+            candidate_count += 1
+            if mtime_ns > max_mtime_ns:
+                max_mtime_ns = mtime_ns
+    return f"mtime:{candidate_count}:{max_mtime_ns}"
+
+
+def _cache_key(
+    repo_path: Path,
+    include_patterns: list[str],
+    exclude_patterns: list[str],
+    max_files: int | None,
+    ts_enabled: bool,
+    supported_languages: set[str],
+) -> str:
+    payload = {
+        "repo": repo_path.resolve().as_posix(),
+        "include": include_patterns,
+        "exclude": exclude_patterns,
+        "max_files": max_files,
+        "ts_enabled": ts_enabled,
+        "supported": sorted(supported_languages),
+        "version": _DISCOVERY_MANIFEST_VERSION,
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _deserialize_files(items: list[dict[str, Any]]) -> list[FileInfo]:
+    out: list[FileInfo] = []
+    for item in items:
+        try:
+            out.append(
+                FileInfo(
+                    path=Path(item["path"]),
+                    language=str(item["language"]),
+                    size_bytes=int(item["size_bytes"]),
+                    line_count=int(item["line_count"]),
+                )
+            )
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
+def _serialize_files(files: list[FileInfo]) -> list[dict[str, Any]]:
+    return [
+        {
+            "path": file.path.as_posix(),
+            "language": file.language,
+            "size_bytes": file.size_bytes,
+            "line_count": file.line_count,
+        }
+        for file in files
+    ]
+
+
+def _resolve_cache_invalidator(
+    repo_path: Path,
+    include_patterns: list[str],
+    prepared_exclude: tuple[PreparedPattern, ...],
+    supported: set[str],
+) -> tuple[str, str]:
+    """Return (invalidator_type, invalidator_value) for cache lookup."""
+    invalidator_type = "git_head"
+    invalidator_value = _current_git_head(repo_path)
+    if invalidator_value is None:
+        invalidator_type = "mtime"
+        invalidator_value = _mtime_fingerprint(
+            repo_path,
+            include_patterns,
+            prepared_exclude,
+            supported,
+        )
+    return invalidator_type, invalidator_value
+
+
+def _check_discovery_cache(
+    manifest: dict[str, Any],
+    cache_key: str,
+    invalidator_type: str,
+    invalidator_value: str,
+    skipped_out: dict[str, int] | None,
+) -> list[FileInfo] | None:
+    """Return cached files if the cache entry is valid, else None."""
+    entry = manifest.get("entries", {}).get(cache_key)
+    if not isinstance(entry, dict):
+        return None
+    entry_invalidator = entry.get("invalidator")
+    if not (
+        isinstance(entry_invalidator, dict)
+        and entry_invalidator.get("type") == invalidator_type
+        and entry_invalidator.get("value") == invalidator_value
+    ):
+        return None
+    cached_items = entry.get("files")
+    if not isinstance(cached_items, list):
+        return None
+    if skipped_out is not None:
+        cached_skipped = entry.get("skipped_languages")
+        if isinstance(cached_skipped, dict):
+            for language, count in cached_skipped.items():
+                if isinstance(language, str) and isinstance(count, int):
+                    skipped_out[language] = count
+    return _deserialize_files(cached_items)
+
+
+def _enumerate_repo_files(
+    repo_path: Path,
+    include_patterns: list[str],
+    prepared_exclude: tuple[PreparedPattern, ...],
+    supported: set[str],
+    max_files: int | None,
+    skipped_out: dict[str, int] | None,
+) -> tuple[list[FileInfo], dict[str, int]]:
+    """Enumerate source files matching include/exclude patterns.
+
+    Uses os.walk with early directory pruning so excluded trees (e.g. .venv,
+    node_modules) are never descended into.  This avoids the O(N) per-file
+    stat overhead that glob-based enumeration incurs on large repos.
+
+    Returns (files, skipped_langs).  If max_files is reached, returns early
+    without populating skipped_out (same behaviour as the original inline loop).
+    """
+    files: list[FileInfo] = []
+    max_bytes = 5 * 1024 * 1024
+    seen: set[str] = set()
+    skipped_langs: dict[str, int] = {}
+
+    for root, dirs, filenames in os.walk(repo_path):
+        root_path = Path(root)
+        try:
+            rel_root = root_path.relative_to(repo_path).as_posix()
+        except ValueError:
+            dirs.clear()
+            continue
+
+        # Prune excluded directories *before* os.walk descends into them so
+        # we never stat files inside e.g. .venv or node_modules.
+        dirs[:] = [
+            d
+            for d in dirs
+            if not _matches_any_prepared(
+                d if rel_root == "." else f"{rel_root}/{d}",
+                prepared_exclude,
+            )
+        ]
+
+        for filename in filenames:
+            file_path = root_path / filename
+            rel = (
+                filename if rel_root == "." else f"{rel_root}/{filename}"
+            )
+
+            if rel in seen:
+                continue
+            seen.add(rel)
+
+            if _matches_any_prepared(rel, prepared_exclude):
+                continue
+
+            if not _matches_include_patterns(rel, include_patterns):
+                continue
+
+            try:
+                if file_path.is_symlink():
+                    continue
+            except OSError:
+                continue
+
+            lang = detect_language(file_path)
+            if lang is None:
+                continue
+            if lang not in supported:
+                skipped_langs[lang] = skipped_langs.get(lang, 0) + 1
+                continue
+
+            try:
+                stat = file_path.stat()
+            except OSError:
+                logger.debug("stat() failed, skipping: %s", rel)
+                continue
+            if stat.st_size > max_bytes:
+                logger.debug("Skipping oversized file (%d bytes): %s", stat.st_size, rel)
+                continue
+
+            line_count = stat.st_size // 40
+            files.append(
+                FileInfo(
+                    path=file_path.relative_to(repo_path),
+                    language=lang,
+                    size_bytes=stat.st_size,
+                    line_count=line_count,
+                )
+            )
+
+            if max_files is not None and len(files) >= max_files:
+                logger.warning(
+                    "Reached discovery file limit (%d). Stopping enumeration.",
+                    max_files,
+                )
+                return files, skipped_langs
+
+    if skipped_langs:
+        summary = ", ".join(f"{lang} ({n})" for lang, n in sorted(skipped_langs.items()))
+        logger.warning(
+            "Skipped %d file(s) with unsupported languages: %s. "
+            "Install tree-sitter for TypeScript/TSX support.",
+            sum(skipped_langs.values()),
+            summary,
+        )
+        if skipped_out is not None:
+            skipped_out.update(skipped_langs)
+
+    return files, skipped_langs
+
+
+def _persist_discovery_cache(
+    manifest_file: Path,
+    manifest: dict[str, Any],
+    cache_key: str,
+    files: list[FileInfo],
+    skipped_langs: dict[str, int],
+    invalidator_type: str,
+    invalidator_value: str,
+) -> None:
+    """Write discovered files into the discovery manifest cache."""
+    entries = manifest.setdefault("entries", {})
+    if not isinstance(entries, dict):
+        return
+    entries[cache_key] = {
+        "created_at": int(time.time()),
+        "invalidator": {
+            "type": invalidator_type,
+            "value": invalidator_value,
+        },
+        "files": _serialize_files(files),
+        "skipped_languages": skipped_langs,
+    }
+    if len(entries) > _DISCOVERY_MANIFEST_MAX_ENTRIES:
+        sorted_items = sorted(
+            entries.items(),
+            key=lambda item: (
+                int(item[1].get("created_at", 0))
+                if isinstance(item[1], dict)
+                else 0
+            ),
+            reverse=True,
+        )
+        manifest["entries"] = {
+            key: value for key, value in sorted_items[:_DISCOVERY_MANIFEST_MAX_ENTRIES]
+        }
+    try:
+        _store_discovery_manifest(manifest_file, manifest)
+    except OSError:
+        logger.debug("Unable to persist discovery manifest: %s", manifest_file)
+
+
+def discover_files(
+    repo_path: Path,
+    include: list[str] | None = None,
+    exclude: list[str] | None = None,
+    max_files: int | None = None,
+    skipped_out: dict[str, int] | None = None,
+    ts_enabled: bool = True,
+    cache_dir: str = ".drift-cache",
+) -> list[FileInfo]:
+    """Walk the repo and return all source files matching include/exclude patterns.
+
+    Parameters
+    ----------
+    skipped_out:
+        If a mutable dict is passed, it is populated with ``{language: count}``
+        entries for files that were recognized but skipped because their
+        language runtime is not installed (e.g. TypeScript without tree-sitter).
+    ts_enabled:
+        When *False*, TypeScript/TSX/JS/JSX files are excluded from discovery
+        even when tree-sitter is installed.  Controlled via
+        ``drift.yaml → languages.typescript: false``.
+    """
+    supported = _detect_supported_languages()
+    if not ts_enabled:
+        supported.difference_update(_TYPESCRIPT_FAMILY_LANGUAGES)
+
+    if include is None:
+        include = ["**/*.py", "**/*.pyi"]
+        if ts_enabled:
+            include.extend(
+                [
+                    "**/*.ts",
+                    "**/*.mts",
+                    "**/*.cts",
+                    "**/*.tsx",
+                    "**/*.js",
+                    "**/*.mjs",
+                    "**/*.cjs",
+                    "**/*.jsx",
+                ]
+            )
+    if exclude is None:
+        exclude = [
+            "**/node_modules/**",
+            "**/__pycache__/**",
+            "**/venv/**",
+            "**/.venv/**",
+            "**/.tmp_*venv*/**",
+            "**/.env/**",
+            "**/.conda/**",
+            "**/.git/**",
+            "**/.tox/**",
+            "**/.nox/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/site-packages/**",
+            "**/.pixi/**",
+            "**/benchmarks/**",
+            "**/benchmark_results/**",
+            "**/tests/**",
+            "**/scripts/**",
+        ]
+    prepared_exclude = _prepare_patterns(tuple(exclude))
+    include_patterns = list(dict.fromkeys(include))
+
+    repo_path = repo_path.resolve()
+
+    cache_key = _cache_key(
+        repo_path,
+        include_patterns,
+        exclude,
+        max_files,
+        ts_enabled,
+        supported,
+    )
+
+    invalidator_type, invalidator_value = _resolve_cache_invalidator(
+        repo_path, include_patterns, prepared_exclude, supported
+    )
+
+    manifest_file = _manifest_path(repo_path, cache_dir)
+    manifest = _load_discovery_manifest(manifest_file)
+    cached = _check_discovery_cache(
+        manifest, cache_key, invalidator_type, invalidator_value, skipped_out
+    )
+    if cached is not None:
+        return cached
+
+    files, skipped_langs = _enumerate_repo_files(
+        repo_path, include_patterns, prepared_exclude, supported, max_files, skipped_out
+    )
+    files = sorted(files, key=lambda f: f.path.as_posix())
+
+    if max_files is None or len(files) < max_files:
+        _persist_discovery_cache(
+            manifest_file, manifest, cache_key, files, skipped_langs,
+            invalidator_type, invalidator_value
+        )
+
+    return files
