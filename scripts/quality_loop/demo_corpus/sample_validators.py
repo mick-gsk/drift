@@ -6,10 +6,10 @@ This file intentionally contains:
 - Nested ifs (FlattenNestedIf): validate_range
 """
 
-import re
-import math      # unused  (F401)
-import decimal   # unused  (F401)
+import decimal  # unused  (F401)
 import fractions  # unused  (F401)
+import math  # unused  (F401)
+import re
 from typing import Union
 
 

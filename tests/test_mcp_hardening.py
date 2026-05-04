@@ -110,6 +110,8 @@ class TestValidateProgressMetrics:
             lambda *a, **kw: [],
         )
         monkeypatch.setattr(api_module, "scan", lambda *a, **kw: {"drift_score": 0.5})
+        import drift_sdk.api as sdk_module
+        monkeypatch.setattr(sdk_module, "scan", lambda *a, **kw: {"drift_score": 0.5})
         monkeypatch.setattr("drift.baseline.load_baseline", lambda *_a, **_kw: {"k1", "k2", "k3"})
         monkeypatch.setattr("drift.analyzer.analyze_repo", lambda *a, **kw: analysis)
         monkeypatch.setattr(

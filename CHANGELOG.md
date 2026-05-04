@@ -20,6 +20,9 @@ Short version: Add PR automation suite — lane labels, size labels, fast-lane a
 - address PR review — cleanup on label removal, consistent section names, direct yaml import
 - correct actions/first-interaction@v3 input names (repo_token, issue_message, pr_message)
 
+### Added
+- Phase 1 complete - VSA migration infrastructure setup (T001-T005)
+
 ## [2.49.0] - 2026-04-30
 
 Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).

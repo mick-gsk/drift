@@ -17,8 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
-from drift.config import DriftConfig, GradeBandConfig, ScoringConfig, SignalWeights
-from drift.config._schema import PathOverride
+from drift.config import DriftConfig, GradeBandConfig, PathOverride, ScoringConfig, SignalWeights
 from drift.models import Finding, Severity
 from drift.scoring.engine import (
     apply_path_overrides,

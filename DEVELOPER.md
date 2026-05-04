@@ -304,6 +304,100 @@ Configuration is in `pyproject.toml` `[tool.mutmut]`.
 
 ---
 
+## VSA Migration Tools (ADR-100/102)
+
+After the Vertical Slice Architecture (VSA) migration, active implementation exists **only** in capability packages under `packages/drift-*/`. Compatibility stubs under `packages/drift/src/drift/` are read-only re-exports for backward compatibility.
+
+### Audit & Boundary Checking
+
+Two scripts verify migration integrity. Both are optional for contributors but **required before releases**:
+
+#### 1. Legacy Path Audit
+
+Enumerates all compat stubs and verifies their canonical targets exist.
+
+```bash
+python scripts/migration/audit_legacy_paths.py --repo . --json
+```
+
+**Exit codes:**
+- `0` = All stubs valid and aligned
+- `1` = Warnings (misaligned stubs, but functional)
+- `2` = Errors (orphaned stubs or active implementation in compat layer) — **BLOCKS PUSH**
+
+**Strict mode** (CI enforcement):
+
+```bash
+python scripts/migration/audit_legacy_paths.py --repo . --strict
+```
+
+#### 2. Import Boundary Check
+
+Verifies that canonical package names (`drift_engine`, `drift_cli`, etc.) do not appear in public API entry points. Enforces the rule: *external code imports from `drift.*`, internal code uses `drift_*`.*
+
+```bash
+python scripts/migration/check_import_boundaries.py --repo . --json
+```
+
+**Exit codes:** Same as audit.
+
+**Targeted check** (single package):
+
+```bash
+python scripts/migration/check_import_boundaries.py --package drift_engine --repo .
+```
+
+### Import Guidelines for Developers
+
+After VSA migration, follow these import rules:
+
+| Context | Import | Why |
+|---------|--------|-----|
+| **Public API** (CLI, SDK, docs) | `from drift.signals import *` | Uses compat stubs; stable public contract |
+| **Internal signal code** | `from drift_engine.signals import *` | Direct access to canonical implementation |
+| **Test fixtures** | `from drift.config import SignalWeights` | Must match canonical path (same module for Pydantic) |
+| **Cross-package refs** | `from drift_engine.ingestion import ...` | Links to canonical package; never `src/drift` |
+
+**Common mistake:** Importing from `drift.config._schema` in tests while production uses `drift.config`:
+
+```python
+# ❌ WRONG: Different module paths cause Pydantic validation errors
+from drift.config._schema import PathOverride
+from drift.config import SignalWeights
+override = PathOverride(weights=SignalWeights(...))  # ValidationError!
+
+# ✅ CORRECT: Both from canonical export
+from drift.config import PathOverride, SignalWeights
+override = PathOverride(weights=SignalWeights(...))  # OK
+```
+
+### Module Identity & Compatibility Stubs
+
+Compat stubs use `sys.modules` aliasing and `pkgutil.iter_modules` pre-registration to maintain stable module identity:
+
+```python
+# In packages/drift/src/drift/ingestion/__init__.py
+import sys
+import importlib
+import pkgutil
+
+# Route all drift.ingestion.* imports to drift_engine.ingestion.*
+_target = importlib.import_module("drift_engine.ingestion")
+sys.modules[__name__] = _target
+
+# Pre-register submodules so drift.ingestion.file_discovery is stable
+for importer, modname, ispkg in pkgutil.iter_modules(_target.__path__):
+    importlib.import_module(f"{_target.__name__}.{modname}")
+```
+
+This ensures `drift.ingestion.file_discovery` and `drift_engine.ingestion.file_discovery` refer to the **same module object** (not copies), which is critical for:
+- Pydantic model identity checks
+- `isinstance()` validation
+- Pickle serialization
+- Type checking (mypy)
+
+---
+
 ## Release Process
 
 **Normal path:** merge a pull request to `main` with a valid conventional-commit title.

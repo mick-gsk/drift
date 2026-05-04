@@ -182,6 +182,7 @@ class TestNoGitHistory:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.performance
 class TestPerformanceBudget:
     """Drift must respect wall-clock time budgets reasonable for CI."""
 
@@ -189,7 +190,7 @@ class TestPerformanceBudget:
     # On CI (GitHub Actions, 2 vCPU), runners can be slow (~32s observed).
     # Django (2890 files) reportedly takes ~36s — that's the stress case.
     SELF_ANALYSIS_BUDGET_S = 45.0
-    _CORE_TARGET_PATH = "src/drift"
+    _CORE_TARGET_PATH = "packages/drift/src/drift"
 
     def test_self_analysis_within_budget(self) -> None:
         """Self-analysis (≈45 Python files) must complete within budget."""
