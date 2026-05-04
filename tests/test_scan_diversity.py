@@ -634,12 +634,20 @@ class TestNonOperationalContextFiltering:
             ),
         ]
 
-        monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *a, **kw: DriftConfig()))
+        import importlib
+        import sys
+
+        import drift_output.agent_tasks as _agt_mod
+
+        fix_plan_module = importlib.import_module("drift_sdk.api.fix_plan")
+        # Ensure drift.output.agent_tasks is registered in sys.modules pointing to same object
+        _ = importlib.import_module("drift.output.agent_tasks")
+        _dot_mod = sys.modules["drift.output.agent_tasks"]
+        monkeypatch.setattr(fix_plan_module, "_load_config_cached", lambda *a, **kw: DriftConfig())
         monkeypatch.setattr(analyzer_module, "analyze_repo", lambda *a, **kw: analysis)
-        monkeypatch.setattr(
-            "drift.output.agent_tasks.analysis_to_agent_tasks",
-            lambda *a, **kw: tasks,
-        )
+        monkeypatch.setattr(_agt_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(_dot_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(fix_plan_module, "get_active_dismissal_ids", lambda *a, **kw: set())
         monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kw: None)
 
         result = fix_plan(Path("."), max_tasks=5)
@@ -704,12 +712,19 @@ class TestNonOperationalContextFiltering:
             ),
         ]
 
-        monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *a, **kw: DriftConfig()))
+        import importlib
+        import sys
+
+        import drift_output.agent_tasks as _agt_mod
+
+        fix_plan_module = importlib.import_module("drift_sdk.api.fix_plan")
+        _ = importlib.import_module("drift.output.agent_tasks")
+        _dot_mod = sys.modules["drift.output.agent_tasks"]
+        monkeypatch.setattr(fix_plan_module, "_load_config_cached", lambda *a, **kw: DriftConfig())
         monkeypatch.setattr(analyzer_module, "analyze_repo", lambda *a, **kw: analysis)
-        monkeypatch.setattr(
-            "drift.output.agent_tasks.analysis_to_agent_tasks",
-            lambda *a, **kw: tasks,
-        )
+        monkeypatch.setattr(_agt_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(_dot_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(fix_plan_module, "get_active_dismissal_ids", lambda *a, **kw: set())
         monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kw: None)
 
         result = fix_plan(Path("."), max_tasks=5)
@@ -773,12 +788,19 @@ class TestNonOperationalContextFiltering:
             ),
         ]
 
-        monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *a, **kw: DriftConfig()))
+        import importlib
+        import sys
+
+        import drift_output.agent_tasks as _agt_mod
+
+        fix_plan_module = importlib.import_module("drift_sdk.api.fix_plan")
+        _ = importlib.import_module("drift.output.agent_tasks")
+        _dot_mod = sys.modules["drift.output.agent_tasks"]
+        monkeypatch.setattr(fix_plan_module, "_load_config_cached", lambda *a, **kw: DriftConfig())
         monkeypatch.setattr(analyzer_module, "analyze_repo", lambda *a, **kw: analysis)
-        monkeypatch.setattr(
-            "drift.output.agent_tasks.analysis_to_agent_tasks",
-            lambda *a, **kw: tasks,
-        )
+        monkeypatch.setattr(_agt_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(_dot_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(fix_plan_module, "get_active_dismissal_ids", lambda *a, **kw: set())
         monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kw: None)
 
         result = fix_plan(Path("."), include_deferred=True, max_tasks=5)
@@ -823,12 +845,19 @@ class TestNonOperationalContextFiltering:
             ),
         ]
 
-        monkeypatch.setattr(DriftConfig, "load", staticmethod(lambda *a, **kw: DriftConfig()))
+        import importlib
+        import sys
+
+        import drift_output.agent_tasks as _agt_mod
+
+        fix_plan_module = importlib.import_module("drift_sdk.api.fix_plan")
+        _ = importlib.import_module("drift.output.agent_tasks")
+        _dot_mod = sys.modules["drift.output.agent_tasks"]
+        monkeypatch.setattr(fix_plan_module, "_load_config_cached", lambda *a, **kw: DriftConfig())
         monkeypatch.setattr(analyzer_module, "analyze_repo", lambda *a, **kw: analysis)
-        monkeypatch.setattr(
-            "drift.output.agent_tasks.analysis_to_agent_tasks",
-            lambda *a, **kw: tasks,
-        )
+        monkeypatch.setattr(_agt_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(_dot_mod, "analysis_to_agent_tasks", lambda *a, **kw: tasks)
+        monkeypatch.setattr(fix_plan_module, "get_active_dismissal_ids", lambda *a, **kw: set())
         monkeypatch.setattr(api_module, "_emit_api_telemetry", lambda **kw: None)
 
         result = fix_plan(Path("."), exclude_paths=["backend/api/routers"], max_tasks=5)
