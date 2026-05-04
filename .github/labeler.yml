@@ -22,7 +22,7 @@ tests:
   - changed-files:
       - any-glob-to-any-file: "tests/**"
 
-documentation:
+docs:
   - changed-files:
       - any-glob-to-any-file:
           - "docs-site/**"
@@ -73,6 +73,18 @@ lane/fast-lane:
           - "benchmark_results/**"
           - "benchmarks/corpus/**"
           - "benchmarks/defect_corpus/**"
+
+lane/standard:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+          - "packages/**"
+          - "scripts/**"
+          - "pyproject.toml"
+          - "uv.lock"
+          - ".github/workflows/**"
+          - ".github/actions/**"
+          - "tests/**"
 
 lane/high-risk:
   - changed-files:

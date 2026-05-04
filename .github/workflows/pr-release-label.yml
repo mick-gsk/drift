@@ -1,0 +1,96 @@
+name: PR Release Label
+
+# Automatically assigns a release:* label based on the Conventional Commit
+# prefix in the PR title.
+#
+# Mapping:
+#   feat:      → release:feature
+#   fix:       → release:fix
+#   docs:      → release:docs
+#   chore: / refactor: / perf: / build: / ci: / test: / style: / revert:
+#              → release:maintenance
+#
+# If none of the above prefixes match, no release:* label is assigned.
+# An existing release:* label is not removed when the title changes —
+# manual overrides are preserved. Use sync-labels: false intentionally.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: "pr-release-label-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  assign-release-label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const title  = context.payload.pull_request.title || '';
+            const number = context.payload.pull_request.number;
+            const owner  = context.repo.owner;
+            const repo   = context.repo.repo;
+
+            // Map conventional commit prefix → release label
+            const MAPPING = [
+              { pattern: /^feat(\(.+?\))?[!]?:/i,     label: 'release:feature'     },
+              { pattern: /^fix(\(.+?\))?[!]?:/i,      label: 'release:fix'         },
+              { pattern: /^docs(\(.+?\))?[!]?:/i,     label: 'release:docs'        },
+              {
+                pattern: /^(chore|refactor|perf|build|ci|test|style|revert)(\(.+?\))?[!]?:/i,
+                label: 'release:maintenance',
+              },
+            ];
+
+            const ALL_RELEASE_LABELS = ['release:feature', 'release:fix', 'release:docs', 'release:maintenance'];
+
+            // Find matching label
+            let targetLabel = null;
+            for (const { pattern, label } of MAPPING) {
+              if (pattern.test(title)) {
+                targetLabel = label;
+                break;
+              }
+            }
+
+            if (!targetLabel) {
+              core.info(`No conventional-commit prefix matched in title: "${title}" — skipping.`);
+              return;
+            }
+
+            // Fetch current labels on the PR
+            const { data: currentLabels } = await github.rest.issues.listLabelsOnIssue({
+              owner, repo, issue_number: number,
+            });
+            const currentNames = new Set(currentLabels.map(l => l.name));
+
+            // Already has the right release label → nothing to do
+            if (currentNames.has(targetLabel)) {
+              core.info(`Label "${targetLabel}" already present — no change.`);
+              return;
+            }
+
+            // Remove any other release:* labels that were set by a previous run
+            for (const existing of ALL_RELEASE_LABELS) {
+              if (existing !== targetLabel && currentNames.has(existing)) {
+                await github.rest.issues.removeLabel({
+                  owner, repo, issue_number: number, name: existing,
+                });
+                core.info(`Removed stale label: ${existing}`);
+              }
+            }
+
+            // Add the correct label
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number: number, labels: [targetLabel],
+            });
+            core.info(`Assigned label: ${targetLabel}`);

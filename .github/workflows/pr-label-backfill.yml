@@ -1,0 +1,221 @@
+name: PR Label Backfill
+
+# One-shot backfill: assigns area, lane, and release:* labels to all open PRs
+# (or a specific one) using the same rules as labeler.yml + pr-release-label.yml.
+#
+# Trigger manually via:
+#   gh workflow run pr-label-backfill.yml --repo mick-gsk/drift
+#   gh workflow run pr-label-backfill.yml --repo mick-gsk/drift -f pr_number=727
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Single PR number to process (leave empty = all open PRs)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            // ----------------------------------------------------------------
+            // Label rule definitions (mirrors labeler.yml + pr-release-label.yml)
+            // ----------------------------------------------------------------
+
+            const RELEASE_RULES = [
+              { pattern: /^feat(\(.+?\))?[!]?:/i,     label: 'release:feature'     },
+              { pattern: /^fix(\(.+?\))?[!]?:/i,      label: 'release:fix'         },
+              { pattern: /^docs(\(.+?\))?[!]?:/i,     label: 'release:docs'        },
+              { pattern: /^(chore|refactor|perf|build|ci|test|style|revert)(\(.+?\))?[!]?:/i,
+                label: 'release:maintenance' },
+            ];
+            const ALL_RELEASE_LABELS = ['release:feature','release:fix','release:docs','release:maintenance'];
+
+            // Area rules: [label, matchFn(files)]
+            function matchesGlob(file, patterns) {
+              // Minimal glob: supports ** prefix/suffix and literal paths
+              return patterns.some(p => {
+                const re = new RegExp(
+                  '^' + p.replace(/\./g, '\\.').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*') + '$'
+                );
+                return re.test(file);
+              });
+            }
+
+            const AREA_RULES = [
+              { label: 'signals',  globs: ['src/drift/signals/**'] },
+              { label: 'scoring',  globs: ['src/drift/scoring/**'] },
+              { label: 'ingestion',globs: ['src/drift/ingestion/**'] },
+              { label: 'output',   globs: ['src/drift/output/**'] },
+              { label: 'cli',      globs: ['src/drift/commands/**'] },
+              { label: 'tests',    globs: ['tests/**'] },
+              { label: 'docs',     globs: ['docs-site/**','docs/**','README.md','CONTRIBUTING.md','DEVELOPER.md'] },
+              { label: 'ci',       globs: ['.github/workflows/**','.github/actions/**','Makefile'] },
+              { label: 'config',   globs: ['src/drift/config.py','drift.example.yaml'] },
+              { label: 'security', globs: ['SECURITY.md','.github/workflows/security-hygiene.yml','.github/workflows/codeql.yml','.pre-commit-config.yaml'] },
+            ];
+
+            const FAST_LANE_GLOBS = [
+              'docs/**','docs-site/**','README.md','CONTRIBUTING.md','DEVELOPER.md',
+              '.github/prompts/**','.github/instructions/**','tests/fixtures/**',
+              'benchmark_results/**','benchmarks/corpus/**','benchmarks/defect_corpus/**',
+            ];
+            const STANDARD_LANE_GLOBS = [
+              'src/**','packages/**','scripts/**','pyproject.toml','uv.lock',
+              '.github/workflows/**','.github/actions/**','tests/**',
+            ];
+            const HIGH_RISK_GLOBS = [
+              'src/drift/signals/**','src/drift/scoring/**','src/drift/ingestion/**',
+              'POLICY.md','.github/copilot-instructions.md','docs/decisions/**',
+              'audit_results/**','audit/**',
+            ];
+
+            // ----------------------------------------------------------------
+            // Helpers
+            // ----------------------------------------------------------------
+
+            async function getPRFiles(prNumber) {
+              const files = [];
+              let page = 1;
+              while (true) {
+                const { data } = await github.rest.pulls.listFiles({
+                  owner, repo, pull_number: prNumber, per_page: 100, page,
+                });
+                files.push(...data.map(f => f.filename));
+                if (data.length < 100) break;
+                page++;
+              }
+              return files;
+            }
+
+            async function getCurrentLabels(prNumber) {
+              const { data } = await github.rest.issues.listLabelsOnIssue({
+                owner, repo, issue_number: prNumber,
+              });
+              return new Set(data.map(l => l.name));
+            }
+
+            async function addLabel(prNumber, label) {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: prNumber, labels: [label],
+              });
+            }
+
+            async function removeLabel(prNumber, label) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner, repo, issue_number: prNumber, name: label,
+                });
+              } catch (e) {
+                // ignore 404 (label already absent)
+                if (e.status !== 404) throw e;
+              }
+            }
+
+            async function processOne(pr) {
+              const number = pr.number;
+              const title  = pr.title || '';
+              core.info(`\n--- PR #${number}: ${title}`);
+
+              const currentLabels = await getCurrentLabels(number);
+              const files         = await getPRFiles(number);
+              const toAdd         = new Set();
+
+              // ---- Release label ------------------------------------------
+              let targetRelease = null;
+              for (const { pattern, label } of RELEASE_RULES) {
+                if (pattern.test(title)) { targetRelease = label; break; }
+              }
+              if (targetRelease) {
+                // Remove stale release labels
+                for (const rl of ALL_RELEASE_LABELS) {
+                  if (rl !== targetRelease && currentLabels.has(rl)) {
+                    await removeLabel(number, rl);
+                    core.info(`  removed stale: ${rl}`);
+                  }
+                }
+                if (!currentLabels.has(targetRelease)) toAdd.add(targetRelease);
+              }
+
+              // ---- Area labels --------------------------------------------
+              for (const { label, globs } of AREA_RULES) {
+                if (!currentLabels.has(label) && files.some(f => matchesGlob(f, globs))) {
+                  toAdd.add(label);
+                }
+              }
+
+              // ---- Lane labels --------------------------------------------
+              const isHighRisk  = files.some(f => matchesGlob(f, HIGH_RISK_GLOBS));
+              const isStandard  = files.some(f => matchesGlob(f, STANDARD_LANE_GLOBS));
+              const isFastLane  = files.every(f => matchesGlob(f, FAST_LANE_GLOBS));
+
+              const currentLane = ['lane/high-risk','lane/standard','lane/fast-lane']
+                .find(l => currentLabels.has(l));
+
+              let targetLane = null;
+              if (isHighRisk)        targetLane = 'lane/high-risk';
+              else if (isStandard)   targetLane = 'lane/standard';
+              else if (isFastLane)   targetLane = 'lane/fast-lane';
+
+              if (targetLane && currentLane !== targetLane) {
+                // Remove wrong lane label first
+                if (currentLane) {
+                  await removeLabel(number, currentLane);
+                  core.info(`  removed stale lane: ${currentLane}`);
+                }
+                if (!currentLabels.has(targetLane)) toAdd.add(targetLane);
+              }
+
+              // ---- Apply additions ----------------------------------------
+              if (toAdd.size === 0) {
+                core.info('  no changes needed');
+                return;
+              }
+              for (const label of toAdd) {
+                await addLabel(number, label);
+                core.info(`  added: ${label}`);
+              }
+            }
+
+            // ----------------------------------------------------------------
+            // Main
+            // ----------------------------------------------------------------
+
+            const singlePR = '${{ inputs.pr_number }}'.trim();
+
+            if (singlePR) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner, repo, pull_number: parseInt(singlePR, 10),
+              });
+              await processOne(pr);
+            } else {
+              // Fetch all open PRs (paginated)
+              const allPRs = [];
+              let page = 1;
+              while (true) {
+                const { data } = await github.rest.pulls.list({
+                  owner, repo, state: 'open', per_page: 100, page,
+                });
+                allPRs.push(...data);
+                if (data.length < 100) break;
+                page++;
+              }
+              core.info(`Processing ${allPRs.length} open PRs...`);
+              for (const pr of allPRs) {
+                await processOne(pr);
+              }
+              core.info(`\nDone. Processed ${allPRs.length} PRs.`);
+            }

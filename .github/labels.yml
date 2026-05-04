@@ -58,6 +58,42 @@
   color: "e4e4e4"
   description: Acknowledged but not currently prioritized
 
+# ---------------------------------------------------------------------------
+# PR Area Labels (referenced by .github/labeler.yml)
+# ---------------------------------------------------------------------------
+
+- name: signals
+  color: "0075ca"
+  description: Changes to signal detection logic
+
+- name: scoring
+  color: "0075ca"
+  description: Changes to composite scoring or weights
+
+- name: ingestion
+  color: "0075ca"
+  description: Changes to file discovery or AST parsing
+
+- name: output
+  color: "0075ca"
+  description: Changes to CLI output or formatters
+
+- name: cli
+  color: "0075ca"
+  description: Changes to CLI commands
+
+- name: ci
+  color: "e4e4e4"
+  description: Changes to CI/CD workflows or tooling
+
+- name: config
+  color: "e4e4e4"
+  description: Changes to configuration schema or defaults
+
+- name: security
+  color: "d93f0b"
+  description: Security-related changes
+
 - name: stale
   color: "ededed"
   description: Inactive for 90+ days — will auto-close if no further activity
