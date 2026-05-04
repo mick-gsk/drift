@@ -12,7 +12,7 @@ Date: 2026-04-30
 | P1 | H-AUD-004 | Fehlender Guardrail | Enforce MCP registration/router boundary with HARNESS004/HARNESS005. | Medium | Low | Low | Unit tests and direct harness check. |
 | P1 | H-AUD-005 | Fehlende Observability | Create the audit package: state, plan, change log, follow-up. | Medium | Low | Low | Required-path and link checks. |
 | P2 | H-AUD-006 | Fehlende Automatisierung | Replace LLM fallback in `ab_harness.py` with a real adapter or explicit unsupported exit. | Medium | Medium | Medium | A/B harness test covering `--mode llm` behavior. |
-| P2 | H-AUD-007 | Drift-Risiko | Decide whether internal A/B targets should default to neutral fixtures. | Medium | Low | Medium | CLI/help tests and benchmark report metadata. |
+| P2 | H-AUD-007 | Drift-Risiko | Make repo-level A/B target use neutral fixtures and report the mock-mode interpretation. | Medium | Low | Medium | Contract test, report test, direct harness check. |
 | P1 | H-AUD-008 | Fehlende Karte | Generate and enforce `audit/harness-tool-map.json` (HARNESS006/007). | High | Low | Low | Targeted pytest plus `--write-tool-map` round-trip. |
 
 ## Implemented In This Run
@@ -29,6 +29,7 @@ Date: 2026-04-30
 2. `scripts/check_agent_harness_contract.py --write-tool-map` to keep map in sync after MCP tool changes.
 3. `scripts/ab_harness.py --mode llm` is now an operative error rather than a silent mock fallback.
 4. Audit/follow-up updated; FU-001 closed, FU-003 partially closed.
+5. `make ab-harness` now runs `--mock-mode neutral`; reports include `mock_mode` and `mock_mode_interpretation`; HARNESS008 enforces the target.
 
 ## Deferred
 

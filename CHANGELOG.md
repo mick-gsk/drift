@@ -22,7 +22,7 @@ Short version: Add PR automation suite — lane labels, size labels, fast-lane a
 
 ## [2.49.0] - 2026-04-30
 
-Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013).
+Short version: drift pr-loop — agent-driven PR review loop command (FR-001–FR-013). Agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle.
 
 ### Added
 - add `drift pr-loop` command: agent-driven PR review loop (FR-001–FR-013)
@@ -32,6 +32,8 @@ Short version: drift pr-loop — agent-driven PR review loop command (FR-001–F
 
 ### Changed
 - update harness prompt and skill catalog
+- agent harness FU-002 FU-004: neutral ab-harness mock mode and failed-turn repro bundle
+- agent harness FU-002 FU-004 -- neutral ab-harness mock mode and failed-turn repro bundle
 
 ## [2.48.5] - 2026-04-29
 
