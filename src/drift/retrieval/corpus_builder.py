@@ -36,6 +36,7 @@ _DEFAULT_SOURCES: tuple[str, ...] = (
     "docs/decisions",
     "audit_results",
     "src/drift/signals",
+    "packages/drift-engine/src/drift_engine/signals",
     "benchmark_results",
 )
 
@@ -80,7 +81,9 @@ def _dispatch(path: Path, repo_root: Path) -> list[FactChunk]:
         return list(parse_adr_dir(path, repo_root))
     if path.is_dir() and path.name == "audit_results":
         return list(parse_audit_dir(path, repo_root))
-    if path.is_dir() and path.parts[-3:] == ("src", "drift", "signals"):
+    if path.is_dir() and path.name == "signals" and any(
+        p in {"drift", "drift_engine"} for p in path.parts
+    ):
         return list(parse_signals_dir(path, repo_root))
     if path.is_dir() and path.name == "benchmark_results":
         return list(parse_evidence_dir(path, repo_root))
