@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "drift-output"
+version = "2.49.0"
+description = "Rendering and export output surface for drift-analyzer"
+requires-python = ">=3.11"
+dependencies = [
+    "drift-sdk",
+    "drift-engine",
+    "drift-config",
+    "rich>=13.0",
+]
+
+[tool.uv.sources]
+drift-sdk = { workspace = true }
+drift-engine = { workspace = true }
+drift-config = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/drift_output"]
