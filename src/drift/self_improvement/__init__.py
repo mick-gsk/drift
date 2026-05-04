@@ -1,41 +1,9 @@
-"""Self-Improvement Loop (DSOL) — ADR-097.
+﻿# ruff: noqa: F401, F403, E501
+import importlib as _importlib
+import sys as _sys
 
-Deterministic, bounded, human-in-the-loop continuous-optimization
-engine. Runs a single **cycle** per invocation: observes the current
-drift state (repo self-scan + KPI trend), diagnoses regressive signals
-and unreviewed hotspots, and emits **proposals only** — never a code
-change, never an auto-merge.
-
-Exposure points:
-- ``drift self-improve run``: CLI for local or cron use.
-- ``.github/workflows/self-improvement-loop.yml``: weekly cron that
-  uploads the cycle artifact; a maintainer manually opens follow-up
-  PRs.
-- Ledger ``.drift/self_improvement_ledger.jsonl`` lets each cycle see
-  what the previous cycle proposed so repeated signals earn higher
-  priority scores (compounding optimization pressure).
-"""
-
-from __future__ import annotations
-
-from .engine import (
-    ClosedProposalEntry,
-    ConvergenceStatus,
-    CycleLedgerEntry,
-    ImprovementProposal,
-    ImprovementReport,
-    SelfImprovementEngine,
-    close_proposal,
-    run_cycle,
-)
-
-__all__ = [
-    "ClosedProposalEntry",
-    "CycleLedgerEntry",
-    "ConvergenceStatus",
-    "ImprovementProposal",
-    "ImprovementReport",
-    "SelfImprovementEngine",
-    "close_proposal",
-    "run_cycle",
-]
+_target = _importlib.import_module("drift_engine.self_improvement")
+_sys.modules[__name__] = _target
+for _k, _v in list(_sys.modules.items()):
+    if _k.startswith("drift_engine.self_improvement."):
+        _sys.modules.setdefault(__name__ + _k[29:], _v)

@@ -1,16 +1,9 @@
-"""Per-repo signal calibration via statistical feedback integration (ADR-035).
+﻿# ruff: noqa: F401, F403, E501
+import importlib as _importlib
+import sys as _sys
 
-This package provides Bayesian weight calibration based on three evidence
-sources: explicit user feedback, git-outcome correlation, and GitHub
-issue/PR label correlation.
-"""
-
-from drift.calibration.feedback import FeedbackEvent, load_feedback, record_feedback
-from drift.calibration.profile_builder import build_profile
-
-__all__ = [
-    "FeedbackEvent",
-    "build_profile",
-    "load_feedback",
-    "record_feedback",
-]
+_target = _importlib.import_module("drift_engine.calibration")
+_sys.modules[__name__] = _target
+for _k, _v in list(_sys.modules.items()):
+    if _k.startswith("drift_engine.calibration."):
+        _sys.modules.setdefault(__name__ + _k[24:], _v)
