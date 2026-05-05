@@ -29,19 +29,21 @@ def _build_feedback_response(
         1 for e in events if e.signal_type == resolved_signal and e.verdict == "fp"
     )
 
-    return json.dumps({
-        "status": "recorded",
-        "signal": resolved_signal,
-        "file": file_path,
-        "verdict": verdict,
-        "finding_id": finding_id,
-        "pending_fp_count": pending_fp_count,
-        "next_tool_call": {"tool": "drift_calibrate", "params": {}},
-        "agent_instruction": (
-            "Feedback recorded. Run drift_calibrate to apply accumulated "
-            "feedback and update signal weights."
-        ),
-    })
+    return json.dumps(
+        {
+            "status": "recorded",
+            "signal": resolved_signal,
+            "file": file_path,
+            "verdict": verdict,
+            "finding_id": finding_id,
+            "pending_fp_count": pending_fp_count,
+            "next_tool_call": {"tool": "drift_calibrate", "params": {}},
+            "agent_instruction": (
+                "Feedback recorded. Run drift_calibrate to apply accumulated "
+                "feedback and update signal weights."
+            ),
+        }
+    )
 
 
 async def run_feedback(
@@ -137,11 +139,17 @@ async def run_calibrate(
         events = load_feedback(feedback_path)
 
         if not events:
-            return json.dumps({
-                "status": "no_data",
-                "message": "No feedback evidence found. Use drift_feedback to record evidence.",
-                "agent_instruction": "Record TP/FP/FN feedback for findings before calibrating.",
-            })
+            return json.dumps(
+                {
+                    "status": "no_data",
+                    "message": (
+                        "No feedback evidence found. Use drift_feedback to record evidence."
+                    ),
+                    "agent_instruction": (
+                        "Record TP/FP/FN feedback for findings before calibrating."
+                    ),
+                }
+            )
 
         result = build_profile(
             events,

@@ -35,7 +35,7 @@ repos:
           - "(^|[\\\\/])(benchmark_results|audit_results|site|docs-site|\\.hypothesis|\\.venv|dist|build|\\.mypy_cache|\\.pytest_cache|\\.ruff_cache|\\.drift-cache|work_artifacts|master-backlog|tagesplanung)([\\\\/]|$)"
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.1
+    rev: v0.15.8
     hooks:
       - id: ruff
         files: "^(src/|tests/)"

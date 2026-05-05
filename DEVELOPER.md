@@ -159,8 +159,6 @@ make catalog                                Alle scripts/ mit Kurzbeschreibung a
 make catalog ARGS='--search evidence'       Skript-Katalog nach Stichwort filtern
 ```
 
-
-
 ### CLI subcommands
 
 ```
@@ -464,6 +462,7 @@ python scripts/validate_feature_evidence.py \
 ```
 
 Flags:
+
 - `--skip-tests` — skip pytest (only self-analysis)
 - `--skip-precision-recall` — skip the precision-recall test suite
 - `--feature "description"` — human-readable description (default: derived from slug)
@@ -491,3 +490,42 @@ DRIFT_SKIP_HOOKS=1 git push                  # Skip ALL gates (emergency only)
 ```
 
 After the gates pass, the hook also runs lint, typecheck, tests, and self-analysis locally before pushing.
+
+## Pinned Tool Versions
+
+The following tools are pinned in `.pre-commit-config.yaml` to avoid CI/local divergence.
+If your **local** version differs from the pinned version, `pre-commit` may flag or silently
+auto-format files differently — leading to CI failures that don't reproduce locally.
+
+| Tool | Pin (`.pre-commit-config.yaml`) | Check locally |
+|------|--------------------------------|---------------|
+| `ruff` | see `rev:` under `astral-sh/ruff-pre-commit` | `ruff --version` |
+| `markdownlint-cli2` | see `rev:` under `DavidAnson/markdownlint-cli2` | `npx markdownlint-cli2 --version` |
+| `detect-secrets` | see `rev:` under `Yelp/detect-secrets` | `detect-secrets --version` |
+
+**Rule**: Keep your local `ruff` version equal to the pinned `rev`. If you upgrade `ruff` locally,
+update the pin in `.pre-commit-config.yaml` in the same commit.
+
+## Security Baseline
+
+`detect-secrets` protects against accidentally committing secrets. The baseline file
+`.secrets.baseline` must be committed and up-to-date with the current codebase.
+
+**When adding intentional secret-like fixtures (test keys, example tokens):**
+
+```bash
+# Use the same exclude flags as the pre-commit hook to avoid baseline churn:
+python -m detect_secrets scan \
+  --exclude-files "(^|[\\/])uv\\.lock$" \
+  --exclude-files "(^|[\\/])(benchmark_results|audit_results|site|docs-site|\\.venv|dist|build|\\.mypy_cache|\\.pytest_cache|\\.ruff_cache|work_artifacts)([\\/]|$)" \
+  --exclude-files "(^|/)(tests/test_hardcoded_secret\\.py|tests/test_insecure_default\\.py|\\.specify/integrations/(speckit|copilot)\\.manifest\\.json)$" \
+  --baseline .secrets.baseline
+git add .secrets.baseline
+```
+
+**When CI reports `Your baseline file (.secrets.baseline) is unstaged`:**
+This means `.secrets.baseline` was modified but not committed. Run the scan above and commit
+the updated baseline.
+
+**Never commit real credentials** — even with `# pragma: allowlist secret`. That pragma only
+suppresses detection for automated tooling; real secrets must be rotated immediately.

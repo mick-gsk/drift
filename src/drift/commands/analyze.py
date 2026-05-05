@@ -111,7 +111,9 @@ def _maybe_enrich_plain_messages(
         from drift.lang import enrich_human_messages
 
         analysis.findings = enrich_human_messages(  # type: ignore[union-attr, attr-defined]
-            analysis.findings, lang=effective_language, audience="plain"  # type: ignore[union-attr, attr-defined]
+            analysis.findings,  # type: ignore[union-attr, attr-defined]
+            lang=effective_language,
+            audience="plain",  # type: ignore[union-attr, attr-defined]
         )
 
 
@@ -138,9 +140,7 @@ def _render_analysis_details(
     from drift.commands._shared import render_or_emit_output
 
     is_first_run = (
-        not no_first_run
-        and not (repo / "drift.yaml").exists()
-        and not (repo / ".drift").exists()
+        not no_first_run and not (repo / "drift.yaml").exists() and not (repo / ".drift").exists()
     )
     auto_detected_profile: str | None = None
     auto_detected_file_count: int = 0
@@ -291,6 +291,7 @@ def _is_copilot_setup_missing(repo: Path) -> bool:
         return True
     try:
         import json
+
         data = json.loads(settings_path.read_text(encoding="utf-8"))
         return "chat.promptFilesLocations" not in data
     except Exception:
@@ -339,8 +340,7 @@ def _maybe_save_analysis_baseline(
         f"({len(analysis.findings)} findings)",  # type: ignore[arg-type, attr-defined]
     )
     effective_console.print(
-        "  [dim]Next step: [bold]drift trend[/bold] "
-        "\u2014 shows score evolution over time[/dim]"
+        "  [dim]Next step: [bold]drift trend[/bold] \u2014 shows score evolution over time[/dim]"
     )
 
 
@@ -370,8 +370,7 @@ def _apply_analysis_severity_gate(
             sys.exit(EXIT_FINDINGS_ABOVE_THRESHOLD)
     elif not quiet:
         effective_console.print(
-            f"\n[bold green]{ok_marker} Drift check passed[/bold green] "
-            f"(threshold: {threshold}).",
+            f"\n[bold green]{ok_marker} Drift check passed[/bold green] (threshold: {threshold}).",
         )
 
 
@@ -797,14 +796,25 @@ def analyze(
             write_session_file(repo, _ch_session)
         _ch_block = build_handoff_block(_ch_session)
         _ch_handoff: dict | None = (
-            handoff_to_dict(_ch_block)
-            if output_format == "json" and not output_file
-            else None
+            handoff_to_dict(_ch_block) if output_format == "json" and not output_file else None
         )
         _render_analysis_details(
-            analysis, output_format, compact_json, drift_score_scope, output_file,
-            effective_console, max_findings, no_code, response_detail, cfg, group_by,
-            sort_by, explain, no_first_run, repo, show_suppressed,
+            analysis,
+            output_format,
+            compact_json,
+            drift_score_scope,
+            output_file,
+            effective_console,
+            max_findings,
+            no_code,
+            response_detail,
+            cfg,
+            group_by,
+            sort_by,
+            explain,
+            no_first_run,
+            repo,
+            show_suppressed,
             drift_kit=_ch_handoff,
         )
         if output_format == "rich":
