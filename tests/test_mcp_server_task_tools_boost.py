@@ -228,7 +228,12 @@ def test_drift_map_success_and_error(monkeypatch: pytest.MonkeyPatch) -> None:
         "drift.api.drift_map", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("boom"))
     )
     err = _run(mcp_server.drift_map(path="."))
-    assert err["status"] == "error"
+    assert err.get("status") == "error", (
+        "drift_map error response must carry 'status: error' as MCP discriminator"
+    )
+    assert err.get("type") == "error", (
+        "drift_map error response must carry 'type: error' (canonical _error_response shape)"
+    )
     assert err["agent_instruction"]
 
 
@@ -304,3 +309,4 @@ def test_feedback_and_calibrate(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     # Apply path writes drift.yaml
     cal_apply = _run(mcp_server.drift_calibrate(path=str(tmp_path), dry_run=False))
     assert cal_apply["written"] is True
+
