@@ -21,8 +21,8 @@ Diese Datei ist nur fuer Commit-/Push-Vorbereitung relevant, nicht fuer allgemei
 | `feat:`-Commit vorhanden | Feature-Evidence-Gate (Gate 2) |
 | `feat:` oder `fix:`-Commit vorhanden | Changelog-Gate (Gate 3) |
 | `pyproject.toml` geändert | Version-Gate (Gate 4) + Lockfile-Gate (Gate 5) |
-| `src/drift/**` geändert | Docstring-Gate (Gate 6) |
-| `src/drift/signals/**`, `src/drift/ingestion/**` oder `src/drift/output/**` geändert | Risk-Audit-Gate (Gate 7) |
+| `packages/drift-*/**` oder `src/drift/**` geändert | Docstring-Gate (Gate 6) |
+| `packages/drift-engine/src/drift_engine/signals/**`, `packages/drift-engine/src/drift_engine/ingestion/**`, `packages/drift-output/src/drift_output/**` oder entsprechende `src/drift/**`-Compat-Pfade geändert | Risk-Audit-Gate (Gate 7) |
 | Immer (alle Pushes) | CI-Checks (Gate 8) |
 
 ---
@@ -107,8 +107,8 @@ git commit --amend --no-edit  # oder separater Commit
 
 ## Gate 6 — Public-API-Docstring-Gate
 
-**Auslöser:** Mindestens eine Datei unter `src/drift/` ist im Push geändert.
-**Bedingung:** Jede neu hinzugefügte öffentliche Funktion der Form `def name(...)` (lowercase, kein `_`-Prefix) in `src/drift/` muss im selben Diff eine Docstring-Zeile (`"""` oder `'''`) enthalten.
+**Auslöser:** Mindestens eine Datei unter `packages/drift-*/` oder `src/drift/` ist im Push geändert.
+**Bedingung:** Jede neu hinzugefügte öffentliche Funktion der Form `def name(...)` (lowercase, kein `_`-Prefix) in diesen Pfaden muss im selben Diff eine Docstring-Zeile (`"""` oder `'''`) enthalten.
 **Bypass:** `DRIFT_SKIP_DOCSTRING=1 git push` (Notfall).
 
 ---
@@ -116,9 +116,10 @@ git commit --amend --no-edit  # oder separater Commit
 ## Gate 7 — Risk-Audit-Gate (Policy §18)
 
 **Auslöser:** Mindestens eine Datei unter einem dieser Pfade ist im Push geändert:
-- `src/drift/signals/`
-- `src/drift/ingestion/`
-- `src/drift/output/`
+- `packages/drift-engine/src/drift_engine/signals/`
+- `packages/drift-engine/src/drift_engine/ingestion/`
+- `packages/drift-output/src/drift_output/`
+- (Backward-Compat) entsprechende `src/drift/`-Pfadbereiche
 
 **Bedingung:** Mindestens **eine** der folgenden Audit-Artefakt-Dateien muss im selben Push geändert sein:
 - `audit_results/fmea_matrix.md`
@@ -179,7 +180,7 @@ Vor jedem Push sicherstellen: `make check` lokal bestanden.
 
 ## Gate 9 — Blast-Radius-Gate (ADR-087)
 
-**Auslöser:** Push berührt `src/drift/**`, `docs/decisions/**`, `POLICY.md` oder `.github/skills/**`.
+**Auslöser:** Push berührt `packages/drift-*/**` (oder `src/drift/**` als Compat-Layer), `docs/decisions/**`, `POLICY.md` oder `.github/skills/**`.
 
 **Schritte:**
 1. Hook ermittelt den Diff zwischen Remote- und Local-SHA.
