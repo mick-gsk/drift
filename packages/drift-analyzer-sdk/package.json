@@ -1,0 +1,53 @@
+{
+  "name": "@drift-analyzer/sdk",
+  "version": "0.1.0",
+  "description": "Node.js / TypeScript SDK for drift-analyzer — programmatic access to drift analyze, check, brief, and fix-plan",
+  "license": "MIT",
+  "author": "Mick Gottschalk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mick-gsk/drift",
+    "directory": "packages/drift-analyzer-sdk"
+  },
+  "homepage": "https://mick-gsk.github.io/drift/",
+  "keywords": [
+    "drift",
+    "architecture",
+    "code-quality",
+    "static-analysis",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --out-dir dist --clean",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.130",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
+  }
+}
