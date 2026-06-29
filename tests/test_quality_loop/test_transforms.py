@@ -20,6 +20,7 @@ def _apply(transform_cls, src: str) -> str:
 
 # ── RemoveUnusedImports ────────────────────────────────────────────────────
 
+
 class TestRemoveUnusedImports:
     TP_SRC = "import os\nimport sys\n\nprint(sys.version)\n"
     # `os` is imported but never used — should be removed
@@ -43,6 +44,7 @@ class TestRemoveUnusedImports:
 
 # ── InlineOneTimeVariable ─────────────────────────────────────────────────
 
+
 class TestInlineOneTimeVariable:
     TP_SRC = "def f():\n    result = 1 + 2\n    return result\n"
     TN_SRC = "def f():\n    x = 1\n    y = x + 1\n    return y\n"
@@ -63,6 +65,7 @@ class TestInlineOneTimeVariable:
 
 
 # ── FlattenNestedIf ───────────────────────────────────────────────────────
+
 
 class TestFlattenNestedIf:
     TP_SRC = "def f(a, b):\n    if a:\n        if b:\n            return 1\n"
@@ -93,6 +96,7 @@ class TestFlattenNestedIf:
 
 # ── SimplifyBooleanReturn ─────────────────────────────────────────────────
 
+
 class TestSimplifyBooleanReturn:
     TP_SRC = "def f(x):\n    if x:\n        return True\n    return False\n"
     TN_SRC = "def f(x):\n    if x:\n        return True\n    return 1\n"  # Not a bool pattern
@@ -114,6 +118,7 @@ class TestSimplifyBooleanReturn:
 
 # ── RemoveRedundantParens ─────────────────────────────────────────────────
 
+
 class TestRemoveRedundantParens:
     TP_SRC = "def f(x):\n    return (x + 1)\n"
     TN_SRC = "x = (1, 2)\n"  # Tuple — parens must be kept
@@ -133,6 +138,7 @@ class TestRemoveRedundantParens:
 
 
 # ── RemoveDeadBranch ──────────────────────────────────────────────────────
+
 
 class TestRemoveDeadBranch:
     TP_TRUE = "def f():\n    if True:\n        return 1\n"
@@ -161,11 +167,10 @@ class TestRemoveDeadBranch:
 
 # ── RemoveEmptyExcept ─────────────────────────────────────────────────────
 
+
 class TestRemoveEmptyExcept:
     TP_SRC = "def f():\n    try:\n        x = 1\n    except:\n        pass\n"
-    TN_SRC = (
-        "def f():\n    try:\n        x = 1\n    except ValueError:\n        pass\n"
-    )  # Typed except -- keep
+    TN_SRC = "def f():\n    try:\n        x = 1\n    except ValueError:\n        pass\n"  # Typed except -- keep  # noqa: E501
 
     def test_removes_bare_except_pass(self):
         result = _apply(RemoveEmptyExcept, self.TP_SRC)

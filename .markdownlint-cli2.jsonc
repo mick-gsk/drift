@@ -10,6 +10,7 @@
       "allowed_elements": ["details", "summary", "br", "img", "a", "p", "strong", "sup", "sub"]
     },
     "MD036": false,
+    "MD040": false,
     "MD041": false,
     "MD046": false
   }
