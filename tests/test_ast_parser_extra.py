@@ -186,12 +186,29 @@ def _parse_func(source: str) -> ast.FunctionDef:
 
 
 def test_fingerprint_endpoint_auth_body_name() -> None:
-    """Function with @get and Depends usage → auth via body_name."""
+    """Function with @get and Depends(get_current_user) → auth via dependency."""
     src = """
 @get("/items")
 def list_items():
     user = Depends(get_current_user)
     return []
+"""
+    node = _parse_func(src)
+    fp = _fingerprint_endpoint(node)
+    assert fp is not None
+    assert fp["has_auth"] is True
+    # get_current_user is an auth dependency → "dependency" mechanism.
+    assert fp["auth_mechanism"] == "dependency"
+
+
+def test_fingerprint_endpoint_auth_bare_current_user_name() -> None:
+    """A bare current_user reference still counts via body_name."""
+    src = """
+@get("/items")
+def list_items():
+    if current_user:
+        return []
+    return deny()
 """
     node = _parse_func(src)
     fp = _fingerprint_endpoint(node)
@@ -224,6 +241,69 @@ def plain_function():
     node = _parse_func(src)
     fp = _fingerprint_endpoint(node)
     assert fp is None
+
+
+def test_fingerprint_endpoint_non_auth_dependency_not_auth() -> None:
+    """Depends(get_db) is dependency injection, NOT authorization."""
+    src = """
+@app.get("/items")
+def list_items(db = Depends(get_db)):
+    return db.all()
+"""
+    fp = _fingerprint_endpoint(_parse_func(src))
+    assert fp is not None
+    assert fp["has_auth"] is False
+
+
+def test_fingerprint_endpoint_domain_user_attr_not_auth() -> None:
+    """Accessing .user on a domain object is not an auth check."""
+    src = """
+@app.get("/posts")
+def get_post(id):
+    post = load(id)
+    return {"author": post.user.name}
+"""
+    fp = _fingerprint_endpoint(_parse_func(src))
+    assert fp is not None
+    assert fp["has_auth"] is False
+
+
+def test_fingerprint_endpoint_auth_dependency_still_auth() -> None:
+    """Depends(get_current_user) remains a genuine auth signal."""
+    src = """
+@app.get("/me")
+def me(user = Depends(get_current_user)):
+    return user
+"""
+    fp = _fingerprint_endpoint(_parse_func(src))
+    assert fp is not None
+    assert fp["has_auth"] is True
+
+
+def test_fingerprint_endpoint_security_dependency_is_auth() -> None:
+    """FastAPI Security(...) is an auth primitive."""
+    src = """
+@app.get("/me")
+def me(user = Security(oauth2_scheme)):
+    return user
+"""
+    fp = _fingerprint_endpoint(_parse_func(src))
+    assert fp is not None
+    assert fp["has_auth"] is True
+
+
+def test_fingerprint_endpoint_request_user_still_auth() -> None:
+    """request.user / .is_authenticated remain genuine auth signals."""
+    src = """
+@app.post("/x")
+def x(request):
+    if request.user.is_authenticated:
+        return ok()
+    return deny()
+"""
+    fp = _fingerprint_endpoint(_parse_func(src))
+    assert fp is not None
+    assert fp["has_auth"] is True
 
 
 # ---------------------------------------------------------------------------

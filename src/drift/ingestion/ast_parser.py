@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
@@ -171,23 +172,92 @@ _AUTH_DECORATORS: frozenset[str] = frozenset({
     "requires_auth",
 })
 
-# Names/attributes in function bodies that indicate an auth check.
+# Bare names in a function body that indicate an auth check.
+# NOTE: ``Depends``/``Security`` are intentionally NOT here — ``Depends`` is a
+# generic dependency-injection wrapper (see _is_auth_dependency_call). Marking
+# every ``Depends(...)`` as auth produced systematic CWE-862 false negatives.
 _AUTH_BODY_NAMES: frozenset[str] = frozenset({
     "current_user",
     "get_current_user",
-    "Depends",
-    "Security",
 })
 
-# Attribute access patterns that indicate auth (e.g. request.user).
-_AUTH_BODY_ATTRS: frozenset[str] = frozenset({
-    "user",
-    "auth",
+# Attribute names that, on their own, unambiguously denote an auth check.
+_AUTH_STRONG_ATTRS: frozenset[str] = frozenset({
     "is_authenticated",
     "has_perm",
     "has_permission",
     "check_permissions",
 })
+
+# Attribute names that denote auth ONLY when read off a request-like object
+# (e.g. ``request.user``). On a domain object (``post.user``) they mean nothing.
+_AUTH_WEAK_ATTRS: frozenset[str] = frozenset({
+    "user",
+    "auth",
+})
+
+# Objects that ``.user``/``.auth`` may be read from to count as an auth check.
+_REQUEST_LIKE_NAMES: frozenset[str] = frozenset({
+    "request",
+    "req",
+    "g",
+    "ctx",
+    "context",
+})
+
+# Dependency / callable names that look auth-related when wrapped in
+# ``Depends(...)``. Deliberately excludes generic helpers like ``get_db``.
+_AUTH_DEPENDENCY_RE = re.compile(
+    r"current_user|get_current|authenticat|authoriz|(?<![a-z])auth(?![a-z])|"
+    r"oauth|jwt|bearer|login_required|token_required|"
+    r"require_(?:auth|login|user|admin|scope|permission)|"
+    r"verify_(?:token|jwt|auth)|permission|has_scope|api[_-]?key",
+    re.IGNORECASE,
+)
+
+
+def _callable_name(node: ast.expr) -> str:
+    """Best-effort simple name for a call target / reference."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, ast.Call):
+        return _callable_name(node.func)
+    return ""
+
+
+def _is_auth_dependency_call(call: ast.Call) -> bool:
+    """Return True if ``call`` is an auth-bearing ``Depends``/``Security`` use.
+
+    ``Security(...)`` is FastAPI's auth primitive and always counts. ``Depends(...)``
+    counts only when the injected dependency's name looks auth-related, so that
+    ``Depends(get_db)`` / ``Depends(get_pagination)`` are not mistaken for auth.
+    """
+    wrapper = _callable_name(call.func)
+    if wrapper not in {"Depends", "Security"}:
+        return False
+    if wrapper == "Security":
+        return True
+    for arg in (*call.args, *(kw.value for kw in call.keywords)):
+        name = _callable_name(arg)
+        if name and _AUTH_DEPENDENCY_RE.search(name):
+            return True
+    return False
+
+
+def _is_auth_attr(attr: ast.Attribute) -> bool:
+    """Return True if an attribute access denotes an auth check."""
+    if attr.attr in _AUTH_STRONG_ATTRS:
+        return True
+    if attr.attr in _AUTH_WEAK_ATTRS:
+        base = attr.value
+        if isinstance(base, ast.Name):
+            return base.id in _REQUEST_LIKE_NAMES
+        if isinstance(base, ast.Attribute):
+            # e.g. self.request.user
+            return base.attr in _REQUEST_LIKE_NAMES
+    return False
 
 
 def _is_route_decorator(decorator: ast.expr) -> bool:
@@ -243,10 +313,11 @@ def _fingerprint_endpoint(
             has_auth_check = True
             if auth_mechanism is None:
                 auth_mechanism = "body_name"
-        if (
-            isinstance(child, ast.Attribute)
-            and child.attr in _AUTH_BODY_ATTRS
-        ):
+        if isinstance(child, ast.Call) and _is_auth_dependency_call(child):
+            has_auth_check = True
+            if auth_mechanism is None:
+                auth_mechanism = "dependency"
+        if isinstance(child, ast.Attribute) and _is_auth_attr(child):
             has_auth_check = True
             if auth_mechanism is None:
                 auth_mechanism = "body_attr"
