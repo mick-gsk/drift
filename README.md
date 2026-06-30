@@ -8,7 +8,7 @@
 
 Drift measures what your linter cannot: cross-file structural coherence — the layer where pattern fragmentation, boundary violations, and duplicate divergence accumulate across commits.
 
-77–95 % real-world precision · ~30 s for a 2 900-file codebase · 24 signals · deterministic, no LLM
+24 signals · deterministic, no LLM in detection · runs locally, offline · [evidence & limitations](docs/STUDY.md)
 
 <img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
 
@@ -45,7 +45,7 @@ drift status         # traffic-light health check — your daily entry point
 uvx drift-analyzer analyze --repo .
 ```
 
-> One command. No pre-install. Results in ~30 seconds.
+> One command. No pre-install. Results in under a minute on a typical repo.
 > No config needed — `drift analyze` auto-detects the right profile. `drift init --auto` saves it to `drift.yaml` without prompts (`vibe-coding` / `default` / `strict`).
 
 🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/) · [Interactive code playground →](https://mick-gsk.github.io/drift/playground/)
@@ -552,11 +552,12 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 
 | Metric | Value | Artifact |
 |---|---|---|
-| Wild-repo precision | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
+| Wild-repo precision ¹ | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
 | Ground-truth regression | 0 FP, 0 FN (84 TP, 206 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
 | Mutation recall | 75 % (75/100 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 | Agent session score delta | 0.495→0.506 (1 live run) ² | [Copilot Autopilot artefacts](demos/copilot-autopilot/) |
 
+¹ Upper-bound estimate from the historical **v0.5 6-signal model** on a score-weighted, single-rater sample — **not yet revalidated** for the current 24-signal model. See [STUDY.md §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md).
 ² Single uncontrolled run — see [RESEARCH.md H4/H5](RESEARCH.md#h4--agent-guardrail-compliance-rate) for what a controlled study would require.
 
 - **No LLM in detection.** The deterministic core uses no LLM inference — same input, same output. Optional local embeddings (`pip install drift-analyzer[embeddings]`) improve near-duplicate detection but are not required and do not call external services.
