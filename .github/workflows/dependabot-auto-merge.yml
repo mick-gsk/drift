@@ -1,6 +1,9 @@
 name: Dependabot Auto-Merge Loop
 
-# Auto-merge Dependabot minor/patch PRs after CI passes.
+# Enable auto-merge for Dependabot minor/patch PRs. The merge only completes
+# once branch protection is satisfied (required CI + required human review) —
+# the workflow does NOT approve on the bot's behalf. Configure a required
+# review on the default branch for this gate to be effective.
 # Major updates are flagged for human review via issue label only.
 #
 # Labels set by dependabot.yml:
@@ -37,25 +40,21 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-merge minor or patch updates
+      - name: Enable auto-merge for minor or patch updates
         if: |
           steps.meta.outputs.update-type == 'version-update:semver-minor' ||
           steps.meta.outputs.update-type == 'version-update:semver-patch'
         run: |
           echo "Minor/patch update detected — enabling auto-merge."
+          # --auto only completes once branch-protection requirements (incl. a
+          # required human review) are satisfied. We intentionally do NOT
+          # self-approve here: a bot approving its own dependency PR would
+          # defeat the required-review policy and merge unreviewed upstream
+          # changes (and transitive uv.lock churn) — a supply-chain risk.
           gh pr merge "${{ github.event.pull_request.number }}" \
             --auto \
             --squash \
             --delete-branch
-
-      - name: Approve minor/patch PR
-        if: |
-          steps.meta.outputs.update-type == 'version-update:semver-minor' ||
-          steps.meta.outputs.update-type == 'version-update:semver-patch'
-        run: |
-          gh pr review "${{ github.event.pull_request.number }}" \
-            --approve \
-            --body "Auto-approved by dependabot-auto-merge-loop.yml (minor/patch update)."
 
       - name: Flag major updates for human review
         if: steps.meta.outputs.update-type == 'version-update:semver-major'

@@ -5,8 +5,10 @@ name: Fast-Lane Automerge
 #   1. Label lane/fast-lane is present
 #   2. Label size/XS or size/S is present
 #   3. All required CI checks are green
-#   4. At least one approved review
+#   4. At least one approved review from a HUMAN (no size exemption; bot
+#      reviews do not count) and no outstanding CHANGES_REQUESTED
 #   5. No blocking labels: blocked, needs-description, needs-buglink
+#   6. PR originates from this repo, not a fork
 #
 # Triggered on: review submitted (approved) and check_suite completed.
 # Uses squash-merge with branch deletion.
@@ -82,6 +84,14 @@ jobs:
               return;
             }
 
+            // Guard: never automerge PRs from forks. The check_suite trigger
+            // fires for fork PRs too, so without this a fork PR could reach the
+            // default branch unattended. Forks must go through normal review.
+            if (!pr.head.repo || pr.head.repo.full_name !== `${owner}/${repo}`) {
+              core.info(`PR #${prNumber} is from a fork — skipping automerge.`);
+              return;
+            }
+
             const labelNames = pr.labels.map(l => l.name);
             core.info(`PR #${prNumber} labels: ${labelNames.join(', ')}`);
 
@@ -108,27 +118,29 @@ jobs:
               return;
             }
 
-            // ---- Condition 4: at least one approved review ----------------
-            // Exception: size/XS fast-lane PRs (trivial docs/fixture changes) skip
-            // the review requirement — CI green + no blockers is sufficient.
-            const isXS = labelNames.includes('size/XS');
-            if (!isXS) {
-              // Paginate all reviews so a later CHANGES_REQUESTED is not missed.
-              const reviews = await github.paginate(github.rest.pulls.listReviews, {
-                owner, repo, pull_number: prNumber, per_page: 100
-              });
-              // Latest review state per reviewer
-              const latestByUser = {};
-              for (const review of reviews) {
-                latestByUser[review.user.login] = review.state;
-              }
-              const hasApproval = Object.values(latestByUser).includes('APPROVED');
-              if (!hasApproval) {
-                core.info('No approved review yet — skipping.');
-                return;
-              }
-            } else {
-              core.info('size/XS fast-lane PR — skipping review requirement.');
+            // ---- Condition 4: at least one approved review from a human ----
+            // Every fast-lane merge requires a human approval. size/XS PRs are
+            // NOT exempt: size and lane labels are assigned automatically, so an
+            // exemption would let unreviewed changes reach the default branch.
+            // Paginate all reviews so a later CHANGES_REQUESTED is not missed.
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner, repo, pull_number: prNumber, per_page: 100
+            });
+            // Latest review state per HUMAN reviewer; bot reviews (e.g. Copilot)
+            // cannot satisfy the human-review requirement.
+            const latestByUser = {};
+            for (const review of reviews) {
+              if (review.user && review.user.login.endsWith('[bot]')) continue;
+              latestByUser[review.user.login] = review.state;
+            }
+            const reviewStates = Object.values(latestByUser);
+            if (reviewStates.includes('CHANGES_REQUESTED')) {
+              core.info('A reviewer requested changes — skipping.');
+              return;
+            }
+            if (!reviewStates.includes('APPROVED')) {
+              core.info('No human approval yet — skipping.');
+              return;
             }
 
             // ---- Condition 3: all required checks green -------------------
