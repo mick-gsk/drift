@@ -474,6 +474,12 @@ class HardcodedSecretSignal(BaseSignal):  # drift:ignore[DCA]
             )
             if finding:
                 findings.append(finding)
+            if isinstance(node, ast.Dict):
+                findings.extend(
+                    self._check_dict_literal(
+                        node, pr.file_path, min_entropy, min_length
+                    )
+                )
 
         return findings
 
@@ -691,6 +697,44 @@ class HardcodedSecretSignal(BaseSignal):  # drift:ignore[DCA]
                 )
 
         return None
+
+    def _check_dict_literal(
+        self,
+        node: ast.Dict,
+        file_path: Path,
+        min_entropy: float,
+        min_length: int,
+    ) -> list[Finding]:
+        """Detect secrets in dict literals: ``{"api_key": "..."}`` (CWE-798).
+
+        Each string key acts as the variable-name context for its value, so a
+        secret-named key (or a value with a known token prefix) is flagged just
+        like ``api_key = "..."`` would be. Unlike the per-node assignment check
+        this collects every matching entry in the dict, not just the first.
+        """
+        results: list[Finding] = []
+        for key, value in zip(node.keys, node.values, strict=True):
+            if not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+                continue
+            key_name = key.value
+            lineno = getattr(value, "lineno", node.lineno)
+
+            known_prefix_finding = self._detect_known_prefix_literal(
+                value, key_name, file_path, lineno
+            )
+            if known_prefix_finding:
+                results.append(known_prefix_finding)
+                continue
+
+            if _SECRET_VAR_RE.search(key_name):
+                finding = self._evaluate_value(
+                    value, key_name, file_path, lineno,
+                    min_entropy, min_length,
+                    in_enum_member_context=False,
+                )
+                if finding:
+                    results.append(finding)
+        return results
 
     @staticmethod
     def _extract_var_name(target: ast.expr) -> str | None:

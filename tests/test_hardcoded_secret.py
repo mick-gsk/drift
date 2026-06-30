@@ -71,6 +71,54 @@ class TestHSCTruePositives:
         assert findings[0].signal_type == SignalType.HARDCODED_SECRET
         assert "SECRET_KEY" in findings[0].title
 
+    def test_secret_in_dict_literal(self, tmp_path: Path) -> None:
+        # config = {"api_key": "..."} — a very common config pattern that the
+        # AST scanner previously skipped entirely (CWE-798).
+        _write_source(
+            tmp_path,
+            "settings.py",
+            """\
+            CONFIG = {
+                "api_key": "s3cr3t-k3y-th4t-1s-v3ry-l0ng-4nd-r4nd0m",
+            }
+            """,
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("settings.py")], {}, DriftConfig())
+        assert len(findings) >= 1
+        assert findings[0].signal_type == SignalType.HARDCODED_SECRET
+
+    def test_known_prefix_token_in_dict_literal(self, tmp_path: Path) -> None:
+        # A known token prefix must fire even under a generic dict key.
+        _write_source(
+            tmp_path,
+            "settings.py",
+            """\
+            CONFIG = {
+                "value": "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+            }
+            """,
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("settings.py")], {}, DriftConfig())
+        assert len(findings) >= 1
+        assert findings[0].signal_type == SignalType.HARDCODED_SECRET
+
+    def test_multiple_secrets_in_dict_literal(self, tmp_path: Path) -> None:
+        _write_source(
+            tmp_path,
+            "settings.py",
+            """\
+            CONFIG = {
+                "api_key": "s3cr3t-k3y-th4t-1s-v3ry-l0ng-4nd-r4nd0m",
+                "db_password": "an0th3r-v3ry-l0ng-s3cr3t-v4lu3-here",
+            }
+            """,
+        )
+        signal = HardcodedSecretSignal(repo_path=tmp_path)
+        findings = signal.analyze([_make_pr("settings.py")], {}, DriftConfig())
+        assert len(findings) >= 2
+
     def test_github_token(self, tmp_path: Path) -> None:
         _write_source(
             tmp_path,
