@@ -172,6 +172,50 @@ class TestHasBoolReturn:
         fn = _fn_info(return_type=None)
         assert _has_bool_return(_parse(src), fn) is False
 
+    def test_comparison_return_is_bool(self):
+        # def is_valid(x): return x > 0  — obviously boolean, must NOT be flagged
+        src = """\
+        def is_valid(x):
+            return x > 0
+        """
+        fn = _fn_info(return_type=None)
+        assert _has_bool_return(_parse(src), fn) is True
+
+    def test_boolop_return_is_bool(self):
+        src = """\
+        def is_ready(a, b):
+            return a and b
+        """
+        fn = _fn_info(return_type=None)
+        assert _has_bool_return(_parse(src), fn) is True
+
+    def test_not_return_is_bool(self):
+        src = """\
+        def is_empty(x):
+            return not x
+        """
+        fn = _fn_info(return_type=None)
+        assert _has_bool_return(_parse(src), fn) is True
+
+    def test_isinstance_return_is_bool(self):
+        src = """\
+        def is_number(x):
+            return isinstance(x, int)
+        """
+        fn = _fn_info(return_type=None)
+        assert _has_bool_return(_parse(src), fn) is True
+
+    def test_mixed_bool_expr_and_nonbool_is_not_bool(self):
+        # One bool expr + one clearly non-bool return → still a violation.
+        src = """\
+        def is_valid(x):
+            if x:
+                return x > 0
+            return "nope"
+        """
+        fn = _fn_info(return_type=None)
+        assert _has_bool_return(_parse(src), fn) is False
+
 
 class TestIsBoolLikeReturnType:
     def test_plain_bool_types(self):
