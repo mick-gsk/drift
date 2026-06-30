@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 from typing import Any, Literal
 
@@ -484,7 +485,7 @@ class DriftConfig(BaseModel):
 
         if config_path and config_path.exists():
             if config_path.suffix == ".toml":
-                return cls._load_toml(config_path)
+                return cls._enforce_runtime_validation_trust(cls._load_toml(config_path))
 
             raw = config_path.read_text(encoding="utf-8")
 
@@ -506,7 +507,7 @@ class DriftConfig(BaseModel):
 
             try:
                 data = cls._apply_extends(data)
-                return cls.model_validate(data)
+                return cls._enforce_runtime_validation_trust(cls.model_validate(data))
             except ValidationError as exc:
                 from drift.errors import (
                     DriftConfigError,
@@ -533,7 +534,35 @@ class DriftConfig(BaseModel):
 
         detected_profile, _ = detect_repo_profile(repo_path)
         auto_data = cls._apply_extends({"extends": detected_profile})
-        return cls.model_validate(auto_data)
+        return cls._enforce_runtime_validation_trust(cls.model_validate(auto_data))
+
+    @staticmethod
+    def _runtime_validation_trusted() -> bool:
+        """Whether PHR runtime validation is opted in via a TRUSTED channel.
+
+        ``phr_runtime_validation`` makes phantom_reference call
+        ``importlib.import_module`` on modules *named by the analyzed code*,
+        executing their module-level code inside the drift process. The
+        analyzed repo's own ``drift.yaml`` must never be able to enable this —
+        a malicious repo scanned in CI would otherwise gain code execution
+        (the analyzer's core threat model). It is honoured only when the
+        invoker sets ``DRIFT_PHR_RUNTIME_VALIDATION`` in the environment, an
+        out-of-band channel the analyzed repo cannot influence.
+        """
+        return os.environ.get("DRIFT_PHR_RUNTIME_VALIDATION", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
+    @classmethod
+    def _enforce_runtime_validation_trust(cls, config: DriftConfig) -> DriftConfig:
+        """Override any repo-supplied ``phr_runtime_validation`` with the
+        trusted decision, so config loaded from an untrusted repo can never
+        switch on code execution."""
+        config.thresholds.phr_runtime_validation = cls._runtime_validation_trusted()
+        return config
 
     def severity_gate(self) -> str:
         return self.fail_on
