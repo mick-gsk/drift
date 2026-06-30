@@ -61,22 +61,31 @@ def _extract_exception_profile(func_node: ast.FunctionDef | ast.AsyncFunctionDef
             if node.exc is None:
                 has_bare_raise = True
             elif isinstance(node.exc, ast.Call):
+                # raise Foo(...) / raise mod.Foo(...)
                 if isinstance(node.exc.func, ast.Name):
                     raise_types.add(node.exc.func.id)
-                elif isinstance(node.exc, ast.Attribute):
-                    raise_types.add(node.exc.attr)
+                elif isinstance(node.exc.func, ast.Attribute):
+                    raise_types.add(node.exc.func.attr)
             elif isinstance(node.exc, ast.Name):
                 raise_types.add(node.exc.id)
+            elif isinstance(node.exc, ast.Attribute):
+                # raise mod.Foo (class, no call)
+                raise_types.add(node.exc.attr)
 
         if isinstance(node, ast.ExceptHandler):
             if node.type is None:
                 has_bare_except = True
             elif isinstance(node.type, ast.Name):
                 handler_types.add(node.type.id)
+            elif isinstance(node.type, ast.Attribute):
+                # except mod.Foo:
+                handler_types.add(node.type.attr)
             elif isinstance(node.type, ast.Tuple):
                 for elt in node.type.elts:
                     if isinstance(elt, ast.Name):
                         handler_types.add(elt.id)
+                    elif isinstance(elt, ast.Attribute):
+                        handler_types.add(elt.attr)
 
     return {
         "raise_types": sorted(raise_types),
