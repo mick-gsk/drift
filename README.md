@@ -21,7 +21,9 @@ drift status         # traffic-light health check — your daily entry point
 
 > `drift status` → repo-level score (0–1 · 🟢/🟡/🔴) · `drift analyze` → per-finding detail (INFO/LOW/MEDIUM/HIGH). Bare `drift` runs `drift status`.
 
+<!-- Re-enable once GitHub Actions is unlocked (billing) — runs currently fail before starting, which renders a misleading red badge:
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
+-->
 [![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](benchmark_results/drift_self.json)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
