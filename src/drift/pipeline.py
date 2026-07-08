@@ -21,7 +21,7 @@ import threading
 import time
 from collections import defaultdict
 from collections.abc import Callable
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import Executor, Future, as_completed
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from drift.cache import ParseCache, SignalCache
 from drift.context_tags import apply_context_tags, scan_context_tags
 from drift.embeddings import get_embedding_service
+from drift.executors import make_executor
 from drift.finding_context import annotate_finding_contexts
 from drift.ingestion.ast_parser import parse_file
 from drift.ingestion.git_history import (
@@ -251,11 +252,13 @@ def _collect_broad_security_suppressions(
         if key in seen:
             continue
         seen.add(key)
-        records.append({
-            "file": key[0],
-            "line": key[1],
-            "signal": key[2],
-        })
+        records.append(
+            {
+                "file": key[0],
+                "line": key[1],
+                "signal": key[2],
+            }
+        )
 
     records.sort(
         key=lambda item: (
@@ -498,7 +501,7 @@ class IngestionPhase:
 
     def _run_parse_futures(
         self,
-        executor: ThreadPoolExecutor,
+        executor: Executor,
         to_parse: list[tuple[int, FileInfo, str | None]],
         parse_results_opt: list[ParseResult | None],
         repo_path: Path,
@@ -582,9 +585,7 @@ class IngestionPhase:
                 parse_results_opt[idx] = ParseResult(
                     file_path=finfo.path,
                     language=finfo.language,
-                    parse_errors=[
-                        f"parse timeout exceeded ({self._future_timeout_seconds:.3f}s)"
-                    ],
+                    parse_errors=[f"parse timeout exceeded ({self._future_timeout_seconds:.3f}s)"],
                 )
 
         if not no_cache:
@@ -620,8 +621,7 @@ class IngestionPhase:
                             cause="git_history_unavailable",
                             component="git_history",
                             message=(
-                                "Git history parsing failed; "
-                                "temporal/git-based context omitted."
+                                "Git history parsing failed; temporal/git-based context omitted."
                             ),
                             details={"error": str(git_error)},
                         ),
@@ -637,8 +637,7 @@ class IngestionPhase:
                         cause="git_history_timeout",
                         component="git_history",
                         message=(
-                            "Git history retrieval timed out; "
-                            "temporal/git-based context omitted."
+                            "Git history retrieval timed out; temporal/git-based context omitted."
                         ),
                         details={"timeout_seconds": str(self._future_timeout_seconds)},
                     ),
@@ -689,7 +688,7 @@ class IngestionPhase:
             except OSError:
                 return _idx, _finfo, None
 
-        with ThreadPoolExecutor(max_workers=workers) as hash_pool:
+        with make_executor(workers) as hash_pool:
             hash_iter = hash_pool.map(_compute_hash, enumerate(files))
             for idx, finfo, content_hash in hash_iter:
                 if content_hash is not None:
@@ -728,7 +727,7 @@ class IngestionPhase:
                 },
             )
 
-        executor = ThreadPoolExecutor(max_workers=workers)
+        executor = make_executor(workers)
         timed_out = False
         try:
 
@@ -1135,7 +1134,7 @@ class SignalPhase:
         per_signal_timings: dict[str, float] = {}
 
         max_workers = min(total_signals, workers)
-        pool = ThreadPoolExecutor(max_workers=max_workers)
+        pool = make_executor(max_workers)
         timed_out = False
         try:
             futures = {pool.submit(_run_or_cache_timed, signal): signal for signal in signals}
@@ -1187,9 +1186,7 @@ class SignalPhase:
                         make_degradation_event(
                             cause="signal_timeout",
                             component=f"signal:{signal.name}",
-                            message=(
-                                f"Signal '{signal.name}' timed out and was skipped."
-                            ),
+                            message=(f"Signal '{signal.name}' timed out and was skipped."),
                             details={
                                 "signal": signal.name,
                                 "timeout_seconds": str(self._future_timeout_seconds),
@@ -1229,8 +1226,7 @@ def _blend_weights(
     d1 = w1.as_dict()
     d2 = w2.as_dict()
     blended = {
-        k: round((1.0 - alpha) * d1.get(k, 0.0) + alpha * d2.get(k, d1.get(k, 0.0)), 4)
-        for k in d1
+        k: round((1.0 - alpha) * d1.get(k, 0.0) + alpha * d2.get(k, d1.get(k, 0.0)), 4) for k in d1
     }
     return w1.model_copy(update=blended)
 
@@ -1437,9 +1433,7 @@ class ResultAssemblyPhase:
             expired_suppression_count=len(artifacts.scored.expired_suppressions),
             context_tagged_count=artifacts.scored.context_tagged_count,
             analysis_status=(
-                AnalysisStatus.DEGRADED
-                if artifacts.degradation.events
-                else AnalysisStatus.COMPLETE
+                AnalysisStatus.DEGRADED if artifacts.degradation.events else AnalysisStatus.COMPLETE
             ),
             degradation_causes=sorted(artifacts.degradation.causes),
             degradation_components=sorted(artifacts.degradation.components),

@@ -14,9 +14,10 @@ import hashlib
 import logging
 import re
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from pathlib import Path
 
+from drift.executors import make_executor
 from drift.models import BlameLine
 
 logger = logging.getLogger("drift")
@@ -243,10 +244,8 @@ def _run_blame_parallel(
             cache.put(chash, bl)
         return fpath, bl
 
-    with ThreadPoolExecutor(max_workers=min(max_workers, len(uncached))) as pool:
-        futures = {
-            pool.submit(_blame_one, fp, s, e): fp for fp, (s, e) in uncached.items()
-        }
+    with make_executor(min(max_workers, len(uncached))) as pool:
+        futures = {pool.submit(_blame_one, fp, s, e): fp for fp, (s, e) in uncached.items()}
         for future in as_completed(futures):
             try:
                 fpath, blame_result = future.result()
@@ -305,8 +304,15 @@ def extract_branch_hint(
     """
     try:
         result = subprocess.run(
-            ["git", "log", "--merges", "--ancestry-path",
-             f"{commit_hash}..HEAD", "--format=%s", "-5"],
+            [
+                "git",
+                "log",
+                "--merges",
+                "--ancestry-path",
+                f"{commit_hash}..HEAD",
+                "--format=%s",
+                "-5",
+            ],
             capture_output=True,
             text=True,
             encoding="utf-8",
