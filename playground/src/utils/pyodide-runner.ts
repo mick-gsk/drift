@@ -88,10 +88,34 @@ except Exception as _e:
 await micropip.install("drift-analyzer", keep_going=True)
 `);
 
-      // Smoke-test the import path we'll use later
+      // Smoke-test the import path we'll use later.
+      // IMPORTANT: the ThreadPoolExecutor patch must run BEFORE the first
+      // drift import — drift.pipeline binds the name at module import time.
       await py.runPythonAsync(`
+# Pyodide/Emscripten cannot start OS threads: ThreadPoolExecutor raises
+# "RuntimeError: can't start new thread" as soon as a worker spawns.
+# Replace it with a synchronous drop-in BEFORE drift is imported, so
+# drift.pipeline binds the inline class instead. (drift >= 2.52 handles
+# this natively via drift.executors.make_executor; this patch keeps the
+# playground working with any installed version.)
+import concurrent.futures as _cf
+
+class _InlineExecutor(_cf.Executor):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def submit(self, fn, /, *args, **kwargs):
+        _future = _cf.Future()
+        try:
+            _future.set_result(fn(*args, **kwargs))
+        except BaseException as _exc:
+            _future.set_exception(_exc)
+        return _future
+
+_cf.ThreadPoolExecutor = _InlineExecutor
+
 from drift.api.scan import scan as _drift_scan
-print("drift-analyzer import OK")
+print("drift-analyzer import OK (inline executor active)")
 `);
 
       _pyodide = py;
@@ -160,6 +184,16 @@ _result = _drift_scan(
     exclude_signals=["TVS", "SMS"],
     max_findings=30,
 )
+
+# Newer drift versions return agent-shaped results with a "findings" list;
+# the playground UI consumes the JSON-document shape ("findings_compact",
+# see drift.output.schema.json v2.2). Bridge the two so the heatmap and
+# findings list render on every drift version.
+if "findings_compact" not in _result:
+    _result["findings_compact"] = [
+        {**_finding, "rank": _rank}
+        for _rank, _finding in enumerate(_result.get("findings") or [], start=1)
+    ]
 
 _scan_output = json.dumps(_result)
 `;
