@@ -716,7 +716,7 @@ class TestPhantomReferenceGenerator:
         assert len(result) >= 1
         nc = result[0]
         assert nc.source_signal == SignalType.PHANTOM_REFERENCE
-        assert nc.category == NegativeContextCategory.COMPLETENESS
+        assert nc.category == NegativeContextCategory.AI_QUALITY
         assert "client.py" in nc.description
         assert "fetch_remote_config" in nc.description
         assert nc.confidence >= 0.6

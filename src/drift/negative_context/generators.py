@@ -1200,7 +1200,7 @@ def _gen_phr(finding: Finding) -> list[NegativeContext]:
 
     return [NegativeContext(
         anti_pattern_id=_neg_id(SignalType.PHANTOM_REFERENCE, finding),
-        category=NegativeContextCategory.COMPLETENESS,
+        category=NegativeContextCategory.AI_QUALITY,
         source_signal=SignalType.PHANTOM_REFERENCE,
         severity=finding.severity,
         scope=_scope_from_finding(finding),

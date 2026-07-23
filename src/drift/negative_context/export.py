@@ -31,6 +31,7 @@ _CATEGORY_HEADING: dict[NegativeContextCategory, str] = {
     NegativeContextCategory.NAMING: "Naming Anti-Patterns",
     NegativeContextCategory.COMPLEXITY: "Complexity Anti-Patterns",
     NegativeContextCategory.COMPLETENESS: "Completeness Anti-Patterns",
+    NegativeContextCategory.AI_QUALITY: "AI-Generated Code Anti-Patterns",
 }
 
 _SEVERITY_ICON: dict[Severity, str] = {
