@@ -178,18 +178,45 @@ def find_novel_edges(conn: sqlite3.Connection, rel_path: str, imports: list[str]
 
 
 def neighbourhood(conn: sqlite3.Connection, rel_path: str, limit: int = 8) -> list[str]:
-    """Symbol names that already live in the same directory."""
+    """Everything already defined in this directory, or nothing at all.
+
+    Two rules, both learned from measuring this on real repositories, where the
+    briefing fired on 201 of fastapi's 203 directories and offered lists like
+    `Termynal, handleSponsorImages, main, openLinksInNewTab, shuffle`.
+
+    The names are filtered exactly as duplicate candidates are: a directory
+    containing `main` and `setup` tells an agent nothing it can act on.
+
+    And the list is returned only when it is *complete*. An alphabetical slice
+    of a fifty-symbol directory, printed as "already defined in src/api/",
+    reads as the contents of that directory and is not — the first eight names
+    alphabetically are the ones least likely to be the relevant ones. A partial
+    answer that looks whole is worse than silence.
+    """
+    if repeats_by_design(rel_path):
+        return []
+
     src_dir = build.dir_of(rel_path)
     like = "%" if src_dir == "." else f"{src_dir}/%"
     rows = conn.execute(
-        "SELECT DISTINCT name FROM symbols WHERE path LIKE ? AND path != ? ORDER BY name LIMIT ?",
-        (like, rel_path, limit),
+        "SELECT DISTINCT name FROM symbols WHERE path LIKE ? AND path != ? ORDER BY name",
+        (like, rel_path),
     )
-    return [row[0] for row in rows]
+    names = [
+        name
+        for (name,) in rows
+        if extract.normalize(name) not in extract.STOPWORDS
+        and len(extract.normalize(name)) >= MIN_DUPLICATE_NAME_LENGTH
+        and not (name.startswith("__") and name.endswith("__"))
+    ]
+    return names if 0 < len(names) <= limit else []
 
 
 def known_targets(conn: sqlite3.Connection, rel_path: str) -> list[str]:
     """Directories this file's directory already imports from."""
+    if repeats_by_design(rel_path):
+        return []
+
     src_dir = build.dir_of(rel_path)
     rows = conn.execute(
         "SELECT dst_dir FROM import_edges WHERE src_dir = ? ORDER BY dst_dir", (src_dir,)
