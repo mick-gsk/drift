@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "_comment_version": "There is deliberately no `version` field. Claude Code pins a plugin to that string and only offers an update when it changes; without it, the plugin tracks the git commit SHA and every merge to main reaches installed users. `claude plugin validate --strict` warns about the absence - that warning is the intended trade-off, not an oversight. See tests/guard/test_hooks.py::test_plugin_manifest_is_not_version_pinned.",
   "name": "drift",
   "displayName": "Drift",
-  "version": "2.51.1",
   "description": "Tells your coding agent when it is about to build something that already exists.",
   "author": {
     "name": "mick-gsk",

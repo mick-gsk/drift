@@ -250,3 +250,25 @@ def test_bin_wrapper_works_without_an_installed_package():
 
     assert result.returncode == 0, result.stderr
     assert "index" in result.stdout
+
+
+def test_plugin_manifest_is_not_version_pinned():
+    """No `version` field, so every merge to main reaches installed users.
+
+    Claude Code pins a plugin to the manifest's `version` string when one is
+    present and only offers an update when that string changes. This repository
+    releases through a channel that is not always available, so a pinned
+    version means a fix can sit on main indefinitely while `plugin update`
+    reports "already at latest". Without the field, Claude Code falls back to
+    the git commit SHA.
+    """
+    root = pathlib.Path(__file__).resolve().parents[2]
+    manifest = json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+
+    assert "version" not in manifest, (
+        "a pinned plugin version stops fixes from reaching users who already installed"
+    )
+
+    entry = json.loads((root / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+    for plugin in entry["plugins"]:
+        assert "version" not in plugin, f"{plugin['name']} is pinned in marketplace.json"
