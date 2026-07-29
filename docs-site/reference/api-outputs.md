@@ -283,7 +283,7 @@ avoid regenerating known anti-patterns while applying a fix.
 `negative_context` items use this stable shape:
 
 - `anti_pattern_id`: deterministic identifier for deduplication
-- `category`: one of `security`, `error_handling`, `architecture`, `testing`, `naming`, `complexity`, `completeness`
+- `category`: one of `security`, `error_handling`, `architecture`, `testing`, `naming`, `complexity`, `completeness`, `ai_quality`
 - `source_signal`: signal key that generated the item
 - `severity`: `critical`, `high`, `medium`, `low`, or `info`
 - `scope`: one of `file`, `module`, `repo`
