@@ -77,9 +77,10 @@ That constraint is enforced by a test, not by intention.
 
 | Measured on this repository (344 Python files) | p50 | p95 |
 |---|---|---|
-| Before an edit to a new file | 68 ms | 73 ms |
-| After an edit to an existing file | 85 ms | 91 ms |
+| Before an edit to a new file | 70 ms | 72 ms |
+| After an edit to an existing file | 86 ms | 87 ms |
 | *Python interpreter startup alone, for reference* | *24 ms* | *29 ms* |
+| *`import drift.cli`, the path the guard avoids* | *3229 ms* | *3959 ms* |
 
 20 runs each, cold, macOS/arm64, Python 3.12 → [guard_baseline.json](benchmark_results/guard_baseline.json).
 Clean checkout to a working guard: **5 s** (`bash scripts/gates/measure_install.sh`).
