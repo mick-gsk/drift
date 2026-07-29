@@ -28,6 +28,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - the pre-edit briefing spoke on almost every new file
 - stop build scripts counting as source, and measure the boundary
 - make the slash commands answer to the names the docs promise
+- the session tally lost 97 % of its increments under concurrency
 
 ## [2.51.1] - 2026-05-04
 
