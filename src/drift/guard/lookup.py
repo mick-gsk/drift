@@ -85,13 +85,19 @@ def repeats_by_design(rel_path: str) -> bool:
         return True
     if parts and parts[0] in _REPEATING_ROOT_DIRS:
         return True
+    # `Newtonsoft.Json.Tests` — .NET names a test project after the project it
+    # covers, so the segment is never exactly "tests".
+    if any(part.lower().endswith((".tests", ".test", ".specs", ".spec")) for part in parts[:-1]):
+        return True
 
     stem = parts[-1].rsplit(".", 1)[0]
-    return (
-        stem in ("test", "spec")
-        or stem.startswith(("test_", "test-"))
-        or stem.endswith(("_test", "-test", ".test", ".spec", "_spec"))
-    )
+    if stem in ("test", "spec") or stem.startswith(("test_", "test-")):
+        return True
+    if stem.endswith(("_test", "-test", ".test", ".spec", "_spec")):
+        return True
+    # Generated code restates whatever it was generated from, and no one edits
+    # it: `Model.designer.cs`, `Api.g.cs`, `Schema.generated.ts`.
+    return stem.lower().endswith((".designer", ".g", ".generated", "_pb2", "_pb"))
 
 
 def find_duplicates(

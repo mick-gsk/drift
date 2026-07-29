@@ -27,7 +27,10 @@ TS_JS_SUFFIXES = frozenset({".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"})
 GO_SUFFIXES = frozenset({".go"})
 RUST_SUFFIXES = frozenset({".rs"})
 JVM_SUFFIXES = frozenset({".java", ".kt", ".kts"})
-GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES | GO_SUFFIXES | RUST_SUFFIXES | JVM_SUFFIXES
+CSHARP_SUFFIXES = frozenset({".cs"})
+GUARDED_SUFFIXES = (
+    PYTHON_SUFFIXES | TS_JS_SUFFIXES | GO_SUFFIXES | RUST_SUFFIXES | JVM_SUFFIXES | CSHARP_SUFFIXES
+)
 
 #: Normalized names too common to ever be a meaningful duplicate.
 STOPWORDS = frozenset(
@@ -196,6 +199,28 @@ _JVM_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 _JVM_IMPORT = re.compile(r"^import\s+(?:static\s+)?([\w.]+(?:\*)?)", re.MULTILINE)
 
 
+#: C# declarations. Members are indented, so the column-zero anchor excludes
+#: them — except that C# nests types inside a namespace block, which indents
+#: everything by one level. Both indents are therefore allowed for types, and
+#: the file-scoped `namespace X;` form needs no allowance at all.
+_CSHARP_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "type",
+        re.compile(
+            r"^[ \t]{0,4}(?:\[[^\]]+\]\s*)*"
+            r"(?:public\s+|internal\s+|private\s+|protected\s+|sealed\s+|abstract\s+"
+            r"|static\s+|partial\s+|readonly\s+|record\s+)*"
+            r"(?:class|interface|struct|enum|record)\s+([A-Za-z_][\w]*)",
+            re.MULTILINE,
+        ),
+    ),
+)
+
+#: `using A.B.C;` names a namespace, which C# projects mirror as directories.
+#: `using X = A.B;` is an alias rather than a dependency on a place.
+_CSHARP_USING = re.compile(r"^using\s+(?:static\s+)?([A-Za-z_][\w.]*)\s*;", re.MULTILINE)
+
+
 class Symbol(NamedTuple):
     name: str
     norm_name: str
@@ -239,7 +264,40 @@ def extract(source: str, suffix: str = ".py") -> tuple[list[Symbol], list[str]]:
         return extract_rust(source)
     if suffix in JVM_SUFFIXES:
         return extract_jvm(source)
+    if suffix in CSHARP_SUFFIXES:
+        return extract_csharp(source)
     return ([], [])
+
+
+def extract_csharp(source: str) -> tuple[list[Symbol], list[str]]:
+    """C#, matched rather than parsed.
+
+    `using A.B.C;` becomes `A/B/C`, because a C# project mirrors its namespace
+    in the directory tree — the same assumption Java relies on, and the same
+    trailing-segment resolver finds it.
+    """
+    symbols: list[Symbol] = []
+    seen: set[str] = set()
+
+    for kind, pattern in _CSHARP_PATTERNS:
+        for match in pattern.finditer(source):
+            name = match.group(1)
+            if name in seen:
+                continue
+            seen.add(name)
+            symbols.append(
+                Symbol(
+                    name=name,
+                    norm_name=normalize(name),
+                    kind=kind,
+                    sig_hash=signature_hash(kind, []),
+                    line=source.count("\n", 0, match.start()) + 1,
+                )
+            )
+
+    imports = ["/".join(m.group(1).split(".")) for m in _CSHARP_USING.finditer(source)]
+    symbols.sort(key=lambda s: s.line)
+    return (symbols, imports)
 
 
 def extract_jvm(source: str) -> tuple[list[Symbol], list[str]]:

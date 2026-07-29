@@ -114,7 +114,13 @@ def import_to_dir(
     """
     if specifier.startswith("."):
         return relative_to_dir(specifier, src_dir, known_dirs)
-    if suffix in extract.GO_SUFFIXES | extract.RUST_SUFFIXES | extract.JVM_SUFFIXES:
+    if (
+        suffix
+        in extract.GO_SUFFIXES
+        | extract.RUST_SUFFIXES
+        | extract.JVM_SUFFIXES
+        | extract.CSHARP_SUFFIXES
+    ):
         return suffix_to_dir(specifier, known_dirs)
     if "/" in specifier:
         return None
@@ -150,6 +156,10 @@ PACKAGE_MARKERS = (
     "build.gradle.kts",
 )
 
+#: Markers whose name varies. A .NET project is `Whatever.csproj`, so the
+#: directory has to be searched rather than probed.
+PACKAGE_MARKER_GLOBS = ("*.csproj", "*.fsproj")
+
 
 def package_root_of(repo_root: pathlib.Path, rel_path: str, cache: dict[str, str]) -> str:
     """The package a file belongs to, as a repo-relative directory.
@@ -171,7 +181,9 @@ def package_root_of(repo_root: pathlib.Path, rel_path: str, cache: dict[str, str
     for depth in range(len(parts), -1, -1):
         candidate = "/".join(parts[:depth]) if depth else "."
         base = repo_root if candidate == "." else repo_root / candidate
-        if any((base / marker).exists() for marker in PACKAGE_MARKERS):
+        if any((base / marker).exists() for marker in PACKAGE_MARKERS) or any(
+            next(base.glob(pattern), None) is not None for pattern in PACKAGE_MARKER_GLOBS
+        ):
             found = candidate
             break
 
