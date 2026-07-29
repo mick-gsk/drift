@@ -144,6 +144,7 @@ all = [
 [project.scripts]
 drift = "drift.cli:safe_main"
 drift-analyzer = "drift.cli:safe_main"
+drift-guard = "drift.guard.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/drift"]
