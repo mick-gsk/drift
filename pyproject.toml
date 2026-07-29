@@ -247,10 +247,12 @@ check_untyped_defs = true
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
-# The Claude Code plugin ships from this same repository, so its manifest
-# version is bumped by the same release rather than maintained by hand — one
-# number, no drift between the PyPI package and the plugin.
-version_variables = [".claude-plugin/plugin.json:version"]
+# The Claude Code plugin manifest deliberately carries no version. A pinned
+# version means users only receive updates when that string changes, and the
+# release channel that would change it is not always available — so a fix could
+# sit on main for weeks without reaching anyone who installed. Without the
+# field, Claude Code falls back to the git commit SHA and every merge to main
+# propagates. See tests/guard/test_hooks.py::test_plugin_manifest_is_not_version_pinned.
 commit_message = "chore: Release {version}"
 tag_format = "v{version}"
 build_command = ""

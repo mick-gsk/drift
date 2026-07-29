@@ -14,6 +14,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - `schema.connect()` no longer advertises `Connection | None` for writers that cannot fail; readers use `connect()`, writers use `create()`
 - make the two-line install actually produce a working guard
 - keep the index out of the repositories it analyses
+- let merges to main reach users who already installed
 
 ## [2.51.1] - 2026-05-04
 
