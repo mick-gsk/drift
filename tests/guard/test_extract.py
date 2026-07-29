@@ -59,3 +59,32 @@ def test_common_names_are_stopwords():
     assert "main" in extract.STOPWORDS
     assert "run" in extract.STOPWORDS
     assert "validatetoken" not in extract.STOPWORDS
+
+
+def test_relative_imports_are_not_dropped():
+    """`from .sansio.app import App` is how a Python package imports itself.
+
+    Dropping relative imports left the boundary signal blind to the dominant
+    intra-package style: measured on Flask, 0 of 83 files appeared to import
+    across a directory at all.
+    """
+    _, imports = extract.extract("from .sansio.app import App\n")
+
+    assert "./sansio/app" in imports
+
+
+def test_relative_import_levels_become_path_prefixes():
+    _, one = extract.extract("from .db import client\n")
+    _, two = extract.extract("from ..shared.util import helper\n")
+    _, bare = extract.extract("from . import sibling\n")
+
+    assert "./db" in one
+    assert "../shared/util" in two
+    assert "./" in bare
+
+
+def test_absolute_imports_still_look_like_modules():
+    _, imports = extract.extract("from drift.guard import lookup\nimport os.path\n")
+
+    assert "drift.guard" in imports
+    assert "os.path" in imports
