@@ -311,6 +311,29 @@ def _check_security_version(version: str) -> tuple[list[str], list[dict[str, Any
                 fix_suggestion=f"Add '{pattern}' to the supported versions table in SECURITY.md",
             )
         )
+
+    # The prose line below the table is a second copy of the version and was
+    # not covered here, so it silently drifted (it still read v2.49.0 at
+    # v2.51.1). Pin it too, otherwise the check only guards half the file.
+    release_line = re.search(r"^Current release line: \*\*v([^*]+)\*\*\.", text, re.MULTILINE)
+    if release_line and release_line.group(1) != version:
+        msg = (
+            f"SECURITY.md 'Current release line' says v{release_line.group(1)}, "
+            f"but the current version is {version}"
+        )
+        errors.append(msg)
+        discs.append(
+            _discrepancy(
+                check_id="security_release_line_stale",
+                category="version_ref",
+                severity="low",
+                source_file="SECURITY.md",
+                expected=f"v{version}",
+                actual=f"v{release_line.group(1)}",
+                description=msg,
+                fix_suggestion=f"Update the 'Current release line' line to **v{version}**",
+            )
+        )
     return errors, discs
 
 

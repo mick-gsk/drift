@@ -4,13 +4,13 @@ This roadmap communicates what the project needs most right now,
 what is accessible for new contributors, and what is explicitly
 deprioritized. It is updated with each release.
 
-Last updated: v2.9.14 (2026-04-13)
+Last updated: v2.51.1 (2026-07-29)
 
 ---
 
-## Current phase: Distribution (Q2 2026)
+## Current phase: Distribution (Q3 2026)
 
-**Current focus: Distribution & demand validation (Q2 2026).** No new signals, no new features, no refactoring.
+**Current focus: Distribution & demand validation.** No new signals, no new features, no refactoring.
 Goal: validate demand, reach ≥10 external users. Engineering is stable — this phase is about building adoption.
 
 Exceptions: bugfixes that block installation or first-run experience.
@@ -20,8 +20,8 @@ Exceptions: bugfixes that block installation or first-run experience.
 | Milestone | Condition | Earliest date | Status |
 |---|---|---|---|
 | **pre-commit Discoverability** | `.pre-commit-hooks.yaml` in repo | ✅ done | Indexed via GitHub search + Sourcegraph |
-| **awesome-static-analysis PR** | >20 Stars, ≥3 months old, >1 contributor | ~18.06.2026 | ⏳ Gate not met (7 Stars, 19 days) |
-| **awesome-python PR** | ≥100 Stars, ≥3 months old | ~18.06.2026 + star growth | ⏳ Gate not met (hard auto-reject before) |
+| **awesome-static-analysis PR** | >20 Stars, ≥3 months old, >1 contributor | on star growth | ⏳ 2 of 3 met — age ✅ (4 months), contributors ✅ (6 human), stars ❌ (13 of >20) |
+| **awesome-python PR** | ≥100 Stars, ≥3 months old | on star growth | ⏳ age ✅, stars ❌ (13 of ≥100 — hard auto-reject before) |
 | **pre-commit.com Featured** | >500 Stars | open | ⏳ long-term |
 
 Vollständige Gate-Kriterien und vorbereitete PR-Texte: [`docs/distribution/awesome-submissions.md`](docs/distribution/awesome-submissions.md)
@@ -141,6 +141,9 @@ moratorium for language expansion.
 - **v2.9.8:** Calibration hardening — AVS, DIA, and MDS quality improvements, updated thresholds, extended feedback tooling, and refreshed golden snapshots.
 - **v2.9.13:** Six new output formats: `pr-comment`, `junit`, `llm`, `ci`, and `gate`; shell tab-completion via `drift completions`; signal clarity hardening (EDS, PFS, AVS, CCC); actionability improvements across CXS, TVS, DCA, MAZ, TSB, and PHR.
 - **v2.9.15:** Fix-intent contracts and shadow-verify for risky cross-file edits (ADR-063/064); repair-template registry and coverage matrix (ADR-065).
+
+Releases from **v2.10.0** to the current **v2.51.1** are not summarised here.
+See [`CHANGELOG.md`](CHANGELOG.md) for the full per-release detail.
 
 ---
 

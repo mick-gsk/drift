@@ -43,7 +43,7 @@ drift export-context --format raw -o patterns.json
 
 ## How it works
 
-```
+```text
 drift analyze → Findings → Negative Context Generators → Anti-Pattern Items
                                                               │
                     ┌─────────────────────────────────────────┘
@@ -94,6 +94,7 @@ Each anti-pattern item has this stable shape:
 | `naming` | NBV | Naming convention violations |
 | `complexity` | EDS, GCD, CXS | Unnecessary complexity, missing guards |
 | `completeness` | DIA, BAT, DCA | Missing docs, accumulated bypasses, dead code |
+| `ai_quality` | PHR | AI-hallucinated symbol references |
 
 ### Scopes
 
@@ -121,7 +122,7 @@ Markdown with category headings — suitable for `.github/copilot-instructions.m
 
 Compact format for system prompts (minimal tokens):
 
-```
+```text
 AVOID: Bare except Exception: pass (broad_exception_monoculture, high)
 USE INSTEAD: Specific exception types with proper handling
 ---

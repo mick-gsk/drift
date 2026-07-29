@@ -14,7 +14,7 @@ DCA detects **exported functions and classes that are never imported elsewhere**
 
 ### Example finding
 
-```
+```text
 dead_code_accumulation in utils/legacy_helpers.py
   Unreferenced exports: 5/7 functions
   Functions: format_v1(), parse_old_config(), legacy_transform(),
@@ -73,6 +73,7 @@ DCA builds a project-wide import/usage graph:
 ## Status
 
 DCA is **report-only** (weight `0.0`) because of known false positive sources:
+
 - **Dynamic imports** — `importlib.import_module()` or plugin systems.
 - **Framework entry points** — Django views, Flask handlers, Click commands discovered at runtime.
 - **Public API exports** — functions intended for external consumers, not internal use.

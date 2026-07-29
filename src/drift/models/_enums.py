@@ -178,6 +178,7 @@ class NegativeContextCategory(StrEnum):
     NAMING = "naming"
     COMPLEXITY = "complexity"
     COMPLETENESS = "completeness"
+    AI_QUALITY = "ai_quality"
 
 
 class NegativeContextScope(StrEnum):

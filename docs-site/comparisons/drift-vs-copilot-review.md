@@ -15,7 +15,7 @@ These are not competing tools. They are complementary stages in the same workflo
 
 ## Where each tool sits in the workflow
 
-```
+```text
 [drift brief]       → pre-task guardrails (before writing any code)
 [drift nudge]       → inner-loop feedback (while editing, via MCP)
 ─────────────────── code is written ──────────────────────────────

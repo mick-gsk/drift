@@ -64,6 +64,7 @@ $$
 Files exceeding the density threshold are flagged.
 
 **Tracked markers:**
+
 - `# type: ignore` (with or without error codes)
 - `# noqa` (with or without rule codes)
 - `# pragma: no cover`

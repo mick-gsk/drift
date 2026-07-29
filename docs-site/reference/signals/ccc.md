@@ -14,7 +14,7 @@ CCC detects **hidden coupling** between files that repeatedly change together in
 
 ### Example finding
 
-```
+```text
 co_change_coupling between services/pricing.py ↔ templates/invoice.html
   Co-change frequency: 8/10 commits (80%)
   Import relationship: none

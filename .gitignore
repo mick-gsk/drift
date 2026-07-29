@@ -42,6 +42,9 @@ benchmark_results/*
 !benchmark_results/drift_self.json
 !benchmark_results/pr_throughput_baseline.json
 !benchmark_results/guard_baseline.json
+# Precision/recall baselines are cited as evidence from README.md and
+# docs/STUDY.md — they must stay tracked or those claims lose their artifact.
+!benchmark_results/*_precision_recall_baseline.json
 drift_score.json
 work_artifacts/
 master-backlog/*

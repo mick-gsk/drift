@@ -21,7 +21,9 @@ drift status         # traffic-light health check — your daily entry point
 
 > `drift status` → repo-level score (0–1 · 🟢/🟡/🔴) · `drift analyze` → per-finding detail (INFO/LOW/MEDIUM/HIGH). Bare `drift` runs `drift status`.
 
+<!-- Re-enable once GitHub Actions is unlocked (billing) — runs currently fail before starting, which renders a misleading red badge:
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
+-->
 [![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](benchmark_results/drift_self.json)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
@@ -30,6 +32,10 @@ drift status         # traffic-light health check — your daily entry point
 [![GitHub Stars](https://img.shields.io/github/stars/mick-gsk/drift?style=flat)](https://github.com/mick-gsk/drift/stargazers)
 [![License](https://img.shields.io/github/license/mick-gsk/drift)](LICENSE)
 [![Discussions](https://img.shields.io/github/discussions/mick-gsk/drift)](https://github.com/mick-gsk/drift/discussions)
+
+> **CI runs are paused right now**, so the badge above is stale rather than a
+> verdict on the code. The suite is green locally — `make check` runs lint,
+> types, tests and self-analysis. Contributions are welcome as usual.
 
 [Docs](https://mick-gsk.github.io/drift/) · [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Playground](https://mick-gsk.github.io/drift/playground/) · [Benchmarking](https://mick-gsk.github.io/drift/benchmarking/) · [Trust & Limitations](https://mick-gsk.github.io/drift/trust-evidence/) · [Community](https://github.com/mick-gsk/drift/discussions)
 
@@ -161,7 +167,7 @@ sections complete. See [CONTRIBUTING.md](CONTRIBUTING.md#assigning-tasks-to-copi
 
 ### GitHub Actions
 
-[![Available on GitHub Marketplace](https://img.shields.io/badge/Marketplace-Drift-orange?logo=github)](https://github.com/marketplace/actions/drift-ai-code-coherence-monitor)
+[![GitHub Action](https://img.shields.io/badge/GitHub%20Action-Drift-orange?logo=github)](action.yml)
 
 ```yaml
 # Try it — add this to .github/workflows/drift.yml
@@ -197,6 +203,7 @@ jobs:
 | `/drift-auto-fix-loop` | Step through findings one-at-a-time with confirm/skip gates |
 
 **One-time setup — one command:**
+
 ```bash
 drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
 ```
@@ -204,28 +211,6 @@ drift kit init   # scaffolds prompt files + VS Code settings — run once per re
 No additional Drift-specific extension install is needed for this workflow; you still need VS Code with GitHub Copilot Chat installed/enabled. `drift kit init` creates `.github/prompts/` with all four prompt files and merges `chat.promptFilesLocations` into `.vscode/settings.json` without touching your existing keys. Idempotent — safe to re-run.
 
 📖 [VS Code Copilot Chat Workflow guide →](https://mick-gsk.github.io/drift/guides/vscode-copilot-workflow/)
-
-### VS Code Extension
-
-The `vscode-drift` extension shows findings as inline **CodeLens** annotations — no terminal needed.
-
-```
-auth/handler.py             [Drift · C · score 0.71 · 3 findings (1 high, 2 medium)]
-  def authenticate(...):    [Drift · PFS · co-change coupling to auth/service.py · high]
-```
-
-**Install from VSIX:**
-```bash
-pip install drift-analyzer          # drift must be on PATH
-code --install-extension vscode-drift-0.1.0.vsix
-```
-
-Download the VSIX from the [Releases](https://github.com/mick-gsk/drift/releases) page, or build from source:
-```bash
-cd extensions/vscode-drift && npm install && npm run compile
-```
-
-📖 [Extension README →](extensions/vscode-drift/README.md)
 
 ### MCP / AI Tools — advanced execution layer
 
@@ -442,7 +427,7 @@ Paste the Markdown output into your README:
 [![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](https://github.com/mick-gsk/drift)
 ```
 
-**Automate in CI:** The [GitHub Action](https://github.com/marketplace/actions/drift-ai-code-coherence-monitor) exposes a `badge-svg` output — pipe it into your repo or a dashboard.
+**Automate in CI:** The [GitHub Action](action.yml) exposes a `badge-svg` output — pipe it into your repo or a dashboard.
 
 ---
 
@@ -553,7 +538,7 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 | Metric | Value | Artifact |
 |---|---|---|
 | Wild-repo precision ¹ | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
-| Ground-truth regression | 0 FP, 0 FN (84 TP, 206 fixtures) | [v2.7.0 baseline](benchmark_results/v2.7.0_precision_recall_baseline.json) |
+| Ground-truth regression | 0 FP, 0 FN (84 TP, 206 fixtures) | [v2.51.1 baseline](benchmark_results/v2.51.1_precision_recall_baseline.json) |
 | Mutation recall | 75 % (75/100 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 | Agent session score delta | 0.495→0.506 (1 live run) ² | [Copilot Autopilot artefacts](demos/copilot-autopilot/) |
 
@@ -567,7 +552,7 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 - **The composite score is orientation, not a verdict.** Interpret deltas via `drift trend`, not isolated snapshots.
 - **Own score context (0.36):** Drift's self-score is driven primarily by architecture violations and explainability deficit (undocumented internal functions). Pattern fragmentation in modules with intentionally diverse error-handling contracts (signals, API, calibration, integrations) is suppressed via `path_overrides` — those variations are architectural, not accidental. The score reflects a fast-moving codebase that prioritises signal correctness over internal documentation. See [drift_self.json](benchmark_results/drift_self.json) for the full breakdown.
 - **Signal overlap:** Some signals measure related phenomena (e.g., MDS and PFS both detect code similarity; CCC and TVS both use git history). A formal inter-signal correlation analysis has not been conducted. Overlap does not produce double-counting in the composite score (each signal contributes independently), but it means some findings may describe the same underlying issue from different angles.
-- **Weight derivation:** Default signal weights for the 6 original signals were derived via rank-correlation (Kendall's τ) against manual architectural assessments on 5 open-source repos (single rater). Weights for the 18 newer signals are conservative heuristic assignments pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [ADR-003](docs/decisions/ADR-003-composite-scoring-model.md).
+- **Weight derivation:** Default signal weights for the 6 original signals were derived via rank-correlation (Kendall's τ) against manual architectural assessments on 5 open-source repos (single rater). Weights for the 18 newer signals are conservative heuristic assignments pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [scoring model](docs/concepts/scoring.md).
 
 Full methodology: [Benchmarking & Trust](https://mick-gsk.github.io/drift/benchmarking/) · [Full Study](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) · [Open Research Questions](RESEARCH.md)
 
@@ -580,6 +565,7 @@ many commits and that static analysis, linters, and type checkers cannot see bec
 only look at individual files in isolation.
 
 > **Specifically, drift detects:**
+>
 > - **Erosion** — pattern fragmentation, mutant duplicates, diverging implementations accumulating across commits
 > - **Responsibility mixing** — imports crossing declared layer boundaries
 > - **Risky change structures** — churn hotspots, temporal coupling, high-churn complexity

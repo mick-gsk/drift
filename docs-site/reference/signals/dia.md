@@ -24,7 +24,8 @@ The application uses a **three-layer architecture**:
 ```
 
 But the actual code has:
-```
+
+```text
 src/
 ├── routes/
 ├── services/
