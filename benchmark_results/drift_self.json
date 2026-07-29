@@ -1,5 +1,323 @@
 {
-  "drift_score": 0.63,
-  "note": "Badge workflow only needs drift_score from this file.",
-  "source": "bootstrap snapshot"
+  "analysis_status": {
+    "affected_components": [
+      "signal:Architecture Violations",
+      "signal:Mutant Duplicates",
+      "signal:Phantom Reference",
+      "signal:TypeScript Architecture"
+    ],
+    "causes": [
+      "signal_timeout"
+    ],
+    "degraded": true,
+    "events": [
+      {
+        "cause": "signal_timeout",
+        "component": "signal:Mutant Duplicates",
+        "details": {
+          "signal": "Mutant Duplicates",
+          "timeout_seconds": "300.0"
+        },
+        "message": "Signal 'Mutant Duplicates' timed out and was skipped."
+      },
+      {
+        "cause": "signal_timeout",
+        "component": "signal:Phantom Reference",
+        "details": {
+          "signal": "Phantom Reference",
+          "timeout_seconds": "300.0"
+        },
+        "message": "Signal 'Phantom Reference' timed out and was skipped."
+      },
+      {
+        "cause": "signal_timeout",
+        "component": "signal:TypeScript Architecture",
+        "details": {
+          "signal": "TypeScript Architecture",
+          "timeout_seconds": "300.0"
+        },
+        "message": "Signal 'TypeScript Architecture' timed out and was skipped."
+      },
+      {
+        "cause": "signal_timeout",
+        "component": "signal:Architecture Violations",
+        "details": {
+          "signal": "Architecture Violations",
+          "timeout_seconds": "300.0"
+        },
+        "message": "Signal 'Architecture Violations' timed out and was skipped."
+      }
+    ],
+    "is_fully_reliable": false,
+    "skipped_languages": null,
+    "status": "degraded"
+  },
+  "analyzed_at": "2026-07-29T21:04:59.834101+00:00",
+  "compact_summary": {
+    "critical_count": 12,
+    "duplicate_findings_removed": 94,
+    "findings_deduplicated": 12517,
+    "findings_total": 12611,
+    "fix_first_count": 10,
+    "high_count": 4807,
+    "suppressed_total": 6
+  },
+  "context_tagged_count": 0,
+  "drift_score": 0.619,
+  "drift_score_scope": "context:repo,signals:all,path:all",
+  "finding_context_policy": {
+    "counts": {
+      "fixture": 16,
+      "library": 50,
+      "production": 10298,
+      "test": 2153
+    },
+    "excluded_from_fix_first": 66,
+    "include_non_operational_in_fix_first": false,
+    "non_operational_contexts": [
+      "docs",
+      "fixture",
+      "generated",
+      "library",
+      "migration"
+    ]
+  },
+  "fix_first": [
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/gitlab/v4/objects/groups.py",
+      "finding_context": "production",
+      "finding_id": "13b1cd0277a8d470",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of groups.py (currently 35, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 1,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in groups.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/gitlab/v4/objects/projects.py",
+      "finding_context": "production",
+      "finding_id": "7df30698da9e2917",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of projects.py (currently 61, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 2,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in projects.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/mutmut/__main__.py",
+      "finding_context": "production",
+      "finding_id": "99f38abaccb0aba5",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of __main__.py (currently 38, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 3,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in __main__.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/openai/types/beta/realtime/realtime_server_event.py",
+      "finding_context": "production",
+      "finding_id": "a87f3dbd469b29bf",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of realtime_server_event.py (currently 35, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 4,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in realtime_server_event.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/openai/types/realtime/realtime_server_event.py",
+      "finding_context": "production",
+      "finding_id": "94f3d3434db77af8",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of realtime_server_event.py (currently 47, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 5,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in realtime_server_event.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/openai/types/responses/response_stream_event.py",
+      "finding_context": "production",
+      "finding_id": "f7909c579c138878",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of response_stream_event.py (currently 56, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 6,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in response_stream_event.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/openai/types/responses/responses_server_event.py",
+      "finding_context": "production",
+      "finding_id": "f4a23022b4e4337a",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of responses_server_event.py (currently 56, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 7,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in responses_server_event.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/pydantic/_internal/_generate_schema.py",
+      "finding_context": "production",
+      "finding_id": "762083989b18d54d",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of _generate_schema.py (currently 53, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 8,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in _generate_schema.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/rich/console.py",
+      "finding_context": "production",
+      "finding_id": "83ee97834eb044ae",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of console.py (currently 46, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 9,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in console.py"
+    },
+    {
+      "expected_benefit": "high",
+      "file": ".claude/worktrees/critical-audit-findings/.venv/lib/python3.14/site-packages/textual/widgets/__init__.pyi",
+      "finding_context": "production",
+      "finding_id": "d353aba68187440c",
+      "impact": 0.017,
+      "next_step": "Reduce import fan-out of __init__.pyi (currently 39, threshold 15): split responsibilities into focused modules, introduce a facade or mediator to consolidate deps.",
+      "priority_class": "architecture_boundary",
+      "rank": 10,
+      "rule_id": "fan_out_explosion",
+      "score_contribution": 0.0053,
+      "severity": "high",
+      "signal": "fan_out_explosion",
+      "signal_abbrev": "FOE",
+      "start_line": 1,
+      "title": "Fan-out explosion in __init__.pyi"
+    }
+  ],
+  "grade": "D",
+  "grade_label": "Significant Drift",
+  "note": "Aggregates only; the full run also carries all 12611 findings and is ~58 MB. Produced with `drift analyze --repo .`, which covers the whole repository (scope: context:repo,signals:all,path:all). The narrower `drift self` run, which scopes to src/drift, currently segfaults - see issue #771 - so this file reports the repository-wide score until that is fixed.",
+  "produced_by": "drift analyze --repo . --format json --exit-zero",
+  "repo": "/Users/moritzbecker/drift",
+  "schema_version": "2.2",
+  "severity": "high",
+  "summary": {
+    "ai_attributed_ratio": 0.542,
+    "ai_tools_detected": [
+      "agents",
+      "claude",
+      "copilot"
+    ],
+    "analysis_duration_seconds": 374.28,
+    "phase_timing": {
+      "discover_seconds": 4.556,
+      "git_seconds": 0.523,
+      "output_seconds": 0.008,
+      "parse_seconds": 32.748,
+      "per_signal": {
+        "broad_exception_monoculture": 1.042,
+        "bypass_accumulation": 259.273,
+        "circular_import": 1.084,
+        "co_change_coupling": 2.197,
+        "cognitive_complexity": 259.227,
+        "cohesion_deficit": 4.535,
+        "dead_code_accumulation": 258.898,
+        "doc_impl_drift": 15.766,
+        "exception_contract_drift": 1.161,
+        "explainability_deficit": 10.671,
+        "fan_out_explosion": 0.78,
+        "guard_clause_deficit": 194.189,
+        "hardcoded_secret": 96.084,
+        "insecure_default": 36.344,
+        "missing_authorization": 0.454,
+        "naming_contract_violation": 62.575,
+        "pattern_fragmentation": 23.794,
+        "system_misalignment": 0.843,
+        "temporal_volatility": 0.095,
+        "test_polarity_deficit": 110.488,
+        "type_safety_bypass": 0.902
+      },
+      "signals_seconds": 300.196,
+      "total_seconds": 374.28
+    },
+    "skipped_languages": null,
+    "total_files": 8881,
+    "total_functions": 129901
+  },
+  "suppressed_count": 6,
+  "trend": {
+    "delta": 0.116,
+    "direction": "degrading",
+    "history_depth": 12,
+    "previous_score": 0.503,
+    "recent_scores": [
+      0.456,
+      0.568,
+      0.568,
+      0.495,
+      0.503
+    ],
+    "transition_ratio": 0.0
+  },
+  "version": "2.51.1"
 }
