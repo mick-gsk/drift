@@ -259,3 +259,17 @@ def test_a_top_level_example_directory_still_repeats_by_design():
     assert lookup.repeats_by_design("example/main.go")
     assert lookup.repeats_by_design("examples/celery/app.py")
     assert lookup.repeats_by_design("pkgs/core/examples/cjs/test.cjs")
+
+
+def test_dotnet_style_test_projects_repeat_by_design():
+    """.NET names a test project after the project it covers."""
+    assert lookup.repeats_by_design("Src/Newtonsoft.Json.Tests/Schema/JsonSchemaTests.cs")
+    assert lookup.repeats_by_design("src/MyApp.Test/Thing.cs")
+    assert not lookup.repeats_by_design("src/MyApp.Core/Thing.cs")
+
+
+def test_generated_files_repeat_whatever_generated_them():
+    assert lookup.repeats_by_design("src/Model.designer.cs")
+    assert lookup.repeats_by_design("src/Api.g.cs")
+    assert lookup.repeats_by_design("src/schema_pb2.py")
+    assert not lookup.repeats_by_design("src/designer.py")

@@ -13,6 +13,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - guard Go
 - guard Rust, and stop conflating packages in a workspace
 - guard Java and Kotlin
+- guard C#
 
 ### Fixed
 
