@@ -13,9 +13,12 @@
 
 Restart Claude Code, then run `/drift:doctor`. Those two lines are the whole
 install: the guard imports nothing but the standard library and runs from the
-plugin itself, so there is no `pip install`, no dependency to resolve, nothing
-to configure, and no file written into your project except a `.drift/` index
-you can delete at any time.
+plugin itself, so there is no `pip install`, no dependency to resolve and
+nothing to configure. It writes **nothing into your repositories** — the index
+lives in your cache (`~/.cache/drift`), keyed by repository path, because a
+plugin that fires in every project you open has no business leaving a directory
+in each of them. A project that wants the index alongside its source opts in by
+creating a `.drift/` directory.
 
 **Python files only.** The guard reads Python with `ast`; edits to other
 languages pass through untouched. The [CLI](#the-cli) below covers more.
