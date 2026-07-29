@@ -30,6 +30,7 @@ an already known anti-pattern elsewhere.
 - `naming`
 - `complexity`
 - `completeness`
+- `ai_quality`
 
 `NegativeContextScope` values:
 
