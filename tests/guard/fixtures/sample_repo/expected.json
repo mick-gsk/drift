@@ -1,0 +1,27 @@
+{
+  "description": "Ground truth for gate G3. Cases describe edits applied to the clean repo.",
+  "duplicate_cases": [
+    {
+      "file": "src/api/schemas.py",
+      "added_symbol": "validate_token",
+      "expected_existing_at": "src/auth/tokens.py"
+    },
+    {
+      "file": "src/services/user_service.py",
+      "added_symbol": "validateToken",
+      "expected_existing_at": "src/auth/tokens.py"
+    }
+  ],
+  "boundary_cases": [
+    {
+      "file": "src/api/routes.py",
+      "added_import": "src.db.models",
+      "expected_novel_edge": ["src/api", "src/db"]
+    }
+  ],
+  "clean_files": [
+    "src/auth/session.py",
+    "src/api/schemas.py",
+    "src/services/user_service.py"
+  ]
+}
