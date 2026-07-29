@@ -120,3 +120,18 @@ def test_a_repository_without_markers_is_one_package(tmp_path):
     (tmp_path / "src").mkdir()
 
     assert build.package_root_of(tmp_path, "src/thing.py", {}) == "."
+
+
+def test_staleness_sample_spans_a_medium_sized_index(tmp_path):
+    files = []
+    for index in range(39):
+        path = tmp_path / f"file_{index:02d}.py"
+        path.write_text(f"def value_{index}():\n    return {index}\n", encoding="utf-8")
+        files.append(path)
+    build.build_full(tmp_path)
+
+    for path in files[20:]:
+        path.write_text("def branch_version():\n    return False\n", encoding="utf-8")
+    conn = schema.connect(tmp_path)
+
+    assert build.is_stale(tmp_path, conn) is True
