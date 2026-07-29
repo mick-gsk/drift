@@ -17,6 +17,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - make the two-line install actually produce a working guard
 - keep the index out of the repositories it analyses
 - let merges to main reach users who already installed
+- stop the guard speaking on half of every real repository
 
 ## [2.51.1] - 2026-05-04
 

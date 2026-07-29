@@ -73,8 +73,37 @@ repository, answered before the agent writes its next line:
    repository actually contains, so a first-ever crossing stands out without you
    writing a single rule.
 
-`/drift:stats` shows what it caught this session. Silence is the normal case,
-not a failure.
+`/drift:stats` shows what it caught this session.
+
+### Silence is the normal case — measured, not asserted
+
+Replaying every file of five real repositories through the same lookups the
+hook runs, as if each had just been written:
+
+| Repository | Files | Speaks on |
+|---|---|---|
+| requests | 37 | **0.0 %** |
+| fastapi | 1140 | **1.0 %** |
+| date-fns | 1619 | **2.0 %** |
+| flask | 83 | **4.8 %** |
+| axios | 232 | **5.6 %** |
+
+Reproduce it with `python scripts/gates/measure_noise.py <dir-of-checkouts>`.
+
+The first run of that measurement said 27–69 %, and what it reported was junk:
+`config`, `argv`, `add`, plus fastapi's `docs_src/` tutorials, which define
+`Item` in over a hundred files on purpose. Nothing in the test suite could have
+caught it — the fixture is six files written to demonstrate the two signals.
+Five rules came out of that measurement, each one a defect it exposed: a
+function does not duplicate a class, a name repeated across the codebase is a
+convention rather than an accident, short and dunder names carry no evidence,
+test and example directories restate names by design, and a TypeScript `const`
+counts only when it holds a function — Python never indexed plain assignments,
+and the asymmetry was the single largest source of noise.
+
+What survives is worth reading: `_make_timedelta` really is defined twice in
+Flask, and `Blueprint` really does exist in both `blueprints.py` and
+`sansio/blueprints.py`.
 
 ### What that looks like in a real session
 

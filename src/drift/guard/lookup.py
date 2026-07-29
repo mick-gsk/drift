@@ -17,19 +17,93 @@ class Hit(NamedTuple):
     message: str
 
 
+#: Path segments whose contents repeat names on purpose. Measured against five
+#: real repositories: fastapi's `docs_src/` defines `Item` in over a hundred
+#: tutorial files, date-fns ships the same example under `cjs/`, `cts/`, `esm/`,
+#: and every test suite reuses helper and fixture names. Reporting those as
+#: duplicates is not merely useless, it is the difference between a guard that
+#: speaks on 2 % of edits and one that speaks on half of them.
+_REPEATING_DIRS = frozenset(
+    {
+        "test",
+        "tests",
+        "__tests__",
+        "spec",
+        "specs",
+        "example",
+        "examples",
+        "docs_src",
+        "fixtures",
+        "__fixtures__",
+        "testdata",
+        "benchmarks",
+        "migrations",
+    }
+)
+
+#: A name shorter than this carries no evidence on its own. `add`, `date` and
+#: `argv` all collide across unrelated files in real repositories.
+MIN_DUPLICATE_NAME_LENGTH = 6
+
+#: Above this many other definitions, a repeated name is a convention rather
+#: than an accident, and saying so is worse than saying nothing. date-fns
+#: implements the same `formatLong` and `localize` in 93 locale directories:
+#: the author of the 94th knows. A name that exists once elsewhere is the
+#: signal this guard was built for; a name that exists ninety times is the
+#: shape of the codebase.
+MAX_DUPLICATE_OCCURRENCES = 3
+
+#: Kinds that can meaningfully duplicate each other. A function named `request`
+#: and a class named `Request` are not the same thing, and reporting them as
+#: duplicates was the single most convincing-looking false positive in the
+#: measurement — plausible enough that a reader might believe it.
+_KIND_GROUP = {
+    "function": "callable",
+    "binding": "callable",
+    "class": "type",
+    "type": "type",
+}
+
+
+def repeats_by_design(rel_path: str) -> bool:
+    """True for paths whose whole purpose is to restate the same names.
+
+    Directory *and* filename, because the two conventions coexist: pytest puts
+    `test_x.py` under `tests/`, date-fns puts `test.ts` beside the source it
+    covers, and both reuse helper names across files by design.
+    """
+    parts = rel_path.split("/")
+    if any(part in _REPEATING_DIRS for part in parts):
+        return True
+
+    stem = parts[-1].rsplit(".", 1)[0]
+    return (
+        stem in ("test", "spec")
+        or stem.startswith(("test_", "test-"))
+        or stem.endswith(("_test", "-test", ".test", ".spec", "_spec"))
+    )
+
+
 def find_duplicates(
     conn: sqlite3.Connection, rel_path: str, symbols: list[extract.Symbol]
 ) -> list[Hit]:
     """Symbols that already exist elsewhere in the repository."""
+    if repeats_by_design(rel_path):
+        return []
+
     hits: list[Hit] = []
     for symbol in symbols:
         if symbol.norm_name in extract.STOPWORDS:
             continue
-        row = conn.execute(
-            "SELECT path, name, line FROM symbols"
-            " WHERE norm_name = ? AND path != ? ORDER BY path LIMIT 1",
-            (symbol.norm_name, rel_path),
-        ).fetchone()
+        if len(symbol.norm_name) < MIN_DUPLICATE_NAME_LENGTH:
+            continue
+        # `__getattr__` and friends are language protocol, not names anyone chose.
+        if symbol.name.startswith("__") and symbol.name.endswith("__"):
+            continue
+        group = _KIND_GROUP.get(symbol.kind)
+        if group is None:
+            continue
+        row = _first_real_match(conn, symbol, rel_path, group)
         if row is None:
             continue
         other_path, other_name, other_line = row
@@ -42,6 +116,30 @@ def find_duplicates(
             )
         )
     return hits
+
+
+def _first_real_match(
+    conn: sqlite3.Connection, symbol: extract.Symbol, rel_path: str, group: str
+) -> tuple | None:
+    """The first definition elsewhere that is the same sort of thing.
+
+    Filtering happens in Python rather than SQL because the two conditions —
+    kind group and path shape — do not fit a column each, and the candidate
+    list for one normalised name is short by construction.
+    """
+    rows = conn.execute(
+        "SELECT path, name, line, kind FROM symbols"
+        " WHERE norm_name = ? AND path != ? ORDER BY path",
+        (symbol.norm_name, rel_path),
+    )
+    candidates = [
+        (path, name, line)
+        for path, name, line, kind in rows
+        if _KIND_GROUP.get(kind) == group and not repeats_by_design(path)
+    ]
+    if not candidates or len(candidates) > MAX_DUPLICATE_OCCURRENCES:
+        return None
+    return candidates[0]
 
 
 def find_novel_edges(conn: sqlite3.Connection, rel_path: str, imports: list[str]) -> list[Hit]:

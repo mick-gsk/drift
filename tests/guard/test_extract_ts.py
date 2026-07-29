@@ -43,7 +43,20 @@ def test_it_finds_top_level_declarations():
     assert "localHelper" in names
     assert "TokenStore" in names
     assert "Session" in names
-    assert "DEFAULT_TTL" in names
+    assert "lazy" in names, "an arrow function is a definition"
+
+
+def test_plain_constants_are_not_definitions():
+    """Python indexes `def` and `class`, not module-level assignments.
+
+    Indexing every TypeScript `const` broke that symmetry and was the largest
+    single source of noise measured against real repositories: `config`,
+    `version` and `ignorePattern` collide across unrelated files and say
+    nothing. A binding counts only when it holds a function.
+    """
+    names = _names(SAMPLE)
+
+    assert "DEFAULT_TTL" not in names
 
 
 def test_it_ignores_class_members():
@@ -89,7 +102,7 @@ def test_a_word_inside_a_string_is_not_a_declaration():
     """Anchoring to column zero and a keyword is what keeps this honest."""
     source = 'const message = "export function notARealFunction() {}";\n'
 
-    assert _names(source) == ["message"]
+    assert _names(source) == []
 
 
 def test_indented_declarations_are_not_top_level():
