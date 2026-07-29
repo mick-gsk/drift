@@ -73,6 +73,7 @@ DCA builds a project-wide import/usage graph:
 ## Status
 
 DCA is **report-only** (weight `0.0`) because of known false positive sources:
+
 - **Dynamic imports** — `importlib.import_module()` or plugin systems.
 - **Framework entry points** — Django views, Flask handlers, Click commands discovered at runtime.
 - **Public API exports** — functions intended for external consumers, not internal use.

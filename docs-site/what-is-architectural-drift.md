@@ -74,6 +74,7 @@ Drift is **deterministic**. Same repository, same commit, same results — every
 ## How Teams Use It
 
 **In CI** — Block PRs that introduce new structural problems:
+
 ```yaml
 - uses: mick-gsk/drift@v2
   with:
@@ -82,11 +83,13 @@ Drift is **deterministic**. Same repository, same commit, same results — every
 ```
 
 **In your editor** — MCP integration for Copilot, Cursor, and Claude:
+
 ```bash
 drift init --mcp
 ```
 
 **For trend tracking** — Monitor structural health over time:
+
 ```bash
 drift trend --repo .
 ```
