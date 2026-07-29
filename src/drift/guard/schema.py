@@ -9,7 +9,11 @@ import sqlite3
 
 #: 2 added `files.package_root`. A symbol in one package of a workspace does
 #: not duplicate a symbol in another, and the guard could not tell before.
-SCHEMA_VERSION = 2
+#: 3 attributed import edges to the file that declares them. As an aggregate
+#: they could only ever grow: removing the last import that created an edge
+#: left the row behind, and the boundary signal went permanently silent for a
+#: crossing that had become novel again.
+SCHEMA_VERSION = 3
 
 _TABLES = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -31,11 +35,12 @@ CREATE TABLE IF NOT EXISTS symbols (
     line      INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS import_edges (
+    path    TEXT NOT NULL,
     src_dir TEXT NOT NULL,
     dst_dir TEXT NOT NULL,
-    count   INTEGER NOT NULL,
-    PRIMARY KEY (src_dir, dst_dir)
+    PRIMARY KEY (path, src_dir, dst_dir)
 );
+CREATE INDEX IF NOT EXISTS idx_edges_src ON import_edges(src_dir);
 CREATE INDEX IF NOT EXISTS idx_symbols_norm ON symbols(norm_name);
 CREATE INDEX IF NOT EXISTS idx_symbols_sig  ON symbols(sig_hash);
 CREATE INDEX IF NOT EXISTS idx_symbols_path ON symbols(path);

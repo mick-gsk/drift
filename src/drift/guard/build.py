@@ -254,7 +254,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
     known_dirs = {dir_of(rel) for rel, _ in collected}
 
     package_cache: dict[str, str] = {}
-    edge_counts: dict[tuple[str, str], int] = {}
+    edge_rows: set[tuple[str, str, str]] = set()
     symbol_rows: list[tuple] = []
     file_rows: list[tuple] = []
     now = time.time()
@@ -273,7 +273,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
             dst_dir = import_to_dir(module, src_dir, known_dirs, path.suffix)
             if dst_dir is None or dst_dir == src_dir:
                 continue
-            edge_counts[(src_dir, dst_dir)] = edge_counts.get((src_dir, dst_dir), 0) + 1
+            edge_rows.add((rel, src_dir, dst_dir))
 
     conn.executemany(
         "INSERT INTO files (path, sha256, indexed_at, package_root) VALUES (?, ?, ?, ?)",
@@ -285,8 +285,8 @@ def build_full(repo_root: pathlib.Path) -> dict:
         symbol_rows,
     )
     conn.executemany(
-        "INSERT INTO import_edges (src_dir, dst_dir, count) VALUES (?, ?, ?)",
-        [(src, dst, count) for (src, dst), count in edge_counts.items()],
+        "INSERT INTO import_edges (path, src_dir, dst_dir) VALUES (?, ?, ?)",
+        sorted(edge_rows),
     )
     conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('built_at', ?)", (str(now),))
     conn.commit()
@@ -295,7 +295,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
     return {
         "files": len(file_rows),
         "symbols": len(symbol_rows),
-        "edges": len(edge_counts),
+        "edges": len({(src, dst) for _, src, dst in edge_rows}),
         "elapsed_ms": round((time.perf_counter() - started) * 1000.0, 2),
     }
 
@@ -310,6 +310,11 @@ def update_file(repo_root: pathlib.Path, rel_path: str) -> None:
     path = repo_root / rel_path
     conn.execute("DELETE FROM symbols WHERE path = ?", (rel_path,))
     conn.execute("DELETE FROM files WHERE path = ?", (rel_path,))
+    # The file's edges go with it. As an aggregate these could only grow: five
+    # re-indexings of one unchanged file took a count from 2 to 12, and an
+    # import removed from the last file that declared it left the row behind,
+    # silencing that crossing for good.
+    conn.execute("DELETE FROM import_edges WHERE path = ?", (rel_path,))
 
     if path.exists():
         try:
@@ -336,9 +341,8 @@ def update_file(repo_root: pathlib.Path, rel_path: str) -> None:
             if dst_dir is None or dst_dir == src_dir:
                 continue
             conn.execute(
-                "INSERT INTO import_edges (src_dir, dst_dir, count) VALUES (?, ?, 1)"
-                " ON CONFLICT(src_dir, dst_dir) DO UPDATE SET count = count + 1",
-                (src_dir, dst_dir),
+                "INSERT OR IGNORE INTO import_edges (path, src_dir, dst_dir) VALUES (?, ?, ?)",
+                (rel_path, src_dir, dst_dir),
             )
 
     conn.commit()
