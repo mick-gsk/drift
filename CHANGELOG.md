@@ -1,3 +1,27 @@
+## [2.51.1] - 2026-05-04
+
+Short version: Fix the pre-commit and security-hygiene checks that were failing on every PR, and stop the fast-lane automerge from reacting to bot reviews.
+
+### Fixed
+
+- Resolve systemic pre-commit and security-hygiene check failures affecting all pull requests
+- Skip bot-submitted `pull_request_review` events in fast-lane automerge (#742)
+
+## [2.51.0] - 2026-05-04
+
+Short version: Add Copilot coding agent setup (issue template, brief-check workflow, labels, contributor docs) and extend PR automation with conflict labels, an open-PR cap, fast-close, and XS auto-merge.
+
+### Added
+
+- Add Copilot coding agent setup — issue template, brief-check workflow, labels, and contributor docs
+- Add PR conflict labels, open-PR cap, fast-close, and XS auto-merge (#740)
+
+### Fixed
+
+- Correct `actions/first-interaction@v3` input names (`repo_token`, `issue_message`, `pr_message`)
+- Clean up labels on removal, align section names, and import `yaml` directly
+- Remove duplicate 2.50.x entry from `SECURITY.md`
+
 ## [2.50.0] - 2026-05-03
 
 Short version: Add PR automation suite — lane labels, size labels, fast-lane automerge, auto-triage, Copilot PR auto-merge, weekly KPI workflow, and CI path filters for non-Python PRs.
