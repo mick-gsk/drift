@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import pathlib
 
-from drift.guard import lookup
+from drift.guard import lookup, schema
 
 MAX_MESSAGE_CHARS = 500
 _KINDS = ("duplicate", "boundary")
@@ -54,7 +54,9 @@ def hook_json(event: str, agent_text: str = "", user_text: str = "") -> str:
 
 
 def counter_path(repo_root) -> pathlib.Path:
-    return pathlib.Path(repo_root) / ".drift" / "session_counter.json"
+    # Same directory as the index, so the guard leaves exactly one place behind
+    # and `.drift/` never appears in a repository that did not ask for it.
+    return schema.state_dir(repo_root) / "session_counter.json"
 
 
 def read_counter(repo_root) -> dict:

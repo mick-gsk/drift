@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import os
 import pathlib
 import sqlite3
 
@@ -37,9 +39,44 @@ CREATE INDEX IF NOT EXISTS idx_symbols_path ON symbols(path);
 """
 
 
+def state_dir(repo_root: pathlib.Path) -> pathlib.Path:
+    """Where the guard keeps its index and tally for one repository.
+
+    The guard is installed once and then fires in every repository the user
+    opens, including ones they do not own. Writing `.drift/` into each of them
+    would put an untracked directory in front of people who never asked for it
+    and never installed drift — a good way to get the plugin uninstalled. So
+    the default lives in the user's cache, keyed by the repository path.
+
+    A repository that *wants* the index alongside its source opts in simply by
+    having a `.drift/` directory; that path then wins. `DRIFT_CACHE_HOME`
+    overrides everything, which is what the tests use to stay off the real
+    cache.
+    """
+    repo_root = pathlib.Path(repo_root)
+    local = repo_root / ".drift"
+    if local.is_dir():
+        return local
+
+    override = os.environ.get("DRIFT_CACHE_HOME")
+    if override:
+        cache_root = pathlib.Path(override)
+    else:
+        xdg = os.environ.get("XDG_CACHE_HOME")
+        cache_root = pathlib.Path(xdg) if xdg else pathlib.Path.home() / ".cache"
+        cache_root = cache_root / "drift"
+
+    # The digest keys the directory; the name is only there to make the cache
+    # readable when someone goes looking. Both come from the resolved path, or
+    # `--repo .` would key on "" and produce a nameless directory.
+    resolved = repo_root.resolve()
+    digest = hashlib.sha256(str(resolved).encode("utf-8")).hexdigest()[:16]
+    return cache_root / f"{resolved.name or 'repo'}-{digest}"
+
+
 def index_path(repo_root: pathlib.Path) -> pathlib.Path:
     """Location of the guard index for a repository."""
-    return pathlib.Path(repo_root) / ".drift" / "index.db"
+    return state_dir(repo_root) / "index.db"
 
 
 def connect(repo_root: pathlib.Path) -> sqlite3.Connection | None:

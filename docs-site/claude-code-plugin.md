@@ -9,9 +9,13 @@
 
 Restart Claude Code, then run `/drift:doctor`. Those two lines are the whole
 install: the guard imports nothing but the standard library and runs from the
-plugin itself, so there is no `pip install`, no dependency to resolve, nothing
-to configure, and no file written into your project except a `.drift/` index
-you can delete at any time.
+plugin itself, so there is no `pip install`, no dependency to resolve and
+nothing to configure. It writes **nothing into your repositories** — the index
+lives in your cache (`~/.cache/drift`, or `$XDG_CACHE_HOME/drift`), keyed by
+repository path, because a plugin that fires in every project you open has no
+business leaving a directory in each of them. A project that wants the index
+alongside its source opts in by creating a `.drift/` directory; `DRIFT_CACHE_HOME`
+overrides both.
 
 !!! note "Python files only"
     The guard reads Python with `ast`. Edits to other languages pass through
@@ -81,12 +85,13 @@ but it can never block.
 
 | Piece | What it does |
 |---|---|
-| `.drift/index.db` | SQLite: module-level symbols, their normalised names and signature hashes, and every directory-to-directory import edge the repository contains |
+| `index.db` | SQLite: module-level symbols, their normalised names and signature hashes, and every directory-to-directory import edge the repository contains |
 | `drift-guard` | Lean entry point. Reads the index, parses at most the one file that changed |
 | Four hooks | `SessionStart` builds or refreshes the index in the background · `PreToolUse` briefs the agent before it creates a new file · `PostToolUse` reports what the edit introduced · `Stop` shows the session tally |
 
-The index is built once and updated per changed file. It is a cache: delete
-`.drift/` and the next session rebuilds it.
+The index is built once and updated per changed file. It is a cache and nothing
+more: delete the directory `/drift:doctor` prints and the next session rebuilds
+it. Nothing is written into the repository being analysed.
 
 ## Commands
 
