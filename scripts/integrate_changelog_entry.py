@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -46,7 +47,9 @@ CONVENTIONAL_RE = re.compile(
     re.IGNORECASE,
 )
 
-VERSION_HEADER_RE = re.compile(r"^## \[(\d+\.\d+[\.\d]*)\]")
+VERSION_HEADER_RE = re.compile(r"^## \[(Unreleased|\d+\.\d+[\.\d]*)\]")
+
+UNRELEASED = "Unreleased"
 SECTION_HEADER_RE = re.compile(r"^### (Added|Fixed|Changed|Removed|Deprecated|Security)")
 
 
@@ -59,6 +62,36 @@ def _read_version() -> str:
     with (REPO_ROOT / "pyproject.toml").open("rb") as fh:
         data = tomllib.load(fh)
     return str(data["project"]["version"])
+
+
+def _is_released(version: str) -> bool:
+    """True if ``v{version}`` is an existing git tag.
+
+    ``pyproject.toml`` keeps carrying the last released version after a
+    release, so writing entries under it would append to a version users
+    have already installed.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "tag", "--list", f"v{version}"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return False
+    return bool(result.stdout.strip())
+
+
+def _target_version() -> str:
+    """Heading to write under: the pyproject version, or ``Unreleased``.
+
+    Post-release commits land under ``## [Unreleased]`` and the release
+    process renames that heading once the version is cut.
+    """
+    version = _read_version()
+    return UNRELEASED if _is_released(version) else version
 
 
 def _parse_commit_msg(path: str) -> tuple[str, str] | None:
@@ -141,21 +174,29 @@ def integrate(
                 if lines[i].strip():
                     insert_at = i + 1
                     break
-            new_lines: list[str] = [f"\n### {section_name}\n", f"{bullet}\n"]
+            # Blank line after the heading keeps markdownlint MD022 quiet.
+            new_lines: list[str] = [f"\n### {section_name}\n", "\n", f"{bullet}\n"]
             lines[insert_at:insert_at] = new_lines
         else:
             # Section present — find insertion point after last bullet.
             limit = next_section if next_section is not None else block_end
             insert_at = section_line + 1
+            last_bullet = insert_at
             while insert_at < limit:
                 stripped = lines[insert_at].rstrip("\n")
                 if stripped.startswith("- "):
                     if stripped == bullet:
                         return False  # already present — idempotent skip
                     insert_at += 1
+                    last_bullet = insert_at
+                elif not stripped:
+                    # Blank line between heading and bullets (MD022). Keep
+                    # scanning: stopping here would miss existing bullets and
+                    # re-insert a duplicate on every commit.
+                    insert_at += 1
                 else:
                     break
-            lines.insert(insert_at, f"{bullet}\n")
+            lines.insert(last_bullet, f"{bullet}\n")
     else:
         # No existing version block — prepend before the first ## [x.y.z] line.
         insert_at = len(lines)
@@ -163,12 +204,17 @@ def integrate(
             if VERSION_HEADER_RE.match(line):
                 insert_at = i
                 break
+        # No "Short version:" line here: for a generated block it would
+        # repeat the bullet verbatim. It is written by hand at release time,
+        # when the release actually has a theme to summarise.
+        heading = (
+            f"## [{version}]\n" if version == UNRELEASED else f"## [{version}] - {date_str}\n"
+        )
         new_block: list[str] = [
-            f"## [{version}] - {date_str}\n",
-            "\n",
-            f"Short version: {message}\n",
+            heading,
             "\n",
             f"### {section_name}\n",
+            "\n",
             f"{bullet}\n",
             "\n",
         ]
@@ -230,7 +276,7 @@ def main() -> int:
         commit_type = args.commit_type
         message = args.message
 
-    version = args.version or _read_version()
+    version = args.version or _target_version()
 
     try:
         changed = integrate(
