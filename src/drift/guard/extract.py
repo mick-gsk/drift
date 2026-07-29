@@ -26,7 +26,8 @@ PYTHON_SUFFIXES = frozenset({".py"})
 TS_JS_SUFFIXES = frozenset({".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"})
 GO_SUFFIXES = frozenset({".go"})
 RUST_SUFFIXES = frozenset({".rs"})
-GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES | GO_SUFFIXES | RUST_SUFFIXES
+JVM_SUFFIXES = frozenset({".java", ".kt", ".kts"})
+GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES | GO_SUFFIXES | RUST_SUFFIXES | JVM_SUFFIXES
 
 #: Normalized names too common to ever be a meaningful duplicate.
 STOPWORDS = frozenset(
@@ -167,6 +168,34 @@ _RUST_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 _RUST_USE = re.compile(r"^\s*(?:pub\s+)?use\s+([^;]+);", re.MULTILINE)
 
 
+#: Java and Kotlin declarations. Members are indented, so the column-zero
+#: anchor excludes them exactly as it does in Go and Rust. Kotlin's top-level
+#: `fun` is included because it genuinely is a file-level definition.
+_JVM_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "type",
+        re.compile(
+            r"^(?:@\w+\s+)*(?:public\s+|internal\s+|private\s+|protected\s+|final\s+|abstract\s+"
+            r"|sealed\s+|open\s+|data\s+|value\s+|static\s+)*"
+            r"(?:class|interface|enum|record|object|@interface)\s+([A-Za-z_$][\w$]*)",
+            re.MULTILINE,
+        ),
+    ),
+    (
+        "function",
+        re.compile(
+            r"^(?:public\s+|internal\s+|private\s+|suspend\s+|inline\s+)*fun\s+"
+            r"(?:<[^>]+>\s+)?([A-Za-z_$][\w$]*)\s*\(",
+            re.MULTILINE,
+        ),
+    ),
+)
+
+#: `import a.b.C;` in Java, `import a.b.C` in Kotlin. The trailing segment is
+#: the type, so the resolver gets the package and matches it as a directory.
+_JVM_IMPORT = re.compile(r"^import\s+(?:static\s+)?([\w.]+(?:\*)?)", re.MULTILINE)
+
+
 class Symbol(NamedTuple):
     name: str
     norm_name: str
@@ -208,7 +237,53 @@ def extract(source: str, suffix: str = ".py") -> tuple[list[Symbol], list[str]]:
         return extract_go(source)
     if suffix in RUST_SUFFIXES:
         return extract_rust(source)
+    if suffix in JVM_SUFFIXES:
+        return extract_jvm(source)
     return ([], [])
+
+
+def extract_jvm(source: str) -> tuple[list[Symbol], list[str]]:
+    """Java and Kotlin, matched rather than parsed.
+
+    Import specifiers become slash paths so the same trailing-segment resolver
+    that serves Go and Rust can find them: `com.example.db.Client` carries the
+    package `com/example/db`, and a Java tree holds exactly that under
+    `src/main/java/`.
+    """
+    symbols: list[Symbol] = []
+    seen: set[str] = set()
+
+    for kind, pattern in _JVM_PATTERNS:
+        for match in pattern.finditer(source):
+            name = match.group(1)
+            if name in seen:
+                continue
+            seen.add(name)
+            symbols.append(
+                Symbol(
+                    name=name,
+                    norm_name=normalize(name),
+                    kind=kind,
+                    sig_hash=signature_hash(kind, []),
+                    line=source.count("\n", 0, match.start()) + 1,
+                )
+            )
+
+    # The last segment of a plain import is the type rather than part of the
+    # package, so it is dropped. A wildcard names the package outright, and
+    # dropping its last segment would point one directory too high.
+    imports = []
+    for match in _JVM_IMPORT.finditer(source):
+        raw = match.group(1)
+        parts = [p for p in raw.split(".") if p and p != "*"]
+        if raw.endswith("*"):
+            if parts:
+                imports.append("/".join(parts))
+        elif len(parts) > 1:
+            imports.append("/".join(parts[:-1]))
+
+    symbols.sort(key=lambda s: s.line)
+    return (symbols, imports)
 
 
 def extract_rust(source: str) -> tuple[list[Symbol], list[str]]:

@@ -17,8 +17,8 @@ business leaving a directory in each of them. A project that wants the index
 alongside its source opts in by creating a `.drift/` directory; `DRIFT_CACHE_HOME`
 overrides both.
 
-!!! note "Python, TypeScript, JavaScript, Go and Rust"
-    `.py .ts .tsx .js .jsx .mjs .cjs .go .rs`, all in one index — a name defined in
+!!! note "Python, TypeScript, JavaScript, Go, Rust, Java and Kotlin"
+    `.py .ts .tsx .js .jsx .mjs .cjs .go .rs .java .kt .kts`, all in one index — a name defined in
     Python is found from Go, because `validate_token`, `validateToken` and
     `ValidateToken` all normalise to the same thing. Python is parsed with `ast`;
     the others are matched against top-level declarations,

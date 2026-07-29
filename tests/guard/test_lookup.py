@@ -247,3 +247,15 @@ def test_one_package_still_reports_its_own_duplicates(tmp_path):
     symbols, _ = extract.extract("pub fn validate_token(t: &str) {}\n", ".rs")
 
     assert lookup.find_duplicates(conn, "src/api/schemas.rs", symbols)
+
+
+def test_a_java_package_named_example_is_not_a_demo_directory():
+    """`com/example` is what every Java scaffold generates."""
+    assert not lookup.repeats_by_design("src/main/java/com/example/api/Routes.java")
+    assert not lookup.repeats_by_design("src/main/java/com/example/Application.java")
+
+
+def test_a_top_level_example_directory_still_repeats_by_design():
+    assert lookup.repeats_by_design("example/main.go")
+    assert lookup.repeats_by_design("examples/celery/app.py")
+    assert lookup.repeats_by_design("pkgs/core/examples/cjs/test.cjs")
