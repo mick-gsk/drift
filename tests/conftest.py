@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
-import subprocess
-import textwrap
-from collections.abc import Callable
-from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+import os
 
-import pytest
+# Silence the HuggingFace model-loading progress bar before anything imports
+# transformers. Tests that assert on CLI output compare against `result.output`,
+# which Click mixes stderr into (8.1 default, and `mix_stderr` is gone in 8.2),
+# so a "Loading weights: ..." bar on stderr corrupts the assertion. Each test
+# repo gets its own `.drift-cache`, which reinitialises the embedding service
+# and re-emits the bar, so this has to be off for the whole session.
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+
+import subprocess  # noqa: E402
+import textwrap  # noqa: E402
+from collections.abc import Callable  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import TYPE_CHECKING, Literal  # noqa: E402
+
+import pytest  # noqa: E402
 
 if TYPE_CHECKING:
     from drift.models import Finding
