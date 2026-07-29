@@ -1,6 +1,7 @@
 """Hard gates from the Drift Agent Guard plan."""
 
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -194,3 +195,25 @@ def test_gate_g7_counter_only_counts_real_hits(sample_repo):
         report.bump(sample_repo, hit.kind)
 
     assert report.read_counter(sample_repo) == {"duplicate": 1, "boundary": 0}
+
+
+def test_gate_g5_install_script_exists_and_is_executable():
+    """G5: install time must be a runnable measurement, not a claim in prose."""
+    script = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "gates" / "measure_install.sh"
+
+    assert script.exists()
+    assert os.access(script, os.X_OK), "measure_install.sh must be executable"
+
+
+def test_readme_leads_with_the_plugin_promise():
+    """The front page must sell one promise, and it must be the guard.
+
+    drift's adoption problem was never the engine; it was that the first screen
+    described a category ("cross-file structural coherence") instead of a
+    moment the reader recognises. This gate keeps that fix from eroding.
+    """
+    root = pathlib.Path(__file__).resolve().parents[2]
+    head = "\n".join((root / "README.md").read_text(encoding="utf-8").split("\n")[:30])
+
+    assert "/plugin install drift@drift" in head
+    assert "build it twice" in head.lower()

@@ -15,6 +15,8 @@ GATES = [
     ("G3 recall", ["-m", "pytest", "tests/guard/test_gates.py::test_gate_g3_recall_on_ground_truth", "-q"]),
     ("G3 precision", ["-m", "pytest", "tests/guard/test_gates.py::test_gate_g3_no_false_positives_on_clean_files", "-q"]),
     ("G4 surface", ["-m", "pytest", "tests/guard/test_gates.py::test_gate_g4_surface_stays_small", "-q"]),
+    ("G5 install script", ["-m", "pytest", "tests/guard/test_gates.py::test_gate_g5_install_script_exists_and_is_executable", "-q"]),
+    ("G5 readme promise", ["-m", "pytest", "tests/guard/test_gates.py::test_readme_leads_with_the_plugin_promise", "-q"]),
     ("G6 index build", ["-m", "pytest", "tests/guard/test_gates.py::test_gate_g6_index_build_is_fast_enough", "-q"]),
     ("G7 counter honesty", ["-m", "pytest", "tests/guard/test_gates.py::test_gate_g7_counter_only_counts_real_hits", "-q"]),
 ]

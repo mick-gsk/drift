@@ -1,3 +1,18 @@
+## [Unreleased]
+
+Short version: Drift installs as a Claude Code plugin and works inside the agent loop — after every edit it tells the agent when a symbol already exists elsewhere or a directory import is a first in the repository.
+
+### Added
+
+- Ship drift as a Claude Code plugin: manifest, four hooks (SessionStart, PreToolUse, PostToolUse, Stop) and two slash commands (`/drift:doctor`, `/drift:stats`)
+- Add `drift-guard`, a lean entry point that imports only `sqlite3`, `ast` and `json` and answers from a prebuilt SQLite index instead of running an analysis
+- Add seven hard gates (latency, import hygiene, ground-truth recall, surface size, install time, index build, counter honesty) and a `guard-gates` CI job that installs without extras
+
+### Fixed
+
+- Hook output now reaches the model. The hooks printed findings to stdout and exited 0, which for `PreToolUse` and `PostToolUse` reaches the transcript only — the guard's findings would never have arrived. Output goes through `hookSpecificOutput.additionalContext`, with the session tally on `systemMessage`
+- `schema.connect()` no longer advertises `Connection | None` for writers that cannot fail; readers use `connect()`, writers use `create()`
+
 ## [2.51.1] - 2026-05-04
 
 Short version: Fix the pre-commit and security-hygiene checks that were failing on every PR, and stop the fast-lane automerge from reacting to bot reviews.
