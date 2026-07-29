@@ -9,6 +9,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - Add seven hard gates (latency, import hygiene, ground-truth recall, surface size, install time, index build, counter honesty) and a `guard-gates` CI job that installs without extras
 - add amphetamin — hold the session open on machine-checked work
 - guard TypeScript and JavaScript, not only Python
+- notice when the index describes a tree that has moved
 
 ### Fixed
 

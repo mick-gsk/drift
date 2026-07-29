@@ -23,6 +23,9 @@ ROUTING_TEXT = (
 BUILDING_TEXT = (
     "drift: building the structural index in the background; the guard becomes active shortly."
 )
+REFRESHING_TEXT = (
+    "drift: the repository moved since the index was built — refreshing it in the background."
+)
 # Injected only while amphetamin is on. These are instructions to the model,
 # not mechanisms: they change how it spends turns and nothing enforces them.
 # Kept separate from anything the guard actually guarantees so the difference
@@ -153,10 +156,23 @@ def _cmd_session_start(args) -> int:
     report.reset_counter(repo_root)
     amphetamin.reset_run(repo_root)
 
+    # An index that describes a tree the user has since checked out is worse
+    # than no index: it reports a "first import from A into B" for an edge that
+    # has existed since yesterday. The rebuild is detached, and the stale index
+    # keeps answering meanwhile — being briefly out of date beats going quiet.
+    stale = False
+    conn = schema.connect(repo_root)
+    if conn is not None:
+        if schema.is_usable(conn):
+            stale = build.is_stale(repo_root, conn)
+        conn.close()
+    if stale:
+        _spawn_background_build(repo_root)
+
     text = ROUTING_TEXT
     if amphetamin.read_state(repo_root)["enabled"]:
         text = f"{text}\n\n{AMPHETAMIN_TEXT}"
-    _emit(args, text)
+    _emit(args, text, user_text=REFRESHING_TEXT if stale else "")
     return 0
 
 
