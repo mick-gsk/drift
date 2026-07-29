@@ -135,7 +135,7 @@ No MCP server is required. This path works with any editor that supports Copilot
 
 See **[VS Code Copilot Chat Workflow](guides/vscode-copilot-workflow.md)** for the full setup guide.
 
-## MCP server — advanced execution layer
+## MCP server — advanced execution layer {#mcp-server}
 
 MCP is an optional upgrade for agents that need deterministic, programmatic tool invocations — for example Cursor, Claude Code, and Copilot in agentic mode. Most users should start with `drift kit init` above and only add MCP when the session-loop pattern becomes the bottleneck.
 

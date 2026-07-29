@@ -21,7 +21,7 @@ Maintainer operations: [docs/MAINTAINER_RUNBOOK.md](docs/MAINTAINER_RUNBOOK.md) 
 
 ## Architecture
 
-```
+```text
 ingestion/          signals/            scoring/           output/
 ┌──────────────┐    ┌──────────────┐    ┌─────────────┐    ┌─────────────┐
 │ file_discovery│───▶│ PFS  AVS  MDS│───▶│ composite   │───▶│ rich (CLI)  │
@@ -42,7 +42,7 @@ ingestion/          signals/            scoring/           output/
 Full analysis runs all signals on every file. The **incremental path** (`drift_nudge`) re-runs
 only the signals affected by changed files:
 
-```
+```text
 BaselineManager.get()  ──┐
                          ├──▶ IncrementalSignalRunner.run(changed_files)
 changed files            │       │
@@ -127,7 +127,7 @@ Adding a new signal: see [CONTRIBUTING.md → Adding a new signal](CONTRIBUTING.
 
 ### Make targets (developer workflow)
 
-```
+```text
 make help        Show all targets
 make install     Dev install + git hooks
 make lint        Ruff check
@@ -147,7 +147,7 @@ make clean       Remove caches
 
 Zusaetzliche Targets speziell fuer Agenten und Automatisierung:
 
-```
+```text
 make feat-start                             Vor dem ersten Edit bei feat: (Policy-Gate + Baseline)
 make fix-start                              Vor dem ersten Edit bei fix: (Baseline + Test-Run)
 make gate-check COMMIT_TYPE=feat            Gates proaktiv pruefen (vor Push)
@@ -161,7 +161,7 @@ make catalog ARGS='--search evidence'       Skript-Katalog nach Stichwort filter
 
 ### CLI subcommands
 
-```
+```text
 drift analyze          Full repo analysis (--format rich|json|sarif)
 drift check            CI diff-mode (--fail-on high, --diff HEAD~1)
 drift scan             Agent-native repository scan

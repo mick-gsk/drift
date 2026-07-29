@@ -141,7 +141,7 @@ Source: [benchmark_results/all_results.json](https://github.com/mick-gsk/drift/b
 
 ## Recommended Stack
 
-```
+```text
 Linter (style)        → Ruff, pylint
 Type checker (types)  → mypy, pyright
 Coherence (drift)     → drift analyze / drift check

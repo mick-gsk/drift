@@ -22,7 +22,7 @@ That's it. You'll see one of three colors:
 
 ### GREEN — all clear
 
-```
+```text
 🟢  Dein Projekt sieht gut aus. Du kannst weiterarbeiten.
 
 Du kannst weiterarbeiten.
@@ -30,7 +30,7 @@ Du kannst weiterarbeiten.
 
 ### YELLOW — needs attention
 
-```
+```text
 🟡  Es gibt Stellen, die Aufmerksamkeit brauchen.
 
 Top-3 Auffälligkeiten:
@@ -49,7 +49,7 @@ Tipp: Kopiere einen der Prompts oben und gib ihn deinem KI-Assistenten.
 
 ### RED — needs immediate action
 
-```
+```text
 🔴  Dein Projekt hat ein strukturelles Problem, das du jetzt angehen solltest.
 
 Top-3 Auffälligkeiten:

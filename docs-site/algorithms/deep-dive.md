@@ -4,7 +4,7 @@ This page explains the core algorithms that power drift's detection pipeline. No
 
 ## Pipeline Overview
 
-```
+```text
 Repository ──→ File Discovery ──→ AST Parsing ──→ Signals ──→ Scoring ──→ Output
                     │                   │              │           │
               .gitignore +         Python ast     6 independent  Weighted

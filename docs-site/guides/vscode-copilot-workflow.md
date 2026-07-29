@@ -33,7 +33,7 @@ drift analyze --repo .
 
 At the end of the output you will see a **drift-kit** panel:
 
-```
+```text
 ┌─────────────────────────────── drift-kit ─────────────────────────────┐
 │  Severity  Signal                    File                  Reason      │
 │  high      pattern_fragmentation     src/core/engine.py    …           │
@@ -58,7 +58,7 @@ Open VS Code Copilot Chat (++ctrl+alt+i++) and type one of the following:
 
 ### Recommended workflow
 
-```
+```text
 drift analyze
     │
     └─► /drift-fix-plan          ← what needs fixing and how

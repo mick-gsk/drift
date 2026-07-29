@@ -6,7 +6,7 @@ Install it once on your organization or repository, and every PR gets a **Drift 
 
 ## How it works
 
-```
+```text
 PR opened / updated
        │
        ▼

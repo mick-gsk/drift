@@ -19,7 +19,7 @@ TSA runs **four TypeScript/JavaScript architecture rules** to detect structural 
 
 ### Example finding
 
-```
+```text
 ts_architecture in src/components/UserList.tsx
   Rule: ui_to_infra_import_ban
   Import: import { query } from '../database/connection'

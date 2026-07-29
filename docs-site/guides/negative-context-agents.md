@@ -43,7 +43,7 @@ drift export-context --format raw -o patterns.json
 
 ## How it works
 
-```
+```text
 drift analyze → Findings → Negative Context Generators → Anti-Pattern Items
                                                               │
                     ┌─────────────────────────────────────────┘
@@ -122,7 +122,7 @@ Markdown with category headings — suitable for `.github/copilot-instructions.m
 
 Compact format for system prompts (minimal tokens):
 
-```
+```text
 AVOID: Bare except Exception: pass (broad_exception_monoculture, high)
 USE INSTEAD: Specific exception types with proper handling
 ---
