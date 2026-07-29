@@ -10,6 +10,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - add amphetamin — hold the session open on machine-checked work
 - guard TypeScript and JavaScript, not only Python
 - notice when the index describes a tree that has moved
+- guard Go
 
 ### Fixed
 

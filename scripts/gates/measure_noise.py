@@ -57,11 +57,15 @@ def measure_boundary_reach(repo: pathlib.Path, conn) -> dict:
             source = (repo / rel).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        _, imports = extract.extract(source, pathlib.PurePosixPath(rel).suffix)
+        suffix = pathlib.PurePosixPath(rel).suffix
+        _, imports = extract.extract(source, suffix)
         src_dir = build.dir_of(rel)
         edges = set()
         for specifier in imports:
-            destination = build.import_to_dir(specifier, src_dir, known_dirs)
+            # The suffix matters: without it every Go module path falls through
+            # the TypeScript branch and resolves to nothing, which reports a
+            # tidy zero for a signal that is working fine.
+            destination = build.import_to_dir(specifier, src_dir, known_dirs, suffix)
             if destination and destination != src_dir:
                 edges.add((src_dir, destination))
         per_file[rel] = edges

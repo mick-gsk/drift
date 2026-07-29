@@ -24,7 +24,8 @@ from typing import NamedTuple
 #: File types the guard indexes. Everything else passes through untouched.
 PYTHON_SUFFIXES = frozenset({".py"})
 TS_JS_SUFFIXES = frozenset({".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"})
-GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES
+GO_SUFFIXES = frozenset({".go"})
+GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES | GO_SUFFIXES
 
 #: Normalized names too common to ever be a meaningful duplicate.
 STOPWORDS = frozenset(
@@ -102,6 +103,36 @@ _TS_IMPORTS: tuple[re.Pattern[str], ...] = (
 )
 
 
+#: Go declarations. `func (r *Receiver) Name(` is deliberately absent: methods
+#: repeat across every type in a package — `String`, `Error`, `Read`, `Close` —
+#: exactly as they do in Python and TypeScript, where they are excluded for the
+#: same reason. The issue that scoped this work argued for including them; the
+#: noise measurement that came before it argued louder.
+_GO_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("function", re.compile(r"^func\s+([A-Za-z_][\w]*)\s*\(", re.MULTILINE)),
+    # Only the single-declaration form. A `type (...)` block would need the
+    # names matched at one indent level, which is also where struct fields
+    # live — and a struct field read as a type declaration is the kind of
+    # invented symbol these patterns exist to avoid.
+    (
+        "type",
+        re.compile(
+            r"^type\s+([A-Za-z_][\w]*)\s+(?:struct|interface|func|map|chan|\[|\*|[A-Za-z_])",
+            re.MULTILINE,
+        ),
+    ),
+)
+
+#: Import paths, both the single form and the parenthesised block. Go writes
+#: them as full module paths (`github.com/org/repo/internal/db`), so the
+#: resolver matches trailing segments against the repository's directories.
+_GO_IMPORTS: tuple[re.Pattern[str], ...] = (
+    re.compile(r'^import\s+(?:[A-Za-z_.]\w*\s+)?"([^"]+)"', re.MULTILINE),
+    re.compile(r"^import\s*\(([^)]*)\)", re.MULTILINE | re.DOTALL),
+)
+_GO_IMPORT_LINE = re.compile(r'^\s*(?:[A-Za-z_.]\w*\s+)?"([^"]+)"', re.MULTILINE)
+
+
 class Symbol(NamedTuple):
     name: str
     norm_name: str
@@ -139,7 +170,45 @@ def extract(source: str, suffix: str = ".py") -> tuple[list[Symbol], list[str]]:
         return extract_ts(source)
     if suffix in PYTHON_SUFFIXES:
         return extract_python(source)
+    if suffix in GO_SUFFIXES:
+        return extract_go(source)
     return ([], [])
+
+
+def extract_go(source: str) -> tuple[list[Symbol], list[str]]:
+    """Go, matched rather than parsed, on the same terms as TypeScript.
+
+    Package-level `func` and `type` only. Anchoring to column zero is unusually
+    reliable here because gofmt is not optional in practice: every declaration
+    that is package-level starts at column zero in formatted code.
+    """
+    symbols: list[Symbol] = []
+    seen: set[str] = set()
+
+    for kind, pattern in _GO_PATTERNS:
+        for match in pattern.finditer(source):
+            name = match.group(1)
+            if name in seen:
+                continue
+            seen.add(name)
+            symbols.append(
+                Symbol(
+                    name=name,
+                    norm_name=normalize(name),
+                    kind=kind,
+                    sig_hash=signature_hash(kind, []),
+                    line=source.count("\n", 0, match.start()) + 1,
+                )
+            )
+
+    imports: list[str] = []
+    for match in _GO_IMPORTS[0].finditer(source):
+        imports.append(match.group(1))
+    for block in _GO_IMPORTS[1].finditer(source):
+        imports.extend(line.group(1) for line in _GO_IMPORT_LINE.finditer(block.group(1)))
+
+    symbols.sort(key=lambda s: s.line)
+    return (symbols, imports)
 
 
 def extract_ts(source: str) -> tuple[list[Symbol], list[str]]:
