@@ -147,3 +147,29 @@ def test_test_files_are_detected_by_name_as_well_as_directory():
     assert lookup.repeats_by_design("pkg/thing_test.go")
     assert not lookup.repeats_by_design("src/foo/latest.ts")
     assert not lookup.repeats_by_design("src/contest/thing.py")
+
+
+def test_a_relative_import_crossing_a_directory_is_reported(tmp_path):
+    """Flask's `from .sansio.app import App` shape, end to end."""
+    conn = _index(
+        tmp_path,
+        {
+            "src/pkg/app.py": "x = 1\n",
+            "src/pkg/sansio/app.py": "def make_app(a):\n    pass\n",
+        },
+    )
+
+    hits = lookup.find_novel_edges(conn, "src/pkg/app.py", ["./sansio/app"])
+
+    assert hits, "a relative import across a directory must be visible"
+    assert "src/pkg" in hits[0].message and "src/pkg/sansio" in hits[0].message
+
+
+def test_tutorial_paths_do_not_announce_boundaries(tmp_path):
+    """A tutorial reaching into the library it teaches is not an architectural event."""
+    conn = _index(
+        tmp_path,
+        {"src/lib/core.py": "def run_engine(a):\n    pass\n", "src/other.py": "y = 2\n"},
+    )
+
+    assert lookup.find_novel_edges(conn, "docs_src/tutorial001.py", ["src.lib"]) == []

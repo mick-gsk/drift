@@ -34,6 +34,50 @@ from drift.guard import build, extract, lookup, schema  # noqa: E402
 NOISE_BUDGET_PERCENT = 10.0
 
 
+def measure_boundary_reach(repo: pathlib.Path, conn) -> dict:
+    """How much of the repository the boundary signal can even see.
+
+    Replaying an existing file can never produce a boundary hit — its edges are
+    already indexed — so the noise pass reports zero for this signal by
+    construction. That zero once hid a real defect: relative imports were
+    dropped entirely, and Flask appeared to have no cross-directory imports at
+    all, 0 of 83 files. This asks the question the other pass cannot: how many
+    files import across a directory, and for how many is that crossing theirs
+    alone, so that writing the file fresh would announce it?
+    """
+    import collections
+
+    files = [row[0] for row in conn.execute("SELECT path FROM files ORDER BY path")]
+    known_dirs = {build.dir_of(f) for f in files}
+    edge_owners: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
+    per_file: dict[str, set[tuple[str, str]]] = {}
+
+    for rel in files:
+        try:
+            source = (repo / rel).read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        _, imports = extract.extract(source, pathlib.PurePosixPath(rel).suffix)
+        src_dir = build.dir_of(rel)
+        edges = set()
+        for specifier in imports:
+            destination = build.import_to_dir(specifier, src_dir, known_dirs)
+            if destination and destination != src_dir:
+                edges.add((src_dir, destination))
+        per_file[rel] = edges
+        for edge in edges:
+            edge_owners[edge].add(rel)
+
+    crossing = [f for f, edges in per_file.items() if edges]
+    sole = [f for f, edges in per_file.items() if any(edge_owners[e] == {f} for e in edges)]
+    return {
+        "crossing": len(crossing),
+        "edges": len(edge_owners),
+        "sole": len(sole),
+        "sole_rate": round(100.0 * len(sole) / max(1, len(files)), 1),
+    }
+
+
 def measure(repo: pathlib.Path) -> dict:
     started = time.perf_counter()
     stats = build.build_full(repo)
@@ -66,9 +110,11 @@ def measure(repo: pathlib.Path) -> dict:
         if len(examples) < 3:
             examples.append(f"{rel}: {hits[0].message}")
 
+    reach = measure_boundary_reach(repo, conn)
     conn.close()
     return {
         "repo": repo.name,
+        "reach": reach,
         "files": len(files),
         "symbols": stats["symbols"],
         "build_seconds": round(build_seconds, 2),
@@ -99,6 +145,14 @@ def main() -> int:
             f"= {result['rate']}%  ({result['duplicates']} duplicate, "
             f"{result['boundaries']} boundary)"
         )
+        reach = result.get("reach")
+        if reach:
+            print(
+                f"{'':14} boundary reach: {reach['crossing']} files import across a "
+                f"directory over {reach['edges']} distinct edges; writing "
+                f"{reach['sole']} of them fresh ({reach['sole_rate']}%) would "
+                f"announce a first-ever crossing"
+            )
         for example in result["examples"]:
             print(f"{'':16}· {example}")
         if result["rate"] > NOISE_BUDGET_PERCENT:

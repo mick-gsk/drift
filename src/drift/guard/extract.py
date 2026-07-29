@@ -218,8 +218,26 @@ def extract_python(source: str) -> tuple[list[Symbol], list[str]]:
     for imported in ast.walk(tree):
         if isinstance(imported, ast.Import):
             imports.extend(alias.name for alias in imported.names)
-        elif isinstance(imported, ast.ImportFrom) and imported.module and imported.level == 0:
-            imports.append(imported.module)
-            imports.extend(f"{imported.module}.{alias.name}" for alias in imported.names)
+        elif isinstance(imported, ast.ImportFrom):
+            if imported.level == 0:
+                if imported.module:
+                    imports.append(imported.module)
+                    imports.extend(f"{imported.module}.{alias.name}" for alias in imported.names)
+            else:
+                imports.append(_relative_specifier(imported.level, imported.module))
 
     return (symbols, imports)
+
+
+def _relative_specifier(level: int, module: str | None) -> str:
+    """Turn `from ..db.client import x` into `../db/client`.
+
+    Relative imports were dropped entirely, which left the boundary signal
+    blind to the dominant way Python packages import from themselves: measured
+    on Flask, 0 of 83 files appeared to import across a directory. Emitting the
+    path form lets one resolver serve both languages, since `../db/client`
+    means the same thing in either.
+    """
+    prefix = "./" if level == 1 else "../" * (level - 1)
+    tail = module.replace(".", "/") if module else ""
+    return f"{prefix}{tail}" if tail else prefix

@@ -144,6 +144,12 @@ def _first_real_match(
 
 def find_novel_edges(conn: sqlite3.Connection, rel_path: str, imports: list[str]) -> list[Hit]:
     """Imports that introduce a directory-to-directory edge seen nowhere yet."""
+    # A tutorial reaching into the library it teaches is not an architectural
+    # event. Measured on fastapi, `docs_src/` supplied most of what this signal
+    # would have announced.
+    if repeats_by_design(rel_path):
+        return []
+
     known_dirs = {build.dir_of(row[0]) for row in conn.execute("SELECT path FROM files")}
     src_dir = build.dir_of(rel_path)
     existing = {
