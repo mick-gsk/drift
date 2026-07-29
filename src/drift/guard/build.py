@@ -216,8 +216,15 @@ def is_stale(repo_root: pathlib.Path, conn) -> bool:
     if not rows:
         return True
 
-    step = max(1, len(rows) // STALENESS_SAMPLE)
-    sample = rows[::step][:STALENESS_SAMPLE]
+    sample_count = min(STALENESS_SAMPLE, len(rows))
+    if sample_count == 1:
+        sample = rows
+    else:
+        last_index = len(rows) - 1
+        sample = [
+            rows[round(position * last_index / (sample_count - 1))]
+            for position in range(sample_count)
+        ]
 
     moved = 0
     for rel, digest in sample:
