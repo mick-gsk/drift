@@ -75,9 +75,19 @@ _TS_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
             re.MULTILINE,
         ),
     ),
+    # Only bindings that hold a function. Python indexes `def` and `class` and
+    # ignores module-level assignments; indexing every TypeScript `const` broke
+    # that symmetry and was the largest single source of noise measured against
+    # real repositories — `config`, `version`, `ignorePattern` and every other
+    # top-level constant collided across unrelated files. An arrow function or
+    # a function expression is a definition in the same sense `def` is.
     (
         "binding",
-        re.compile(r"^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*[:=]", re.MULTILINE),
+        re.compile(
+            r"^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=\n]+)?=\s*"
+            r"(?:async\s+)?(?:function\b|\([^)]*\)\s*(?::[^=>\n]+)?=>|[A-Za-z_$][\w$]*\s*=>)",
+            re.MULTILINE,
+        ),
     ),
 )
 
