@@ -163,8 +163,10 @@ def _cmd_session_start(args) -> int:
     stale = False
     conn = schema.connect(repo_root)
     if conn is not None:
-        if schema.is_usable(conn):
-            stale = build.is_stale(repo_root, conn)
+        # An index written by an older schema is unusable, and nothing else
+        # would ever replace it: the file exists, so the missing-index path
+        # never runs. Treating it as stale is what makes an upgrade recover.
+        stale = build.is_stale(repo_root, conn) if schema.is_usable(conn) else True
         conn.close()
     if stale:
         _spawn_background_build(repo_root)

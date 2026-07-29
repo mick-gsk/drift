@@ -11,6 +11,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - guard TypeScript and JavaScript, not only Python
 - notice when the index describes a tree that has moved
 - guard Go
+- guard Rust, and stop conflating packages in a workspace
 
 ### Fixed
 

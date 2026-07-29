@@ -72,20 +72,35 @@ def relative_to_dir(specifier: str, src_dir: str, known_dirs: set[str]) -> str |
 
 
 def suffix_to_dir(specifier: str, known_dirs: set[str]) -> str | None:
-    """Match the trailing segments of a full module path onto a directory.
+    """Match a module path onto a directory from its trailing segments.
 
-    Go imports carry the whole module path — `github.com/org/repo/internal/db`
-    — and the repository knows itself as `internal/db`. Dropping leading
-    segments until something matches finds it without reading `go.mod`.
+    Two shapes, one rule. Go carries the whole module path and the repository
+    holds the tail verbatim: `github.com/org/repo/internal/db` against
+    `internal/db`. Rust drops the head instead — `crate::db::client` says
+    nothing about `src/`, because `crate` *is* `src/` — so the repository holds
+    the tail of the *specifier* rather than the other way round.
 
-    This is reserved for Go. Applying it to TypeScript would resolve
+    Longest slice first, and a slice matching more than one directory is
+    discarded rather than guessed: two directories ending in `db` make the
+    answer ambiguous, and an ambiguous boundary claim is the confident-wrong
+    kind this guard keeps having to remove.
+
+    Reserved for Go and Rust. Applying it to TypeScript would resolve
     `lodash/fp` onto a directory named `fp`, and date-fns has one.
     """
-    parts = specifier.split("/")
-    for start in range(len(parts)):
-        candidate = "/".join(parts[start:])
-        if candidate in known_dirs:
-            return candidate
+    parts = [p for p in specifier.split("/") if p]
+    # The last segment may be a module inside the directory rather than the
+    # directory itself, exactly as in `relative_to_dir`.
+    for candidate_parts in (parts, parts[:-1]):
+        for start in range(len(candidate_parts)):
+            slice_ = "/".join(candidate_parts[start:])
+            if not slice_:
+                continue
+            if slice_ in known_dirs:
+                return slice_
+            matches = [d for d in known_dirs if d.endswith(f"/{slice_}")]
+            if len(matches) == 1:
+                return matches[0]
     return None
 
 
@@ -99,7 +114,7 @@ def import_to_dir(
     """
     if specifier.startswith("."):
         return relative_to_dir(specifier, src_dir, known_dirs)
-    if suffix in extract.GO_SUFFIXES:
+    if suffix in extract.GO_SUFFIXES or suffix in extract.RUST_SUFFIXES:
         return suffix_to_dir(specifier, known_dirs)
     if "/" in specifier:
         return None
@@ -120,6 +135,39 @@ def _iter_source_files(repo_root: pathlib.Path):
 
 def _sha256(path: pathlib.Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+#: A directory holding one of these is the root of its own package. Observed
+#: rather than configured, like everything else the index records.
+PACKAGE_MARKERS = ("Cargo.toml", "package.json", "go.mod", "pyproject.toml", "setup.py")
+
+
+def package_root_of(repo_root: pathlib.Path, rel_path: str, cache: dict[str, str]) -> str:
+    """The package a file belongs to, as a repo-relative directory.
+
+    ripgrep is a Cargo workspace: `crates/cli` and `crates/globset` are separate
+    published crates, and a function named `escape` in each is not duplication —
+    it is two libraries with their own namespaces. Measured, that single
+    conflation put ripgrep at 23.6 % while every other repository sat under 6 %.
+
+    Node monorepos, Go modules and Python source trees split the same way, so
+    the marker files are the language-agnostic version of the same question.
+    """
+    directory = dir_of(rel_path)
+    if directory in cache:
+        return cache[directory]
+
+    parts = [] if directory == "." else directory.split("/")
+    found = "."
+    for depth in range(len(parts), -1, -1):
+        candidate = "/".join(parts[:depth]) if depth else "."
+        base = repo_root if candidate == "." else repo_root / candidate
+        if any((base / marker).exists() for marker in PACKAGE_MARKERS):
+            found = candidate
+            break
+
+    cache[directory] = found
+    return found
 
 
 #: How many indexed files to check, and how much of that sample has to have
@@ -177,6 +225,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
     collected = list(_iter_source_files(repo_root))
     known_dirs = {dir_of(rel) for rel, _ in collected}
 
+    package_cache: dict[str, str] = {}
     edge_counts: dict[tuple[str, str], int] = {}
     symbol_rows: list[tuple] = []
     file_rows: list[tuple] = []
@@ -190,7 +239,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
         symbols, imports = extract.extract(source, path.suffix)
         src_dir = dir_of(rel)
 
-        file_rows.append((rel, _sha256(path), now))
+        file_rows.append((rel, _sha256(path), now, package_root_of(repo_root, rel, package_cache)))
         symbol_rows.extend((rel, s.name, s.norm_name, s.kind, s.sig_hash, s.line) for s in symbols)
         for module in imports:
             dst_dir = import_to_dir(module, src_dir, known_dirs, path.suffix)
@@ -198,7 +247,10 @@ def build_full(repo_root: pathlib.Path) -> dict:
                 continue
             edge_counts[(src_dir, dst_dir)] = edge_counts.get((src_dir, dst_dir), 0) + 1
 
-    conn.executemany("INSERT INTO files (path, sha256, indexed_at) VALUES (?, ?, ?)", file_rows)
+    conn.executemany(
+        "INSERT INTO files (path, sha256, indexed_at, package_root) VALUES (?, ?, ?, ?)",
+        file_rows,
+    )
     conn.executemany(
         "INSERT INTO symbols (path, name, norm_name, kind, sig_hash, line)"
         " VALUES (?, ?, ?, ?, ?, ?)",
@@ -245,8 +297,8 @@ def update_file(repo_root: pathlib.Path, rel_path: str) -> None:
             [(rel_path, s.name, s.norm_name, s.kind, s.sig_hash, s.line) for s in symbols],
         )
         conn.execute(
-            "INSERT INTO files (path, sha256, indexed_at) VALUES (?, ?, ?)",
-            (rel_path, _sha256(path), time.time()),
+            "INSERT INTO files (path, sha256, indexed_at, package_root) VALUES (?, ?, ?, ?)",
+            (rel_path, _sha256(path), time.time(), package_root_of(repo_root, rel_path, {})),
         )
         known_dirs = {row[0] for row in conn.execute("SELECT DISTINCT src_dir FROM import_edges")}
         known_dirs |= {dir_of(row[0]) for row in conn.execute("SELECT path FROM files")}

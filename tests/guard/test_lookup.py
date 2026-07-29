@@ -214,3 +214,36 @@ def test_the_briefing_stays_quiet_in_directories_that_repeat_by_design(tmp_path)
 
     assert lookup.neighbourhood(conn, "examples/new.py") == []
     assert lookup.known_targets(conn, "examples/new.py") == []
+
+
+def test_two_packages_in_a_workspace_do_not_duplicate_each_other(tmp_path):
+    """ripgrep's `crates/cli` and `crates/globset` both define `escape`."""
+    (tmp_path / "crates" / "cli").mkdir(parents=True)
+    (tmp_path / "crates" / "globset").mkdir(parents=True)
+    (tmp_path / "crates" / "cli" / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+    (tmp_path / "crates" / "globset" / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+    (tmp_path / "crates" / "globset" / "lib.rs").write_text(
+        "pub fn escape_pattern(s: &str) {}\n", encoding="utf-8"
+    )
+    build.build_full(tmp_path)
+    conn = schema.connect(tmp_path)
+
+    symbols, _ = extract.extract("pub fn escape_pattern(s: &str) {}\n", ".rs")
+
+    assert lookup.find_duplicates(conn, "crates/cli/escape.rs", symbols) == []
+
+
+def test_one_package_still_reports_its_own_duplicates(tmp_path):
+    """The workspace rule must not switch the signal off inside a package."""
+    (tmp_path / "src" / "auth").mkdir(parents=True)
+    (tmp_path / "src" / "api").mkdir(parents=True)
+    (tmp_path / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+    (tmp_path / "src" / "auth" / "tokens.rs").write_text(
+        "pub fn validate_token(t: &str) {}\n", encoding="utf-8"
+    )
+    build.build_full(tmp_path)
+    conn = schema.connect(tmp_path)
+
+    symbols, _ = extract.extract("pub fn validate_token(t: &str) {}\n", ".rs")
+
+    assert lookup.find_duplicates(conn, "src/api/schemas.rs", symbols)
