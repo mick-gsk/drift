@@ -53,6 +53,13 @@ def measure_boundary_reach(repo: pathlib.Path, conn) -> dict:
     per_file: dict[str, set[tuple[str, str]]] = {}
 
     for rel in files:
+        # The guard's own filters have to apply here too. Without them this
+        # number counted `docs_src/` tutorials and test files the guard never
+        # speaks about, and overstated the boundary signal by an order of
+        # magnitude — the second time this tool has flattered or maligned a
+        # signal that was behaving correctly.
+        if lookup.repeats_by_design(rel):
+            continue
         try:
             source = (repo / rel).read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):

@@ -273,3 +273,11 @@ def test_generated_files_repeat_whatever_generated_them():
     assert lookup.repeats_by_design("src/Api.g.cs")
     assert lookup.repeats_by_design("src/schema_pb2.py")
     assert not lookup.repeats_by_design("src/designer.py")
+
+
+def test_build_scripts_are_configuration_not_source():
+    """Gradle convention files all declare `library`; that is not duplication."""
+    assert lookup.repeats_by_design("build-logic/src/main/kotlin/okhttp.jvm-conventions.gradle.kts")
+    assert lookup.repeats_by_design("android-test/build.gradle.kts")
+    assert lookup.repeats_by_design("project/build.gradle")
+    assert not lookup.repeats_by_design("src/main/kotlin/okhttp3/Request.kt")

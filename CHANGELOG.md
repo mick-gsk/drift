@@ -25,6 +25,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - stop the guard speaking on half of every real repository
 - the boundary signal was blind to relative imports
 - the pre-edit briefing spoke on almost every new file
+- stop build scripts counting as source, and measure the boundary
 
 ## [2.51.1] - 2026-05-04
 
