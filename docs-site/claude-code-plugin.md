@@ -41,6 +41,23 @@ Two questions, asked of a SQLite index of your repository:
 Silence is the normal case, not a failure. `/drift:stats` shows what the guard
 caught during the current session.
 
+## What that looks like in a real session
+
+Asked to write a function that already existed elsewhere, with the guard
+installed and no other instruction, Claude came back with this on its own:
+
+> Created `src/api/schemas.py:1` with just that function.
+>
+> One thing worth flagging: the drift guard reports a `validate_token` already
+> exists at `src/auth/tokens.py:4`. I didn't look at it, per your instruction —
+> so I don't know whether it's a real implementation this one now shadows.
+> Worth a check before anything imports the new one.
+
+Nobody asked it to check for duplicates. The guard put the fact in front of it,
+and it did the rest. One run, unedited. The same session's debug log shows all
+four hooks firing: `SessionStart` 282 characters of routing, `PreToolUse` 100,
+`PostToolUse` 86.
+
 ## Why it can run inside the agent loop
 
 The guard is a separate module that imports only `sqlite3`, `ast` and `json` —
