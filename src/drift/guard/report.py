@@ -31,6 +31,28 @@ def format_hits(hits: list[lookup.Hit]) -> str:
     return text[:MAX_MESSAGE_CHARS]
 
 
+def hook_json(event: str, agent_text: str = "", user_text: str = "") -> str:
+    """Wrap guard output in the envelope Claude Code reads.
+
+    This is not cosmetic. A hook that exits 0 and writes plain stdout reaches
+    the transcript only — the model never sees it. The one documented way into
+    the model's context is `hookSpecificOutput.additionalContext`, so the
+    guard's entire promise depends on this envelope. `systemMessage` is the
+    separate channel for text meant for the human (the session tally).
+
+    Returns "" when there is nothing to say, so silence stays the default.
+    """
+    payload: dict = {}
+    if agent_text:
+        payload["hookSpecificOutput"] = {
+            "hookEventName": event,
+            "additionalContext": agent_text,
+        }
+    if user_text:
+        payload["systemMessage"] = user_text
+    return json.dumps(payload) if payload else ""
+
+
 def counter_path(repo_root) -> pathlib.Path:
     return pathlib.Path(repo_root) / ".drift" / "session_counter.json"
 

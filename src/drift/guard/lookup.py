@@ -37,25 +37,20 @@ def find_duplicates(
             Hit(
                 kind="duplicate",
                 message=(
-                    f"`{symbol.name}` already exists as `{other_name}` "
-                    f"in {other_path}:{other_line}"
+                    f"`{symbol.name}` already exists as `{other_name}` in {other_path}:{other_line}"
                 ),
             )
         )
     return hits
 
 
-def find_novel_edges(
-    conn: sqlite3.Connection, rel_path: str, imports: list[str]
-) -> list[Hit]:
+def find_novel_edges(conn: sqlite3.Connection, rel_path: str, imports: list[str]) -> list[Hit]:
     """Imports that introduce a directory-to-directory edge seen nowhere yet."""
     known_dirs = {build.dir_of(row[0]) for row in conn.execute("SELECT path FROM files")}
     src_dir = build.dir_of(rel_path)
     existing = {
         row[0]
-        for row in conn.execute(
-            "SELECT dst_dir FROM import_edges WHERE src_dir = ?", (src_dir,)
-        )
+        for row in conn.execute("SELECT dst_dir FROM import_edges WHERE src_dir = ?", (src_dir,))
     }
 
     hits: list[Hit] = []
@@ -71,8 +66,7 @@ def find_novel_edges(
             Hit(
                 kind="boundary",
                 message=(
-                    f"first import from {src_dir}/ into {dst_dir}/ "
-                    f"anywhere in this repository"
+                    f"first import from {src_dir}/ into {dst_dir}/ anywhere in this repository"
                 ),
             )
         )
@@ -84,8 +78,7 @@ def neighbourhood(conn: sqlite3.Connection, rel_path: str, limit: int = 8) -> li
     src_dir = build.dir_of(rel_path)
     like = "%" if src_dir == "." else f"{src_dir}/%"
     rows = conn.execute(
-        "SELECT DISTINCT name FROM symbols WHERE path LIKE ? AND path != ?"
-        " ORDER BY name LIMIT ?",
+        "SELECT DISTINCT name FROM symbols WHERE path LIKE ? AND path != ? ORDER BY name LIMIT ?",
         (like, rel_path, limit),
     )
     return [row[0] for row in rows]

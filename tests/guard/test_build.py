@@ -30,10 +30,7 @@ def test_build_full_indexes_the_sample_repo(sample_repo):
 def test_build_full_records_observed_import_edges(sample_repo):
     build.build_full(sample_repo)
     conn = schema.connect(sample_repo)
-    edges = {
-        (row[0], row[1])
-        for row in conn.execute("SELECT src_dir, dst_dir FROM import_edges")
-    }
+    edges = {(row[0], row[1]) for row in conn.execute("SELECT src_dir, dst_dir FROM import_edges")}
 
     assert ("src/services", "src/db") in edges
     assert ("src/api", "src/services") in edges

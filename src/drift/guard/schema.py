@@ -42,13 +42,27 @@ def index_path(repo_root: pathlib.Path) -> pathlib.Path:
     return pathlib.Path(repo_root) / ".drift" / "index.db"
 
 
-def connect(repo_root: pathlib.Path, create: bool = False) -> sqlite3.Connection | None:
-    """Open the index. Returns None when it does not exist and create is False."""
+def connect(repo_root: pathlib.Path) -> sqlite3.Connection | None:
+    """Open an existing index. Returns None when there is none yet.
+
+    Reading and writing are separate functions because their contracts differ:
+    a reader must cope with a missing index (the guard stays silent), a writer
+    creates one and therefore always gets a connection. Folding both into a
+    `create=` flag made every writer look like it could fail when it cannot.
+    """
+    if not index_path(repo_root).exists():
+        return None
+    return _open(index_path(repo_root))
+
+
+def create(repo_root: pathlib.Path) -> sqlite3.Connection:
+    """Open the index, creating the file when it does not exist yet."""
     path = index_path(repo_root)
-    if not path.exists():
-        if not create:
-            return None
-        path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return _open(path)
+
+
+def _open(path: pathlib.Path) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.execute("PRAGMA journal_mode=WAL")
     return conn
@@ -67,9 +81,7 @@ def initialize(conn: sqlite3.Connection) -> None:
 def is_usable(conn: sqlite3.Connection) -> bool:
     """True when the index carries exactly the schema version we understand."""
     try:
-        row = conn.execute(
-            "SELECT value FROM meta WHERE key = 'schema_version'"
-        ).fetchone()
+        row = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
     except sqlite3.DatabaseError:
         return False
     return bool(row) and row[0] == str(SCHEMA_VERSION)

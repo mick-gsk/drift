@@ -58,9 +58,7 @@ def _arg_names(node: ast.AST) -> list[str]:
     args = getattr(node, "args", None)
     if args is None:
         return []
-    collected = [
-        a.arg for a in list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs)
-    ]
+    collected = [a.arg for a in list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs)]
     return [a for a in collected if a not in ("self", "cls")]
 
 
@@ -97,11 +95,13 @@ def extract(source: str) -> tuple[list[Symbol], list[str]]:
                 )
             )
 
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imports.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            imports.append(node.module)
-            imports.extend(f"{node.module}.{alias.name}" for alias in node.names)
+    # Separate name from the loop above: that one walks statements, this one
+    # walks every node, and reusing `node` would mix the two types.
+    for imported in ast.walk(tree):
+        if isinstance(imported, ast.Import):
+            imports.extend(alias.name for alias in imported.names)
+        elif isinstance(imported, ast.ImportFrom) and imported.module and imported.level == 0:
+            imports.append(imported.module)
+            imports.extend(f"{imported.module}.{alias.name}" for alias in imported.names)
 
     return (symbols, imports)

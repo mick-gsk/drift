@@ -10,13 +10,10 @@ def test_connect_without_index_returns_none(tmp_path):
 
 
 def test_initialize_creates_all_tables(tmp_path):
-    conn = schema.connect(tmp_path, create=True)
+    conn = schema.create(tmp_path)
     schema.initialize(conn)
 
-    names = {
-        row[0]
-        for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    }
+    names = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"meta", "files", "symbols", "import_edges"} <= names
     assert schema.is_usable(conn) is True
 
@@ -26,7 +23,7 @@ def test_index_lands_in_dot_drift(tmp_path):
 
 
 def test_wrong_schema_version_is_not_usable(tmp_path):
-    conn = schema.connect(tmp_path, create=True)
+    conn = schema.create(tmp_path)
     schema.initialize(conn)
     conn.execute("UPDATE meta SET value = '999' WHERE key = 'schema_version'")
 

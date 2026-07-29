@@ -66,7 +66,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
     if index_file.exists():
         index_file.unlink()
 
-    conn = schema.connect(repo_root, create=True)
+    conn = schema.create(repo_root)
     schema.initialize(conn)
 
     collected = list(_iter_python_files(repo_root))
@@ -86,18 +86,14 @@ def build_full(repo_root: pathlib.Path) -> dict:
         src_dir = dir_of(rel)
 
         file_rows.append((rel, _sha256(path), now))
-        symbol_rows.extend(
-            (rel, s.name, s.norm_name, s.kind, s.sig_hash, s.line) for s in symbols
-        )
+        symbol_rows.extend((rel, s.name, s.norm_name, s.kind, s.sig_hash, s.line) for s in symbols)
         for module in imports:
             dst_dir = module_to_dir(module, known_dirs)
             if dst_dir is None or dst_dir == src_dir:
                 continue
             edge_counts[(src_dir, dst_dir)] = edge_counts.get((src_dir, dst_dir), 0) + 1
 
-    conn.executemany(
-        "INSERT INTO files (path, sha256, indexed_at) VALUES (?, ?, ?)", file_rows
-    )
+    conn.executemany("INSERT INTO files (path, sha256, indexed_at) VALUES (?, ?, ?)", file_rows)
     conn.executemany(
         "INSERT INTO symbols (path, name, norm_name, kind, sig_hash, line)"
         " VALUES (?, ?, ?, ?, ?, ?)",
@@ -107,9 +103,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
         "INSERT INTO import_edges (src_dir, dst_dir, count) VALUES (?, ?, ?)",
         [(src, dst, count) for (src, dst), count in edge_counts.items()],
     )
-    conn.execute(
-        "INSERT OR REPLACE INTO meta (key, value) VALUES ('built_at', ?)", (str(now),)
-    )
+    conn.execute("INSERT OR REPLACE INTO meta (key, value) VALUES ('built_at', ?)", (str(now),))
     conn.commit()
     conn.close()
 
@@ -143,18 +137,13 @@ def update_file(repo_root: pathlib.Path, rel_path: str) -> None:
         conn.executemany(
             "INSERT INTO symbols (path, name, norm_name, kind, sig_hash, line)"
             " VALUES (?, ?, ?, ?, ?, ?)",
-            [
-                (rel_path, s.name, s.norm_name, s.kind, s.sig_hash, s.line)
-                for s in symbols
-            ],
+            [(rel_path, s.name, s.norm_name, s.kind, s.sig_hash, s.line) for s in symbols],
         )
         conn.execute(
             "INSERT INTO files (path, sha256, indexed_at) VALUES (?, ?, ?)",
             (rel_path, _sha256(path), time.time()),
         )
-        known_dirs = {
-            row[0] for row in conn.execute("SELECT DISTINCT src_dir FROM import_edges")
-        }
+        known_dirs = {row[0] for row in conn.execute("SELECT DISTINCT src_dir FROM import_edges")}
         known_dirs |= {dir_of(row[0]) for row in conn.execute("SELECT path FROM files")}
         src_dir = dir_of(rel_path)
         for module in imports:

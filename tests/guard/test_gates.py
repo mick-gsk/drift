@@ -4,12 +4,11 @@ import json
 import pathlib
 import subprocess
 import sys
-import time
 
 import pytest
-
-from drift.guard import build, extract, lookup, report, schema
 from scripts.gates.measure_latency import measure
+
+from drift.guard import build, extract, lookup, schema
 
 FORBIDDEN_IN_HOT_PATH = [
     "transformers",
@@ -74,9 +73,7 @@ def test_gate_g1_pre_and_post_stay_within_budget(sample_repo):
 
 
 def _expected_cases() -> dict:
-    path = (
-        pathlib.Path(__file__).parent / "fixtures" / "sample_repo" / "expected.json"
-    )
+    path = pathlib.Path(__file__).parent / "fixtures" / "sample_repo" / "expected.json"
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
 
@@ -119,3 +116,24 @@ def test_gate_g3_no_false_positives_on_clean_files(sample_repo):
         hits += lookup.find_novel_edges(conn, rel_path, imports)
 
         assert hits == [], f"{rel_path} produced unexpected findings: {hits}"
+
+
+def test_gate_g4_surface_stays_small():
+    """G4: the plugin surface must stay at or below two tools and two commands."""
+    root = pathlib.Path(__file__).resolve().parents[2]
+    with open(root / ".claude-plugin" / "plugin.json", encoding="utf-8") as handle:
+        manifest = json.load(handle)
+
+    tools = manifest.get("mcpServers", {})
+    commands = list((root / "commands").glob("drift-*.md"))
+
+    assert len(tools) <= 1, "at most one MCP server"
+    assert len(commands) <= 2, f"at most two slash commands, found {len(commands)}"
+
+    # Zero mandatory config files. The repository's own drift.yaml configures
+    # the analysis engine and predates the guard, so the property is checked
+    # where it lives: no guard module may read configuration at all.
+    for source in sorted((root / "src" / "drift" / "guard").glob("*.py")):
+        text = source.read_text(encoding="utf-8").lower()
+        assert "yaml" not in text, f"{source.name} reads a config file"
+        assert "drift.yaml" not in text, f"{source.name} reads a config file"
