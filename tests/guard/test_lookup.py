@@ -173,3 +173,44 @@ def test_tutorial_paths_do_not_announce_boundaries(tmp_path):
     )
 
     assert lookup.find_novel_edges(conn, "docs_src/tutorial001.py", ["src.lib"]) == []
+
+
+def test_the_briefing_lists_everything_or_nothing(tmp_path):
+    """An alphabetical slice printed as "already defined in src/api/" reads as
+    the contents of that directory and is not."""
+    many = {f"src/api/mod{i}.py": f"def distinct_helper_{i}(a):\n    pass\n" for i in range(12)}
+    conn = _index(tmp_path, many)
+
+    assert lookup.neighbourhood(conn, "src/api/new.py", limit=8) == []
+
+
+def test_the_briefing_speaks_when_the_list_is_complete(tmp_path):
+    conn = _index(
+        tmp_path,
+        {
+            "src/api/one.py": "def render_invoice(a):\n    pass\n",
+            "src/api/two.py": "def collect_totals(a):\n    pass\n",
+        },
+    )
+
+    assert lookup.neighbourhood(conn, "src/api/new.py", limit=8) == [
+        "collect_totals",
+        "render_invoice",
+    ]
+
+
+def test_the_briefing_drops_names_that_carry_no_evidence(tmp_path):
+    """A directory containing `main` and `setup` tells an agent nothing."""
+    conn = _index(
+        tmp_path,
+        {"src/api/one.py": "def main():\n    pass\n\n\ndef setup():\n    pass\n"},
+    )
+
+    assert lookup.neighbourhood(conn, "src/api/new.py") == []
+
+
+def test_the_briefing_stays_quiet_in_directories_that_repeat_by_design(tmp_path):
+    conn = _index(tmp_path, {"examples/one.py": "def render_invoice(a):\n    pass\n"})
+
+    assert lookup.neighbourhood(conn, "examples/new.py") == []
+    assert lookup.known_targets(conn, "examples/new.py") == []
