@@ -42,7 +42,7 @@ theme:
     repo: fontawesome/brands/github
 
 hooks:
-  - hooks/docs_version.py
+  - src/hooks/docs_version.py
 
 plugins:
   - search
