@@ -4,11 +4,12 @@ import json
 import pathlib
 import subprocess
 import sys
+import time
 
 import pytest
 from scripts.gates.measure_latency import measure
 
-from drift.guard import build, extract, lookup, schema
+from drift.guard import build, extract, lookup, report, schema
 
 FORBIDDEN_IN_HOT_PATH = [
     "transformers",
@@ -137,3 +138,59 @@ def test_gate_g4_surface_stays_small():
         text = source.read_text(encoding="utf-8").lower()
         assert "yaml" not in text, f"{source.name} reads a config file"
         assert "drift.yaml" not in text, f"{source.name} reads a config file"
+
+
+INDEX_BUILD_BUDGET_S = 120.0
+INCREMENTAL_BUDGET_S = 2.0
+
+
+@pytest.mark.performance
+def test_gate_g6_index_build_is_fast_enough():
+    """G6: a full build of this repository must finish inside the budget.
+
+    The pre-guard measurement was 214-462 s for a single-file check, because
+    every check re-analysed the whole repository. The index moves that cost
+    offline and once; this gate is what keeps it there.
+    """
+    repo_root = pathlib.Path(__file__).resolve().parents[2]
+    started = time.perf_counter()
+    stats = build.build_full(repo_root)
+    elapsed = time.perf_counter() - started
+
+    assert stats["files"] > 0
+    assert elapsed <= INDEX_BUILD_BUDGET_S, f"full build took {elapsed:.1f}s"
+
+    started = time.perf_counter()
+    build.update_file(repo_root, "src/drift/guard/lookup.py")
+    incremental = time.perf_counter() - started
+
+    assert incremental <= INCREMENTAL_BUDGET_S, f"incremental took {incremental:.2f}s"
+
+
+def test_gate_g7_counter_only_counts_real_hits(sample_repo):
+    """G7: the tally must move only when a lookup actually produced a hit.
+
+    The session counter is the one number the user sees, so it has to be worth
+    trusting: no estimate, no rounding, no increment without a finding behind it.
+    """
+    build.build_full(sample_repo)
+    report.reset_counter(sample_repo)
+    conn = schema.connect(sample_repo)
+
+    # A clean file: no hits, so the counter must not move.
+    source = (sample_repo / "src" / "auth" / "session.py").read_text(encoding="utf-8")
+    symbols, imports = extract.extract(source)
+    clean_hits = lookup.find_duplicates(conn, "src/auth/session.py", symbols)
+    clean_hits += lookup.find_novel_edges(conn, "src/auth/session.py", imports)
+    for hit in clean_hits:
+        report.bump(sample_repo, hit.kind)
+
+    assert report.read_counter(sample_repo) == {"duplicate": 0, "boundary": 0}
+
+    # A real duplicate: exactly one increment, no more.
+    dup_symbols, _ = extract.extract("def validate_token(a, b):\n    return None\n")
+    hits = lookup.find_duplicates(conn, "src/api/schemas.py", dup_symbols)
+    for hit in hits:
+        report.bump(sample_repo, hit.kind)
+
+    assert report.read_counter(sample_repo) == {"duplicate": 1, "boundary": 0}

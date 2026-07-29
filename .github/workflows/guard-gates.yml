@@ -1,0 +1,51 @@
+name: guard-gates
+
+# The guard is the plugin's hot path: it runs twice per file edit inside an
+# agent loop. These gates are what keep it fast and dependency-free, so they
+# run on their own, without the extras the rest of the suite installs.
+
+on:
+  pull_request:
+    paths:
+      - "src/drift/guard/**"
+      - "hooks/**"
+      - ".claude-plugin/**"
+      - "commands/**"
+      - "tests/guard/**"
+      - "scripts/gates/**"
+      - ".github/workflows/guard-gates.yml"
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guard-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Deliberately without extras. A guard that needs the ML stack to run is
+      # a guard nobody can install, so the absence of those packages is part of
+      # what this job proves.
+      - name: Install package without extras
+        run: python -m pip install -e . --no-deps
+
+      - name: Install test tooling
+        run: python -m pip install pytest pytest-timeout
+
+      - name: Run all guard gates
+        run: python scripts/gates/run_all_gates.py
+
+      - name: Run the guard test suite
+        run: python -m pytest tests/guard -q
