@@ -21,7 +21,7 @@ languages pass through untouched. The [CLI](#the-cli) below covers more.
 <!-- Re-enable once GitHub Actions is unlocked (billing) — runs currently fail before starting, which renders a misleading red badge:
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 -->
-[![Drift Score](https://img.shields.io/badge/drift%20score%20(repo)-0.62-orange?style=flat)](benchmark_results/drift_self.json)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.41%20(C)-yellow?style=flat)](benchmark_results/drift_self.json)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![PyPI Downloads](https://static.pepy.tech/badge/drift-analyzer/month)](https://pepy.tech/project/drift-analyzer)
@@ -478,7 +478,7 @@ drift badge --format svg -o badge.svg  # self-contained SVG
 Paste the Markdown output into your README:
 
 ```markdown
-[![Drift Score](https://img.shields.io/badge/drift%20score%20(repo)-0.62-orange?style=flat)](https://github.com/mick-gsk/drift)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.41%20(C)-yellow?style=flat)](https://github.com/mick-gsk/drift)
 ```
 
 **Automate in CI:** The [GitHub Action](action.yml) exposes a `badge-svg` output — pipe it into your repo or a dashboard.
@@ -604,7 +604,7 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 - **Small-repo noise:** repositories with few files can produce noisy scores. Calibration mitigates but does not eliminate this.
 - **Temporal signals** depend on clone depth and git history quality.
 - **The composite score is orientation, not a verdict.** Interpret deltas via `drift trend`, not isolated snapshots.
-- **Own score context:** Drift's self-score is driven primarily by architecture violations and explainability deficit (undocumented internal functions). Pattern fragmentation in modules with intentionally diverse error-handling contracts (signals, API, calibration, integrations) is suppressed via `path_overrides` — those variations are architectural, not accidental. The score reflects a fast-moving codebase that prioritises signal correctness over internal documentation. The published figure currently covers the **whole repository**, including tests, scripts and tooling; the narrower `src/drift`-only run is blocked by [#771](https://github.com/mick-gsk/drift/issues/771). See [drift_self.json](benchmark_results/drift_self.json) for the breakdown and the exact scope string.
+- **Own score context:** Drift's self-score is driven primarily by architecture violations and explainability deficit (undocumented internal functions). Pattern fragmentation in modules with intentionally diverse error-handling contracts (signals, API, calibration, integrations) is suppressed via `path_overrides` — those variations are architectural, not accidental. The score reflects a fast-moving codebase that prioritises signal correctness over internal documentation. The published figure covers `src/drift`; the whole repository, tests and tooling included, scores 0.619. See [drift_self.json](benchmark_results/drift_self.json) for the breakdown and the exact scope string.
 - **Signal overlap:** Some signals measure related phenomena (e.g., MDS and PFS both detect code similarity; CCC and TVS both use git history). A formal inter-signal correlation analysis has not been conducted. Overlap does not produce double-counting in the composite score (each signal contributes independently), but it means some findings may describe the same underlying issue from different angles.
 - **Weight derivation:** Default signal weights for the 6 original signals were derived via rank-correlation (Kendall's τ) against manual architectural assessments on 5 open-source repos (single rater). Weights for the 18 newer signals are conservative heuristic assignments pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [scoring model](docs/concepts/scoring.md).
 
