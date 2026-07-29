@@ -97,7 +97,14 @@ def repeats_by_design(rel_path: str) -> bool:
         return True
     # Generated code restates whatever it was generated from, and no one edits
     # it: `Model.designer.cs`, `Api.g.cs`, `Schema.generated.ts`.
-    return stem.lower().endswith((".designer", ".g", ".generated", "_pb2", "_pb"))
+    if stem.lower().endswith((".designer", ".g", ".generated", "_pb2", "_pb")):
+        return True
+    # Build scripts are configuration that happens to be written in a
+    # programming language. `okhttp.jvm-conventions.gradle.kts` and its
+    # siblings all declare `library`, and a Gradle file reaching into
+    # build-logic is not an architectural event.
+    name = parts[-1].lower()
+    return name.endswith((".gradle.kts", ".gradle")) or name in ("build.sbt", "conftest.py")
 
 
 def find_duplicates(
