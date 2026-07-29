@@ -31,6 +31,26 @@
       "max_ms": 3479.97,
       "failures": 0,
       "label": "drift_help"
+    },
+    {
+      "command": "/Users/moritzbecker/drift/.venv/bin/python -m drift.guard pre --repo /var/folders/zs/scn684wn3d1424pkpvmm6c3h0000gn/T/tmpjuf7sv1g/repo --file src/api/routes.py",
+      "runs": 20,
+      "p50_ms": 46.49,
+      "p95_ms": 49.79,
+      "min_ms": 45.79,
+      "max_ms": 50.83,
+      "failures": 0,
+      "label": "guard_pre"
+    },
+    {
+      "command": "/Users/moritzbecker/drift/.venv/bin/python -m drift.guard post --repo /var/folders/zs/scn684wn3d1424pkpvmm6c3h0000gn/T/tmpjuf7sv1g/repo --file src/api/routes.py",
+      "runs": 20,
+      "p50_ms": 48.98,
+      "p95_ms": 52.16,
+      "min_ms": 48.17,
+      "max_ms": 52.64,
+      "failures": 0,
+      "label": "guard_post"
     }
   ]
 }
