@@ -135,3 +135,39 @@ def test_staleness_sample_spans_a_medium_sized_index(tmp_path):
     conn = schema.connect(tmp_path)
 
     assert build.is_stale(tmp_path, conn) is True
+
+
+def test_re_indexing_a_file_does_not_multiply_its_edges(sample_repo):
+    """Five re-indexings of one unchanged file took a count from 2 to 12."""
+    build.build_full(sample_repo)
+    conn = schema.connect(sample_repo)
+    before = conn.execute("SELECT COUNT(*) FROM import_edges").fetchone()[0]
+    conn.close()
+
+    for _ in range(5):
+        build.update_file(sample_repo, "src/api/routes.py")
+
+    conn = schema.connect(sample_repo)
+    assert conn.execute("SELECT COUNT(*) FROM import_edges").fetchone()[0] == before
+    conn.close()
+
+
+def test_removing_an_import_removes_its_edge(sample_repo):
+    """A crossing that stopped existing has to become novel again.
+
+    As an aggregate the row survived its last declaring import, so the guard
+    went permanently silent about a boundary it should announce.
+    """
+    from drift.guard import lookup
+
+    build.build_full(sample_repo)
+    (sample_repo / "src" / "api" / "routes.py").write_text(
+        "def register():\n    pass\n", encoding="utf-8"
+    )
+    build.update_file(sample_repo, "src/api/routes.py")
+
+    conn = schema.connect(sample_repo)
+    hits = lookup.find_novel_edges(conn, "src/api/routes.py", ["src.services.user_service"])
+    conn.close()
+
+    assert hits, "the edge outlived the import that created it"
