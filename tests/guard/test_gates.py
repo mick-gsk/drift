@@ -134,7 +134,11 @@ def test_gate_g4_surface_stays_small():
         manifest = json.load(handle)
 
     tools = manifest.get("mcpServers", {})
-    commands = list((root / "commands").glob("drift-*.md"))
+    # The file name *is* the command name; the plugin name is already the
+    # namespace, so `commands/doctor.md` is invoked as `/drift:doctor`. Naming
+    # the files `drift-doctor.md` produced `/drift:drift-doctor`, which every
+    # document in this repository got wrong until it was tried in a session.
+    commands = list((root / "commands").glob("*.md"))
 
     assert len(tools) <= 1, "at most one MCP server"
     assert len(commands) <= MAX_SLASH_COMMANDS, (
