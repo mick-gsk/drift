@@ -2,7 +2,9 @@
 
 import json
 
-from drift.guard import lookup, report
+import pytest
+
+from drift.guard import lookup, report, schema
 
 
 def test_no_hits_produces_no_output():
@@ -29,23 +31,53 @@ def test_long_hit_lists_are_truncated():
     assert len(report.format_hits(hits)) <= report.MAX_MESSAGE_CHARS
 
 
-def test_counter_starts_at_zero(tmp_path):
+@pytest.fixture
+def indexed(tmp_path):
+    """A repository with an index, which is where the tally now lives."""
+    conn = schema.create(tmp_path)
+    schema.initialize(conn)
+    conn.close()
+    return tmp_path
+
+
+def test_counter_starts_at_zero(indexed):
+    assert report.read_counter(indexed) == {"duplicate": 0, "boundary": 0}
+
+
+def test_bump_accumulates_per_kind(indexed):
+    report.bump(indexed, "duplicate")
+    report.bump(indexed, "duplicate")
+    report.bump(indexed, "boundary")
+
+    assert report.read_counter(indexed) == {"duplicate": 2, "boundary": 1}
+
+
+def test_reset_clears_the_counter(indexed):
+    report.bump(indexed, "duplicate")
+    report.reset_counter(indexed)
+
+    assert report.read_counter(indexed) == {"duplicate": 0, "boundary": 0}
+
+
+def test_without_an_index_there_is_nothing_to_count(tmp_path):
+    """No index means the guard reported nothing, so a tally would be a lie."""
+    report.bump(tmp_path, "duplicate")
+
     assert report.read_counter(tmp_path) == {"duplicate": 0, "boundary": 0}
 
 
-def test_bump_accumulates_per_kind(tmp_path):
-    report.bump(tmp_path, "duplicate")
-    report.bump(tmp_path, "duplicate")
-    report.bump(tmp_path, "boundary")
+def test_the_counter_survives_concurrent_hooks(indexed):
+    """Claude Code fires PostToolUse concurrently for batched tool calls.
 
-    assert report.read_counter(tmp_path) == {"duplicate": 2, "boundary": 1}
+    Read-modify-write on a JSON file lost 194 of 200 increments across eight
+    threads. The tally is the one number the user sees, so it has to hold.
+    """
+    import concurrent.futures
 
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(lambda _: report.bump(indexed, "duplicate"), range(200)))
 
-def test_reset_clears_the_counter(tmp_path):
-    report.bump(tmp_path, "duplicate")
-    report.reset_counter(tmp_path)
-
-    assert report.read_counter(tmp_path) == {"duplicate": 0, "boundary": 0}
+    assert report.read_counter(indexed)["duplicate"] == 200
 
 
 def test_summary_line_states_zero_honestly():

@@ -48,11 +48,19 @@ def test_two_repositories_do_not_share_a_cache_entry(tmp_path):
     assert schema.index_path(first) != schema.index_path(second)
 
 
-def test_the_counter_lives_beside_the_index(tmp_path):
-    """One directory for the guard's state, not two."""
+def test_the_counter_lives_inside_the_index(tmp_path):
+    """Not beside it. A JSON file next to the database lost 194 of 200
+    concurrent increments; the tally is now a row the database updates
+    atomically."""
     from drift.guard import report
 
-    assert report.counter_path(tmp_path).parent == schema.index_path(tmp_path).parent
+    conn = schema.create(tmp_path)
+    schema.initialize(conn)
+    conn.close()
+    report.bump(tmp_path, "duplicate")
+
+    assert not (schema.state_dir(tmp_path) / "session_counter.json").exists()
+    assert report.read_counter(tmp_path)["duplicate"] == 1
 
 
 def test_wrong_schema_version_is_not_usable(tmp_path):
