@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# `drift-guard` for the Bash tool inside Claude Code.
+#
+# Claude Code puts a plugin's bin/ on PATH, so `/drift:doctor` and `/drift:stats`
+# can call `drift-guard` as a bare command whether or not the user ever ran
+# `pip install drift-analyzer`. An installed package still wins: it is the same
+# code, already importable, and skipping the PYTHONPATH detour keeps it fast.
+set -uo pipefail
+
+self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+plugin_root="${CLAUDE_PLUGIN_ROOT:-$(dirname "$self_dir")}"
+
+# An installed console script, but never this wrapper again.
+while IFS= read -r candidate; do
+  [ "$candidate" = "${BASH_SOURCE[0]}" ] && continue
+  [ "$candidate" = "$self_dir/drift-guard" ] && continue
+  exec "$candidate" "$@"
+done < <(command -v -a drift-guard 2>/dev/null || true)
+
+if python3 -c "import drift.guard" >/dev/null 2>&1; then
+  exec python3 -m drift.guard "$@"
+fi
+
+if [ -d "$plugin_root/src/drift/guard" ]; then
+  exec env PYTHONPATH="$plugin_root/src${PYTHONPATH:+:$PYTHONPATH}" python3 -m drift.guard "$@"
+fi
+
+echo "drift-guard: cannot locate the guard (looked for an installed package and $plugin_root/src)" >&2
+exit 1

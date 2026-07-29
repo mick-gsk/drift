@@ -12,6 +12,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 
 - Hook output now reaches the model. The hooks printed findings to stdout and exited 0, which for `PreToolUse` and `PostToolUse` reaches the transcript only — the guard's findings would never have arrived. Output goes through `hookSpecificOutput.additionalContext`, with the session tally on `systemMessage`
 - `schema.connect()` no longer advertises `Connection | None` for writers that cannot fail; readers use `connect()`, writers use `create()`
+- make the two-line install actually produce a working guard
 
 ## [2.51.1] - 2026-05-04
 

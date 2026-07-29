@@ -11,9 +11,11 @@
 /plugin install drift@drift
 ```
 
-Restart Claude Code, then run `/drift:doctor`. Nothing to configure, no profile
-to pick, no file written into your project except a `.drift/` index you can
-delete at any time.
+Restart Claude Code, then run `/drift:doctor`. Those two lines are the whole
+install: the guard imports nothing but the standard library and runs from the
+plugin itself, so there is no `pip install`, no dependency to resolve, nothing
+to configure, and no file written into your project except a `.drift/` index
+you can delete at any time.
 
 **Python files only.** The guard reads Python with `ast`; edits to other
 languages pass through untouched. The [CLI](#the-cli) below covers more.

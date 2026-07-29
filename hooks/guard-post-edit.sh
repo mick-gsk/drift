@@ -9,6 +9,6 @@ set -uo pipefail
 # shellcheck source=/dev/null
 . "$(dirname "$0")/_guard_lib.sh"
 
-cmd="$(guard_cmd)" || exit 0
-$cmd --hook PostToolUse --repo "$(guard_repo_root)" post --payload-stdin 2>/dev/null || true
+guard_resolve || exit 0
+$GUARD_CMD --hook PostToolUse --repo "$(guard_repo_root)" post --payload-stdin 2>/dev/null || true
 exit 0
