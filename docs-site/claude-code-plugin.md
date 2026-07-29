@@ -17,9 +17,15 @@ business leaving a directory in each of them. A project that wants the index
 alongside its source opts in by creating a `.drift/` directory; `DRIFT_CACHE_HOME`
 overrides both.
 
-!!! note "Python files only"
-    The guard reads Python with `ast`. Edits to other languages pass through
-    untouched. For everything else, use the [CLI](getting-started/installation.md).
+!!! note "Python, TypeScript and JavaScript"
+    `.py .ts .tsx .js .jsx .mjs .cjs`, all in one index — a name defined in
+    Python is found from TypeScript, because `validate_token` and
+    `validateToken` normalise to the same thing. Python is parsed with `ast`;
+    TypeScript and JavaScript are matched against top-level declarations,
+    because the guard may not grow a parser dependency. That trade costs recall,
+    never precision: every pattern is anchored to column zero and to a
+    declaration keyword, so a miss is possible and an invented symbol is not.
+    Edits to other languages pass through untouched.
 
 ## What it says
 

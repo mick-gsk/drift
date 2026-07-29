@@ -56,7 +56,7 @@ def find_novel_edges(conn: sqlite3.Connection, rel_path: str, imports: list[str]
     hits: list[Hit] = []
     reported: set[str] = set()
     for module in imports:
-        dst_dir = build.module_to_dir(module, known_dirs)
+        dst_dir = build.import_to_dir(module, src_dir, known_dirs)
         if dst_dir is None or dst_dir == src_dir:
             continue
         if dst_dir in existing or dst_dir in reported:

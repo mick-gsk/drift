@@ -1,15 +1,30 @@
-"""Extract symbols and import targets from a single Python source file.
+"""Extract symbols and import targets from a single source file.
 
-Only module-level functions and classes count as symbols. Methods are
-excluded on purpose: ``run``, ``handle`` and friends repeat across every
-class in a codebase and would drown the duplicate signal in noise.
+Only top-level functions, classes and named bindings count as symbols. Methods
+and locals are excluded on purpose: ``run``, ``handle`` and friends repeat
+across every class in a codebase and would drown the duplicate signal in noise.
+
+Python is parsed with ``ast``. TypeScript and JavaScript are matched with
+regular expressions against top-level declarations, because the guard may not
+grow a dependency — a parser would be a better tool and an unavailable one. The
+trade is deliberate and one-sided: a regex misses declarations a parser would
+catch (false negatives), and silence is already the guard's normal state, so a
+miss costs nothing the user notices. What it must never do is invent a symbol
+that is not there, which is why every pattern is anchored to column zero and to
+a declaration keyword.
 """
 
 from __future__ import annotations
 
 import ast
 import hashlib
+import re
 from typing import NamedTuple
+
+#: File types the guard indexes. Everything else passes through untouched.
+PYTHON_SUFFIXES = frozenset({".py"})
+TS_JS_SUFFIXES = frozenset({".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"})
+GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES
 
 #: Normalized names too common to ever be a meaningful duplicate.
 STOPWORDS = frozenset(
@@ -31,7 +46,49 @@ STOPWORDS = frozenset(
         "update",
         "delete",
         "test",
+        # Structural rather than semantic: every TypeScript codebase has many,
+        # and two files both exporting `default` says nothing about duplication.
+        "index",
+        "default",
     }
+)
+
+#: Top-level declarations in TypeScript and JavaScript. Each is anchored to
+#: column zero, which is the regex stand-in for "module level" — the same rule
+#: the Python side gets from walking `tree.body` instead of the whole tree.
+_TS_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "function",
+        re.compile(
+            r"^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)\s*\(",
+            re.MULTILINE,
+        ),
+    ),
+    (
+        "class",
+        re.compile(r"^(?:export\s+)?(?:default\s+)?class\s+([A-Za-z_$][\w$]*)", re.MULTILINE),
+    ),
+    (
+        "type",
+        re.compile(
+            r"^(?:export\s+)?(?:declare\s+)?(?:interface|type|enum)\s+([A-Za-z_$][\w$]*)",
+            re.MULTILINE,
+        ),
+    ),
+    (
+        "binding",
+        re.compile(r"^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*[:=]", re.MULTILINE),
+    ),
+)
+
+#: Import and re-export specifiers. `require` and dynamic `import()` are matched
+#: anywhere, not just at column zero, because both routinely appear inside a
+#: function body and still describe a real dependency between directories.
+_TS_IMPORTS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"""^\s*(?:import|export)\b[^;\n]*?\bfrom\s*['"]([^'"]+)['"]""", re.MULTILINE),
+    re.compile(r"""^\s*import\s*['"]([^'"]+)['"]""", re.MULTILINE),
+    re.compile(r"""\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)"""),
+    re.compile(r"""\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)"""),
 )
 
 
@@ -62,7 +119,58 @@ def _arg_names(node: ast.AST) -> list[str]:
     return [a for a in collected if a not in ("self", "cls")]
 
 
-def extract(source: str) -> tuple[list[Symbol], list[str]]:
+def extract(source: str, suffix: str = ".py") -> tuple[list[Symbol], list[str]]:
+    """Return (top-level symbols, import specifiers) for one file.
+
+    `suffix` picks the reader. Anything unrecognised yields nothing rather than
+    guessing, so a new file type stays silent until it is supported on purpose.
+    """
+    if suffix in TS_JS_SUFFIXES:
+        return extract_ts(source)
+    if suffix in PYTHON_SUFFIXES:
+        return extract_python(source)
+    return ([], [])
+
+
+def extract_ts(source: str) -> tuple[list[Symbol], list[str]]:
+    """TypeScript and JavaScript, matched rather than parsed.
+
+    Line numbers come from counting newlines before the match, which is exact
+    for the anchored patterns and cheap enough to stay inside the guard's
+    latency budget.
+    """
+    symbols: list[Symbol] = []
+    seen: set[str] = set()
+
+    for kind, pattern in _TS_PATTERNS:
+        for match in pattern.finditer(source):
+            name = match.group(1)
+            if name in seen:
+                continue
+            seen.add(name)
+            symbols.append(
+                Symbol(
+                    name=name,
+                    norm_name=normalize(name),
+                    kind=kind,
+                    # No argument list: extracting parameters from a regex match
+                    # would mean re-implementing the parser this deliberately
+                    # avoids, and duplicate lookup matches on the normalised
+                    # name alone.
+                    sig_hash=signature_hash(kind, []),
+                    line=source.count("\n", 0, match.start()) + 1,
+                )
+            )
+
+    imports: list[str] = []
+    for pattern in _TS_IMPORTS:
+        imports.extend(match.group(1) for match in pattern.finditer(source))
+
+    symbols.sort(key=lambda s: s.line)
+    return (symbols, imports)
+
+
+def extract_python(source: str) -> tuple[list[Symbol], list[str]]:
     """Return (module-level symbols, imported module paths) for one file."""
     try:
         tree = ast.parse(source)

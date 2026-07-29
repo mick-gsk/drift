@@ -67,7 +67,7 @@ def _target_file(args, repo_root: pathlib.Path) -> str | None:
         raw = str((payload.get("tool_input") or {}).get("file_path") or "")
     except (ValueError, OSError, AttributeError):
         return None
-    if not raw.endswith(".py"):
+    if pathlib.PurePosixPath(raw).suffix not in extract.GUARDED_SUFFIXES:
         return None
 
     path = pathlib.Path(raw)
@@ -193,7 +193,7 @@ def _cmd_post(args) -> int:
         conn.close()
         return 0
 
-    symbols, imports = extract.extract(source)
+    symbols, imports = extract.extract(source, pathlib.PurePosixPath(target).suffix)
     hits = lookup.find_duplicates(conn, target, symbols)
     hits += lookup.find_novel_edges(conn, target, imports)
     conn.close()

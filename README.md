@@ -20,8 +20,10 @@ plugin that fires in every project you open has no business leaving a directory
 in each of them. A project that wants the index alongside its source opts in by
 creating a `.drift/` directory.
 
-**Python files only.** The guard reads Python with `ast`; edits to other
-languages pass through untouched. The [CLI](#the-cli) below covers more.
+**Python, TypeScript and JavaScript** (`.py .ts .tsx .js .jsx .mjs .cjs`), in one
+index — a name defined in Python is found from TypeScript, because
+`validate_token` and `validateToken` normalise to the same thing. Other
+languages pass through untouched.
 
 <!-- Re-enable once GitHub Actions is unlocked (billing) — runs currently fail before starting, which renders a misleading red badge:
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)

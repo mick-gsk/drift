@@ -1,7 +1,7 @@
 """Build the guard index from a repository.
 
-Full builds walk every Python file once. Incremental updates touch exactly
-one file, which is what the PostToolUse hook does after each edit.
+Full builds walk every indexable source file once. Incremental updates touch
+exactly one file, which is what the PostToolUse hook does after each edit.
 """
 
 from __future__ import annotations
@@ -45,10 +45,53 @@ def module_to_dir(module: str, known_dirs: set[str]) -> str | None:
     return None
 
 
-def _iter_python_files(repo_root: pathlib.Path):
-    for path in sorted(repo_root.rglob("*.py")):
+def relative_to_dir(specifier: str, src_dir: str, known_dirs: set[str]) -> str | None:
+    """Resolve a `./x` or `../y/z` import onto a repository directory.
+
+    A specifier can name either a directory (`../db`) or a module inside one
+    (`../db/client`), and the guard cannot tell which without touching the
+    disk. So it tries the resolved path as a directory first and falls back to
+    its parent — exactly right for the file case, harmless otherwise.
+    """
+    base = "" if src_dir == "." else src_dir
+    parts: list[str] = []
+    for part in f"{base}/{specifier}".split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            if parts:
+                parts.pop()
+            continue
+        parts.append(part)
+
+    candidate = "/".join(parts) if parts else "."
+    if candidate in known_dirs:
+        return candidate
+    parent = dir_of(candidate)
+    return parent if parent in known_dirs else None
+
+
+def import_to_dir(specifier: str, src_dir: str, known_dirs: set[str]) -> str | None:
+    """Map any import specifier onto a repository directory, if it is one.
+
+    Bare TypeScript specifiers (`react`, `@scope/pkg`) name packages rather
+    than places in this repository, so they resolve to nothing.
+    """
+    if specifier.startswith("."):
+        return relative_to_dir(specifier, src_dir, known_dirs)
+    if "/" in specifier:
+        return None
+    return module_to_dir(specifier, known_dirs)
+
+
+def _iter_source_files(repo_root: pathlib.Path):
+    for path in sorted(repo_root.rglob("*")):
+        if path.suffix not in extract.GUARDED_SUFFIXES:
+            continue
         rel = path.relative_to(repo_root)
         if any(part in SKIP_DIRS for part in rel.parts):
+            continue
+        if not path.is_file():
             continue
         yield rel.as_posix(), path
 
@@ -69,7 +112,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
     conn = schema.create(repo_root)
     schema.initialize(conn)
 
-    collected = list(_iter_python_files(repo_root))
+    collected = list(_iter_source_files(repo_root))
     known_dirs = {dir_of(rel) for rel, _ in collected}
 
     edge_counts: dict[tuple[str, str], int] = {}
@@ -82,13 +125,13 @@ def build_full(repo_root: pathlib.Path) -> dict:
             source = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
-        symbols, imports = extract.extract(source)
+        symbols, imports = extract.extract(source, path.suffix)
         src_dir = dir_of(rel)
 
         file_rows.append((rel, _sha256(path), now))
         symbol_rows.extend((rel, s.name, s.norm_name, s.kind, s.sig_hash, s.line) for s in symbols)
         for module in imports:
-            dst_dir = module_to_dir(module, known_dirs)
+            dst_dir = import_to_dir(module, src_dir, known_dirs)
             if dst_dir is None or dst_dir == src_dir:
                 continue
             edge_counts[(src_dir, dst_dir)] = edge_counts.get((src_dir, dst_dir), 0) + 1
@@ -133,7 +176,7 @@ def update_file(repo_root: pathlib.Path, rel_path: str) -> None:
             conn.commit()
             conn.close()
             return
-        symbols, imports = extract.extract(source)
+        symbols, imports = extract.extract(source, path.suffix)
         conn.executemany(
             "INSERT INTO symbols (path, name, norm_name, kind, sig_hash, line)"
             " VALUES (?, ?, ?, ?, ?, ?)",
@@ -147,7 +190,7 @@ def update_file(repo_root: pathlib.Path, rel_path: str) -> None:
         known_dirs |= {dir_of(row[0]) for row in conn.execute("SELECT path FROM files")}
         src_dir = dir_of(rel_path)
         for module in imports:
-            dst_dir = module_to_dir(module, known_dirs)
+            dst_dir = import_to_dir(module, src_dir, known_dirs)
             if dst_dir is None or dst_dir == src_dir:
                 continue
             conn.execute(
