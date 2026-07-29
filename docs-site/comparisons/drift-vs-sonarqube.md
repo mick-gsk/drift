@@ -74,6 +74,7 @@ SonarQube's MCP server exposes existing analysis results and allows agents to
 query findings from completed scans.
 
 Drift's MCP server has 17 tools across the full agent workflow:
+
 - `drift_brief` — pre-task guardrails before any code is generated
 - `drift_nudge` — fast directional feedback after each file edit (< 200ms)
 - `drift_fix_plan` — prioritized repair tasks with constraints and verification plans

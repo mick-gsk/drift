@@ -83,17 +83,17 @@ The following controls are implemented in runtime code and treated as part of
 the security baseline:
 
 - **Path normalization:** repository roots are resolved to absolute paths before
-	file traversal.
+ file traversal.
 - **Symlink policy:** symlink files are skipped during file discovery.
 - **File size guardrail:** files larger than 5 MB are skipped.
 - **Git subprocess hardening:** git commands are invoked with argument lists
-	(no shell interpolation) and fixed command templates.
+ (no shell interpolation) and fixed command templates.
 - **Git timeout guardrail:** git history parsing uses a 60 second subprocess
-	timeout.
+ timeout.
 - **Safe config parsing:** configuration is loaded via `yaml.safe_load` and
-	validated via strict Pydantic schemas (`extra="forbid"`).
+ validated via strict Pydantic schemas (`extra="forbid"`).
 - **Non-executing parsing:** source files are parsed via `ast.parse` or
-	tree-sitter; no analyzed source is executed.
+ tree-sitter; no analyzed source is executed.
 
 ### Known Attack Surface
 
@@ -114,9 +114,9 @@ Recommended operational posture:
 1. Run drift in isolated CI runners for untrusted repositories.
 2. Use report-only mode first (`fail-on: none`) before enforcing hard gates.
 3. Keep clone depth and analysis scope aligned with your risk and runtime
-	 budget.
+  budget.
 4. Treat optional dependency sets as an expanded supply-chain surface and pin
-	 versions in controlled environments.
+  versions in controlled environments.
 
 ### Trust Model
 
@@ -148,11 +148,11 @@ The following are explicitly **not** security issues in drift:
 Security-relevant behavior is covered by dedicated tests, including:
 
 - `tests/test_git_history_safety.py` (subprocess argument safety and path
-	handling)
+ handling)
 - `tests/test_file_discovery.py` (symlink skipping, exclude handling, oversize
-	file handling)
+ file handling)
 - `tests/test_cache_resilience.py` (corrupted cache and concurrent access
-	resilience)
+ resilience)
 
 ## Security Scanning
 
@@ -167,10 +167,10 @@ GitHub-native security workflows are enabled:
   dependency changes on pull requests and fails on `high` severity and above.
 
 - CI enforcement: `.github/workflows/security-hygiene.yml` runs
-	blocking gates for `detect-private-key`, `detect-secrets`, and
-	`actionlint` via pre-commit.
+ blocking gates for `detect-private-key`, `detect-secrets`, and
+ `actionlint` via pre-commit.
 - Advisory (non-blocking) checks in the same workflow: `shellcheck` and
-	`zizmor`.
+ `zizmor`.
 - Local enforcement: run the same pre-commit hooks before pushing changes.
 
 Local commands:

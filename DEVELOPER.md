@@ -159,8 +159,6 @@ make catalog                                Alle scripts/ mit Kurzbeschreibung a
 make catalog ARGS='--search evidence'       Skript-Katalog nach Stichwort filtern
 ```
 
-
-
 ### CLI subcommands
 
 ```
@@ -464,6 +462,7 @@ python scripts/validate_feature_evidence.py \
 ```
 
 Flags:
+
 - `--skip-tests` — skip pytest (only self-analysis)
 - `--skip-precision-recall` — skip the precision-recall test suite
 - `--feature "description"` — human-readable description (default: derived from slug)

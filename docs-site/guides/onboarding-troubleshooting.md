@@ -15,9 +15,11 @@ Common problems when you're just getting started with drift, and how to fix them
 
 1. Run `drift explain <SIGNAL>` for the top finding to read a concrete description and example.
 2. Add `--repo-context` for examples from your own codebase:
+
    ```bash
    drift explain PFS --repo-context
    ```
+
 3. Copy the prompt from `drift status` and paste it directly into your AI assistant.
    Drift generates a ready-to-use prompt for each finding.
 
@@ -42,9 +44,11 @@ AI-assisted ones. Drift measures accumulated structural debt, not style.
 **Possible causes:**
 
 - The `include` pattern in `drift.yaml` doesn't match your source files. Verify:
+
   ```bash
   drift analyze --repo . --format json | python -m json.tool | grep '"total_files"'
   ```
+
   If `total_files` is very small, extend your `include` patterns in `drift.yaml`.
 
 - Your project is genuinely healthy. Run `drift analyze --repo .` for the full signal breakdown.

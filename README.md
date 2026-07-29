@@ -199,6 +199,7 @@ jobs:
 | `/drift-auto-fix-loop` | Step through findings one-at-a-time with confirm/skip gates |
 
 **One-time setup — one command:**
+
 ```bash
 drift kit init   # scaffolds prompt files + VS Code settings — run once per repo
 ```
@@ -559,6 +560,7 @@ many commits and that static analysis, linters, and type checkers cannot see bec
 only look at individual files in isolation.
 
 > **Specifically, drift detects:**
+>
 > - **Erosion** — pattern fragmentation, mutant duplicates, diverging implementations accumulating across commits
 > - **Responsibility mixing** — imports crossing declared layer boundaries
 > - **Risky change structures** — churn hotspots, temporal coupling, high-churn complexity
