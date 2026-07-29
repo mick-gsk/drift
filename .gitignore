@@ -41,6 +41,7 @@ benchmark_results/*
 !benchmark_results/mutation_benchmark.json
 !benchmark_results/drift_self.json
 !benchmark_results/pr_throughput_baseline.json
+!benchmark_results/guard_baseline.json
 drift_score.json
 work_artifacts/
 master-backlog/*
@@ -56,6 +57,8 @@ master-backlog/*
 .internal/
 scripts/_*
 !scripts/_context_mapping.py
+# Package marker so `scripts.gates.*` is importable from tests (gate harness).
+!scripts/__init__.py
 tagesplanung/
 *-ruleset.json
 docs/issue-claim-playbook.md

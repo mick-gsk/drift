@@ -1,0 +1,36 @@
+{
+  "measured_at": "2026-07-29",
+  "note": "Baseline before Drift Agent Guard. Same harness measures the guard later.",
+  "measurements": [
+    {
+      "command": ".venv/bin/python -c import sqlite3, ast, json",
+      "runs": 20,
+      "p50_ms": 24.39,
+      "p95_ms": 28.61,
+      "min_ms": 23.8,
+      "max_ms": 51.94,
+      "failures": 0,
+      "label": "floor_stdlib_import"
+    },
+    {
+      "command": ".venv/bin/python -c import drift.cli",
+      "runs": 10,
+      "p50_ms": 3229.48,
+      "p95_ms": 3958.8,
+      "min_ms": 3192.77,
+      "max_ms": 3958.8,
+      "failures": 0,
+      "label": "import_drift_cli"
+    },
+    {
+      "command": ".venv/bin/drift --help",
+      "runs": 10,
+      "p50_ms": 3242.53,
+      "p95_ms": 3479.97,
+      "min_ms": 3192.88,
+      "max_ms": 3479.97,
+      "failures": 0,
+      "label": "drift_help"
+    }
+  ]
+}
