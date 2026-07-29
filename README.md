@@ -165,15 +165,21 @@ The guard is a separate module that imports nothing but `sqlite3`, `ast` and
 `json` — no `click`, no `rich`, no ML stack, nothing from the analysis engine.
 That constraint is enforced by a test, not by intention.
 
-| Measured on this repository (344 Python files) | p50 | p95 |
+The whole hook, as Claude Code runs it — shell start, `git rev-parse`, the
+lookup — against an index of **2169 files**:
+
+| | p50 | p95 |
 |---|---|---|
-| Before an edit to a new file | 70 ms | 72 ms |
-| After an edit to an existing file | 86 ms | 87 ms |
+| Before an edit to a new file | 67 ms | 68 ms |
+| After an edit to an existing file | 82 ms | 85 ms |
 | *Python interpreter startup alone, for reference* | *24 ms* | *29 ms* |
 | *`import drift.cli`, the path the guard avoids* | *3229 ms* | *3959 ms* |
 
-20 runs each, cold, macOS/arm64, Python 3.12 → [guard_baseline.json](benchmark_results/guard_baseline.json).
-Clean checkout to a working guard: **5 s** (`bash scripts/gates/measure_install.sh`).
+Cold, macOS/arm64, Python 3.12. The reference rows come from
+[guard_baseline.json](benchmark_results/guard_baseline.json); the two hook rows
+are the round trip a session actually pays, which is a fairer number than the
+Python call on its own. Clean checkout to a working guard: **5 s**
+(`bash scripts/gates/measure_install.sh`).
 
 If the guard breaks, it stays silent and the session continues — it can report,
 but it can never block.
