@@ -272,3 +272,28 @@ def test_plugin_manifest_is_not_version_pinned():
     entry = json.loads((root / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
     for plugin in entry["plugins"]:
         assert "version" not in plugin, f"{plugin['name']} is pinned in marketplace.json"
+
+
+def test_slash_commands_are_named_the_way_the_documents_promise():
+    """`commands/doctor.md` is invoked as `/drift:doctor`.
+
+    The file name becomes the command name and the plugin name is already the
+    namespace, so `drift-doctor.md` produced `/drift:drift-doctor`. Every
+    document in this repository claimed `/drift:doctor` until it was tried in a
+    real session, where Claude Code answered "Unknown command".
+    """
+    root = pathlib.Path(__file__).resolve().parents[2]
+    names = {path.stem for path in (root / "commands").glob("*.md")}
+
+    assert names == {"doctor", "stats", "amphetamin"}
+    for name in names:
+        assert not name.startswith("drift-"), (
+            f"commands/{name}.md would be invoked as /drift:{name}, not /drift:"
+            f"{name.removeprefix('drift-')}"
+        )
+
+    documented = (root / "README.md").read_text(encoding="utf-8")
+    for name in names:
+        assert f"/drift:{name}" in documented or name == "stats", (
+            f"/drift:{name} is not the name the README promises"
+        )
