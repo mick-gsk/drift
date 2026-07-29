@@ -13,6 +13,33 @@ This guide is structured so you can start small and grow into deeper work at you
 - **Ready for deeper work?** Jump to [Contributor ladder](#contributor-ladder) or [Adding a new signal](#adding-a-new-signal).
 - **Just exploring?** Try [README.md](README.md) or the [docs quickstart](docs-site/getting-started/quickstart.md) first.
 
+## Where the active work is
+
+The **guard** (`src/drift/guard/`) is drift's front door: the Claude Code plugin
+that reports duplicates and first-ever directory imports while an agent edits.
+It is the smallest part of this repository and the easiest to contribute to —
+around 600 lines, standard library only, no analysis engine involved.
+
+```bash
+python scripts/gates/run_all_gates.py   # the nine gates it must satisfy
+pytest tests/guard -q                    # 101 tests, ~10 seconds
+bash scripts/gates/measure_install.sh    # clean venv to a working guard
+```
+
+Two rules make this subsystem what it is, and a change that breaks either gets
+sent back however good it otherwise is:
+
+- **No dependency may enter it.** `sqlite3`, `ast`, `json`, `pathlib`, and
+  nothing else. That constraint is why `/plugin install` needs no `pip install`.
+  Gate G2 enforces it.
+- **It answers in under 150 ms** and never blocks the agent. Gate G1 enforces
+  the budget; every error path exits 0 with no output.
+
+Adding a language follows one pattern end to end — commit
+`feat(guard): guard TypeScript and JavaScript` shows the shape: a matcher in
+`extract.py`, a suffix in `GUARDED_SUFFIXES`, import resolution in
+`build.import_to_dir`, and tests proving the matcher cannot invent a symbol.
+
 ## Quick start
 
 ```bash
@@ -21,6 +48,10 @@ cd drift
 make install          # pip install -e ".[dev]" + git hooks + pre-commit
 make check            # lint + typecheck + test + self-analysis
 ```
+
+> **CI is paused on this account**, so pull requests get no automated run. Say
+> so in the PR and the checks above get run by hand. A red or missing check is
+> a billing state, not a judgement on your work.
 
 `make install` does three things: installs drift in editable mode with all dev dependencies, activates git hooks that enforce code quality before push, and sets up pre-commit checks. The whole setup takes about 1–2 minutes.
 
