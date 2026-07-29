@@ -18,6 +18,7 @@ def test_eval_feat_requires_all_feature_artifacts() -> None:
     results = _gate_check.evaluate_gates(
         changed_files={"src/drift/api/scan.py"},
         commit_type="feat",
+        gate1_ok=True,
         gate6_ok=True,
         head_sha="abc",
         last_success_sha="abc",
@@ -39,6 +40,7 @@ def test_eval_feat_passes_with_required_files() -> None:
             "src/drift/api/scan.py",
         },
         commit_type="feat",
+        gate1_ok=True,
         gate6_ok=True,
         head_sha="abc",
         last_success_sha="abc",
@@ -55,6 +57,7 @@ def test_eval_signal_change_requires_audit_update() -> None:
     results = _gate_check.evaluate_gates(
         changed_files={"src/drift/signals/pfs.py"},
         commit_type="chore",
+        gate1_ok=True,
         gate6_ok=True,
         head_sha="abc",
         last_success_sha="abc",
@@ -72,6 +75,7 @@ def test_eval_signal_change_with_audit_update_is_ok() -> None:
             "audit_results/fmea_matrix.md",
         },
         commit_type="fix",
+        gate1_ok=True,
         gate6_ok=True,
         head_sha="abc",
         last_success_sha="abc",

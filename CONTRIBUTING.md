@@ -119,8 +119,8 @@ Automation in this repository:
 
 Best-practice references:
 
-- https://docs.github.com/en/copilot/using-github-copilot/using-copilot-coding-agent-to-work-on-tasks/about-assigning-tasks-to-copilot
-- https://docs.github.com/en/copilot/tutorials/best-practices-for-using-github-copilot-coding-agent
+- <https://docs.github.com/en/copilot/using-github-copilot/using-copilot-coding-agent-to-work-on-tasks/about-assigning-tasks-to-copilot>
+- <https://docs.github.com/en/copilot/tutorials/best-practices-for-using-github-copilot-coding-agent>
 
 ## Contributor ladder
 
@@ -302,6 +302,7 @@ The **negative-pattern library** under `data/negative-patterns/` is a standalone
 1. Pick a signal from the [signal list](data/negative-patterns/README.md#current-signals-covered) (or propose one not yet covered)
 2. Write a minimal `.py` file exhibiting the anti-pattern — no external imports, keep it short
 3. Create a matching `.json` file following the schema:
+
    ```json
    {
      "id": "mutant_duplicate_004",
@@ -317,11 +318,14 @@ The **negative-pattern library** under `data/negative-patterns/` is a standalone
      "drift_version": "2.7.2"
    }
    ```
+
 4. Validate locally:
+
    ```bash
    python scripts/validate_negative_patterns.py
    python scripts/check_negative_patterns.py
    ```
+
 5. Open a PR — CI will verify schema conformance and detection
 
 ### Naming conventions
@@ -386,6 +390,7 @@ Recommended branch protection setup:
 Every PR should pass these checks before merge:
 
 ### Tests
+
 - [ ] `pytest` passes (all fixtures, smoke tests)
 - [ ] New signal logic includes TP + TN fixtures
 - [ ] Mutation benchmark rerun when changing a signal
@@ -393,34 +398,36 @@ Every PR should pass these checks before merge:
 - [ ] For a new feature: evidence-based PR summary included (dataset, baseline, result, reproduction command)
 
 ### Architecture
+
 - [ ] `drift self` → score ≤ previous score + 0.010
 - [ ] No new module without an entry in README and docs/STUDY.md
 - [ ] New signal → own file in `signals/`, implements `BaseSignal`
 - [ ] Signal/ingestion/output changes → at least one audit artifact updated (POLICY §18):
-	- [ ] `audit_results/fmea_matrix.md` (FP + FN entry)
-	- [ ] `audit_results/stride_threat_model.md` (trust boundary)
-	- [ ] `audit_results/fault_trees.md` (FT-1/FT-2/FT-3 review)
-	- [ ] `audit_results/risk_register.md` (risk entry or metric)
+  - [ ] `audit_results/fmea_matrix.md` (FP + FN entry)
+  - [ ] `audit_results/stride_threat_model.md` (trust boundary)
+  - [ ] `audit_results/fault_trees.md` (FT-1/FT-2/FT-3 review)
+  - [ ] `audit_results/risk_register.md` (risk entry or metric)
 
 ### Code Quality
+
 - [ ] No new function >30 LOC without a docstring
 - [ ] No direct DB/Git import outside `ingestion/`
 - [ ] pre-commit hooks pass (`git config core.hooksPath .githooks` set):
-	- [ ] `ruff check src/ tests/` passes
-	- [ ] `mypy src/drift` passes
-	- [ ] `pytest` passes
+  - [ ] `ruff check src/ tests/` passes
+  - [ ] `mypy src/drift` passes
+  - [ ] `pytest` passes
 
 ## Proactive Quality Loop (Required)
 
 Drift does not treat quality only reactively through bug reports. For every release cycle:
 
 1. **Risk Sweep:** Define at least 3 plausible "unknown unknown" failure classes
-	(for example cache corruption, subprocess injection, empty-input scoring).
+ (for example cache corruption, subprocess injection, empty-input scoring).
 2. **Executable Proof:** Add at least one reproducible test
-	(regression or property test) for each failure class.
+ (regression or property test) for each failure class.
 3. **Gate Integration:** A new test must run in CI; an optional test without a gate does not count.
 4. **Ratchet Instead of Plateau:** Coverage/typing gates may only improve or stay flat,
-	never decline without a documented reason.
+ never decline without a documented reason.
 
 Goal: Each iteration should systematically reduce the amount of untested risk surface.
 
@@ -464,6 +471,7 @@ The lane determines which check path applies and whether automerge is eligible.
 touches a high-risk path, the entire PR is treated as high-risk.
 
 **Automerge conditions (fast-lane only — all must be true):**
+
 1. Label `lane/fast-lane` is present
 2. Label `size/XS` or `size/S` is present
 3. All required CI checks are green
@@ -482,10 +490,11 @@ Minimum acceptance criteria:
 1. At least one behavioral test added or updated under `tests/`.
 2. At least one empirical artifact added or updated under `benchmark_results/` or `audit_results/`.
 3. A short evidence summary in the PR:
-	- dataset/repo scope
-	- baseline vs. new result
-	- interpretation of impact (precision/noise/runtime)
-	- exact command used for reproduction
+
+   - dataset/repo scope
+   - baseline vs. new result
+   - interpretation of impact (precision/noise/runtime)
+   - exact command used for reproduction
 
 Without these three elements, feature work is considered unverified and must not be merged.
 
@@ -508,13 +517,13 @@ A release is allowed only when all of the following are true:
 
 1. **One primary claim:** The release can be summarized in one sentence and at most 5 curated bullets.
 2. **One coherent change set:** The included changes belong to one user-facing theme or one tightly related batch.
-	If there are multiple unrelated themes, split them into separate releases.
+ If there are multiple unrelated themes, split them into separate releases.
 3. **SemVer is explicit:** The release is clearly classified as patch, minor, or major before tagging.
 4. **Changelog is curated, not dumped:** The changelog groups changes by user impact (`Added`, `Changed`, `Fixed`) instead of mirroring raw commit history.
 5. **Contributors are credited:** First-time contributors are acknowledged by name in the changelog entry (e.g., `- Improved AVS clarity (#42, thanks @contributor)`).
 6. **Evidence is complete:** Any feature content in the release already satisfies the feature-evidence gate.
-6. **Release state is reproducible:** Version bump, changelog entry, tag, and release notes all point to the same release scope.
-7. **Release scope fits one sentence:** If you can't summarize the release in one sentence plus at most 5 curated bullets, split it.
+7. **Release state is reproducible:** Version bump, changelog entry, tag, and release notes all point to the same release scope.
+8. **Release scope fits one sentence:** If you can't summarize the release in one sentence plus at most 5 curated bullets, split it.
 
 The following are not allowed:
 
@@ -581,6 +590,7 @@ Use the [issue templates](.github/ISSUE_TEMPLATE/) — they help reproduce probl
 
 ---
 
+<!-- markdownlint-disable-next-line MD024 -->
 ## Adding a new signal
 
 This walkthrough shows how to add a detection signal from scratch. Use an existing signal

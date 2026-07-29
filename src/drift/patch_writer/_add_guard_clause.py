@@ -81,11 +81,7 @@ def _build_guard_stmt(param: str) -> object:
     raise_stmt = cst.Raise(
         exc=cst.Call(
             func=cst.Name("TypeError"),
-            args=[
-                cst.Arg(
-                    value=cst.SimpleString(f'"{param} must not be None"')
-                )
-            ],
+            args=[cst.Arg(value=cst.SimpleString(f'"{param} must not be None"'))],
         )
     )
     return cst.If(
@@ -98,9 +94,7 @@ def _build_guard_stmt(param: str) -> object:
                 )
             ],
         ),
-        body=cst.IndentedBlock(
-            body=[cst.SimpleStatementLine(body=[raise_stmt])]
-        ),
+        body=cst.IndentedBlock(body=[cst.SimpleStatementLine(body=[raise_stmt])]),
     )
 
 
@@ -128,7 +122,9 @@ class _GuardInserter:
             skipped_count: int = 0
 
             def leave_FunctionDef(  # noqa: N802
-                self_inner, original_node: cst.FunctionDef, updated_node: cst.FunctionDef  # noqa: N805
+                self_inner,  # noqa: N805
+                original_node: cst.FunctionDef,
+                updated_node: cst.FunctionDef,
             ) -> cst.FunctionDef:
                 if original_node.name.value != target_symbol:
                     return updated_node

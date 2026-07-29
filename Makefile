@@ -14,7 +14,7 @@ MYPY     ?= $(PYTHON) -m mypy
 SRC      := src/
 TESTS    := tests/
 
-.PHONY: help install lint lint-fix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
+.PHONY: help install lint lint-fix autofix typecheck test test-fast test-dev test-lf test-contract smoke-pr smoke-nightly test-all coverage check self ci feat-start fix-start catalog gate-check feat-bundle handover changelog-entry changelog-insert audit-diff agent-harness-check markdown-lint package-kpis-github-usage package-kpis-downloads package-kpis-real-public package-kpis-example quality-score clean guard-refresh test-for replay-benchmark repair-eval ab-harness kpi-update kpi-report eval-all
 
 help:  ## Show all available commands
 	@grep -E '^[a-zA-Z_-]+:.*##' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*##"}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -29,6 +29,13 @@ lint:  ## Run ruff linter
 
 lint-fix:  ## Run ruff with auto-fix
 	$(RUFF) check --fix $(SRC) $(TESTS)
+
+autofix:  ## Auto-fix all pre-commit auto-repairable issues (trailing-whitespace, EOF, ruff-format, markdownlint)
+	pre-commit run trailing-whitespace --all-files || true
+	pre-commit run end-of-file-fixer --all-files || true
+	$(RUFF) format $(SRC) $(TESTS)
+	npx markdownlint-cli2 --fix --config .markdownlint-cli2.jsonc "docs-site/**/*.md" README.md CONTRIBUTING.md DEVELOPER.md SECURITY.md SUPPORT.md CHANGELOG.md || true
+	@echo ">>> [autofix] Done. Re-run 'pre-commit run --all-files' to verify."
 
 typecheck:  ## Run mypy type checker
 	$(MYPY) src/drift

@@ -21,3 +21,15 @@ MD033: false
 
 # Allow first-line h1 to be absent (not all docs start with a heading)
 MD041: false
+
+# Allow multiple H1 headings — docs-site pages use frontmatter title + body H1
+MD025: false
+
+# Allow fenced code blocks without explicit language specifier
+MD040: false
+
+# Allow emphasis used as pseudo-headings (common in reference/example docs)
+MD036: false
+
+# Allow mixed code block styles (fenced and indented) — docs-site uses both
+MD046: false

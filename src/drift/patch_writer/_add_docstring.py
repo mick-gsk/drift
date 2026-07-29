@@ -85,7 +85,9 @@ class _DocstringInserter:
             skipped: bool = False
 
             def leave_FunctionDef(  # noqa: N802
-                self_inner, original_node: cst.FunctionDef, updated_node: cst.FunctionDef  # noqa: N805
+                self_inner,  # noqa: N805
+                original_node: cst.FunctionDef,
+                updated_node: cst.FunctionDef,
             ) -> cst.FunctionDef:
                 if original_node.name.value != target_symbol:
                     return updated_node
