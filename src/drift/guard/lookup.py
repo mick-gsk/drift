@@ -128,19 +128,44 @@ def _first_real_match(
     kind group and path shape — do not fit a column each, and the candidate
     list for one normalised name is short by construction.
     """
+    own_package = _package_of(conn, rel_path)
     rows = conn.execute(
-        "SELECT path, name, line, kind FROM symbols"
-        " WHERE norm_name = ? AND path != ? ORDER BY path",
+        "SELECT s.path, s.name, s.line, s.kind, COALESCE(f.package_root, '.')"
+        " FROM symbols s LEFT JOIN files f ON f.path = s.path"
+        " WHERE s.norm_name = ? AND s.path != ? ORDER BY s.path",
         (symbol.norm_name, rel_path),
     )
     candidates = [
         (path, name, line)
-        for path, name, line, kind in rows
-        if _KIND_GROUP.get(kind) == group and not repeats_by_design(path)
+        for path, name, line, kind, package in rows
+        if _KIND_GROUP.get(kind) == group
+        and not repeats_by_design(path)
+        # Two packages in a workspace have their own namespaces. ripgrep's
+        # `crates/cli` and `crates/globset` both define `escape`, and neither
+        # author would call that duplication.
+        and package == own_package
     ]
     if not candidates or len(candidates) > MAX_DUPLICATE_OCCURRENCES:
         return None
     return candidates[0]
+
+
+def _package_of(conn: sqlite3.Connection, rel_path: str) -> str:
+    """The package an edited file belongs to.
+
+    The file may be brand new and absent from the index, so the answer falls
+    back to any indexed file sharing its directory.
+    """
+    row = conn.execute("SELECT package_root FROM files WHERE path = ?", (rel_path,)).fetchone()
+    if row is not None:
+        return str(row[0])
+
+    directory = build.dir_of(rel_path)
+    like = "%" if directory == "." else f"{directory}/%"
+    row = conn.execute(
+        "SELECT package_root FROM files WHERE path LIKE ? LIMIT 1", (like,)
+    ).fetchone()
+    return str(row[0]) if row is not None else "."
 
 
 def find_novel_edges(conn: sqlite3.Connection, rel_path: str, imports: list[str]) -> list[Hit]:

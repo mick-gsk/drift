@@ -86,8 +86,13 @@ def test_camel_case_and_snake_case_collide():
 
 
 def test_an_unsupported_suffix_yields_nothing():
-    """A new file type stays silent until it is supported on purpose."""
-    assert extract.extract("fn main() {}\n", ".rs") == ([], [])
+    """A file type stays silent until it is supported on purpose.
+
+    The suffix is deliberately fictional. Naming a real unsupported language
+    here made this test fail twice, once when Go arrived and once for Rust —
+    which is the correct behaviour reported as a failure.
+    """
+    assert extract.extract("func main() {}\n", ".madeuplang") == ([], [])
 
 
 def test_line_numbers_point_at_the_declaration():

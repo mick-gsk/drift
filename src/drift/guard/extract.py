@@ -25,7 +25,8 @@ from typing import NamedTuple
 PYTHON_SUFFIXES = frozenset({".py"})
 TS_JS_SUFFIXES = frozenset({".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"})
 GO_SUFFIXES = frozenset({".go"})
-GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES | GO_SUFFIXES
+RUST_SUFFIXES = frozenset({".rs"})
+GUARDED_SUFFIXES = PYTHON_SUFFIXES | TS_JS_SUFFIXES | GO_SUFFIXES | RUST_SUFFIXES
 
 #: Normalized names too common to ever be a meaningful duplicate.
 STOPWORDS = frozenset(
@@ -51,6 +52,12 @@ STOPWORDS = frozenset(
         # and two files both exporting `default` says nothing about duplication.
         "index",
         "default",
+        # Measured in two unrelated languages before being added here: `config`
+        # was the loudest false positive in axios and again in ripgrep, where
+        # nearly every Rust module keeps its own private `Config`. `options`
+        # follows the same idiom.
+        "config",
+        "options",
     }
 )
 
@@ -133,6 +140,33 @@ _GO_IMPORTS: tuple[re.Pattern[str], ...] = (
 _GO_IMPORT_LINE = re.compile(r'^\s*(?:[A-Za-z_.]\w*\s+)?"([^"]+)"', re.MULTILINE)
 
 
+#: Rust declarations. Methods live inside `impl` blocks and are indented, so
+#: the column-zero anchor excludes them the way it does in Go — `new`, `fmt`
+#: and `from` are on half the types in any crate.
+_RUST_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "function",
+        re.compile(
+            r"^(?:pub(?:\([^)]*\))?\s+)?(?:const\s+|async\s+|unsafe\s+|extern\s+\"[^\"]*\"\s+)*"
+            r"fn\s+([A-Za-z_][\w]*)",
+            re.MULTILINE,
+        ),
+    ),
+    (
+        "type",
+        re.compile(
+            r"^(?:pub(?:\([^)]*\))?\s+)?(?:struct|enum|trait|union|type)\s+([A-Za-z_][\w]*)",
+            re.MULTILINE,
+        ),
+    ),
+)
+
+#: `use` paths, including the braced form. `mod x;` is deliberately absent: it
+#: declares a child module in the same directory rather than reaching into
+#: another one, so it is not a boundary crossing.
+_RUST_USE = re.compile(r"^\s*(?:pub\s+)?use\s+([^;]+);", re.MULTILINE)
+
+
 class Symbol(NamedTuple):
     name: str
     norm_name: str
@@ -172,7 +206,68 @@ def extract(source: str, suffix: str = ".py") -> tuple[list[Symbol], list[str]]:
         return extract_python(source)
     if suffix in GO_SUFFIXES:
         return extract_go(source)
+    if suffix in RUST_SUFFIXES:
+        return extract_rust(source)
     return ([], [])
+
+
+def extract_rust(source: str) -> tuple[list[Symbol], list[str]]:
+    """Rust, matched rather than parsed, on the same terms as Go.
+
+    `use` paths become the specifiers the resolver already understands:
+    `crate::db::client` is emitted as `db/client` for trailing-segment
+    matching, while `super::` and `self::` become the relative forms that
+    Python and TypeScript already produce.
+    """
+    symbols: list[Symbol] = []
+    seen: set[str] = set()
+
+    for kind, pattern in _RUST_PATTERNS:
+        for match in pattern.finditer(source):
+            name = match.group(1)
+            if name in seen:
+                continue
+            seen.add(name)
+            symbols.append(
+                Symbol(
+                    name=name,
+                    norm_name=normalize(name),
+                    kind=kind,
+                    sig_hash=signature_hash(kind, []),
+                    line=source.count("\n", 0, match.start()) + 1,
+                )
+            )
+
+    imports: list[str] = []
+    for match in _RUST_USE.finditer(source):
+        imports.extend(_rust_use_targets(match.group(1)))
+
+    symbols.sort(key=lambda s: s.line)
+    return (symbols, imports)
+
+
+def _rust_use_targets(clause: str) -> list[str]:
+    """Turn one `use` clause into specifiers the resolver understands.
+
+    A braced clause names several children of one prefix — `use crate::db::{a,
+    b}` — and the prefix is the part that identifies a directory, so the braces
+    are dropped rather than expanded.
+    """
+    head = clause.split("{", 1)[0].strip().rstrip(":")
+    parts = [p for p in head.split("::") if p]
+    if not parts:
+        return []
+
+    root = parts[0]
+    rest = parts[1:]
+    if root == "crate":
+        return ["/".join(rest)] if rest else []
+    if root == "super":
+        return [f"../{'/'.join(rest)}"] if rest else ["../"]
+    if root == "self":
+        return [f"./{'/'.join(rest)}"] if rest else ["./"]
+    # An external crate, or a re-export of one. Not a place in this repository.
+    return []
 
 
 def extract_go(source: str) -> tuple[list[Symbol], list[str]]:

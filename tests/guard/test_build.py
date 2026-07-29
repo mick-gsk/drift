@@ -105,3 +105,18 @@ def test_an_empty_index_is_stale(tmp_path):
     schema.initialize(conn)
 
     assert build.is_stale(tmp_path, conn) is True
+
+
+def test_package_root_finds_the_nearest_marker(tmp_path):
+    (tmp_path / "crates" / "cli" / "src").mkdir(parents=True)
+    (tmp_path / "Cargo.toml").write_text("[workspace]\n", encoding="utf-8")
+    (tmp_path / "crates" / "cli" / "Cargo.toml").write_text("[package]\n", encoding="utf-8")
+
+    assert build.package_root_of(tmp_path, "crates/cli/src/main.rs", {}) == "crates/cli"
+    assert build.package_root_of(tmp_path, "build.rs", {}) == "."
+
+
+def test_a_repository_without_markers_is_one_package(tmp_path):
+    (tmp_path / "src").mkdir()
+
+    assert build.package_root_of(tmp_path, "src/thing.py", {}) == "."

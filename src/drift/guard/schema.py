@@ -7,7 +7,9 @@ import os
 import pathlib
 import sqlite3
 
-SCHEMA_VERSION = 1
+#: 2 added `files.package_root`. A symbol in one package of a workspace does
+#: not duplicate a symbol in another, and the guard could not tell before.
+SCHEMA_VERSION = 2
 
 _TABLES = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -15,9 +17,10 @@ CREATE TABLE IF NOT EXISTS meta (
     value TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS files (
-    path       TEXT PRIMARY KEY,
-    sha256     TEXT NOT NULL,
-    indexed_at REAL NOT NULL
+    path         TEXT PRIMARY KEY,
+    sha256       TEXT NOT NULL,
+    indexed_at   REAL NOT NULL,
+    package_root TEXT NOT NULL DEFAULT '.'
 );
 CREATE TABLE IF NOT EXISTS symbols (
     path      TEXT NOT NULL,
