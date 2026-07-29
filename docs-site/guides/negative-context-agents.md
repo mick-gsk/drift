@@ -94,6 +94,7 @@ Each anti-pattern item has this stable shape:
 | `naming` | NBV | Naming convention violations |
 | `complexity` | EDS, GCD, CXS | Unnecessary complexity, missing guards |
 | `completeness` | DIA, BAT, DCA | Missing docs, accumulated bypasses, dead code |
+| `ai_quality` | PHR | AI-hallucinated symbol references |
 
 ### Scopes
 
