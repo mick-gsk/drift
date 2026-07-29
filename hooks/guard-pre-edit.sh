@@ -5,6 +5,6 @@ set -uo pipefail
 # shellcheck source=/dev/null
 . "$(dirname "$0")/_guard_lib.sh"
 
-cmd="$(guard_cmd)" || exit 0
-$cmd --hook PreToolUse --repo "$(guard_repo_root)" pre --payload-stdin 2>/dev/null || true
+guard_resolve || exit 0
+$GUARD_CMD --hook PreToolUse --repo "$(guard_repo_root)" pre --payload-stdin 2>/dev/null || true
 exit 0

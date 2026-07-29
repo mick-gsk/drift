@@ -165,3 +165,88 @@ def test_hook_config_points_at_scripts_that_exist():
     for command in referenced:
         relative = command.strip('"').replace("${CLAUDE_PLUGIN_ROOT}/", "")
         assert (root / relative).exists(), f"{relative} is referenced but missing"
+
+
+def _bare_env():
+    """An environment where nothing drift-related is installed or importable.
+
+    This is what a user has after `/plugin install drift@drift` and nothing
+    else: no `drift-guard` on PATH, no `drift` package, no PYTHONPATH.
+    """
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in ("PYTHONPATH", "VIRTUAL_ENV", "CLAUDE_PLUGIN_ROOT")
+    }
+    env["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin"
+    return env
+
+
+def test_the_plugin_alone_is_enough(sample_repo):
+    """A bare `/plugin install` must produce a working guard, with no pip step.
+
+    The marketplace clones the repository, so the guard's source ships inside
+    the installed plugin and runs from there under any system Python. Without
+    that fallback a fresh install is silently inert: every hook exits 0 with no
+    output, which is indistinguishable from a guard that never finds anything.
+    """
+    build.build_full(sample_repo)
+    (sample_repo / "src" / "api" / "schemas.py").write_text(
+        "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+    )
+    payload = {"tool_input": {"file_path": str(sample_repo / "src" / "api" / "schemas.py")}}
+
+    result = subprocess.run(
+        ["bash", str(HOOKS / "guard-post-edit.sh")],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        cwd=sample_repo,
+        env=_bare_env(),
+    )
+
+    assert result.returncode == 0
+    assert result.stdout.strip(), "the hook stayed silent with only the plugin installed"
+    assert "validate_token" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_the_guard_imports_only_the_standard_library():
+    """The bundled fallback works only as long as no third-party import creeps in."""
+    env = _bare_env()
+    env["PYTHONPATH"] = str(HOOKS.parent / "src")
+
+    result = subprocess.run(
+        [
+            "python3",
+            "-c",
+            "import drift.guard.build, drift.guard.lookup, drift.guard.report; print('ok')",
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "ok"
+
+
+def test_bin_wrapper_works_without_an_installed_package():
+    """`/drift:doctor` calls `drift-guard` as a bare command; bin/ makes that real.
+
+    Claude Code puts a plugin's bin/ on PATH. Without this wrapper the two slash
+    commands only work for users who separately ran `pip install drift-analyzer`.
+    """
+    wrapper = HOOKS.parent / "bin" / "drift-guard"
+
+    assert wrapper.exists()
+    assert os.access(wrapper, os.X_OK), "bin/drift-guard must be executable"
+
+    result = subprocess.run(
+        [str(wrapper), "--repo", str(HOOKS.parent), "doctor"],
+        capture_output=True,
+        text=True,
+        env=_bare_env(),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "index" in result.stdout

@@ -8,8 +8,11 @@
 # and slash commands are only discovered in `commands/` at the plugin root.
 # The plugin root is the repository root because the marketplace entry points
 # at "./", which is what makes `/plugin marketplace add mick-gsk/drift` work.
+# `bin/` is the third: Claude Code puts it on PATH so the slash commands can
+# call `drift-guard` without the user having installed the PyPI package.
 .claude-plugin
 commands
+bin
 
 .githooks
 .github
