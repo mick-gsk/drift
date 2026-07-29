@@ -120,8 +120,15 @@ def test_gate_g3_no_false_positives_on_clean_files(sample_repo):
         assert hits == [], f"{rel_path} produced unexpected findings: {hits}"
 
 
+#: Raised from 2 to 3 on 2026-07-30 for `/drift:amphetamin`. The limit exists to
+#: keep the plugin to one promise, and this is the one command that serves a
+#: second one — so the increase is recorded here rather than absorbed silently.
+#: A fourth needs the same argument made again, in writing.
+MAX_SLASH_COMMANDS = 3
+
+
 def test_gate_g4_surface_stays_small():
-    """G4: the plugin surface must stay at or below two tools and two commands."""
+    """G4: the plugin surface must stay at or below one server and three commands."""
     root = pathlib.Path(__file__).resolve().parents[2]
     with open(root / ".claude-plugin" / "plugin.json", encoding="utf-8") as handle:
         manifest = json.load(handle)
@@ -130,7 +137,9 @@ def test_gate_g4_surface_stays_small():
     commands = list((root / "commands").glob("drift-*.md"))
 
     assert len(tools) <= 1, "at most one MCP server"
-    assert len(commands) <= 2, f"at most two slash commands, found {len(commands)}"
+    assert len(commands) <= MAX_SLASH_COMMANDS, (
+        f"at most {MAX_SLASH_COMMANDS} slash commands, found {len(commands)}"
+    )
 
     # Zero mandatory config files. The repository's own drift.yaml configures
     # the analysis engine and predates the guard, so the property is checked

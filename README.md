@@ -89,6 +89,43 @@ installed and no other instruction, Claude came back with this on its own:
 Nobody asked it to check for duplicates. The guard put the fact in front of it,
 and it did the rest. One run, unedited.
 
+## Amphetamin — keep the session running on open work
+
+Off by default. `/drift:amphetamin on` turns it on for a repository.
+
+Agents stop early far more often than they work slowly, and most early stops
+leave something on the table. While the mode is on, the `Stop` hook refuses
+**one** stop per session — and only when drift's index recorded a symbol
+introduced during that session which already existed elsewhere. It hands back a
+specific, finishable instruction and never asks twice:
+
+```json
+{"decision": "block",
+ "reason": "drift recorded 1 symbol(s) introduced in this session that already
+            existed elsewhere in this repository. Before finishing, for each
+            one: reuse the existing definition, or state in one line why a
+            second definition belongs here."}
+```
+
+That criterion is a recorded fact, not a judgement about whether an answer felt
+finished, so it cannot fire on a session that left nothing behind.
+
+**What is a mechanism and what is not.** The held stop is a mechanism: it fires
+or it does not, and there are tests for both. The mode also injects four
+throughput instructions at session start — batch independent tool calls, do not
+re-read unchanged files, prefer ranged reads, keep going while the next step is
+determined. Those are *instructions*. Nothing enforces them, and no speedup has
+been measured; calling them a guarantee would be the same mistake as citing a
+benchmark nobody ran.
+
+**What it will not do.** It does not skip permission prompts, truncate reads,
+shorten plans, skip verification or lower any threshold. An earlier draft
+auto-approved read-only tools at the permission prompt; that was cut. The prompt
+on `Read` is your only view of what an agent reaches for, and repository content
+is an established prompt-injection surface — an agent steered by a file it just
+read can ask for `~/.ssh/id_rsa`. A public plugin that removes that prompt trades
+a real control for convenience. A test fails if the mechanism ever grows back.
+
 ## Why it can run inside the loop
 
 The guard is a separate module that imports nothing but `sqlite3`, `ast` and

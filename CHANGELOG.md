@@ -7,6 +7,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - Ship drift as a Claude Code plugin: manifest, four hooks (SessionStart, PreToolUse, PostToolUse, Stop) and two slash commands (`/drift:doctor`, `/drift:stats`)
 - Add `drift-guard`, a lean entry point that imports only `sqlite3`, `ast` and `json` and answers from a prebuilt SQLite index instead of running an analysis
 - Add seven hard gates (latency, import hygiene, ground-truth recall, surface size, install time, index build, counter honesty) and a `guard-gates` CI job that installs without extras
+- add amphetamin — hold the session open on machine-checked work
 
 ### Fixed
 

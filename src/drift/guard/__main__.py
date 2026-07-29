@@ -12,7 +12,7 @@ import json
 import pathlib
 import sys
 
-from drift.guard import build, extract, lookup, report, schema
+from drift.guard import amphetamin, build, extract, lookup, report, schema
 
 ROUTING_TEXT = (
     "drift guard is active. After each edit it reports symbols that already "
@@ -22,6 +22,23 @@ ROUTING_TEXT = (
 )
 BUILDING_TEXT = (
     "drift: building the structural index in the background; the guard becomes active shortly."
+)
+# Injected only while amphetamin is on. These are instructions to the model,
+# not mechanisms: they change how it spends turns and nothing enforces them.
+# Kept separate from anything the guard actually guarantees so the difference
+# stays visible to whoever reads this next.
+AMPHETAMIN_TEXT = (
+    "amphetamin is on for this session. Spend turns, not care:\n"
+    "- Issue independent tool calls in one batch rather than one per turn. Most "
+    "reads, greps and globs in a plan do not depend on each other.\n"
+    "- Do not re-read a file you already read this session unless something "
+    "changed it. You still have the contents.\n"
+    "- Read the part you need. A ranged read of a known region beats a whole "
+    "file you will skim.\n"
+    "- Keep going while the next step is determined. Stop to ask only when the "
+    "answer would change what you do, not to report progress.\n"
+    "None of this trades correctness for speed: verify what you changed, and "
+    "say plainly when something failed."
 )
 
 
@@ -134,7 +151,12 @@ def _cmd_session_start(args) -> int:
         return 0
 
     report.reset_counter(repo_root)
-    _emit(args, ROUTING_TEXT)
+    amphetamin.reset_run(repo_root)
+
+    text = ROUTING_TEXT
+    if amphetamin.read_state(repo_root)["enabled"]:
+        text = f"{text}\n\n{AMPHETAMIN_TEXT}"
+    _emit(args, text)
     return 0
 
 
@@ -188,7 +210,32 @@ def _cmd_post(args) -> int:
 def _cmd_stats(args) -> int:
     # The tally is the user's proof that the guard earned its place, so it goes
     # to the human channel rather than into the agent's context.
-    _emit(args, user_text=report.summary_line(report.read_counter(pathlib.Path(args.repo))))
+    repo_root = pathlib.Path(args.repo)
+    counts = report.read_counter(repo_root)
+    tally = report.summary_line(counts)
+
+    # Under the Stop hook, amphetamin may hold the session open for work the
+    # index says is unfinished. That verdict rides along with the tally in one
+    # object: Claude Code reads a single JSON document from a hook.
+    if getattr(args, "hook", None) == "Stop":
+        block = amphetamin.decide_stop(repo_root, counts)
+        if block is not None:
+            payload = dict(block)
+            payload["systemMessage"] = f"{tally} · amphetamin held the session open"
+            print(json.dumps(payload))
+            return 0
+
+    _emit(args, user_text=tally)
+    return 0
+
+
+def _cmd_amph(args) -> int:
+    repo_root = pathlib.Path(args.repo)
+    if args.action in ("on", "off"):
+        state = amphetamin.set_enabled(repo_root, args.action == "on")
+    else:
+        state = amphetamin.read_state(repo_root)
+    print(amphetamin.status_line(state))
     return 0
 
 
@@ -248,6 +295,8 @@ def main(argv: list[str] | None = None) -> int:
     _add("reset", "Reset the session tally.")
     _add("doctor", "Check the guard installation.")
     _add("session-start", "Ensure an index exists and brief the agent.")
+    amph = _add("amph", "Turn amphetamin on or off, or show its state.")
+    amph.add_argument("action", nargs="?", default="status", choices=["on", "off", "status"])
 
     args = parser.parse_args(argv)
     args.repo = args.repo_local or args.repo_global
@@ -259,6 +308,7 @@ def main(argv: list[str] | None = None) -> int:
         "reset": _cmd_reset,
         "doctor": _cmd_doctor,
         "session-start": _cmd_session_start,
+        "amph": _cmd_amph,
     }
     try:
         return handlers[args.command](args)
