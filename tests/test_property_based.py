@@ -144,7 +144,16 @@ def test_discover_files_terminates_on_empty_repo(include: list[str], exclude: li
 
 @given(
     file_names=st.lists(
-        st.builds(lambda seg: f"{seg}.py", _path_segment),
+        # `_path_segment` may yield a bare "." or "..", which builds names like
+        # "..py" that pathlib does not regard as Python files at all —
+        # Path("..py").suffix is "" and .stem is "..py", so detect_language()
+        # correctly returns None and discovery skips them. Restrict generation
+        # to names that really do carry a .py suffix, otherwise this test
+        # asserts a property drift never promised. Without this filter the
+        # test is flaky: Hypothesis only sometimes searches its way to ".".
+        st.builds(lambda seg: f"{seg}.py", _path_segment).filter(
+            lambda name: Path(name).suffix == ".py"
+        ),
         min_size=1,
         max_size=5,
         unique=True,
