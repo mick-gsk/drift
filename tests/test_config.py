@@ -568,3 +568,44 @@ def test_load_no_config_applies_detected_profile(tmp_path: Path):
     cfg = DriftConfig.load(tmp_path)
     # Just verify it loads without error and is a valid DriftConfig
     assert isinstance(cfg, DriftConfig)
+
+
+# --- phr_runtime_validation trust boundary (security) ---
+# phr_runtime_validation enables importing third-party modules from the
+# analyzed repo (importlib.import_module → module-level code execution).
+# A repo's own drift.yaml must NOT be able to switch this on, otherwise a
+# malicious repo scanned in CI achieves code execution. It is opt-in only
+# via a trusted out-of-band channel (the DRIFT_PHR_RUNTIME_VALIDATION env
+# var set by the invoker), never from the loaded config file.
+
+
+def test_phr_runtime_validation_ignored_from_repo_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.delenv("DRIFT_PHR_RUNTIME_VALIDATION", raising=False)
+    (tmp_path / "drift.yaml").write_text(
+        "thresholds:\n  phr_runtime_validation: true\n", encoding="utf-8"
+    )
+    config = DriftConfig.load(tmp_path)
+    # Repo config requested it, but the trusted env var is unset → stays off.
+    assert config.thresholds.phr_runtime_validation is False
+
+
+def test_phr_runtime_validation_enabled_via_trusted_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setenv("DRIFT_PHR_RUNTIME_VALIDATION", "1")
+    (tmp_path / "drift.yaml").write_text(
+        "thresholds:\n  phr_runtime_validation: false\n", encoding="utf-8"
+    )
+    config = DriftConfig.load(tmp_path)
+    # Operator opted in out-of-band → enabled regardless of repo config.
+    assert config.thresholds.phr_runtime_validation is True
+
+
+def test_phr_runtime_validation_default_off(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.delenv("DRIFT_PHR_RUNTIME_VALIDATION", raising=False)
+    config = DriftConfig.load(tmp_path)
+    assert config.thresholds.phr_runtime_validation is False

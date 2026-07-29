@@ -198,6 +198,13 @@ jobs:
     # NOTE: Uses GitHub-hosted Windows runner.
     runs-on: windows-latest
     timeout-minutes: 15
+    # MANUAL RELEASE GATE: this job runs in the `pypi` environment. A PyPI
+    # upload is irreversible, so the `pypi` environment MUST be configured in
+    # repo settings (Settings → Environments → pypi) with "Required reviewers".
+    # That makes this job pause for human approval before publishing, instead
+    # of relying solely on the commit-message guard on the `release` job —
+    # which, combined with automerge, could otherwise auto-publish unreviewed
+    # changes. The PYPI_RELEASE secret should be scoped to this environment.
     environment: pypi
 
     steps:

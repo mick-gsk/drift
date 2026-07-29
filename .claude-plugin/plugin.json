@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "drift",
+  "displayName": "Drift",
+  "version": "2.51.1",
+  "description": "Tells your coding agent when it is about to build something that already exists.",
+  "author": {
+    "name": "mick-gsk",
+    "url": "https://github.com/mick-gsk"
+  },
+  "homepage": "https://github.com/mick-gsk/drift#readme",
+  "repository": "https://github.com/mick-gsk/drift",
+  "license": "MIT",
+  "keywords": [
+    "duplication",
+    "structure",
+    "guard",
+    "hooks",
+    "python",
+    "static-analysis"
+  ]
+}

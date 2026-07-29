@@ -170,13 +170,41 @@ def _is_bool_like_return_type(return_type: str | None) -> bool:
     return False
 
 
+# Builtins that unambiguously return a bool.
+_BOOL_BUILTINS = frozenset(
+    {"isinstance", "issubclass", "hasattr", "callable", "bool", "all", "any"}
+)
+
+
+def _is_bool_expr(node: ast.expr | None) -> bool:
+    """Return True if an expression unambiguously evaluates to a bool.
+
+    Covers bool literals plus the expressions predicates idiomatically return:
+    comparisons (``x > 0``, ``x is None``, ``x in y``), boolean operations
+    (``a and b``), ``not x``, and bool-returning builtins (``isinstance(...)``).
+    Without this, ``def is_valid(x): return x > 0`` is falsely flagged as a
+    naming-contract violation.
+    """
+    if node is None:
+        return False
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, bool)
+    if isinstance(node, (ast.Compare, ast.BoolOp)):
+        return True
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return True
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        return node.func.id in _BOOL_BUILTINS
+    return False
+
+
 def _has_bool_return(tree: ast.Module, fn_info: FunctionInfo) -> bool:
-    """Return True if function has bool return type or only returns bool literals."""
+    """Return True if function has a bool return type or every return yields a bool."""
     # Check annotation first
     if _is_bool_like_return_type(fn_info.return_type):
         return True
 
-    # Check actual return statements — all must be bool constants
+    # Check actual return statements — all must yield a bool.
     returns: list[ast.Return] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
@@ -187,9 +215,7 @@ def _has_bool_return(tree: ast.Module, fn_info: FunctionInfo) -> bool:
     if not returns:
         return False  # no explicit returns → not bool
 
-    return all(
-        isinstance(r.value, ast.Constant) and isinstance(r.value.value, bool) for r in returns
-    )
+    return all(_is_bool_expr(r.value) for r in returns)
 
 
 def _has_try_except(tree: ast.Module) -> bool:

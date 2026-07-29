@@ -41,6 +41,7 @@ benchmark_results/*
 !benchmark_results/mutation_benchmark.json
 !benchmark_results/drift_self.json
 !benchmark_results/pr_throughput_baseline.json
+!benchmark_results/guard_baseline.json
 # Precision/recall baselines are cited as evidence from README.md and
 # docs/STUDY.md — they must stay tracked or those claims lose their artifact.
 !benchmark_results/*_precision_recall_baseline.json
@@ -59,6 +60,8 @@ master-backlog/*
 .internal/
 scripts/_*
 !scripts/_context_mapping.py
+# Package marker so `scripts.gates.*` is importable from tests (gate harness).
+!scripts/__init__.py
 tagesplanung/
 *-ruleset.json
 docs/issue-claim-playbook.md

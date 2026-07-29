@@ -4,27 +4,24 @@
 
 # Drift
 
-**Stop your AI agent from duplicating your codebase.**
-
-Drift measures what your linter cannot: cross-file structural coherence — the layer where pattern fragmentation, boundary violations, and duplicate divergence accumulate across commits.
-
-77–95 % real-world precision · ~30 s for a 2 900-file codebase · 24 signals · deterministic, no LLM
-
-<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
+**Your agent is about to build it twice. Drift tells it first.**
 
 ```bash
-pip install drift-analyzer
-drift analyze        # auto-detects the right profile on first run (no config needed)
-drift init --auto    # lock in the auto-detected config (no prompts, CI-friendly)
-drift status         # traffic-light health check — your daily entry point
+/plugin marketplace add mick-gsk/drift
+/plugin install drift@drift
 ```
 
-> `drift status` → repo-level score (0–1 · 🟢/🟡/🔴) · `drift analyze` → per-finding detail (INFO/LOW/MEDIUM/HIGH). Bare `drift` runs `drift status`.
+Restart Claude Code, then run `/drift:doctor`. Nothing to configure, no profile
+to pick, no file written into your project except a `.drift/` index you can
+delete at any time.
+
+**Python files only.** The guard reads Python with `ast`; edits to other
+languages pass through untouched. The [CLI](#the-cli) below covers more.
 
 <!-- Re-enable once GitHub Actions is unlocked (billing) — runs currently fail before starting, which renders a misleading red badge:
 [![CI](https://github.com/mick-gsk/drift/actions/workflows/ci.yml/badge.svg)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 -->
-[![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](benchmark_results/drift_self.json)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.41%20(C)-yellow?style=flat)](benchmark_results/drift_self.json)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/mick-gsk/drift/main/.github/badges/coverage.json)](https://github.com/mick-gsk/drift/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/drift-analyzer?cacheSeconds=300)](https://pypi.org/project/drift-analyzer/)
 [![PyPI Downloads](https://static.pepy.tech/badge/drift-analyzer/month)](https://pepy.tech/project/drift-analyzer)
@@ -33,9 +30,11 @@ drift status         # traffic-light health check — your daily entry point
 [![License](https://img.shields.io/github/license/mick-gsk/drift)](LICENSE)
 [![Discussions](https://img.shields.io/github/discussions/mick-gsk/drift)](https://github.com/mick-gsk/drift/discussions)
 
-> **CI runs are paused right now**, so the badge above is stale rather than a
-> verdict on the code. The suite is green locally — `make check` runs lint,
-> types, tests and self-analysis. Contributions are welcome as usual.
+> **GitHub Actions is paused on this account**, so there is no CI badge to show
+> and pull requests will not get an automated run. That is a billing state, not
+> a verdict on the code: the suite is green locally, and `make check` runs the
+> same lint, types, tests and self-analysis CI would. Contributions are welcome
+> as usual — say so in the PR and the checks get run by hand.
 
 [Docs](https://mick-gsk.github.io/drift/) · [Quick Start](https://mick-gsk.github.io/drift/getting-started/quickstart/) · [Playground](https://mick-gsk.github.io/drift/playground/) · [Benchmarking](https://mick-gsk.github.io/drift/benchmarking/) · [Trust & Limitations](https://mick-gsk.github.io/drift/trust-evidence/) · [Community](https://github.com/mick-gsk/drift/discussions)
 
@@ -45,21 +44,76 @@ drift status         # traffic-light health check — your daily entry point
 
 ---
 
-## ⚡ Try it — zero install
+## What it actually says
+
+After every edit your agent makes, drift says one of two things — or, most of
+the time, nothing at all:
+
+```text
+drift:
+  - `validate_token` already exists in src/auth/tokens.py:44
+  - first import from src/api/ into src/db/ anywhere in this repository
+```
+
+That is the whole surface. Two questions, asked of a SQLite index of your
+repository, answered before the agent writes its next line:
+
+1. **Does this symbol already exist somewhere else?** Names are normalised and
+   signatures hashed, so `validateToken` and `validate_token(token, audience)`
+   still match.
+2. **Has this directory ever imported from that one?** Boundaries are *observed*,
+   not configured — the index records which directory-to-directory imports your
+   repository actually contains, so a first-ever crossing stands out without you
+   writing a single rule.
+
+`/drift:stats` shows what it caught this session. Silence is the normal case,
+not a failure.
+
+## Why it can run inside the loop
+
+The guard is a separate module that imports nothing but `sqlite3`, `ast` and
+`json` — no `click`, no `rich`, no ML stack, nothing from the analysis engine.
+That constraint is enforced by a test, not by intention.
+
+| Measured on this repository (344 Python files) | p50 | p95 |
+|---|---|---|
+| Before an edit to a new file | 70 ms | 72 ms |
+| After an edit to an existing file | 86 ms | 87 ms |
+| *Python interpreter startup alone, for reference* | *24 ms* | *29 ms* |
+| *`import drift.cli`, the path the guard avoids* | *3229 ms* | *3959 ms* |
+
+20 runs each, cold, macOS/arm64, Python 3.12 → [guard_baseline.json](benchmark_results/guard_baseline.json).
+Clean checkout to a working guard: **5 s** (`bash scripts/gates/measure_install.sh`).
+
+If the guard breaks, it stays silent and the session continues — it can report,
+but it can never block.
+
+---
+
+## The CLI
+
+The plugin is the front door; the same engine has a full command line for CI,
+reports and one-off analysis.
 
 ```bash
 uvx drift-analyzer analyze --repo .
 ```
 
-> One command. No pre-install. Results in ~30 seconds.
+> One command. No pre-install. Results in under a minute on a typical repo.
 > No config needed — `drift analyze` auto-detects the right profile. `drift init --auto` saves it to `drift.yaml` without prompts (`vibe-coding` / `default` / `strict`).
+>
+> `drift status` → repo-level score (0–1 · 🟢/🟡/🔴) · `drift analyze` → per-finding detail (INFO/LOW/MEDIUM/HIGH). Bare `drift` runs `drift status`.
+
+<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/demo.gif" alt="drift analyze — Rich terminal output showing structural findings" width="720">
+
+Drift measures what your linter cannot: cross-file structural coherence — the layer where pattern fragmentation, boundary violations, and duplicate divergence accumulate across commits. 24 signals · deterministic, no LLM in detection · runs locally, offline · [evidence & limitations](docs/STUDY.md)
 
 🌐 **No install at all?** [Analyze any public repo in your browser →](https://mick-gsk.github.io/drift/prove-it/) · [Interactive code playground →](https://mick-gsk.github.io/drift/playground/)
 
 **Recommended install:** `pipx install drift-analyzer` (isolated CLI) · Python 3.11+ · also via [pip, Homebrew, Docker, GitHub Action, pre-commit →](https://mick-gsk.github.io/drift/getting-started/installation/) · best fit for Python repos with 20+ files; TypeScript/TSX: `pip install 'drift-analyzer[typescript]'`
 
 > [!NOTE]
-> **Drift eats its own dog food.** Every release runs `drift self` on its own source — score 0.63 → [drift_self.json](benchmark_results/drift_self.json). Precision/Recall details in [Trust & Limitations](#-trust-and-limitations).
+> **Drift eats its own dog food.** Drift runs `drift self` on its own source and publishes the result: [drift_self.json](benchmark_results/drift_self.json) carries the score, the grade and the per-signal breakdown, and the badge above is generated from it. The number lives in that one file rather than being repeated here, so it cannot go stale in prose. Precision/Recall details in [Trust & Limitations](#-trust-and-limitations).
 
 ---
 
@@ -424,7 +478,7 @@ drift badge --format svg -o badge.svg  # self-contained SVG
 Paste the Markdown output into your README:
 
 ```markdown
-[![Drift Score](https://img.shields.io/badge/drift%20score-0.39-green?style=flat)](https://github.com/mick-gsk/drift)
+[![Drift Score](https://img.shields.io/badge/drift%20score-0.41%20(C)-yellow?style=flat)](https://github.com/mick-gsk/drift)
 ```
 
 **Automate in CI:** The [GitHub Action](action.yml) exposes a `badge-svg` output — pipe it into your repo or a dashboard.
@@ -537,11 +591,12 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 
 | Metric | Value | Artifact |
 |---|---|---|
-| Wild-repo precision | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
+| Wild-repo precision ¹ | 77 % strict / 95 % lenient (5 repos) | [study §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md) |
 | Ground-truth regression | 0 FP, 0 FN (84 TP, 206 fixtures) | [v2.51.1 baseline](benchmark_results/v2.51.1_precision_recall_baseline.json) |
 | Mutation recall | 75 % (75/100 injected) | [mutation benchmark](benchmark_results/mutation_benchmark.json) |
 | Agent session score delta | 0.495→0.506 (1 live run) ² | [Copilot Autopilot artefacts](demos/copilot-autopilot/) |
 
+¹ Upper-bound estimate from the historical **v0.5 6-signal model** on a score-weighted, single-rater sample — **not yet revalidated** for the current 24-signal model. See [STUDY.md §5](https://github.com/mick-gsk/drift/blob/main/docs/STUDY.md).
 ² Single uncontrolled run — see [RESEARCH.md H4/H5](RESEARCH.md#h4--agent-guardrail-compliance-rate) for what a controlled study would require.
 
 - **No LLM in detection.** The deterministic core uses no LLM inference — same input, same output. Optional local embeddings (`pip install drift-analyzer[embeddings]`) improve near-duplicate detection but are not required and do not call external services.
@@ -549,7 +604,7 @@ Drift's pipeline is deterministic and benchmark artifacts are published in the r
 - **Small-repo noise:** repositories with few files can produce noisy scores. Calibration mitigates but does not eliminate this.
 - **Temporal signals** depend on clone depth and git history quality.
 - **The composite score is orientation, not a verdict.** Interpret deltas via `drift trend`, not isolated snapshots.
-- **Own score context (0.36):** Drift's self-score is driven primarily by architecture violations and explainability deficit (undocumented internal functions). Pattern fragmentation in modules with intentionally diverse error-handling contracts (signals, API, calibration, integrations) is suppressed via `path_overrides` — those variations are architectural, not accidental. The score reflects a fast-moving codebase that prioritises signal correctness over internal documentation. See [drift_self.json](benchmark_results/drift_self.json) for the full breakdown.
+- **Own score context:** Drift's self-score is driven primarily by architecture violations and explainability deficit (undocumented internal functions). Pattern fragmentation in modules with intentionally diverse error-handling contracts (signals, API, calibration, integrations) is suppressed via `path_overrides` — those variations are architectural, not accidental. The score reflects a fast-moving codebase that prioritises signal correctness over internal documentation. The published figure covers `src/drift`; the whole repository, tests and tooling included, scores 0.619. See [drift_self.json](benchmark_results/drift_self.json) for the breakdown and the exact scope string.
 - **Signal overlap:** Some signals measure related phenomena (e.g., MDS and PFS both detect code similarity; CCC and TVS both use git history). A formal inter-signal correlation analysis has not been conducted. Overlap does not produce double-counting in the composite score (each signal contributes independently), but it means some findings may describe the same underlying issue from different angles.
 - **Weight derivation:** Default signal weights for the 6 original signals were derived via rank-correlation (Kendall's τ) against manual architectural assessments on 5 open-source repos (single rater). Weights for the 18 newer signals are conservative heuristic assignments pending broader validation. Full methodology: [STUDY.md §1](docs/STUDY.md), [scoring model](docs/concepts/scoring.md).
 

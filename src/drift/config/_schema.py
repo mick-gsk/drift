@@ -166,6 +166,11 @@ class ThresholdsConfig(BaseModel):
     diff_fuzzy_head_subtraction: bool = True
 
     # PHR runtime validation (ADR-041)
+    # SECURITY: this imports third-party modules named by the analyzed code
+    # (module-level code execution). Any value set here in a repo's drift.yaml
+    # is IGNORED on load; it is honoured only via the trusted
+    # DRIFT_PHR_RUNTIME_VALIDATION env var. See
+    # DriftConfig._enforce_runtime_validation_trust.
     phr_runtime_validation: bool = False  # opt-in: import + hasattr check
 
     # Security-by-default thresholds

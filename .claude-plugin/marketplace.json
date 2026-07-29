@@ -1,0 +1,26 @@
+{
+  "name": "drift",
+  "owner": {
+    "name": "mick-gsk",
+    "url": "https://github.com/mick-gsk"
+  },
+  "metadata": {
+    "description": "Structural guard for coding agents.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "drift",
+      "source": "./",
+      "description": "Tells your coding agent when it is about to build something that already exists.",
+      "category": "development",
+      "keywords": [
+        "duplication",
+        "structure",
+        "guard",
+        "hooks",
+        "python"
+      ]
+    }
+  ]
+}

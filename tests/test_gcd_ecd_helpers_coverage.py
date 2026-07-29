@@ -86,6 +86,47 @@ class TestExtractExceptionProfile:
         assert profile["has_bare_except"] is False
         assert profile["has_bare_raise"] is False
 
+    def test_raise_dotted_exception(self):
+        # raise requests.HTTPError(...) — node.exc is a Call whose func is an
+        # Attribute. The dotted name must still be captured.
+        func = _parse_func("""\
+        def fetch():
+            raise requests.HTTPError("boom")
+        """)
+        profile = _extract_exception_profile(func)
+        assert "HTTPError" in profile["raise_types"]
+
+    def test_raise_dotted_exception_without_call(self):
+        func = _parse_func("""\
+        def reraise(err):
+            raise pkg.MyError
+        """)
+        profile = _extract_exception_profile(func)
+        assert "MyError" in profile["raise_types"]
+
+    def test_handler_dotted_exception(self):
+        func = _parse_func("""\
+        def handle():
+            try:
+                pass
+            except pkg.MyError:
+                pass
+        """)
+        profile = _extract_exception_profile(func)
+        assert "MyError" in profile["handler_types"]
+
+    def test_handler_dotted_exception_in_tuple(self):
+        func = _parse_func("""\
+        def handle():
+            try:
+                pass
+            except (pkg.MyError, ValueError):
+                pass
+        """)
+        profile = _extract_exception_profile(func)
+        assert "MyError" in profile["handler_types"]
+        assert "ValueError" in profile["handler_types"]
+
 
 # ── _extract_functions_from_source ───────────────────────────────
 

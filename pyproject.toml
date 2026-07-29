@@ -144,6 +144,7 @@ all = [
 [project.scripts]
 drift = "drift.cli:safe_main"
 drift-analyzer = "drift.cli:safe_main"
+drift-guard = "drift.guard.__main__:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/drift"]
@@ -246,6 +247,10 @@ check_untyped_defs = true
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
+# The Claude Code plugin ships from this same repository, so its manifest
+# version is bumped by the same release rather than maintained by hand — one
+# number, no drift between the PyPI package and the plugin.
+version_variables = [".claude-plugin/plugin.json:version"]
 commit_message = "chore: Release {version}"
 tag_format = "v{version}"
 build_command = ""

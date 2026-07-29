@@ -1,0 +1,76 @@
+{
+  "measured_at": "2026-07-29",
+  "note": "Baseline before Drift Agent Guard, plus the guard measured with the same harness. The *_this_repo entries run against drift itself (344 Python files); the plain guard_pre/guard_post entries run against the 6-file test fixture.",
+  "measurements": [
+    {
+      "command": ".venv/bin/python -c import sqlite3, ast, json",
+      "runs": 20,
+      "p50_ms": 24.39,
+      "p95_ms": 28.61,
+      "min_ms": 23.8,
+      "max_ms": 51.94,
+      "failures": 0,
+      "label": "floor_stdlib_import"
+    },
+    {
+      "command": ".venv/bin/python -c import drift.cli",
+      "runs": 10,
+      "p50_ms": 3229.48,
+      "p95_ms": 3958.8,
+      "min_ms": 3192.77,
+      "max_ms": 3958.8,
+      "failures": 0,
+      "label": "import_drift_cli"
+    },
+    {
+      "command": ".venv/bin/drift --help",
+      "runs": 10,
+      "p50_ms": 3242.53,
+      "p95_ms": 3479.97,
+      "min_ms": 3192.88,
+      "max_ms": 3479.97,
+      "failures": 0,
+      "label": "drift_help"
+    },
+    {
+      "command": "/Users/moritzbecker/drift/.venv/bin/python -m drift.guard pre --repo /var/folders/zs/scn684wn3d1424pkpvmm6c3h0000gn/T/tmpjuf7sv1g/repo --file src/api/routes.py",
+      "runs": 20,
+      "p50_ms": 46.49,
+      "p95_ms": 49.79,
+      "min_ms": 45.79,
+      "max_ms": 50.83,
+      "failures": 0,
+      "label": "guard_pre"
+    },
+    {
+      "command": "/Users/moritzbecker/drift/.venv/bin/python -m drift.guard post --repo /var/folders/zs/scn684wn3d1424pkpvmm6c3h0000gn/T/tmpjuf7sv1g/repo --file src/api/routes.py",
+      "runs": 20,
+      "p50_ms": 48.98,
+      "p95_ms": 52.16,
+      "min_ms": 48.17,
+      "max_ms": 52.64,
+      "failures": 0,
+      "label": "guard_post"
+    },
+    {
+      "command": "python -m drift.guard pre --repo <this repo> --file src/drift/guard/a_new_module.py",
+      "runs": 20,
+      "p50_ms": 69.86,
+      "p95_ms": 71.51,
+      "min_ms": 68.32,
+      "max_ms": 72.27,
+      "failures": 0,
+      "label": "guard_pre_this_repo"
+    },
+    {
+      "command": "python -m drift.guard post --repo <this repo> --file src/drift/guard/lookup.py",
+      "runs": 20,
+      "p50_ms": 86.21,
+      "p95_ms": 87.35,
+      "min_ms": 83.76,
+      "max_ms": 89.46,
+      "failures": 0,
+      "label": "guard_post_this_repo"
+    }
+  ]
+}
