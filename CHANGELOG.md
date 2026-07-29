@@ -12,6 +12,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - notice when the index describes a tree that has moved
 - guard Go
 - guard Rust, and stop conflating packages in a workspace
+- guard Java and Kotlin
 
 ### Fixed
 

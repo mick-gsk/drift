@@ -31,16 +31,23 @@ _REPEATING_DIRS = frozenset(
         "__tests__",
         "spec",
         "specs",
-        "example",
-        "examples",
-        "docs_src",
+        "testdata",
         "fixtures",
         "__fixtures__",
-        "testdata",
         "benchmarks",
         "migrations",
+        "examples",
+        "docs_src",
+        "samples",
+        "demos",
     }
 )
+
+#: Only when they are the first path segment. `com/example` is the package name
+#: every Java scaffold generates, and reading it as a demonstration directory
+#: switched the guard off for most of Java. The plural forms above are safe
+#: anywhere; the singular ones are a word that appears inside real namespaces.
+_REPEATING_ROOT_DIRS = frozenset({"example", "demo", "sample"})
 
 #: A name shorter than this carries no evidence on its own. `add`, `date` and
 #: `argv` all collide across unrelated files in real repositories.
@@ -75,6 +82,8 @@ def repeats_by_design(rel_path: str) -> bool:
     """
     parts = rel_path.split("/")
     if any(part in _REPEATING_DIRS for part in parts):
+        return True
+    if parts and parts[0] in _REPEATING_ROOT_DIRS:
         return True
 
     stem = parts[-1].rsplit(".", 1)[0]

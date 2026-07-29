@@ -20,8 +20,8 @@ plugin that fires in every project you open has no business leaving a directory
 in each of them. A project that wants the index alongside its source opts in by
 creating a `.drift/` directory.
 
-**Python, TypeScript, JavaScript, Go and Rust** (`.py .ts .tsx .js .jsx .mjs
-.cjs .go .rs`),
+**Seven file types in one index** — Python, TypeScript, JavaScript, Go, Rust,
+Java and Kotlin (`.py .ts .tsx .js .jsx .mjs .cjs .go .rs .java .kt .kts`),
 in one index — a name defined in Python is found from TypeScript, because
 `validate_token`, `validateToken` and `ValidateToken` all normalise to the same
 thing. Other languages pass through untouched.

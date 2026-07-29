@@ -114,7 +114,7 @@ def import_to_dir(
     """
     if specifier.startswith("."):
         return relative_to_dir(specifier, src_dir, known_dirs)
-    if suffix in extract.GO_SUFFIXES or suffix in extract.RUST_SUFFIXES:
+    if suffix in extract.GO_SUFFIXES | extract.RUST_SUFFIXES | extract.JVM_SUFFIXES:
         return suffix_to_dir(specifier, known_dirs)
     if "/" in specifier:
         return None
@@ -139,7 +139,16 @@ def _sha256(path: pathlib.Path) -> str:
 
 #: A directory holding one of these is the root of its own package. Observed
 #: rather than configured, like everything else the index records.
-PACKAGE_MARKERS = ("Cargo.toml", "package.json", "go.mod", "pyproject.toml", "setup.py")
+PACKAGE_MARKERS = (
+    "Cargo.toml",
+    "package.json",
+    "go.mod",
+    "pyproject.toml",
+    "setup.py",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+)
 
 
 def package_root_of(repo_root: pathlib.Path, rel_path: str, cache: dict[str, str]) -> str:
