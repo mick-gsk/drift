@@ -14,7 +14,7 @@ CIR detects **circular import chains** within Python packages — module A impor
 
 ### Example finding
 
-```
+```text
 circular_import: cycle detected
   services/auth.py → services/user.py → services/auth.py
   Cycle length: 2

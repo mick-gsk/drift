@@ -27,7 +27,7 @@ If that same helper is edited in commit after commit — one week to trim dots, 
 
 ### Example finding
 
-```
+```text
 temporal_volatility in src/utils/normalizer.py
   Change frequency: 12 commits in 30 days (z-score: 2.4)
   Unique authors: 5  |  AI-attributed: 60%

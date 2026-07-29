@@ -674,7 +674,7 @@ comment explaining why a dedicated generator is not needed.
 
 ### 5. Write the tests
 
-```
+```text
 tests/test_my_new_signal.py          # unit tests with synthetic ParseResult fixtures
 tests/test_issue_NNN_<description>.py  # regression test if this fixes a bug
 ```

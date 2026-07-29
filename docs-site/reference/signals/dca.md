@@ -14,7 +14,7 @@ DCA detects **exported functions and classes that are never imported elsewhere**
 
 ### Example finding
 
-```
+```text
 dead_code_accumulation in utils/legacy_helpers.py
   Unreferenced exports: 5/7 functions
   Functions: format_v1(), parse_old_config(), legacy_transform(),

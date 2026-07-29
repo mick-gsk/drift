@@ -86,7 +86,7 @@ known-bad patterns. Drift's MCP helps agents avoid architectural fragmentation.
 
 ## Recommended combined use
 
-```
+```text
 SonarQube or Semgrep:  security + policy + enterprise compliance
 drift:                 structural coherence + temporal signals + AI-specific erosion
 ```

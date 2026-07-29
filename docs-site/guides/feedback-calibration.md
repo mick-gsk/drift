@@ -6,7 +6,7 @@ Drift includes a **Bayesian learning model** that adjusts signal weights based o
 
 Drift uses three evidence sources to calibrate signal weights:
 
-```
+```text
                     ┌──────────────────┐
                     │  Default Weights  │
                     │  (ablation study) │
@@ -182,7 +182,7 @@ Format: one JSON object per line with fields `signal_type`, `file_path`, `verdic
 
 ## Calibration lifecycle
 
-```
+```text
 Week 1:  drift analyze → review findings → mark TP/FP → calibrate run
 Week 2:  drift analyze (auto-recalibrate) → fewer false alarms
 Week 4:  confidence reaches 100% for active signals

@@ -14,7 +14,7 @@ ECM detects public functions whose **exception profile changed across recent com
 
 ### Example finding
 
-```
+```text
 exception_contract_drift in services/payment.py::process_payment
   Previous exceptions: [ValueError, PaymentError]
   Current exceptions: [ValueError, PaymentError, TimeoutError, ConnectionError]

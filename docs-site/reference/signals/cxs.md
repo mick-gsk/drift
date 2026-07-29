@@ -14,7 +14,7 @@ CXS detects functions exceeding a **cognitive-complexity threshold**. Unlike cyc
 
 ### Example finding
 
-```
+```text
 cognitive_complexity in services/order_processor.py::validate_order
   Cognitive complexity: 23 (threshold: 15)
   Contributors: 4 nested if-blocks, 2 loops with break, 1 recursive call
