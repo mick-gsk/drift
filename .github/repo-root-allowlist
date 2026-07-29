@@ -3,6 +3,14 @@
 # Goal: keep the repository root limited to product entry points, governance,
 # build/release control files, and a small set of top-level evidence directories.
 
+# Claude Code plugin. Both locations are fixed by the plugin format and cannot
+# be moved into a subdirectory: the manifest is read from `.claude-plugin/`,
+# and slash commands are only discovered in `commands/` at the plugin root.
+# The plugin root is the repository root because the marketplace entry points
+# at "./", which is what makes `/plugin marketplace add mick-gsk/drift` work.
+.claude-plugin
+commands
+
 .githooks
 .github
 .gitignore
