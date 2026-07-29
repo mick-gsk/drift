@@ -199,7 +199,8 @@ def test_gate_g7_counter_only_counts_real_hits(sample_repo):
 
 def test_gate_g5_install_script_exists_and_is_executable():
     """G5: install time must be a runnable measurement, not a claim in prose."""
-    script = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "gates" / "measure_install.sh"
+    root = pathlib.Path(__file__).resolve().parents[2]
+    script = root / "scripts" / "gates" / "measure_install.sh"
 
     assert script.exists()
     assert os.access(script, os.X_OK), "measure_install.sh must be executable"

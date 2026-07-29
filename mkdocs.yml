@@ -102,6 +102,7 @@ extra:
 
 nav:
   - Home: index.md
+  - Claude Code Plugin: claude-code-plugin.md
   - What is Architectural Drift?: what-is-architectural-drift.md
   - "Try It — No Install": prove-it.md
   - "Playground": playground/index.md
