@@ -71,7 +71,27 @@ def relative_to_dir(specifier: str, src_dir: str, known_dirs: set[str]) -> str |
     return parent if parent in known_dirs else None
 
 
-def import_to_dir(specifier: str, src_dir: str, known_dirs: set[str]) -> str | None:
+def suffix_to_dir(specifier: str, known_dirs: set[str]) -> str | None:
+    """Match the trailing segments of a full module path onto a directory.
+
+    Go imports carry the whole module path — `github.com/org/repo/internal/db`
+    — and the repository knows itself as `internal/db`. Dropping leading
+    segments until something matches finds it without reading `go.mod`.
+
+    This is reserved for Go. Applying it to TypeScript would resolve
+    `lodash/fp` onto a directory named `fp`, and date-fns has one.
+    """
+    parts = specifier.split("/")
+    for start in range(len(parts)):
+        candidate = "/".join(parts[start:])
+        if candidate in known_dirs:
+            return candidate
+    return None
+
+
+def import_to_dir(
+    specifier: str, src_dir: str, known_dirs: set[str], suffix: str = ".py"
+) -> str | None:
     """Map any import specifier onto a repository directory, if it is one.
 
     Bare TypeScript specifiers (`react`, `@scope/pkg`) name packages rather
@@ -79,6 +99,8 @@ def import_to_dir(specifier: str, src_dir: str, known_dirs: set[str]) -> str | N
     """
     if specifier.startswith("."):
         return relative_to_dir(specifier, src_dir, known_dirs)
+    if suffix in extract.GO_SUFFIXES:
+        return suffix_to_dir(specifier, known_dirs)
     if "/" in specifier:
         return None
     return module_to_dir(specifier, known_dirs)
@@ -171,7 +193,7 @@ def build_full(repo_root: pathlib.Path) -> dict:
         file_rows.append((rel, _sha256(path), now))
         symbol_rows.extend((rel, s.name, s.norm_name, s.kind, s.sig_hash, s.line) for s in symbols)
         for module in imports:
-            dst_dir = import_to_dir(module, src_dir, known_dirs)
+            dst_dir = import_to_dir(module, src_dir, known_dirs, path.suffix)
             if dst_dir is None or dst_dir == src_dir:
                 continue
             edge_counts[(src_dir, dst_dir)] = edge_counts.get((src_dir, dst_dir), 0) + 1
@@ -230,7 +252,7 @@ def update_file(repo_root: pathlib.Path, rel_path: str) -> None:
         known_dirs |= {dir_of(row[0]) for row in conn.execute("SELECT path FROM files")}
         src_dir = dir_of(rel_path)
         for module in imports:
-            dst_dir = import_to_dir(module, src_dir, known_dirs)
+            dst_dir = import_to_dir(module, src_dir, known_dirs, path.suffix)
             if dst_dir is None or dst_dir == src_dir:
                 continue
             conn.execute(

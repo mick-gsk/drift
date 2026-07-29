@@ -87,7 +87,7 @@ def test_camel_case_and_snake_case_collide():
 
 def test_an_unsupported_suffix_yields_nothing():
     """A new file type stays silent until it is supported on purpose."""
-    assert extract.extract("func main() {}\n", ".go") == ([], [])
+    assert extract.extract("fn main() {}\n", ".rs") == ([], [])
 
 
 def test_line_numbers_point_at_the_declaration():
