@@ -15,7 +15,17 @@
 
 <sub>Not a mock-up — `bash demos/guard-in-30-seconds.sh` runs exactly this on your machine, in under a second.</sub>
 
-Restart Claude Code, then run `/drift:doctor`. Those two lines are the whole
+Restart Claude Code, then run `/drift:doctor` — it checks the install and, from
+the index it just built, names what is already defined twice in your repository:
+
+```text
+[x] index holds 1128 file(s)
+
+5 name(s) already defined in more than one place:
+  - _finding_key: scripts/ecosystem_check.py, scripts/triage_findings.py, src/drift/incremental.py
+```
+
+Those two lines are the whole
 install: the guard imports nothing but the standard library and runs from the
 plugin itself, so there is no `pip install`, no dependency to resolve and
 nothing to configure. It writes **nothing into your repositories** — the index

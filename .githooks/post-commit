@@ -37,8 +37,13 @@ if [ -f ".venv/Scripts/python.exe" ]; then
     PYTHON=".venv/Scripts/python.exe"
 elif [ -f ".venv/bin/python" ]; then
     PYTHON=".venv/bin/python"
-else
+elif command -v python >/dev/null 2>&1; then
     PYTHON="python"
+else
+    # macOS ships python3 and no `python`. Without this the hook warns on
+    # every commit made outside an activated venv, which is where a new
+    # contributor makes their first one.
+    PYTHON="python3"
 fi
 
 # Run the integration script.  A non-zero exit means a real error.

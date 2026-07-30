@@ -269,13 +269,32 @@ def _cmd_doctor(args) -> int:
     checks.append((usable, f"index schema version is {schema.SCHEMA_VERSION}"))
 
     file_count = 0
+    clusters: list[lookup.Cluster] = []
     if conn is not None and usable:
         file_count = conn.execute("SELECT COUNT(*) FROM files").fetchone()[0]
+        clusters = lookup.existing_duplicates(conn)
         conn.close()
     checks.append((file_count > 0, f"index holds {file_count} file(s)"))
 
     for ok, label in checks:
         print(f"[{'x' if ok else ' '}] {label}")
+
+    # Below the checks and deliberately outside the exit code: a repository
+    # that contains duplicates is a working guard, not a broken install.
+    #
+    # This is the one moment the guard can say something without waiting. It
+    # speaks on a few percent of edits by design, so a new user can work for
+    # days before hearing anything, and quiet-and-working is indistinguishable
+    # from broken. `doctor` is what the README tells them to run first.
+    if file_count > 0:
+        print()
+        if clusters:
+            print(f"{len(clusters)} name(s) already defined in more than one place:")
+            for cluster in clusters:
+                print(f"  - {cluster.display}: {', '.join(cluster.paths)}")
+        else:
+            print("no name is defined twice in this repository — nothing to reuse yet.")
+
     return 0 if all(ok for ok, _ in checks) else 1
 
 

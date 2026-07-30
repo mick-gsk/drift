@@ -109,3 +109,53 @@ def test_doctor_fails_without_an_index(sample_repo):
 
     assert result.returncode == 1
     assert "[ ]" in result.stdout
+
+
+def test_doctor_reports_duplicates_that_already_exist(sample_repo):
+    """The first run must say something true about the reader's own code.
+
+    `/drift:doctor` is what README.md tells a new user to run right after
+    installing. Reporting only that the plumbing works leaves them waiting for
+    a guard that speaks on a few percent of files.
+    """
+    (sample_repo / "src" / "api" / "schemas.py").write_text(
+        "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+    )
+    build.build_full(sample_repo)
+
+    result = _run("doctor", "--repo", str(sample_repo))
+
+    assert "validate_token" in result.stdout
+    assert "src/auth/tokens.py" in result.stdout
+
+
+def test_doctor_stays_green_when_duplicates_exist(sample_repo):
+    """Findings are information, not a broken installation.
+
+    The exit code answers one question — is the guard working — and a
+    repository with duplicates in it is precisely a working guard.
+    """
+    (sample_repo / "src" / "api" / "schemas.py").write_text(
+        "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+    )
+    build.build_full(sample_repo)
+
+    assert _run("doctor", "--repo", str(sample_repo)).returncode == 0
+
+
+def test_doctor_says_so_when_it_found_nothing(sample_repo):
+    """Printing nothing would read as a step that did not run."""
+    build.build_full(sample_repo)
+
+    result = _run("doctor", "--repo", str(sample_repo))
+
+    assert "no name is defined twice" in result.stdout
+
+
+def test_doctor_without_an_index_reports_no_findings(sample_repo):
+    """Nothing to read from, so nothing may be claimed about the repository."""
+    result = _run("doctor", "--repo", str(sample_repo))
+
+    assert result.returncode == 1
+    assert "defined twice" not in result.stdout
+    assert "more than one place" not in result.stdout
