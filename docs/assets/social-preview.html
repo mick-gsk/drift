@@ -1,0 +1,85 @@
+<style>
+  /* Catppuccin Mocha — the same palette the demo GIF is rendered in, so the
+     card and the proof below it read as one thing. */
+  :root {
+    --base: #1e1e2e;
+    --mantle: #181825;
+    --text: #cdd6f4;
+    --dim: #7f849c;
+    --green: #a6e3a1;
+    --mauve: #cba6f7;
+    --surface: #313244;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 640px; }
+  body {
+    background: var(--base);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 74px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* A soft wash so the card is not a flat rectangle at thumbnail size. */
+  body::after {
+    content: "";
+    position: absolute;
+    inset: -40% -10% auto auto;
+    width: 780px; height: 780px;
+    background: radial-gradient(circle, rgba(203,166,247,.16), transparent 62%);
+    pointer-events: none;
+  }
+  .brand {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--mauve);
+    margin-bottom: 26px;
+  }
+  h1 {
+    font-size: 68px;
+    line-height: 1.08;
+    font-weight: 700;
+    letter-spacing: -.022em;
+    max-width: 17ch;
+  }
+  h1 em { font-style: normal; color: var(--mauve); }
+  .proof {
+    margin-top: 40px;
+    background: var(--mantle);
+    border: 1px solid var(--surface);
+    border-radius: 14px;
+    padding: 24px 28px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 25px;
+    line-height: 1.5;
+    max-width: 1010px;
+  }
+  .proof .k { color: var(--dim); }
+  .proof .hit { color: var(--green); }
+  .foot {
+    margin-top: 34px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 24px;
+    color: var(--dim);
+  }
+  .foot b { color: var(--text); font-weight: 500; }
+</style>
+
+<div class="brand">Drift</div>
+
+<h1>Your agent is about to build it <em>twice</em>.</h1>
+
+<div class="proof">
+  <span class="k">drift:</span><br>
+  <span class="hit">&nbsp;&nbsp;- `ValidateToken` already exists as `validate_token`</span><br>
+  <span class="hit">&nbsp;&nbsp;&nbsp;&nbsp;in src/auth/tokens.py:1</span>
+</div>
+
+<div class="foot">
+  Claude Code plugin &nbsp;·&nbsp; <b>8 languages, one index</b> &nbsp;·&nbsp; no dependencies &nbsp;·&nbsp; &lt;100&nbsp;ms
+</div>
