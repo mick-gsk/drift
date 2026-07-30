@@ -74,15 +74,16 @@ The guard is a separate module that imports only `sqlite3`, `ast` and `json` —
 no `click`, no `rich`, no ML stack, nothing from the analysis engine. That
 constraint is enforced by a test, not by intention.
 
-| Measured on the drift repository (344 Python files) | p50 | p95 |
-|---|---|---|
-| Before an edit to a new file | 70 ms | 72 ms |
-| After an edit to an existing file | 86 ms | 87 ms |
-| *Python interpreter startup alone, for reference* | *24 ms* | *29 ms* |
-| *`import drift.cli`, the path the guard avoids* | *3229 ms* | *3959 ms*  |
+The current latency and token figures live in one place, the
+[README's budget table](https://github.com/mick-gsk/drift#readme), and are
+produced by `python scripts/gates/measure_plugin_budget.py` into
+[`benchmark_results/plugin_budget.json`](https://github.com/mick-gsk/drift/blob/main/benchmark_results/plugin_budget.json).
 
-20 runs each, cold, macOS/arm64, Python 3.12 — recorded in
-[`benchmark_results/guard_baseline.json`](https://github.com/mick-gsk/drift/blob/main/benchmark_results/guard_baseline.json).
+They are deliberately not repeated here. This page carried its own copy for a
+day and it was already wrong — it still said "344 Python files" after the index
+grew to eight languages, and quoted hook timings from before the indexer stopped
+walking nested checkouts. A number worth publishing is worth having exactly one
+home.
 
 If the guard breaks, it stays silent and the session continues. It can report,
 but it can never block.
@@ -112,7 +113,8 @@ which you can also run directly.
 ## Troubleshooting
 
 **`/drift:doctor` shows `[ ]` for the index.** Run `drift-guard build` in the
-repository root. A full build of a 344-file repository takes about 6 seconds.
+repository root. Building this repository's own index — 1135 files across
+Python, TypeScript and JavaScript — takes about four seconds.
 
 **The guard never says anything.** That is the expected case for most edits —
 measured at 0–5.6 % of files across five real repositories. Run `/drift:doctor`:
