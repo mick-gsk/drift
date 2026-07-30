@@ -25,6 +25,17 @@ SKIP_DIRS = {
     ".tox",
     ".mypy_cache",
     ".pytest_cache",
+    # The list stayed Python-and-npm while the guard grew into Go, Rust, the
+    # JVM and C#. Each of these holds code nobody in the repository wrote.
+    "vendor",
+    "target",
+    "obj",
+    ".gradle",
+    ".next",
+    "Pods",
+    # A Claude Code plugin has no business indexing Claude Code's own state,
+    # least of all the worktrees it parks there.
+    ".claude",
 }
 
 
@@ -127,16 +138,40 @@ def import_to_dir(
     return module_to_dir(specifier, known_dirs)
 
 
+def _nested_checkout_prefixes(repo_root: pathlib.Path) -> tuple[str, ...]:
+    """Paths below the root that are their own git checkout.
+
+    A worktree, a submodule and a vendored clone are all somebody else's source
+    tree. A nested `.git` is what the three have in common, so one rule covers
+    them instead of a list of directory names guessed in advance — worktrees
+    mark themselves with a `.git` file, clones and submodules with a directory.
+    """
+    prefixes: list[str] = []
+    for marker in repo_root.rglob(".git"):
+        parent = marker.parent
+        if parent == repo_root:
+            continue
+        rel = parent.relative_to(repo_root).as_posix()
+        # Anything already inside a known checkout needs no second entry.
+        if not any(rel == seen or rel.startswith(f"{seen}/") for seen in prefixes):
+            prefixes.append(rel)
+    return tuple(prefixes)
+
+
 def _iter_source_files(repo_root: pathlib.Path):
+    nested = _nested_checkout_prefixes(repo_root)
     for path in sorted(repo_root.rglob("*")):
         if path.suffix not in extract.GUARDED_SUFFIXES:
             continue
         rel = path.relative_to(repo_root)
         if any(part in SKIP_DIRS for part in rel.parts):
             continue
+        posix = rel.as_posix()
+        if any(posix.startswith(f"{prefix}/") for prefix in nested):
+            continue
         if not path.is_file():
             continue
-        yield rel.as_posix(), path
+        yield posix, path
 
 
 def _sha256(path: pathlib.Path) -> str:

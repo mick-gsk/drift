@@ -171,3 +171,88 @@ def test_removing_an_import_removes_its_edge(sample_repo):
     conn.close()
 
     assert hits, "the edge outlived the import that created it"
+
+
+def test_nested_repositories_are_not_this_repository(sample_repo):
+    """A worktree, submodule or vendored clone is somebody else's source.
+
+    Measured on drift itself: 1041 of 2169 indexed files — 48 % — were copies
+    of the repository under `.claude/worktrees/`, and the build took 5400 ms
+    instead of 4216 ms. Anything that enumerates the index rather than
+    answering one per-edit question then sees every finding twice. See #797.
+
+    A nested `.git` is what worktrees, submodules and vendored clones have in
+    common, so one rule covers all three instead of a list of names guessed in
+    advance. Worktrees mark themselves with a `.git` file, clones with a
+    directory; both count.
+    """
+    nested = sample_repo / "vendored" / "otherlib"
+    (nested / ".git").mkdir(parents=True)
+    (nested / "copy.py").write_text(
+        "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+    )
+    worktree = sample_repo / ".worktrees" / "wip"
+    worktree.mkdir(parents=True)
+    (worktree / ".git").write_text("gitdir: ../../.git/worktrees/wip\n", encoding="utf-8")
+    (worktree / "copy.py").write_text(
+        "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+    )
+
+    build.build_full(sample_repo)
+    conn = schema.connect(sample_repo)
+    paths = {row[0] for row in conn.execute("SELECT path FROM files")}
+
+    assert not [p for p in paths if p.startswith("vendored/")], sorted(paths)
+    assert not [p for p in paths if p.startswith(".worktrees/")], sorted(paths)
+    assert "src/auth/tokens.py" in paths, "the repository's own source still indexes"
+
+
+def test_language_specific_build_output_is_skipped(sample_repo):
+    """The skip list has to keep up with the languages the guard reads.
+
+    It covered Python and npm while the guard grew into Go, Rust, the JVM and
+    C#. Their build output is code nobody in this repository wrote or edits.
+    """
+    for directory in ("vendor", "target", "obj", ".claude"):
+        out = sample_repo / directory / "pkg"
+        out.mkdir(parents=True)
+        (out / "generated.py").write_text("def widget_maker():\n    pass\n", encoding="utf-8")
+
+    build.build_full(sample_repo)
+    conn = schema.connect(sample_repo)
+    paths = {row[0] for row in conn.execute("SELECT path FROM files")}
+
+    assert not [p for p in paths if "generated.py" in p], sorted(paths)
+
+
+def test_a_copied_tree_does_not_silence_the_guard(sample_repo):
+    """The consequence #797 is actually about, asserted end to end.
+
+    A copy that carries its own manifest is already harmless: `_first_real_match`
+    filters candidates by package root before it counts them, so such a copy was
+    never a candidate. A copy *without* one — a `cp -r`, a backup directory, a
+    worktree of a project whose root has no manifest — inherits the parent's
+    package root and does count. Three of those plus the original is four
+    definitions, one above the ceiling at which a repeated name stops being
+    reported, and the duplicate the guard exists to catch disappears.
+
+    Verified against pristine `origin/main` before this fix: 4 files indexed,
+    duplicate reported False. With the fix: 1 file indexed, reported True.
+    """
+    from drift.guard import extract, lookup
+
+    for i in range(3):
+        copy = sample_repo / ".worktrees" / f"wt{i}" / "src" / "auth"
+        copy.mkdir(parents=True)
+        (sample_repo / ".worktrees" / f"wt{i}" / ".git").write_text("gitdir: x\n", encoding="utf-8")
+        (copy / "tokens.py").write_text(
+            "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+        )
+
+    build.build_full(sample_repo)
+    conn = schema.connect(sample_repo)
+    symbols, _ = extract.extract("def validate_token(token, audience):\n    return True\n", ".py")
+
+    hits = lookup.find_duplicates(conn, "src/api/schemas.py", symbols)
+
+    assert hits, "the guard must still report the duplicate it was built to catch"
