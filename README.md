@@ -11,6 +11,10 @@
 /plugin install drift@drift
 ```
 
+<img src="https://raw.githubusercontent.com/mick-gsk/drift/main/demos/guard.gif" alt="A Go function named ValidateToken is written; drift tells the agent that validate_token already exists in a Python file" width="900">
+
+<sub>Not a mock-up — `bash demos/guard-in-30-seconds.sh` runs exactly this on your machine, in under a second.</sub>
+
 Restart Claude Code, then run `/drift:doctor`. Those two lines are the whole
 install: the guard imports nothing but the standard library and runs from the
 plugin itself, so there is no `pip install`, no dependency to resolve and
