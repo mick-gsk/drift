@@ -18,6 +18,13 @@ class Hit(NamedTuple):
     message: str
 
 
+class Cluster(NamedTuple):
+    """One name that is already defined in more than one place."""
+
+    display: str
+    paths: tuple[str, ...]
+
+
 #: Path segments whose contents repeat names on purpose. Measured against five
 #: real repositories: fastapi's `docs_src/` defines `Item` in over a hundred
 #: tutorial files, date-fns ships the same example under `cjs/`, `cts/`, `esm/`,
@@ -139,6 +146,55 @@ def find_duplicates(
             )
         )
     return hits
+
+
+def existing_duplicates(conn: sqlite3.Connection, limit: int = 5) -> list[Cluster]:
+    """Names already defined more than once in the tree as it stands today.
+
+    The guard is quiet by design, and measurably so: replayed over five real
+    repositories it speaks on 0–5.6 % of files. That is the correct behaviour
+    and it has a cost — someone who installs the plugin may work for days
+    before hearing anything, and a guard that is working and quiet looks
+    exactly like a guard that is broken. This reads what the index already
+    holds, so the first run can say something true about the reader's own code
+    instead of asking for patience.
+
+    Every rule the hot path applies is applied here too: stopwords, minimum
+    name length, dunder names, kind groups, package boundaries, directories
+    that repeat by design, and the ceiling above which a repeated name is a
+    convention rather than an accident. A report that flagged what the guard
+    ignores would promise findings the guard never delivers.
+    """
+    rows = conn.execute(
+        "SELECT s.norm_name, s.name, s.path, s.kind, COALESCE(f.package_root, '.')"
+        " FROM symbols s LEFT JOIN files f ON f.path = s.path"
+        " ORDER BY s.norm_name, s.path, s.line"
+    )
+
+    groups: dict[tuple[str, str, str], list[tuple[str, str]]] = {}
+    for norm_name, name, path, kind, package in rows:
+        if norm_name in extract.STOPWORDS:
+            continue
+        if len(norm_name) < MIN_DUPLICATE_NAME_LENGTH:
+            continue
+        if name.startswith("__") and name.endswith("__"):
+            continue
+        group = _KIND_GROUP.get(kind)
+        if group is None or repeats_by_design(path):
+            continue
+        groups.setdefault((norm_name, group, package), []).append((path, name))
+
+    clusters: list[Cluster] = []
+    for members in groups.values():
+        paths = sorted({path for path, _ in members})
+        if not 2 <= len(paths) <= MAX_DUPLICATE_OCCURRENCES:
+            continue
+        clusters.append(Cluster(display=members[0][1], paths=tuple(paths)))
+
+    # Widest spread first, then alphabetical, so an unchanged index always
+    # answers the same way — a report that reshuffles is a report nobody trusts.
+    clusters.sort(key=lambda c: (-len(c.paths), c.display))
+    return clusters[:limit]
 
 
 def _first_real_match(

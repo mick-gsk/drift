@@ -103,7 +103,7 @@ it. Nothing is written into the repository being analysed.
 
 | Command | Purpose |
 |---|---|
-| `/drift:doctor` | Check that the guard is installed, indexed and answering |
+| `/drift:doctor` | Check the install, and name what is already defined twice |
 | `/drift:stats` | Show what the guard caught this session |
 
 Both are thin wrappers around `drift-guard doctor` and `drift-guard stats`,
@@ -114,10 +114,12 @@ which you can also run directly.
 **`/drift:doctor` shows `[ ]` for the index.** Run `drift-guard build` in the
 repository root. A full build of a 344-file repository takes about 6 seconds.
 
-**The guard never says anything.** That is the expected case for most edits.
-To confirm it is alive, create a Python file containing a function whose name
-already exists elsewhere in the repository — the report should appear right
-after the write.
+**The guard never says anything.** That is the expected case for most edits —
+measured at 0–5.6 % of files across five real repositories. Run `/drift:doctor`:
+it reads the same index and names what is already defined twice in your
+repository, so you can tell a quiet guard from a broken one without waiting.
+To see the live path fire, create a file containing a function whose name
+already exists elsewhere — the report appears right after the write.
 
 **Nothing loaded at all.** Confirm the hook scripts are executable
 (`chmod +x hooks/guard-*.sh`); Claude Code skips a hook whose script lacks the

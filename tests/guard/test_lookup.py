@@ -281,3 +281,87 @@ def test_build_scripts_are_configuration_not_source():
     assert lookup.repeats_by_design("android-test/build.gradle.kts")
     assert lookup.repeats_by_design("project/build.gradle")
     assert not lookup.repeats_by_design("src/main/kotlin/okhttp3/Request.kt")
+
+
+def test_existing_duplicates_finds_nothing_in_a_clean_tree(sample_repo):
+    conn = _conn(sample_repo)
+
+    assert lookup.existing_duplicates(conn) == []
+
+
+def test_existing_duplicates_reports_a_name_defined_in_two_files(sample_repo):
+    (sample_repo / "src" / "api" / "schemas.py").write_text(
+        "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+    )
+    conn = _conn(sample_repo)
+
+    clusters = lookup.existing_duplicates(conn)
+
+    assert len(clusters) == 1
+    assert clusters[0].display == "validate_token"
+    assert set(clusters[0].paths) == {"src/auth/tokens.py", "src/api/schemas.py"}
+
+
+def test_existing_duplicates_crosses_the_language_boundary(sample_repo):
+    """Same normalisation as the live guard: Go finds Python."""
+    (sample_repo / "src" / "api" / "handler.go").write_text(
+        "package api\n\nfunc ValidateToken(token string) bool {\n\treturn true\n}\n",
+        encoding="utf-8",
+    )
+    conn = _conn(sample_repo)
+
+    clusters = lookup.existing_duplicates(conn)
+
+    assert len(clusters) == 1
+    assert set(clusters[0].paths) == {"src/auth/tokens.py", "src/api/handler.go"}
+
+
+def test_existing_duplicates_obeys_the_rules_the_live_guard_obeys(sample_repo):
+    """A report that flags what the guard ignores promises findings it never delivers.
+
+    Test files restate names by design and stopwords are not duplication —
+    both are suppressed on the hot path, so both are suppressed here.
+    """
+    (sample_repo / "tests").mkdir(exist_ok=True)
+    (sample_repo / "tests" / "test_tokens.py").write_text(
+        "def validate_token(a, b):\n    return True\n", encoding="utf-8"
+    )
+    (sample_repo / "src" / "api" / "b.py").write_text(
+        "def run():\n    return 1\n", encoding="utf-8"
+    )
+    (sample_repo / "src" / "db" / "c.py").write_text("def run():\n    return 1\n", encoding="utf-8")
+    conn = _conn(sample_repo)
+
+    flagged = {c.display for c in lookup.existing_duplicates(conn)}
+
+    assert "validate_token" not in flagged, "a test file must not create a duplicate"
+    assert "run" not in flagged, "stopword names are never duplication"
+
+
+def test_existing_duplicates_stops_at_the_convention_ceiling(sample_repo):
+    """Above the ceiling a repeated name is the shape of the codebase.
+
+    The same rule the hot path applies, for the same reason: saying it is worse
+    than saying nothing.
+    """
+    for name in ("api", "db", "services", "auth"):
+        target = sample_repo / "src" / name / "widget.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("def widget_factory(a):\n    return a\n", encoding="utf-8")
+    conn = _conn(sample_repo)
+
+    assert "widget_factory" not in {c.display for c in lookup.existing_duplicates(conn)}
+
+
+def test_existing_duplicates_is_stable_and_bounded(sample_repo):
+    for i in range(4):
+        for where in ("api", "db"):
+            target = sample_repo / "src" / where / f"dup{i}.py"
+            target.write_text(f"def widget_factory_{i}(a):\n    return a\n", encoding="utf-8")
+    conn = _conn(sample_repo)
+
+    first = lookup.existing_duplicates(conn, limit=2)
+    second = lookup.existing_duplicates(conn, limit=2)
+
+    assert len(first) == 2
+    assert first == second, "an unchanged index must not reshuffle its answer"

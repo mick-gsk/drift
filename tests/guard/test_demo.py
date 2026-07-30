@@ -62,4 +62,4 @@ def test_demo_never_touches_the_real_index_cache():
     source = DEMO.read_text(encoding="utf-8")
 
     assert "export DRIFT_CACHE_HOME=" in source
-    assert 'trap ' in source and "rm -rf" in source, "the temporary tree is cleaned up"
+    assert "trap " in source and "rm -rf" in source, "the temporary tree is cleaned up"
