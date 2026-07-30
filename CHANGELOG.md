@@ -14,9 +14,11 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - guard Rust, and stop conflating packages in a workspace
 - guard Java and Kotlin
 - guard C#
+- let `drift-guard doctor` name what is already defined twice, so the first run says something true
 
 ### Fixed
 
+- Stop assuming a command named `python` exists; three tests and the post-commit hook failed on any machine without an activated venv
 - Spread stale-index samples across the full indexed path range
 - Hook output now reaches the model. The hooks printed findings to stdout and exited 0, which for `PreToolUse` and `PostToolUse` reaches the transcript only — the guard's findings would never have arrived. Output goes through `hookSpecificOutput.additionalContext`, with the session tally on `systemMessage`
 - `schema.connect()` no longer advertises `Connection | None` for writers that cannot fail; readers use `connect()`, writers use `create()`
