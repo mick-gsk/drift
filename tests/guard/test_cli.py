@@ -159,3 +159,19 @@ def test_doctor_without_an_index_reports_no_findings(sample_repo):
     assert result.returncode == 1
     assert "defined twice" not in result.stdout
     assert "more than one place" not in result.stdout
+
+
+def test_doctor_says_which_copy_of_the_guard_answered(sample_repo):
+    """A shadowed guard must be diagnosable from the outside.
+
+    Without this, a guard running from an older `pip install drift-analyzer`
+    reports a schema mismatch and nothing that points at the cause — and its
+    failure mode is silence, which looks exactly like a guard that found
+    nothing. See #801.
+    """
+    build.build_full(sample_repo)
+
+    result = _run("doctor", "--repo", str(sample_repo))
+
+    assert "guard running from" in result.stdout
+    assert "drift/guard" in result.stdout.replace("\\", "/")
