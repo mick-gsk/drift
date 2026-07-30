@@ -1,0 +1,292 @@
+{
+  "runs": 3,
+  "repo": "/private/tmp/claude-501/-Users-moritzbecker-mick-self-opt/393b17ec-62ff-4b5d-b5f4-b7411bb9598d/scratchpad/wt-amph",
+  "tasks": {
+    "map-modules": {
+      "without": {
+        "n": 2,
+        "rate_limited": 2,
+        "turns": {
+          "median": 12.0,
+          "min": 12,
+          "max": 12,
+          "samples": [
+            12,
+            12
+          ]
+        },
+        "tool_calls": {
+          "median": 9.0,
+          "min": 9,
+          "max": 9,
+          "samples": [
+            9,
+            9
+          ]
+        },
+        "repeat_reads": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "samples": [
+            0,
+            0
+          ]
+        },
+        "ranged_reads": {
+          "median": 4.0,
+          "min": 4,
+          "max": 4,
+          "samples": [
+            4,
+            4
+          ]
+        },
+        "output_tokens": {
+          "median": 1540.5,
+          "min": 1481,
+          "max": 1600,
+          "samples": [
+            1600,
+            1481
+          ]
+        },
+        "api_ms": {
+          "median": 30181.5,
+          "min": 28952,
+          "max": 31411,
+          "samples": [
+            28952,
+            31411
+          ]
+        },
+        "cost_usd": {
+          "median": 0.47169725,
+          "min": 0.4649559999999999,
+          "max": 0.4784385000000001,
+          "samples": [
+            0.4784385000000001,
+            0.4649559999999999
+          ]
+        }
+      },
+      "with": {
+        "n": 2,
+        "rate_limited": 2,
+        "turns": {
+          "median": 12.0,
+          "min": 12,
+          "max": 12,
+          "samples": [
+            12,
+            12
+          ]
+        },
+        "tool_calls": {
+          "median": 9.0,
+          "min": 9,
+          "max": 9,
+          "samples": [
+            9,
+            9
+          ]
+        },
+        "repeat_reads": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "samples": [
+            0,
+            0
+          ]
+        },
+        "ranged_reads": {
+          "median": 0.0,
+          "min": 0,
+          "max": 0,
+          "samples": [
+            0,
+            0
+          ]
+        },
+        "output_tokens": {
+          "median": 1426.0,
+          "min": 1328,
+          "max": 1524,
+          "samples": [
+            1328,
+            1524
+          ]
+        },
+        "api_ms": {
+          "median": 114817.0,
+          "min": 26694,
+          "max": 202940,
+          "samples": [
+            202940,
+            26694
+          ]
+        },
+        "cost_usd": {
+          "median": 0.6016982500000001,
+          "min": 0.599527,
+          "max": 0.6038695000000001,
+          "samples": [
+            0.599527,
+            0.6038695000000001
+          ]
+        }
+      }
+    },
+    "find-symbol": {
+      "without": {
+        "n": 3,
+        "rate_limited": 3,
+        "turns": {
+          "median": 7,
+          "min": 6,
+          "max": 8,
+          "samples": [
+            8,
+            7,
+            6
+          ]
+        },
+        "tool_calls": {
+          "median": 4,
+          "min": 3,
+          "max": 4,
+          "samples": [
+            4,
+            4,
+            3
+          ]
+        },
+        "repeat_reads": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": [
+            0,
+            0,
+            0
+          ]
+        },
+        "ranged_reads": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": [
+            0,
+            0,
+            0
+          ]
+        },
+        "output_tokens": {
+          "median": 1166,
+          "min": 1062,
+          "max": 1696,
+          "samples": [
+            1166,
+            1696,
+            1062
+          ]
+        },
+        "api_ms": {
+          "median": 18989,
+          "min": 13623,
+          "max": 32702,
+          "samples": [
+            18989,
+            32702,
+            13623
+          ]
+        },
+        "cost_usd": {
+          "median": 0.270544,
+          "min": 0.269637,
+          "max": 0.302582,
+          "samples": [
+            0.270544,
+            0.302582,
+            0.269637
+          ]
+        }
+      },
+      "with": {
+        "n": 3,
+        "rate_limited": 3,
+        "turns": {
+          "median": 8,
+          "min": 6,
+          "max": 8,
+          "samples": [
+            8,
+            8,
+            6
+          ]
+        },
+        "tool_calls": {
+          "median": 4,
+          "min": 3,
+          "max": 5,
+          "samples": [
+            4,
+            5,
+            3
+          ]
+        },
+        "repeat_reads": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": [
+            0,
+            0,
+            0
+          ]
+        },
+        "ranged_reads": {
+          "median": 0,
+          "min": 0,
+          "max": 0,
+          "samples": [
+            0,
+            0,
+            0
+          ]
+        },
+        "output_tokens": {
+          "median": 1413,
+          "min": 1067,
+          "max": 1422,
+          "samples": [
+            1422,
+            1413,
+            1067
+          ]
+        },
+        "api_ms": {
+          "median": 17589,
+          "min": 16396,
+          "max": 19689,
+          "samples": [
+            17589,
+            19689,
+            16396
+          ]
+        },
+        "cost_usd": {
+          "median": 0.285609,
+          "min": 0.274974,
+          "max": 0.2859515,
+          "samples": [
+            0.285609,
+            0.2859515,
+            0.274974
+          ]
+        }
+      }
+    }
+  }
+}
