@@ -230,25 +230,40 @@ def test_the_guard_imports_only_the_standard_library():
     assert result.stdout.strip() == "ok"
 
 
-def test_bin_wrapper_works_without_an_installed_package():
+def test_bin_wrapper_works_without_an_installed_package(sample_repo):
     """`/drift:doctor` calls `drift-guard` as a bare command; bin/ makes that real.
 
     Claude Code puts a plugin's bin/ on PATH. Without this wrapper the two slash
     commands only work for users who separately ran `pip install drift-analyzer`.
+
+    The wrapper builds the index and then reports on it, both in a bare
+    environment. It used to run `doctor` alone against the checkout itself,
+    which passes only where a stray `.drift/` happens to sit next to the
+    source: `_bare_env()` keeps `DRIFT_CACHE_HOME`, the fixture points it at an
+    empty per-test directory, and `doctor` exits 1 on a missing index. On a
+    fresh clone — the state every new contributor is in — that test failed.
     """
     wrapper = HOOKS.parent / "bin" / "drift-guard"
 
     assert wrapper.exists()
     assert os.access(wrapper, os.X_OK), "bin/drift-guard must be executable"
 
+    built = subprocess.run(
+        [str(wrapper), "--repo", str(sample_repo), "build"],
+        capture_output=True,
+        text=True,
+        env=_bare_env(),
+    )
+    assert built.returncode == 0, built.stderr
+
     result = subprocess.run(
-        [str(wrapper), "--repo", str(HOOKS.parent), "doctor"],
+        [str(wrapper), "--repo", str(sample_repo), "doctor"],
         capture_output=True,
         text=True,
         env=_bare_env(),
     )
 
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 0, result.stdout + result.stderr
     assert "index" in result.stdout
 
 

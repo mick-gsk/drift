@@ -30,6 +30,7 @@ Short version: Drift installs as a Claude Code plugin and works inside the agent
 - make the slash commands answer to the names the docs promise
 - the session tally lost 97 % of its increments under concurrency
 - import edges outlived the imports that created them
+- stop indexing nested checkouts and other people's build output
 
 ## [2.51.1] - 2026-05-04
 
