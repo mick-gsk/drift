@@ -13,6 +13,7 @@ Covers:
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -90,7 +91,7 @@ class TestRunCommand:
         from drift.integrations.runner import run_command
 
         result = run_command(
-            ["python", "-c", "print('hello')"],
+            [sys.executable, "-c", "print('hello')"],
             repo_path=tmp_path,
             timeout_seconds=10,
         )
@@ -102,7 +103,7 @@ class TestRunCommand:
         from drift.integrations.runner import run_command
 
         result = run_command(
-            ["python", "-c", "import sys; print(sys.argv[1])", "{repo_path}"],
+            [sys.executable, "-c", "import sys; print(sys.argv[1])", "{repo_path}"],
             repo_path=tmp_path,
             timeout_seconds=10,
         )
@@ -122,7 +123,7 @@ class TestRunCommand:
         from drift.integrations.runner import run_command
 
         result = run_command(
-            ["python", "-c", "import time; time.sleep(30)"],
+            [sys.executable, "-c", "import time; time.sleep(30)"],
             repo_path=tmp_path,
             timeout_seconds=1,
         )
