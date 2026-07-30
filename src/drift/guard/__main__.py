@@ -261,6 +261,12 @@ def _cmd_doctor(args) -> int:
     repo_root = pathlib.Path(args.repo)
     checks: list[tuple[bool, str]] = []
 
+    # Which copy of the guard is answering. Without this line a guard shadowed
+    # by an older `pip install drift-analyzer` on PATH reports a schema
+    # mismatch and nothing that points at the cause — and the failure it
+    # produces is silence, which looks like a guard that found nothing (#801).
+    checks.append((True, f"guard running from {pathlib.Path(build.__file__).parent}"))
+
     index_file = schema.index_path(repo_root)
     checks.append((index_file.exists(), f"index present at {index_file}"))
 

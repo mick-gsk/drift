@@ -312,3 +312,77 @@ def test_slash_commands_are_named_the_way_the_documents_promise():
         assert f"/drift:{name}" in documented or name == "stats", (
             f"/drift:{name} is not the name the README promises"
         )
+
+
+def test_a_stale_drift_guard_on_path_does_not_shadow_the_plugin(sample_repo, tmp_path):
+    """Inside a plugin invocation, the plugin's own copy is the only right one.
+
+    A user with `drift-analyzer` installed from PyPI has a second `drift-guard`
+    on PATH, at whatever version they installed. That is not a hypothetical
+    audience — it is the tool's existing one. If their venv precedes the
+    plugin's `bin/`, every hook runs the pip guard regardless of which commit
+    the plugin is pinned to.
+
+    The index carries a schema version. An older guard fails `is_usable()`,
+    `_open_index` returns None, and every hook exits 0 with no output: the
+    guard goes silent, and silence is indistinguishable from having found
+    nothing. See #801.
+
+    This plants a `drift-guard` that would answer wrongly and asserts the hook
+    ignores it while CLAUDE_PLUGIN_ROOT says we are inside the plugin.
+    """
+    build.build_full(sample_repo)
+    (sample_repo / "src" / "api" / "schemas.py").write_text(
+        "def validate_token(token, audience):\n    return True\n", encoding="utf-8"
+    )
+
+    impostor_dir = tmp_path / "stale-venv" / "bin"
+    impostor_dir.mkdir(parents=True)
+    impostor = impostor_dir / "drift-guard"
+    impostor.write_text("#!/usr/bin/env bash\necho 'IMPOSTOR'\nexit 0\n", encoding="utf-8")
+    impostor.chmod(0o755)
+
+    env = _bare_env()
+    env["PATH"] = f"{impostor_dir}:{env['PATH']}"
+    env["CLAUDE_PLUGIN_ROOT"] = str(HOOKS.parent)
+
+    result = subprocess.run(
+        ["bash", str(HOOKS / "guard-post-edit.sh")],
+        input=json.dumps(
+            {"tool_input": {"file_path": str(sample_repo / "src" / "api" / "schemas.py")}}
+        ),
+        capture_output=True,
+        text=True,
+        cwd=sample_repo,
+        env=env,
+    )
+
+    assert "IMPOSTOR" not in result.stdout, "the plugin ran a foreign drift-guard"
+    assert "validate_token" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_path_still_wins_outside_a_plugin_invocation(sample_repo, tmp_path):
+    """Without CLAUDE_PLUGIN_ROOT this is the plain CLI, and PATH is correct.
+
+    The fix must not take the installed console script away from someone using
+    `drift-guard` directly.
+    """
+    impostor_dir = tmp_path / "bin"
+    impostor_dir.mkdir(parents=True)
+    impostor = impostor_dir / "drift-guard"
+    impostor.write_text("#!/usr/bin/env bash\necho 'FROM-PATH'\nexit 0\n", encoding="utf-8")
+    impostor.chmod(0o755)
+
+    env = _bare_env()
+    env["PATH"] = f"{impostor_dir}:{env['PATH']}"
+    env.pop("CLAUDE_PLUGIN_ROOT", None)
+
+    result = subprocess.run(
+        ["bash", "-c", f'. "{HOOKS}/_guard_lib.sh" && guard_resolve && echo "$GUARD_CMD"'],
+        capture_output=True,
+        text=True,
+        cwd=sample_repo,
+        env=env,
+    )
+
+    assert result.stdout.strip() == "drift-guard", result.stdout + result.stderr
