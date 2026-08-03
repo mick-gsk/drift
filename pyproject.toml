@@ -96,7 +96,7 @@ markdown = [
 ]
 # Enable MCP server mode for AI agent orchestration (Copilot, Cursor, Claude)
 mcp = [
-    "mcp[cli]>=1.2.0,<2.0",
+    "mcp[cli]>=1.2.0,<3.0",
 ]
 # Auto-apply patches for high-confidence findings (add_docstring, add_guard_clause)
 autopatch = [
